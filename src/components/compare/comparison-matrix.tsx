@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
 import { ScoreBadge } from "./score-badge";
 
@@ -27,17 +26,17 @@ function formatCapacity(min: number | null, max: number | null): string {
 
 export function ComparisonMatrix({ venues }: { venues: VenueData[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto -mx-0">
+      <table className="w-full text-sm border-collapse">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium text-muted-foreground">
+            <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium text-muted-foreground min-w-[80px]">
               項目
             </th>
             {venues.map((venue) => (
               <th
                 key={venue.id}
-                className="sticky top-0 min-w-[100px] px-3 py-2 text-center font-medium"
+                className="min-w-[100px] px-3 py-2 text-center font-medium"
               >
                 {venue.name}
               </th>
