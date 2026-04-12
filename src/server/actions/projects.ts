@@ -57,18 +57,27 @@ export async function updateProjectStep(projectId: string, step: number) {
   });
 }
 
-export async function updateConditions(
-  projectId: string,
-  conditions: {
-    area?: string[];
-    dateRange?: string;
-    guestCount?: number;
-    budget?: { min: number; max: number };
-    style?: string[];
-  },
-) {
+export async function updateConditions(conditions: {
+  area?: string[];
+  dateRange?: string;
+  guestCount?: number;
+  budget?: { min: number; max: number };
+  style?: string[];
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const membership = await prisma.projectMember.findFirst({
+    where: { userId: user.id, acceptedAt: { not: null } },
+    select: { projectId: true },
+  });
+  if (!membership) redirect("/dashboard");
+
   await prisma.project.update({
-    where: { id: projectId },
+    where: { id: membership.projectId },
     data: { conditions, currentStep: 2 },
   });
   revalidatePath("/dashboard");
