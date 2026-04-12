@@ -29,7 +29,7 @@ export function AcceptInviteForm({ invitationId }: AcceptInviteFormProps) {
   }
 
   return (
-    <Card className="shadow-[var(--shadow-soft)]">
+    <Card className="shadow-[var(--shadow-card)]">
       <CardContent className="space-y-4 p-6">
         <div className="flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">

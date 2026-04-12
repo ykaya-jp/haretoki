@@ -18,11 +18,11 @@ export default function Error({
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-[var(--shadow-soft)]">
+      <Card className="w-full max-w-md shadow-[var(--shadow-card)]">
         <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
-            <h2 className="font-serif text-lg font-bold">うまくいきませんでした</h2>
+            <h2 className="text-lg">うまくいきませんでした</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               ご不便をおかけして申し訳ありません。もう一度お試しください
             </p>

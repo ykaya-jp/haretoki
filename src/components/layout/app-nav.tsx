@@ -17,7 +17,7 @@ export function AppNav() {
     <header className="bg-primary">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         {/* Logo */}
-        <Link href="/dashboard" className="font-serif text-lg font-bold text-primary-foreground">
+        <Link href="/dashboard" className="text-lg text-primary-foreground">
           VenueLens
         </Link>
 

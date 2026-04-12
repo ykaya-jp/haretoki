@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-[var(--shadow-soft)]">
+      <Card className="w-full max-w-md shadow-[var(--shadow-card)]">
         <CardHeader className="text-center">
           <h1 className="font-serif text-2xl text-primary">VenueLens</h1>
           <p className="text-sm text-muted-foreground">

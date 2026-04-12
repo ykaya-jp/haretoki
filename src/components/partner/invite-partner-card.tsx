@@ -45,7 +45,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
   // Partner accepted
   if (partnerStatus?.accepted) {
     return (
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 font-serif text-base">
             <Users className="h-5 w-5 text-primary" />
@@ -79,7 +79,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
   // Partner invited but not yet accepted
   if (partnerStatus && !partnerStatus.accepted) {
     return (
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 font-serif text-base">
             <Users className="h-5 w-5 text-primary" />
@@ -108,7 +108,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
 
   // No partner — show invite form
   return (
-    <Card className="shadow-[var(--shadow-soft)]">
+    <Card className="shadow-[var(--shadow-card)]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 font-serif text-base">
           <Users className="h-5 w-5 text-primary" />

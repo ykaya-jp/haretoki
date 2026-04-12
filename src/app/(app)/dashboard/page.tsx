@@ -101,20 +101,20 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-xl font-bold">ダッシュボード</h1>
+      <h1 className="text-xl">ダッシュボード</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">見つけた式場</p>
-            <p className="mt-1 text-2xl font-bold text-primary">{venueCount}</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-primary">{venueCount}</p>
           </CardContent>
         </Card>
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">印象を記録</p>
-            <p className="mt-1 text-2xl font-bold text-secondary">
+            <p className="mt-1 text-2xl font-bold tabular-nums text-secondary">
               {ratedCount}
               <span className="text-sm text-muted-foreground">
                 {" "}
@@ -123,10 +123,10 @@ export default async function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">お気に入り</p>
-            <p className="mt-1 text-2xl font-bold text-accent">
+            <p className="mt-1 text-2xl font-bold tabular-nums text-accent">
               {shortlistedCount}
             </p>
           </CardContent>
@@ -156,7 +156,7 @@ export default async function DashboardPage() {
 
       {/* Next action */}
       {nextAction && !hasDecision && (
-        <Card className="border-l-4 border-l-accent shadow-[var(--shadow-soft)]">
+        <Card className="border-l-4 border-l-accent shadow-[var(--shadow-card)]">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
               {nextAction.message}
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link href="/venues">
-          <Card className="shadow-[var(--shadow-soft)] transition-all active:scale-[0.98] hover:shadow-md">
+          <Card className="shadow-[var(--shadow-card)] transition-all active:scale-[0.98] hover:shadow-[var(--shadow-card-hover)]">
             <CardContent className="flex items-center gap-3 p-4">
               <Plus className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium">式場を見つける</span>
@@ -182,7 +182,7 @@ export default async function DashboardPage() {
           </Card>
         </Link>
         <Link href="/compare">
-          <Card className="shadow-[var(--shadow-soft)] transition-all active:scale-[0.98] hover:shadow-md">
+          <Card className="shadow-[var(--shadow-card)] transition-all active:scale-[0.98] hover:shadow-[var(--shadow-card-hover)]">
             <CardContent className="flex items-center gap-3 p-4">
               <BarChart3 className="h-5 w-5 text-secondary" />
               <span className="text-sm font-medium">比較してみる</span>
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
       {/* Recent venues */}
       {venueCount > 0 && (
         <div>
-          <h2 className="mb-3 font-serif text-base font-semibold">
+          <h2 className="mb-3 text-base font-medium">
             最近チェックした式場
           </h2>
           <div className="space-y-2">
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
                   : null;
               return (
                 <Link key={venue.id} href={`/venues/${venue.id}`}>
-                  <Card className="shadow-[var(--shadow-soft)] transition-all active:scale-[0.98]">
+                  <Card className="shadow-[var(--shadow-card)] transition-all active:scale-[0.98]">
                     <CardContent className="flex items-center justify-between p-3">
                       <div>
                         <p className="font-medium">{venue.name}</p>
@@ -216,7 +216,7 @@ export default async function DashboardPage() {
                         </p>
                       </div>
                       {avgScore !== null && (
-                        <span className="text-lg font-bold text-accent">
+                        <span className="text-lg font-bold tabular-nums text-accent">
                           {avgScore.toFixed(1)}
                         </span>
                       )}

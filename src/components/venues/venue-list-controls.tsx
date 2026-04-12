@@ -88,7 +88,7 @@ export function VenueListControls({
     <div className="space-y-4">
       {/* Header with count and add button */}
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-xl font-bold">式場を見つける</h1>
+        <h1 className="text-xl">式場を見つける</h1>
         <Button
           variant={showForm ? "secondary" : "default"}
           size="sm"
@@ -111,7 +111,7 @@ export function VenueListControls({
 
       {/* Collapsible form */}
       {showForm && (
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardHeader>
             <CardTitle className="font-serif text-base">
               新しい式場を追加

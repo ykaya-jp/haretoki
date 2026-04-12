@@ -11,7 +11,7 @@ export default async function DecisionPage() {
   if (decision) {
     return (
       <div className="space-y-6">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 shadow-[var(--shadow-soft)]">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 shadow-[var(--shadow-card)]">
           <CardHeader className="text-center">
             <CardTitle className="font-serif text-2xl">
               おめでとうございます！
@@ -46,7 +46,7 @@ export default async function DecisionPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-xl font-bold">運命の式場を決めましょう</h1>
+      <h1 className="text-xl">運命の式場を決めましょう</h1>
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">

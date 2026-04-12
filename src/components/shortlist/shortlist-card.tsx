@@ -29,7 +29,7 @@ export function ShortlistCard({
   const avg = calcAverage(scores);
 
   return (
-    <Card className="shadow-[var(--shadow-soft)]">
+    <Card className="shadow-[var(--shadow-card)]">
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle className="font-serif text-base">{name}</CardTitle>

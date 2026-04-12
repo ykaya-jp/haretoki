@@ -9,7 +9,7 @@ export default async function ConditionsPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="font-serif text-xl font-bold">
+        <h1 className="text-xl">
           おふたりの理想を教えてください
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">

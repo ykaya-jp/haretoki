@@ -23,7 +23,7 @@ export function VenueCard({ venue }: { venue: VenueWithScores }) {
 
   return (
     <Link href={`/venues/${venue.id}`}>
-      <Card className="shadow-[var(--shadow-soft)] transition-all hover:shadow-md active:scale-[0.98]">
+      <Card className="shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]">
         <CardContent className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
             <span className="text-lg" role="img" aria-label="venue">
@@ -60,7 +60,7 @@ export function VenueCard({ venue }: { venue: VenueWithScores }) {
             {avgScore !== null && (
               <span
                 className={cn(
-                  "text-lg font-bold",
+                  "text-lg font-bold tabular-nums",
                   getScoreColor(avgScore),
                 )}
               >

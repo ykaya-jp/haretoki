@@ -39,7 +39,7 @@ export default async function VenueDetailPage({
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-xl font-bold">{venue.name}</h1>
+            <h1 className="text-xl">{venue.name}</h1>
             <VenueStatusSelect
               venueId={venue.id}
               currentStatus={venue.status}
@@ -75,7 +75,7 @@ export default async function VenueDetailPage({
 
       {/* Source URLs */}
       {venue.sourceUrls.length > 0 && (
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardHeader>
             <CardTitle className="font-serif text-base">参考リンク</CardTitle>
           </CardHeader>
@@ -97,7 +97,7 @@ export default async function VenueDetailPage({
       )}
 
       {/* Ratings */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">おふたりの印象</CardTitle>
         </CardHeader>
@@ -112,7 +112,7 @@ export default async function VenueDetailPage({
       </Card>
 
       {/* Estimates */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">見積もり</CardTitle>
         </CardHeader>
@@ -131,7 +131,7 @@ export default async function VenueDetailPage({
       </Card>
 
       {/* Visit Notes - Phase 2 placeholder */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">見学メモ</CardTitle>
         </CardHeader>

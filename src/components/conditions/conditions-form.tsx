@@ -129,7 +129,7 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
   return (
     <>
       {/* Area */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">エリア</CardTitle>
         </CardHeader>
@@ -143,7 +143,7 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
       </Card>
 
       {/* Date range */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">希望時期</CardTitle>
         </CardHeader>
@@ -160,7 +160,7 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
       </Card>
 
       {/* Guest count */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">ゲスト人数</CardTitle>
         </CardHeader>
@@ -187,7 +187,7 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
       </Card>
 
       {/* Budget */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">予算</CardTitle>
         </CardHeader>
@@ -221,7 +221,7 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
       </Card>
 
       {/* Ceremony style */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">挙式スタイル</CardTitle>
         </CardHeader>

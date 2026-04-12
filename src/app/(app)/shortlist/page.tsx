@@ -22,7 +22,7 @@ export default async function ShortlistPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-xl font-bold">お気に入りの式場</h1>
+      <h1 className="text-xl">お気に入りの式場</h1>
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">

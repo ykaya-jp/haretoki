@@ -48,7 +48,7 @@ export function DecisionForm({ venues }: DecisionFormProps) {
   }
 
   return (
-    <Card className="shadow-[var(--shadow-soft)]">
+    <Card className="shadow-[var(--shadow-card)]">
       <CardHeader>
         <CardTitle className="font-serif text-base">
           最終決定

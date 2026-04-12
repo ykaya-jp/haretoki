@@ -13,7 +13,7 @@ export default async function AcceptInvitePage() {
     <div className="flex min-h-[50dvh] items-center justify-center">
       <div className="w-full max-w-md space-y-6 text-center">
         <div>
-          <h1 className="font-serif text-xl font-bold">プロジェクトへの招待</h1>
+          <h1 className="text-xl">プロジェクトへの招待</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             「{invitation.projectName}」に招待されています
           </p>

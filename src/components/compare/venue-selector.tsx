@@ -106,7 +106,7 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
       </p>
 
       {/* Radar chart */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">レーダーチャート</CardTitle>
         </CardHeader>
@@ -117,7 +117,7 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
 
       {/* Estimate bar chart (between radar and matrix) */}
       {hasEstimateData && (
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardHeader>
             <CardTitle className="font-serif text-base">見積もり比較</CardTitle>
           </CardHeader>
@@ -128,7 +128,7 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
       )}
 
       {/* Comparison matrix */}
-      <Card className="shadow-[var(--shadow-soft)]">
+      <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">比較マトリクス</CardTitle>
         </CardHeader>
