@@ -1,10 +1,13 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import {
+  requireUser,
+  requireProjectMembership,
+  requireOwner,
+} from "@/server/auth";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -17,18 +20,8 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
     return { error: validation.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const membership = await prisma.projectMember.findFirst({
-    where: { userId: user.id, role: "owner", acceptedAt: { not: null } },
-    select: { projectId: true },
-  });
-  if (!membership)
-    return { error: { _form: ["プロジェクトオーナーのみ決定できます"] } };
+  const user = await requireUser();
+  const { projectId } = await requireOwner(user.id);
 
   await prisma.venue.update({
     where: { id: validation.data.selectedVenueId },
@@ -36,13 +29,13 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   });
 
   const decision = await prisma.decision.upsert({
-    where: { projectId: membership.projectId },
+    where: { projectId },
     update: {
       selectedVenueId: validation.data.selectedVenueId,
       rationale: validation.data.rationale ?? null,
     },
     create: {
-      projectId: membership.projectId,
+      projectId,
       selectedVenueId: validation.data.selectedVenueId,
       rationale: validation.data.rationale ?? null,
     },
@@ -55,17 +48,8 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
 }
 
 export async function getDecision() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const membership = await prisma.projectMember.findFirst({
-    where: { userId: user.id, acceptedAt: { not: null } },
-    select: { projectId: true },
-  });
-  if (!membership) return null;
+  const user = await requireUser();
+  const membership = await requireProjectMembership(user.id);
 
   return prisma.decision.findUnique({
     where: { projectId: membership.projectId },

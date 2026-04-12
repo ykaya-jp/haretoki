@@ -204,6 +204,7 @@ model EstimateItem {
 
   estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
 
+  @@index([estimateId])
   @@map("estimate_items")
 }
 
@@ -236,6 +237,7 @@ model VisitChecklistItem {
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
+  @@index([visitId])
   @@map("visit_checklist_items")
 }
 

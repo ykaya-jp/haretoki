@@ -1,23 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireUser } from "@/server/auth";
 import { ratingSchema } from "@/server/actions/rating-schema";
 import type { RatingInput } from "@/server/actions/rating-schema";
 import type { ScoreDimension } from "@/generated/prisma/client";
-
-// --- Auth helper ---
-
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return user;
-}
 
 // --- Server actions ---
 

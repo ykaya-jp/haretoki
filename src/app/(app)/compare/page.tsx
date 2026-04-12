@@ -43,12 +43,15 @@ export default async function ComparePage() {
       scores,
     };
 
+    // Use the latest estimate (getVenues now includes estimates sorted desc, take 1)
+    const latestEstimate = venue.estimates?.[0] ?? null;
+
     const matrixData: VenueData = {
       id: venue.id,
       name: venue.name,
       scores,
-      estimateTotal: null,
-      estimatePredicted: null,
+      estimateTotal: latestEstimate?.total ?? null,
+      estimatePredicted: latestEstimate?.predictedFinal ?? null,
       capacityMin: venue.capacityMin,
       capacityMax: venue.capacityMax,
       status: venue.status,

@@ -1,32 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
 import type { VenueStatus } from "@/generated/prisma/client";
-
-// --- Auth helpers ---
-
-async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return user;
-}
-
-async function requireProjectId(userId: string) {
-  const membership = await prisma.projectMember.findFirst({
-    where: { userId, acceptedAt: { not: null } },
-    select: { projectId: true },
-  });
-  if (!membership) redirect("/dashboard");
-  return membership.projectId;
-}
 
 // --- Server actions ---
 
@@ -37,7 +16,7 @@ export async function createVenue(input: VenueInput) {
   }
 
   const user = await requireUser();
-  const projectId = await requireProjectId(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const venue = await prisma.venue.create({
     data: {
@@ -60,11 +39,17 @@ export async function createVenue(input: VenueInput) {
 
 export async function getVenues() {
   const user = await requireUser();
-  const projectId = await requireProjectId(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const venues = await prisma.venue.findMany({
     where: { projectId },
-    include: { scores: true },
+    include: {
+      scores: true,
+      estimates: {
+        orderBy: { version: "desc" },
+        take: 1,
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -73,13 +58,13 @@ export async function getVenues() {
 
 export async function getVenue(id: string) {
   const user = await requireUser();
-  const projectId = await requireProjectId(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const venue = await prisma.venue.findFirst({
     where: { id, projectId },
     include: {
       scores: true,
-      estimates: { include: { items: true } },
+      estimates: { include: { items: true }, orderBy: { version: "desc" } },
       visits: {
         include: {
           ratings: true,
@@ -94,7 +79,7 @@ export async function getVenue(id: string) {
 
 export async function updateVenueStatus(id: string, status: VenueStatus) {
   const user = await requireUser();
-  const projectId = await requireProjectId(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   // Verify venue belongs to project
   const venue = await prisma.venue.findFirst({

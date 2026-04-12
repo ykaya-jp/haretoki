@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { VenueStatusSelect } from "@/components/venues/venue-status-select";
 import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
+import { EstimateSection } from "@/components/venues/estimate-section";
 import { getVenue } from "@/server/actions/venues";
 
 export default async function VenueDetailPage({
@@ -104,15 +105,22 @@ export default async function VenueDetailPage({
         </CardContent>
       </Card>
 
-      {/* Estimates - Phase 2 placeholder */}
+      {/* Estimates */}
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">見積もり</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Phase 2で見積もりPDF解析機能が追加されます
-          </p>
+          <EstimateSection
+            venueId={venue.id}
+            estimates={venue.estimates.map((e) => ({
+              ...e,
+              predictedFinal: e.predictedFinal,
+              items: e.items.map((item) => ({
+                ...item,
+              })),
+            }))}
+          />
         </CardContent>
       </Card>
 

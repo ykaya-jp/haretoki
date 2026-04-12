@@ -1,16 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireUser, requireProjectMembership } from "@/server/auth";
 
 export async function getOrCreateProject() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
 
   // Ensure user exists in DB
   await prisma.user.upsert({
@@ -51,6 +46,9 @@ export async function getOrCreateProject() {
 }
 
 export async function updateProjectStep(projectId: string, step: number) {
+  const user = await requireUser();
+  await requireProjectMembership(user.id);
+
   await prisma.project.update({
     where: { id: projectId },
     data: { currentStep: step },
@@ -64,20 +62,11 @@ export async function updateConditions(conditions: {
   budget?: { min: number; max: number };
   style?: string[];
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const membership = await prisma.projectMember.findFirst({
-    where: { userId: user.id, acceptedAt: { not: null } },
-    select: { projectId: true },
-  });
-  if (!membership) redirect("/dashboard");
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
 
   await prisma.project.update({
-    where: { id: membership.projectId },
+    where: { id: projectId },
     data: { conditions, currentStep: 2 },
   });
   revalidatePath("/dashboard");
