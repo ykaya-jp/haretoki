@@ -81,5 +81,10 @@ docs/            # 仕様書・設計ドキュメント
 - エラーメッセージ・バリデーションメッセージは日本語で具体的に書く
 
 ## Lessons
-<!-- Claudeが間違えたときにここに追記する -->
-<!-- 形式: - [日付] 状況 → 正しい方法 -->
+- [2026-04-13] Button/InputのデフォルトサイズがMVPでh-8(32px)だった → モバイルでは全タッチターゲットを44px(h-11)以上にする。shadcn/uiのdefaultサイズを上書きすること
+- [2026-04-13] iOS SafeArea未対応でボトムナビがホームインジケーターに隠れた → `env(safe-area-inset-bottom)` を固定要素のpaddingに必ず入れる
+- [2026-04-13] Server Componentのページ遷移が遅くユーザーがストレスを感じた → loading.tsxスケルトンを必ず用意する。フィルタ・検索はクライアントサイドで処理する
+- [2026-04-13] error.tsxなしでServer Actionエラーが白画面になった → app/(app)/error.tsx と global-error.tsx を最初から用意する
+- [2026-04-13] requireUser/requireProjectIdが各ファイルにコピペされセキュリティ穴(updateProjectStepに認証なし)が発生 → 共通ヘルパーに統一すること
+- [2026-04-13] .envにプレースホルダーDBURLがあるとprisma.config.tsが.env.localより先に読む → .envにDB URLを書かない。prisma.config.tsでdotenv({path: '.env.local'})を先に読む
+- [2026-04-13] 評価ラベル「口コミ」が花嫁視点で意味不明だった → ユーザー向けラベルは実際の行動に合わせる(「総合印象」に変更)
