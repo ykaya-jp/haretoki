@@ -59,19 +59,27 @@ docs/            # 仕様書・設計ドキュメント
 - Supabase の型は `npx supabase gen types typescript --project-id <id> > src/types/supabase.ts` で自動生成する。手書きしない
 
 ## Domain Model（主要エンティティ）
-- Venue: 式場の基本情報（名前、住所、アクセス、収容人数、特徴）
-- Plan: 式場が提供するプラン（挙式のみ、挙式+披露宴、費用内訳）
-- Review: ユーザーの見学メモ・評価（スコア、コメント、写真）
-- Comparison: 比較リスト（複数Venueの横並び比較）
-- Couple: 夫婦のアカウント。2ユーザーで1つのCoupleを共有
+- Project: カップル単位のプロジェクト。ProjectMember(owner/partner)で共有
+- Venue: 式場の基本情報（名前、住所、アクセス、収容人数、ステータス）
+- VenueScore: 式場の評価スコア（次元×ソース別、UNIQUE制約あり）
+- Estimate / EstimateItem: 見積もり（バージョン管理、カテゴリ別項目）
+- Visit / VisitRating / VisitNote: 見学記録（チェックリスト、メモ、写真、評価）
+- Decision: 最終決定（プロジェクトにつき1件、理由記録付き）
+- 詳細は [docs/superpowers/specs/2026-04-12-venuelens-design.md](docs/superpowers/specs/2026-04-12-venuelens-design.md) のData Model参照
 
 ## UI/UX Rules
+- IMPORTANT: 詳細は [docs/ux-guidelines.md](docs/ux-guidelines.md) を参照。以下は最重要ルールのみ
 - IMPORTANT: モバイルファースト。375px幅を基準に設計する
-- 式場の写真が主役。画像は aspect-ratio を統一し、Skeleton で読み込み中を表示する
-- タップターゲットは最低 44x44px
-- 1画面の主要な選択肢は 5〜7個以内（ヒックの法則）
-- 日本語コンテンツ: Noto Sans JP、本文 16px 以上、改行位置に注意
-- ダークモード対応
+- IMPORTANT: 全タッチターゲットは最低44px（h-11）。shadcn/uiのdefaultを上書き済み
+- IMPORTANT: 全タップに即時フィードバック（active:scale, active:bg-muted）
+- IMPORTANT: 固定要素にはiOS SafeArea（env(safe-area-inset-bottom)）を適用
+- 情報密度は高めに保つ（日本ユーザーは「情報量 = 信頼」）
+- 費用は概算でも数字を見せる。「お問い合わせください」は禁止
+- UIコピーは丁寧体（「予約する」→「見学してみる」）、急かさないトーン
+- 式場カードには写真・価格帯・収容人数・エリア・スタイルタグを表示
+- 新しいページには必ず loading.tsx（スケルトン）と空ステート（CTA付き）を用意
+- フィードバック: Sonner（トースト）でServer Action結果を通知
+- ダークモード対応（Phase 5）
 
 ## Conventions
 - 新しいページを追加したら、対応するテストファイルを tests/ に作成する
@@ -81,5 +89,11 @@ docs/            # 仕様書・設計ドキュメント
 - エラーメッセージ・バリデーションメッセージは日本語で具体的に書く
 
 ## Lessons
-<!-- Claudeが間違えたときにここに追記する -->
-<!-- 形式: - [日付] 状況 → 正しい方法 -->
+詳細は [docs/lessons.md](docs/lessons.md) を参照。CLAUDE.mdにはルール化された要点のみ記載:
+- IMPORTANT: 全タッチターゲットは44px(h-11)以上。shadcn/uiのdefaultサイズをプロジェクトレベルで上書きする
+- IMPORTANT: 固定要素（ボトムナビ等）には `env(safe-area-inset-bottom)` を必ず適用する
+- 新しいページを追加したら `loading.tsx` も必ず用意する。Server Component遷移の白画面を防ぐ
+- `app/(app)/error.tsx` と `global-error.tsx` はプロジェクト初期に作成する
+- 認証ヘルパーは `src/server/auth.ts` に統一。各Server Actionファイルにコピペしない
+- `.env` にDB URLのプレースホルダーを書かない（prisma.config.tsが.env.localより先に読む）
+- ユーザー向けラベルはエンジニア用語ではなく、実際のユーザー行動に合わせて命名する

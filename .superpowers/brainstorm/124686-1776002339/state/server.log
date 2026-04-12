@@ -1,7 +1,0 @@
-{"type":"server-started","port":62306,"host":"0.0.0.0","url_host":"localhost","url":"http://localhost:62306","screen_dir":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/content","state_dir":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/state"}
-{"type":"screen-added","file":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/content/user-flow.html"}
-{"type":"screen-added","file":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/content/design-direction.html"}
-{"source":"user-event","type":"click","text":"B\n    \n      Luxury Navy（ラグジュアリー・ネイビー）\n      高級ホテルのような信頼感。ネイビー + ゴールドのジェンダーレスな配色。\n      \n        \n        \n        \n        \n        \n        \n      \n      \n        印象: 信頼感、高級感、ジェンダーレス\n        リスク: ウェディングらしさがやや弱い","choice":"b","id":null,"timestamp":1776003422312}
-{"source":"user-event","type":"click","text":"A\n    \n      Japanese Elegant（推奨）\n      見出し: Noto Serif JP（セリフ）+ 本文: Noto Sans JP（サンセリフ）\n      \n        見出しサンプル — 式場を比較する\n        本文サンプル — あなたの理想の結婚式場を見つけるためのスマートな比較ツール\n      \n      エレガントさと可読性のバランス。ウェディングの格式感あり。","choice":"typo-a","id":null,"timestamp":1776003433158}
-{"type":"screen-added","file":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/content/design-confirmed.html"}
-{"type":"screen-added","file":"/home/yusuke_kaya/projects/venuelens/.superpowers/brainstorm/124686-1776002339/content/all-screens.html"}

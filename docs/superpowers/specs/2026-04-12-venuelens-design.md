@@ -46,7 +46,7 @@ These are the primary axes the comparison engine optimizes for. Derived from res
 | **Hospitality** | Review scores, visit notes, planner impression | Strongly correlates with overall satisfaction |
 | **Cuisine** | Tasting notes, review scores, menu tier | Top regret factor when underweighted |
 | **Cost Transparency** | Initial estimate, predicted final cost, line-item breakdown | Average +¥1,020,000 gap between initial and final estimates |
-| **Reviews & Ratings** | Aggregated from Zexy, Wedding Park, Hanayume, Mynavi, Minna no Wedding | Multi-source aggregation provides balanced view |
+| **Overall Impression** | User's holistic rating after research and/or visit | Captures gut feeling beyond individual dimensions |
 | **Access / Location** | Station distance, shuttle, parking, barrier-free | Practical factor for guests, especially elderly/families |
 
 ### Tier 2 — Important Factors (expandable in comparison views)
@@ -66,7 +66,7 @@ These are the primary axes the comparison engine optimizes for. Derived from res
 - Guest amenities (waiting rooms, nursing rooms)
 - Ceremony style options (chapel, shrine, outdoor, civil)
 
-**Radar chart uses 6 Tier 1 dimensions**: atmosphere, hospitality, cuisine, cost, access, reviews.
+**Radar chart uses 6 Tier 1 dimensions**: atmosphere, hospitality, cuisine, cost, access, overall_impression.
 
 ---
 
@@ -455,11 +455,16 @@ SVG icons only (Lucide Icons). No emoji in structural UI elements.
 
 ### Mobile UX
 
-- **Swipe comparison** (Tinder-like) for quick initial screening
+- **All touch targets >= 44px** — buttons, inputs, chips, nav links, stars (WCAG / Apple HIG)
+- **iOS SafeArea support** — bottom nav respects `env(safe-area-inset-bottom)`
+- **`touch-action: manipulation`** on html element — eliminates 300ms tap delay
+- **Active state feedback on every tap** — `active:scale-[0.98]` on cards, `active:bg-muted` on nav
+- **Loading skeleton** on page transitions (loading.tsx) — never show blank screen
+- **Swipe comparison** (Tinder-like) for quick initial screening (Phase 5)
 - **Bottom sheet** for venue details (maintains context)
 - **Quick action bar** at venue: photo / memo / voice — one tap each
-- **Quick star rating** — Tier 1 dimensions visible, tap to rate
-- **Offline support** — notes and photos saved to IndexedDB (via Dexie.js), sync when online
+- **Quick star rating** — Tier 1 dimensions visible, tap to rate, auto-save with debounce
+- **Offline support** — notes and photos saved to IndexedDB (via Dexie.js), sync when online (Phase 5)
 - **GPS + timestamp** auto-attached to visit notes
 - **Visit checklist limited to 5 items** — avoids "phone out the whole time" problem
 
@@ -488,49 +493,70 @@ SVG icons only (Lucide Icons). No emoji in structural UI elements.
 
 ## Phased Delivery
 
-### Phase 1 — Core Comparison (MVP)
+> Revised 2026-04-13 based on 5-agent review (Mobile UX Audit, Feature Gap Analysis, Competitor Research, Tech Debt Review, Bride Persona Walkthrough). See `docs/superpowers/plans/2026-04-13-revised-roadmap.md` for full details.
 
-Available steps: 1, 2, 4, 5, 6
+### Phase 1 — Core Comparison (MVP) ✅ Implemented
 
 - Conditions setup (all optional, skip-friendly)
 - Manual venue entry + basic info
-- Star rating per dimension (user input)
-- Side-by-side comparison matrix
-- Radar chart (6 Tier 1 dimensions)
+- Star rating per dimension (6 Tier 1 dimensions)
+- Side-by-side comparison matrix with venue selector
+- Radar chart (responsive mobile/desktop)
 - Shortlist management
 - Final decision record
-- Mobile responsive
-- Auth (email + Google OAuth)
+- Mobile responsive with loading skeletons
+- Auth (Supabase Email)
+- Search, filter by status, sort venues
 
-### Phase 2 — AI Intelligence
+### Phase 1.5 — UX Foundation Fix (CRITICAL)
 
-Enhances steps: 2, 4
+Must be completed before other phases. Addresses CRITICAL/HIGH issues found in all 5 reviews.
 
-- URL content extraction (BeautifulSoup + Claude)
-- Review analysis → AI summary (no original text stored)
-- Estimate PDF upload + AI extraction + prediction
-- AI comparison analysis (inline)
-- Background job processing (Supabase Edge Functions)
+- Touch target normalization (all interactive elements >= 44px)
+- iOS SafeArea support (bottom nav, layout padding)
+- Error boundaries (error.tsx, global-error.tsx)
+- Toast notification system (shadcn/ui Sonner)
+- Auth helper unification + security fixes (updateProjectStep auth, getDecision membership check)
+- Conditions page: Server Component + Client Form split, saved values loaded on revisit, date_range field
+- Estimate manual input (resolve "—" in comparison matrix)
+- Shortlist discovery improvement (one-tap "add to shortlist" on venue cards)
+- Rating UX: rename "口コミ" → "総合印象", auto-save with debounce, help text per dimension
+- Clickable progress bar (navigate to completed steps)
+- Missing DB indexes (EstimateItem.estimateId, VisitChecklistItem.visitId)
 
-### Phase 3 — Visit Experience
+### Phase 2 — Partner & Estimate Intelligence
 
-Adds step: 3
+- Partner invitation flow (email invite → accept → real-time sync via Supabase Realtime)
+- Partner rating side-by-side display with disagreement highlighting
+- Estimate PDF upload → Claude API extraction → line item categorization
+- Estimate waterfall chart (initial → predicted upgrades → final)
+- Estimate comparison in matrix (category-level breakdown)
+- Background job processing (Supabase Edge Functions) for heavy AI operations
 
-- Visit scheduling + AI-generated checklist (5 items max)
-- Mobile quick capture (photo, memo, voice)
-- GPS + timestamp
-- Offline support (IndexedDB + background sync)
-- Smart reminders
+### Phase 3 — AI Intelligence & Review Analysis
 
-### Phase 4 — Polish & Sharing
+- URL auto-extraction (BeautifulSoup + Claude for structured data)
+- Review AI analysis (summaries only, no original text stored)
+- Per-dimension sentiment analysis (strengths / concerns)
+- AI comparison analysis inline on comparison board
+- Loading UI for AI operations (skeleton + progress)
 
-Enhances all steps:
+### Phase 4 — Visit Experience
 
-- Partner invitation + real-time sync (Supabase Realtime)
-- Partner rating comparison with disagreement detection
-- Swipe comparison (mobile)
-- Dark mode
-- PWA install prompt
+- Visit scheduling + calendar view
+- AI-generated checklist (venue-specific, max 5 items)
+- Mobile quick capture (photo, memo)
+- GPS + timestamp auto-attachment
+- Visit reminders (action-triggered: "3 days since visit")
+
+### Phase 5 — Polish & Delight
+
+- Decision ceremony (confetti animation, rich card with comparison journey)
+- Onboarding welcome flow (congratulations message, step-by-step guide)
+- Dark mode toggle (CSS variables already defined)
+- PWA (offline support via IndexedDB/Dexie.js, install prompt)
+- Mobile swipe comparison (Tinder-like, for 5+ venues)
+- Notification system (behavior-triggered, frequency control)
 
 ---
 
