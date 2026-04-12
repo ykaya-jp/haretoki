@@ -22,7 +22,7 @@ export default async function ShortlistPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl">お気に入りの式場</h1>
+      <h1 className="font-serif text-xl font-light tracking-wide">お気に入りの式場</h1>
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">
@@ -35,7 +35,7 @@ export default async function ShortlistPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-2">
             {shortlisted.map((venue) => (
               <ShortlistCard
                 key={venue.id}
@@ -48,7 +48,9 @@ export default async function ShortlistPage() {
 
           <div className="flex justify-center">
             <Link href="/decision">
-              <Button>いよいよ決定へ</Button>
+              <Button className="border border-[#C9A84C]/30 bg-primary text-primary-foreground shadow-[0_0_12px_rgba(201,168,76,0.15)] hover:shadow-[0_0_20px_rgba(201,168,76,0.25)]">
+                いよいよ決定へ
+              </Button>
             </Link>
           </div>
         </>

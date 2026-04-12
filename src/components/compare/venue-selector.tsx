@@ -11,7 +11,9 @@ import { VenueRadarChart } from "@/components/compare/radar-chart";
 import type { RadarChartData } from "@/components/compare/radar-chart";
 import { ComparisonMatrix, type VenueData } from "@/components/compare/comparison-matrix";
 import { EstimateBarChart } from "@/components/compare/estimate-bar-chart";
+import { ScoreProgressBars } from "@/components/compare/score-progress-bars";
 import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const RADAR_COLORS = ["#1E3A8A", "#3B82F6", "#A16207", "#059669", "#DC2626"];
 
@@ -80,10 +82,23 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
     (v) => v.initial !== null || v.predicted !== null
   );
 
+  const [showRadar, setShowRadar] = useState(false);
+
+  // Build progress bar data from radar data
+  const progressBarData = useMemo(
+    () =>
+      radarData.map((r) => ({
+        venueName: r.venueName,
+        color: r.color,
+        scores: r.scores as Record<string, number>,
+      })),
+    [radarData]
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Venue selector chips */}
-      <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
+      <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
         <div className="flex gap-2 pb-1">
           {venues.map((v) => (
             <button
@@ -105,19 +120,40 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
         {selectedIds.size}件を比較中（タップで切り替え・最低2件）
       </p>
 
-      {/* Radar chart */}
-      <Card className="shadow-[var(--shadow-card)]">
+      {/* Score progress bars — primary comparison view */}
+      <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
-          <CardTitle className="font-serif text-base">レーダーチャート</CardTitle>
+          <CardTitle className="font-serif text-base">スコア比較</CardTitle>
         </CardHeader>
         <CardContent>
-          <VenueRadarChart data={radarData} />
+          <ScoreProgressBars data={progressBarData} />
         </CardContent>
       </Card>
 
-      {/* Estimate bar chart (between radar and matrix) */}
+      {/* Radar chart — collapsible detail */}
+      <Card className="shadow-[var(--shadow-soft)]">
+        <button
+          type="button"
+          onClick={() => setShowRadar(!showRadar)}
+          className="flex w-full items-center justify-between px-6 py-4 text-left min-h-[44px]"
+        >
+          <span className="font-serif text-base">詳細チャート</span>
+          {showRadar ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+        {showRadar && (
+          <CardContent>
+            <VenueRadarChart data={radarData} />
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Estimate bar chart */}
       {hasEstimateData && (
-        <Card className="shadow-[var(--shadow-card)]">
+        <Card className="shadow-[var(--shadow-soft)]">
           <CardHeader>
             <CardTitle className="font-serif text-base">見積もり比較</CardTitle>
           </CardHeader>
@@ -128,7 +164,7 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
       )}
 
       {/* Comparison matrix */}
-      <Card className="shadow-[var(--shadow-card)]">
+      <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">比較マトリクス</CardTitle>
         </CardHeader>

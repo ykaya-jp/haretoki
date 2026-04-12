@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getDecision } from "@/server/actions/decisions";
 import { getVenues } from "@/server/actions/venues";
 import { DecisionForm } from "@/components/decision/decision-form";
+import { Celebration } from "@/components/decision/celebration";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function DecisionPage() {
   const decision = await getDecision();
@@ -11,30 +11,11 @@ export default async function DecisionPage() {
   if (decision) {
     return (
       <div className="space-y-6">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 shadow-[var(--shadow-card)]">
-          <CardHeader className="text-center">
-            <CardTitle className="font-serif text-2xl">
-              おめでとうございます！
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              おふたりの特別な場所が決まりました
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-xl font-bold text-primary">{decision.venue.name}</p>
-            {decision.rationale && (
-              <p className="text-sm text-muted-foreground">
-                {decision.rationale}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {new Date(decision.decidedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}に決定
-            </p>
-            <p className="text-sm text-muted-foreground">
-              素敵な一日になりますように
-            </p>
-          </CardContent>
-        </Card>
+        <Celebration
+          venueName={decision.venue.name}
+          rationale={decision.rationale}
+          decidedAt={decision.decidedAt}
+        />
       </div>
     );
   }
@@ -46,7 +27,7 @@ export default async function DecisionPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl">運命の式場を決めましょう</h1>
+      <h1 className="font-serif text-xl font-light tracking-wide">運命の式場を決めましょう</h1>
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">

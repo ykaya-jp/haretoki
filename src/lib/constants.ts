@@ -44,3 +44,17 @@ export function getScoreColor(score: number): string {
   if (score >= 3.0) return SCORE_COLORS.medium;
   return SCORE_COLORS.low;
 }
+
+/** Hex color values for score-based bar fills */
+export function getScoreColorHex(score: number): string {
+  if (score >= 4.0) return "#22c55e"; // green-500
+  if (score >= 3.0) return "#C9A84C"; // gold-warm
+  return "#ef4444"; // red-500
+}
+
+/** Background tint (10% opacity) for score cells */
+export function getScoreBgClass(score: number): string {
+  if (score >= 4.0) return "bg-green-500/10";
+  if (score >= 3.0) return "bg-amber-500/10";
+  return "bg-red-500/10";
+}
