@@ -27,8 +27,8 @@
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
   ],
-  "remoteUser": "node",
+  "remoteUser": "vscode",
   "forwardPorts": [3000, 5173, 8080]
 }

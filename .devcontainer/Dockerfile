@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # zshをデフォルトシェルに
-RUN chsh -s $(which zsh) node
+RUN chsh -s $(which zsh) vscode
 
-USER node
+USER vscode
 WORKDIR /workspace
