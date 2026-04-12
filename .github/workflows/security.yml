@@ -31,6 +31,8 @@ jobs:
           fail-on-severity: high
           # ライセンスもチェック（コピーレフト系をブロック）
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+        # Dependency graph が無効なリポジトリではスキップ
+        continue-on-error: true
 
   # ──────────────────────────────────────
   # CodeQL — コードの脆弱性パターンを静的解析
