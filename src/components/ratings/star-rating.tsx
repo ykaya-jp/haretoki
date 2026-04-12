@@ -36,7 +36,7 @@ export function StarRating({
             disabled={disabled}
             onClick={() => onChange?.(star)}
             className={cn(
-              "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+              "min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-90",
               disabled && "cursor-default opacity-50",
             )}
           >
