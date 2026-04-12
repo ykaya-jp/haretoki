@@ -3,24 +3,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EstimateForm } from "@/components/venues/estimate-form";
-import { Plus } from "lucide-react";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  venue_fee: "会場費",
-  cuisine: "料理・飲物",
-  attire: "衣裳",
-  photo_video: "写真・映像",
-  flowers: "装花",
-  performance: "演出",
-  av_equipment: "音響・照明",
-  other: "その他",
-};
+import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
+import { EstimateBreakdown } from "@/components/venues/estimate-breakdown";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { formatYen, formatYenFull } from "@/lib/utils";
 
 type EstimateItem = {
   id: string;
   category: string;
   itemName: string;
   amount: number;
+  tier?: string;
+  predictedUpgrade?: number | null;
 };
 
 type Estimate = {
@@ -33,14 +27,6 @@ type Estimate = {
   createdAt: Date;
 };
 
-function formatYen(amount: number): string {
-  return `¥${amount.toLocaleString("ja-JP")}`;
-}
-
-function formatYenMan(amount: number): string {
-  return `¥${Math.round(amount / 10000)}万`;
-}
-
 export function EstimateSection({
   venueId,
   estimates,
@@ -49,6 +35,7 @@ export function EstimateSection({
   estimates: Estimate[];
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const latest = estimates[0]; // already sorted by version desc
 
   if (!latest && !showForm) {
@@ -73,42 +60,74 @@ export function EstimateSection({
     <div className="space-y-4">
       {/* Latest estimate summary */}
       {latest && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Total prominently at top */}
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold tabular-nums">
-              {formatYenMan(latest.total)}
-            </span>
+            <div>
+              <span className="text-2xl font-bold tabular-nums">
+                {formatYen(latest.total)}
+              </span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                ({formatYenFull(latest.total)})
+              </span>
+            </div>
             <span className="text-xs text-muted-foreground">
               v{latest.version}・
               {latest.sourceType === "manual" ? "手入力" : latest.sourceType}
             </span>
           </div>
 
+          {/* Predicted final highlight */}
           {latest.predictedFinal && (
             <div className="rounded-md bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
-              <span className="text-sm text-amber-800 dark:text-amber-200">
-                最終予測額: {formatYenMan(latest.predictedFinal)}
-              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  最終予測額
+                </span>
+                <span className="text-lg font-bold tabular-nums text-amber-800 dark:text-amber-200">
+                  {formatYen(latest.predictedFinal)}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                準備として把握しておくと安心です
+              </p>
             </div>
           )}
 
-          {/* Line items */}
+          {/* Waterfall chart: show if predicted_final exists */}
+          {latest.predictedFinal && (
+            <EstimateWaterfallChart
+              initialTotal={latest.total}
+              predictedFinal={latest.predictedFinal}
+              items={latest.items.map((item) => ({
+                category: item.category,
+                itemName: item.itemName,
+                amount: item.amount,
+                predictedUpgrade: item.predictedUpgrade ?? null,
+              }))}
+            />
+          )}
+
+          {/* Collapsible category breakdown */}
           {latest.items.length > 0 && (
-            <div className="space-y-1">
-              {latest.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-muted-foreground">
-                    <span className="mr-1 inline-block rounded bg-muted px-1.5 py-0.5 text-xs">
-                      {CATEGORY_LABELS[item.category] ?? item.category}
-                    </span>
-                    {item.itemName}
-                  </span>
-                  <span className="tabular-nums">{formatYen(item.amount)}</span>
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowBreakdown(!showBreakdown)}
+                className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-sm text-muted-foreground active:bg-muted min-h-[44px]"
+              >
+                <span>内訳を見る（{latest.items.length}項目）</span>
+                {showBreakdown ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              {showBreakdown && (
+                <div className="mt-3">
+                  <EstimateBreakdown items={latest.items} />
                 </div>
-              ))}
+              )}
             </div>
           )}
 
@@ -129,7 +148,7 @@ export function EstimateSection({
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-sm text-muted-foreground hover:text-foreground min-h-[44px] px-2"
             >
               キャンセル
             </button>

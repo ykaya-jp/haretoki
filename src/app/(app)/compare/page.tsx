@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { VenueSelector } from "@/components/compare/venue-selector";
 import type { RadarChartData } from "@/components/compare/radar-chart";
-import type { VenueData } from "@/components/compare/comparison-matrix";
+import type { VenueData, CategoryEstimate } from "@/components/compare/comparison-matrix";
 import { Button } from "@/components/ui/button";
 import { getVenues } from "@/server/actions/venues";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
+
+type EstimateBarData = {
+  name: string;
+  initial: number | null;
+  predicted: number | null;
+};
 
 export default async function ComparePage() {
   const venues = await getVenues();
@@ -46,6 +52,19 @@ export default async function ComparePage() {
     // Use the latest estimate (getVenues now includes estimates sorted desc, take 1)
     const latestEstimate = venue.estimates?.[0] ?? null;
 
+    // Build category estimates from items
+    const categoryEstimates: CategoryEstimate[] = [];
+    if (latestEstimate?.items) {
+      const categoryMap = new Map<string, number>();
+      for (const item of latestEstimate.items) {
+        const current = categoryMap.get(item.category) ?? 0;
+        categoryMap.set(item.category, current + item.amount);
+      }
+      for (const [category, total] of categoryMap) {
+        categoryEstimates.push({ category, total });
+      }
+    }
+
     const matrixData: VenueData = {
       id: venue.id,
       name: venue.name,
@@ -55,6 +74,14 @@ export default async function ComparePage() {
       capacityMin: venue.capacityMin,
       capacityMax: venue.capacityMax,
       status: venue.status,
+      categoryEstimates:
+        categoryEstimates.length > 0 ? categoryEstimates : undefined,
+    };
+
+    const barData: EstimateBarData = {
+      name: venue.name,
+      initial: latestEstimate?.total ?? null,
+      predicted: latestEstimate?.predictedFinal ?? null,
     };
 
     return {
@@ -62,6 +89,7 @@ export default async function ComparePage() {
       name: venue.name,
       radarData,
       matrixData,
+      barData,
     };
   });
 
