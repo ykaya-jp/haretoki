@@ -47,7 +47,7 @@ export function ShortlistButton({
         "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full",
         "transition-colors active:bg-muted",
       )}
-      aria-label={isShortlisted ? "候補から外す" : "候補に追加"}
+      aria-label={isShortlisted ? "お気に入りから外す" : "お気に入りに追加"}
     >
       <Heart
         className={cn(

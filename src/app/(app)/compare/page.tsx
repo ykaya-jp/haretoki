@@ -18,10 +18,10 @@ export default async function ComparePage() {
   if (venues.length < 2) {
     return (
       <div className="space-y-6">
-        <h1 className="font-serif text-xl font-bold">比較ボード</h1>
+        <h1 className="font-serif text-xl font-bold">式場を比べてみましょう</h1>
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
-            比較するには2件以上の式場を登録してください。
+            式場を2件以上追加すると、ここで比べられるようになります
           </p>
           <Link href="/venues" className="mt-4 inline-block">
             <Button variant="outline">式場を探す</Button>
@@ -95,7 +95,7 @@ export default async function ComparePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-serif text-xl font-bold">比較ボード</h1>
+      <h1 className="font-serif text-xl font-bold">式場を比べてみましょう</h1>
       <VenueSelector venues={venueInfos} />
     </div>
   );

@@ -241,14 +241,14 @@ export function ConditionsForm({ initialConditions }: ConditionsFormProps) {
           onClick={() => router.push("/venues")}
           className="flex-1"
         >
-          スキップして式場を探す
+          あとで設定する
         </Button>
         <Button
           onClick={handleSave}
           disabled={isPending}
           className="flex-1"
         >
-          {isPending ? "保存中..." : "保存して次へ"}
+          {isPending ? "保存中..." : "保存して式場を探す"}
         </Button>
       </div>
     </>

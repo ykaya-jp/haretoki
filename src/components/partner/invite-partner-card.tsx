@@ -34,7 +34,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
     startTransition(async () => {
       const result = await invitePartner(email);
       if (result.success) {
-        toast.success("招待を送信しました");
+        toast.success("招待を送信しました 💌");
         setEmail("");
       } else {
         toast.error(result.error);
@@ -68,7 +68,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
               )}
             </div>
             <span className="shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
-              連携中
+              一緒に式場探し中
             </span>
           </div>
         </CardContent>
@@ -117,7 +117,7 @@ export function InvitePartnerCard({ partnerStatus }: InvitePartnerCardProps) {
       </CardHeader>
       <CardContent>
         <p className="mb-3 text-xs text-muted-foreground">
-          パートナーのメールアドレスを入力して招待しましょう。式場の評価や比較を一緒に進められます。
+          パートナーと一緒に式場を選びましょう。メールアドレスを入力して招待できます
         </p>
         <form onSubmit={handleSubmit} className="flex gap-2">
           <div className="flex-1">

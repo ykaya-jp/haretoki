@@ -24,7 +24,7 @@ export function DecisionForm({ venues }: DecisionFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedId) {
-      setError("式場を選択してください");
+      setError("式場を選んでください");
       return;
     }
     setError(null);
@@ -57,7 +57,7 @@ export function DecisionForm({ venues }: DecisionFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>式場を選択</Label>
+            <Label>おふたりの式場を選びましょう</Label>
             <div className="space-y-2">
               {venues.map((venue) => (
                 <label
@@ -79,12 +79,12 @@ export function DecisionForm({ venues }: DecisionFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rationale">決め手（任意）</Label>
+            <Label htmlFor="rationale">決め手を残しておきましょう（任意）</Label>
             <textarea
               id="rationale"
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
-              placeholder="この式場に決めた理由を記録できます"
+              placeholder="どんなところが決め手になりましたか？後から読み返すのも楽しいですよ"
               rows={3}
               className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
@@ -99,7 +99,7 @@ export function DecisionForm({ venues }: DecisionFormProps) {
             disabled={isPending || !selectedId}
             className="w-full bg-accent text-accent-foreground hover:bg-accent/80"
           >
-            {isPending ? "決定中..." : "この式場に決定する"}
+            {isPending ? "決定中..." : "この式場に決めます"}
           </Button>
         </form>
       </CardContent>

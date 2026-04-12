@@ -99,7 +99,7 @@ export default async function VenueDetailPage({
       {/* Ratings */}
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
-          <CardTitle className="font-serif text-base">評価</CardTitle>
+          <CardTitle className="font-serif text-base">おふたりの印象</CardTitle>
         </CardHeader>
         <CardContent>
           <VenueRatingsSection

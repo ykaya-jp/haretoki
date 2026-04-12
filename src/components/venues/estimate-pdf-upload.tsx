@@ -105,7 +105,7 @@ export function EstimatePdfUpload({
         setAnalysis(result.analysis);
         setPdfUrl(result.pdfUrl ?? null);
         setEditTotal(result.analysis.total.toString());
-        toast.success("見積もりの分析が完了しました");
+        toast.success("見積もりの分析が完了しました ✨");
       }
     } catch {
       toast.error("見積もりの分析に失敗しました");
@@ -153,7 +153,7 @@ export function EstimatePdfUpload({
         return;
       }
 
-      toast.success("見積もりを保存しました");
+      toast.success("見積もりを保存しました ✨");
       // Reset state
       setFile(null);
       setAnalysis(null);

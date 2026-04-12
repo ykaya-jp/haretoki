@@ -56,7 +56,10 @@ export default function SignupPage() {
         <CardHeader className="text-center">
           <h1 className="font-serif text-2xl text-primary">VenueLens</h1>
           <p className="text-sm text-muted-foreground">
-            新しいアカウントを作成
+            式場探し、はじめましょう
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            おふたりの理想の式場を見つける旅のスタートです
           </p>
         </CardHeader>
         <CardContent>
@@ -104,11 +107,11 @@ export default function SignupPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "登録中..." : "アカウント作成"}
+              {loading ? "準備中..." : "はじめる"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            既にアカウントをお持ちの方は{" "}
+            すでにアカウントをお持ちの方は{" "}
             <Link href="/login" className="text-primary underline">
               ログイン
             </Link>

@@ -168,7 +168,7 @@ export function VenueRatingsSection({
         )}
         {saveStatus === "saved" && (
           <span className="text-green-600 dark:text-green-400">
-            保存しました
+            印象を記録しました ✨
           </span>
         )}
         {saveStatus === "error" && (

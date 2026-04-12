@@ -88,7 +88,7 @@ export function VenueListControls({
     <div className="space-y-4">
       {/* Header with count and add button */}
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-xl font-bold">式場探索</h1>
+        <h1 className="font-serif text-xl font-bold">式場を見つける</h1>
         <Button
           variant={showForm ? "secondary" : "default"}
           size="sm"
@@ -103,7 +103,7 @@ export function VenueListControls({
           ) : (
             <>
               <Plus className="h-4 w-4" data-icon="inline-start" />
-              式場を追加
+              新しい式場を追加
             </>
           )}
         </Button>
@@ -188,7 +188,7 @@ export function VenueListControls({
       ) : (
         <p className="py-8 text-center text-sm text-muted-foreground">
           {venues.length === 0
-            ? "まだ式場が登録されていません"
+            ? "まだ式場がありません。気になる式場を追加してみましょう"
             : "該当する式場がありません"}
         </p>
       )}

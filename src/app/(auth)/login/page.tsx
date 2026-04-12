@@ -48,7 +48,10 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <h1 className="font-serif text-2xl text-primary">VenueLens</h1>
           <p className="text-sm text-muted-foreground">
-            アカウントにログイン
+            おかえりなさい
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            式場探しの続きを始めましょう
           </p>
         </CardHeader>
         <CardContent>

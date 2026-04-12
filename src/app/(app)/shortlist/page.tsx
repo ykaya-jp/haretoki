@@ -22,12 +22,12 @@ export default async function ShortlistPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-xl font-bold">候補リスト</h1>
+      <h1 className="font-serif text-xl font-bold">お気に入りの式場</h1>
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
-            式場一覧でハートをタップすると候補に追加されます
+            気になる式場にハートをつけると、ここに集まります。直感を大切にしてみてくださいね
           </p>
           <Link href="/venues" className="mt-4 inline-block">
             <Button variant="outline">式場一覧を見る</Button>
@@ -48,7 +48,7 @@ export default async function ShortlistPage() {
 
           <div className="flex justify-center">
             <Link href="/decision">
-              <Button>決定へ進む</Button>
+              <Button>いよいよ決定へ</Button>
             </Link>
           </div>
         </>

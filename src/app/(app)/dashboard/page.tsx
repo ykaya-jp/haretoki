@@ -68,34 +68,34 @@ export default async function DashboardPage() {
 
   if (venueCount === 0) {
     nextAction = {
-      message: "まずは気になる式場を追加してみましょう。名前だけでもOKです。",
+      message: "おふたりの式場探しをスタートしましょう。気になる式場の名前を入れるだけでOKです",
       href: "/venues",
-      label: "式場を追加する",
+      label: "最初の式場を追加する",
     };
   } else if (ratedCount === 0) {
     nextAction = {
-      message: `${venueCount}件の式場が登録されています。各式場を評価して比較しましょう。`,
+      message: "素敵な式場が見つかりましたね！見学の印象を残しておきましょう",
       href: `/venues/${venues[0].id}`,
-      label: "式場を評価する",
+      label: "印象を記録する",
     };
   } else if (ratedCount < venueCount) {
     const unrated = venues.find((v) => v.scores.length === 0);
     nextAction = {
-      message: `${ratedCount}/${venueCount}件を評価済み。残りの式場も評価しましょう。`,
+      message: "素敵な式場が見つかりましたね！見学の印象を残しておきましょう",
       href: unrated ? `/venues/${unrated.id}` : "/venues",
-      label: "未評価の式場を見る",
+      label: "印象を記録する",
     };
   } else if (venueCount >= 2 && shortlistedCount === 0) {
     nextAction = {
-      message: "全ての式場を評価しました！比較して候補を絞りましょう。",
+      message: "すべての式場を見比べてみましょう。お気に入りが見つかるかも",
       href: "/compare",
-      label: "比較ボードへ",
+      label: "比較してみる",
     };
   } else if (shortlistedCount > 0 && !hasDecision) {
     nextAction = {
-      message: `${shortlistedCount}件の候補があります。最終決定に進みましょう。`,
+      message: "候補が絞れてきましたね！おふたりで最終決定に進みましょう",
       href: "/decision",
-      label: "最終決定へ",
+      label: "いよいよ決定へ",
     };
   }
 
@@ -107,13 +107,13 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <Card className="shadow-[var(--shadow-soft)]">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">候補式場</p>
+            <p className="text-xs text-muted-foreground">見つけた式場</p>
             <p className="mt-1 text-2xl font-bold text-primary">{venueCount}</p>
           </CardContent>
         </Card>
         <Card className="shadow-[var(--shadow-soft)]">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">評価済み</p>
+            <p className="text-xs text-muted-foreground">印象を記録</p>
             <p className="mt-1 text-2xl font-bold text-secondary">
               {ratedCount}
               <span className="text-sm text-muted-foreground">
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
         </Card>
         <Card className="shadow-[var(--shadow-soft)]">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">最終候補</p>
+            <p className="text-xs text-muted-foreground">お気に入り</p>
             <p className="mt-1 text-2xl font-bold text-accent">
               {shortlistedCount}
             </p>
@@ -142,12 +142,12 @@ export default async function DashboardPage() {
           <CardContent className="flex items-center gap-3 p-4">
             <CheckCircle className="h-8 w-8 shrink-0 text-accent" />
             <div>
-              <p className="font-serif font-bold">式場が決定しています</p>
+              <p className="font-serif font-bold">おめでとうございます！式場が決まりました</p>
               <Link
                 href="/decision"
                 className="text-sm text-blue-200 underline"
               >
-                決定内容を確認する
+                決定の詳細を見る
               </Link>
             </div>
           </CardContent>
@@ -177,7 +177,7 @@ export default async function DashboardPage() {
           <Card className="shadow-[var(--shadow-soft)] transition-all active:scale-[0.98] hover:shadow-md">
             <CardContent className="flex items-center gap-3 p-4">
               <Plus className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">式場を追加</span>
+              <span className="text-sm font-medium">式場を見つける</span>
             </CardContent>
           </Card>
         </Link>
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
           <Card className="shadow-[var(--shadow-soft)] transition-all active:scale-[0.98] hover:shadow-md">
             <CardContent className="flex items-center gap-3 p-4">
               <BarChart3 className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-medium">比較する</span>
+              <span className="text-sm font-medium">比較してみる</span>
             </CardContent>
           </Card>
         </Link>
@@ -195,7 +195,7 @@ export default async function DashboardPage() {
       {venueCount > 0 && (
         <div>
           <h2 className="mb-3 font-serif text-base font-semibold">
-            最近の式場
+            最近チェックした式場
           </h2>
           <div className="space-y-2">
             {venues.slice(0, 5).map((venue) => {
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
                         <p className="font-medium">{venue.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {venue.location || "場所未設定"}
-                          {venue.scores.length === 0 && " · 未評価"}
+                          {venue.scores.length === 0 && " · 印象未記録"}
                         </p>
                       </div>
                       {avgScore !== null && (

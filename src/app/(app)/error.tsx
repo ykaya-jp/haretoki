@@ -22,9 +22,9 @@ export default function Error({
         <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
-            <h2 className="font-serif text-lg font-bold">エラーが発生しました</h2>
+            <h2 className="font-serif text-lg font-bold">うまくいきませんでした</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              問題が解決しない場合は、ページを再読み込みしてください
+              ご不便をおかけして申し訳ありません。もう一度お試しください
             </p>
           </div>
           <Button onClick={reset}>もう一度試す</Button>

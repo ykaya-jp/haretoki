@@ -44,7 +44,7 @@ export function VenueForm() {
         return;
       }
 
-      toast.success("式場を追加しました");
+      toast.success("式場を追加しました ✨");
       router.push(`/venues/${result.venue.id}`);
     } catch {
       setError("式場の登録に失敗しました");
@@ -117,7 +117,7 @@ export function VenueForm() {
       )}
 
       <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "登録中..." : "式場を追加"}
+        {loading ? "登録中..." : "この式場を追加する"}
       </Button>
     </form>
   );
