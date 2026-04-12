@@ -1,0 +1,58 @@
+# PRの変更ファイルに応じて自動でラベルを付ける設定
+# 使用: actions/labeler
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/app/**"
+          - "src/components/**"
+          - "src/hooks/**"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/server/**"
+          - "src/lib/**"
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "prisma/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "vitest.config.ts"
+          - "playwright.config.ts"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "Makefile"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "README.md"
+          - "CLAUDE.md"
+
+styling:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/*.css"
+          - "tailwind.config.*"
+          - "postcss.config.*"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+
+devcontainer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".devcontainer/**"
