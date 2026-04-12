@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { Noto_Sans_JP, Noto_Serif_JP, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -31,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" className={`${notoSansJP.variable} ${notoSerifJP.variable}`}>
+    <html lang="ja" className={cn(notoSansJP.variable, notoSerifJP.variable, "font-sans", geist.variable)}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {children}
       </body>
