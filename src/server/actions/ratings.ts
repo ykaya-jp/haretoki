@@ -111,3 +111,35 @@ export async function saveRatings(
 
   return { success: true as const };
 }
+
+/**
+ * Save ratings directly for a venue without requiring a visitId.
+ * Auto-creates a "completed" Visit if none exists.
+ */
+export async function saveDirectRatings(venueId: string, input: RatingInput) {
+  const parsed = ratingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.flatten() };
+  }
+
+  await requireUser();
+
+  // Find or create a visit for direct ratings
+  let visit = await prisma.visit.findFirst({
+    where: { venueId, status: "completed" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!visit) {
+    visit = await prisma.visit.create({
+      data: {
+        venueId,
+        status: "completed",
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  // Reuse existing saveRatings logic with the visit id
+  return saveRatings(venueId, visit.id, input);
+}

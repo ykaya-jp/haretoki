@@ -6,7 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
+import { VenueStatusSelect } from "@/components/venues/venue-status-select";
+import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
 import { getVenue } from "@/server/actions/venues";
 
 export default async function VenueDetailPage({
@@ -19,14 +20,25 @@ export default async function VenueDetailPage({
 
   if (!venue) notFound();
 
+  // Extract existing user_rating scores into a Record<dimension, score>
+  const existingScores: Record<string, number> = {};
+  for (const s of venue.scores) {
+    if (s.source === "user_rating") {
+      existingScores[s.dimension] = Number(s.score);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="font-serif text-xl font-bold">{venue.name}</h1>
-            <VenueStatusBadge status={venue.status} />
+            <VenueStatusSelect
+              venueId={venue.id}
+              currentStatus={venue.status}
+            />
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
@@ -79,36 +91,39 @@ export default async function VenueDetailPage({
         </Card>
       )}
 
-      {/* Placeholder sections for future tasks */}
+      {/* Ratings */}
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">評価</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            見学後に評価を追加できます
-          </p>
+          <VenueRatingsSection
+            venueId={venue.id}
+            initialScores={existingScores}
+          />
         </CardContent>
       </Card>
 
+      {/* Estimates - Phase 2 placeholder */}
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">見積もり</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            見積もりはまだ登録されていません
+            Phase 2で見積もりPDF解析機能が追加されます
           </p>
         </CardContent>
       </Card>
 
+      {/* Visit Notes - Phase 2 placeholder */}
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">見学メモ</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            見学メモはまだありません
+            Phase 2で見学メモ・写真記録機能が追加されます
           </p>
         </CardContent>
       </Card>
