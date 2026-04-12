@@ -95,6 +95,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
+ANTHROPIC_API_KEY=
 ```
 
 ## ブランチ運用
@@ -107,6 +108,10 @@ DATABASE_URL=
 | `docs/*` | ドキュメント更新 |
 
 コミットメッセージは [Conventional Commits](https://www.conventionalcommits.org/) に従う。
+
+## ドキュメント
+
+- [設計仕様書](docs/superpowers/specs/2026-04-12-venuelens-design.md)
 
 ## ライセンス
 

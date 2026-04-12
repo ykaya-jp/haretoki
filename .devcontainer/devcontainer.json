@@ -1,25 +1,34 @@
 {
-  "name": "venuelens-${localWorkspaceFolderBasename}",
-
-  // ★worktree対策：~/projects を同一パスで見せる
-  "workspaceMount": "source=${localEnv:HOME}/projects,target=${localEnv:HOME}/projects,type=bind,consistency=cached",
-  "workspaceFolder": "${localWorkspaceFolder}",
-
+  "name": "VenueLens Dev",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
+    "dockerfile": "Dockerfile"
   },
-
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "username": "vscode",
-      "upgradePackages": "true"
-    },
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
-    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
   },
-
-  "updateRemoteUserUID": true
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
+  ],
+  "remoteUser": "node",
+  "forwardPorts": [3000, 5173, 8080]
 }
