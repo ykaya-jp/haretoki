@@ -10,6 +10,7 @@ import { VenueStatusSelect } from "@/components/venues/venue-status-select";
 import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { getVenue } from "@/server/actions/venues";
+import { getPartnerRatings } from "@/server/actions/ratings";
 
 export default async function VenueDetailPage({
   params,
@@ -17,7 +18,10 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const venue = await getVenue(id);
+  const [venue, partnerRatingsData] = await Promise.all([
+    getVenue(id),
+    getPartnerRatings(id).catch(() => null),
+  ]);
 
   if (!venue) notFound();
 
@@ -101,6 +105,8 @@ export default async function VenueDetailPage({
           <VenueRatingsSection
             venueId={venue.id}
             initialScores={existingScores}
+            ownerRatings={partnerRatingsData?.ownerRatings}
+            partnerRatings={partnerRatingsData?.partnerRatings}
           />
         </CardContent>
       </Card>
