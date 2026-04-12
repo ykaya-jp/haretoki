@@ -142,7 +142,7 @@ export function VenueListControls({
               key={sf.value}
               onClick={() => setStatusFilter(sf.value)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors min-h-[36px]",
+                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors min-h-[44px]",
                 statusFilter === sf.value
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -163,7 +163,7 @@ export function VenueListControls({
               key={opt.value}
               onClick={() => setSortKey(opt.value)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors min-h-[32px]",
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors min-h-[44px]",
                 sortKey === opt.value
                   ? "bg-secondary text-secondary-foreground"
                   : "text-muted-foreground hover:text-foreground"

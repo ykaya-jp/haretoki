@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
+import { ShortlistButton } from "@/components/venues/shortlist-button";
 import { getScoreColor } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Venue, VenueScore } from "@/generated/prisma/client";
@@ -17,6 +18,8 @@ function calcAverageScore(scores: VenueScore[]): number | null {
 
 export function VenueCard({ venue }: { venue: VenueWithScores }) {
   const avgScore = calcAverageScore(venue.scores);
+
+  const isShortlisted = venue.status === "shortlisted" || venue.status === "selected";
 
   return (
     <Link href={`/venues/${venue.id}`}>
@@ -53,16 +56,22 @@ export function VenueCard({ venue }: { venue: VenueWithScores }) {
             </div>
           </div>
 
-          {avgScore !== null && (
-            <span
-              className={cn(
-                "shrink-0 text-lg font-bold",
-                getScoreColor(avgScore),
-              )}
-            >
-              {avgScore.toFixed(1)}
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {avgScore !== null && (
+              <span
+                className={cn(
+                  "text-lg font-bold",
+                  getScoreColor(avgScore),
+                )}
+              >
+                {avgScore.toFixed(1)}
+              </span>
+            )}
+            <ShortlistButton
+              venueId={venue.id}
+              isShortlisted={isShortlisted}
+            />
+          </div>
         </CardContent>
       </Card>
     </Link>

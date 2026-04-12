@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateVenueStatus } from "@/server/actions/venues";
 import type { VenueStatus } from "@/generated/prisma/client";
+import { toast } from "sonner";
 
 const STATUS_OPTIONS: { value: VenueStatus; label: string }[] = [
   { value: "researching", label: "調査中" },
@@ -29,6 +30,7 @@ export function VenueStatusSelect({
     setStatus(newStatus);
     startTransition(async () => {
       await updateVenueStatus(venueId, newStatus);
+      toast.success("ステータスを更新しました");
     });
   }
 
@@ -37,7 +39,7 @@ export function VenueStatusSelect({
       value={status}
       onChange={handleChange}
       disabled={isPending}
-      className="rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+      className="min-h-[44px] rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
     >
       {STATUS_OPTIONS.map((opt) => (
         <option key={opt.value} value={opt.value}>
