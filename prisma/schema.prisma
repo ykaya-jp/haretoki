@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProjectRole {
+  owner
+  partner
+}
+
+enum VenueStatus {
+  researching
+  visit_scheduled
+  visited
+  shortlisted
+  selected
+  rejected
+}
+
+enum ScoreDimension {
+  atmosphere
+  hospitality
+  cuisine
+  cost
+  access
+  reviews
+  dress
+  photo_video
+  flowers
+  staff_continuity
+  capacity
+  cancellation
+}
+
+enum ScoreSource {
+  zexy
+  wedding_park
+  hanayume
+  mynavi
+  minna_no_wedding
+  user_rating
+  ai_analysis
+}
+
+enum EstimateSourceType {
+  pdf_upload
+  manual
+  ai_extracted
+}
+
+enum EstimateItemCategory {
+  attire
+  cuisine
+  photo_video
+  flowers
+  performance
+  av_equipment
+  venue_fee
+  other
+}
+
+enum EstimateItemTier {
+  minimum
+  standard
+  premium
+  unknown
+}
+
+enum VisitStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum AiAnalysisType {
+  review_summary
+  estimate_prediction
+  comparison
+  visit_prep
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectMembers ProjectMember[]
+  visitRatings   VisitRating[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  conditions  Json?
+  currentStep Int      @default(1) @map("current_step")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members    ProjectMember[]
+  venues     Venue[]
+  estimates  Estimate[]
+  analyses   AiAnalysis[]
+  decisions  Decision[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId  String       @map("project_id") @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  role       ProjectRole
+  invitedAt  DateTime     @default(now()) @map("invited_at")
+  acceptedAt DateTime?    @map("accepted_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Venue {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String      @map("project_id") @db.Uuid
+  name           String
+  location       String?
+  accessInfo     String?     @map("access_info")
+  capacityMin    Int?        @map("capacity_min")
+  capacityMax    Int?        @map("capacity_max")
+  ceremonyStyles String[]    @map("ceremony_styles")
+  sourceUrls     String[]    @map("source_urls")
+  status         VenueStatus @default(researching)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scores    VenueScore[]
+  estimates Estimate[]
+  visits    Visit[]
+  analyses  AiAnalysis[]
+  decision  Decision?
+
+  @@index([projectId])
+  @@map("venues")
+}
+
+model VenueScore {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId     String         @map("venue_id") @db.Uuid
+  dimension   ScoreDimension
+  score       Decimal        @db.Decimal(2, 1)
+  source      ScoreSource
+  reviewCount Int            @default(0) @map("review_count")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, dimension, source])
+  @@index([venueId])
+  @@map("venue_scores")
+}
+
+model Estimate {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId        String             @map("venue_id") @db.Uuid
+  projectId      String             @map("project_id") @db.Uuid
+  version        Int                @default(1)
+  total          Int
+  predictedFinal Int?               @map("predicted_final")
+  sourceType     EstimateSourceType @map("source_type")
+  pdfUrl         String?            @map("pdf_url")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  venue   Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   EstimateItem[]
+
+  @@index([venueId])
+  @@index([projectId])
+  @@map("estimates")
+}
+
+model EstimateItem {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  estimateId         String               @map("estimate_id") @db.Uuid
+  category           EstimateItemCategory
+  itemName           String               @map("item_name")
+  amount             Int
+  tier               EstimateItemTier     @default(unknown)
+  predictedUpgrade   Int?                 @map("predicted_upgrade")
+  upgradeProbability Decimal?             @map("upgrade_probability") @db.Decimal(3, 2)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  @@map("estimate_items")
+}
+
+model Visit {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId     String      @map("venue_id") @db.Uuid
+  scheduledAt DateTime?   @map("scheduled_at")
+  status      VisitStatus @default(scheduled)
+  completedAt DateTime?   @map("completed_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  venue     Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checklist VisitChecklistItem[]
+  notes     VisitNote[]
+  ratings   VisitRating[]
+
+  @@index([venueId])
+  @@map("visits")
+}
+
+model VisitChecklistItem {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId   String    @map("visit_id") @db.Uuid
+  item      String
+  category  String?
+  checked   Boolean   @default(false)
+  checkedAt DateTime? @map("checked_at")
+  sortOrder Int       @default(0) @map("sort_order")
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@map("visit_checklist_items")
+}
+
+model VisitNote {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId     String   @map("visit_id") @db.Uuid
+  content     String
+  tags        String[]
+  locationLat Decimal? @map("location_lat") @db.Decimal(9, 6)
+  locationLng Decimal? @map("location_lng") @db.Decimal(9, 6)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  visit Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  media VisitNoteMedia[]
+
+  @@map("visit_notes")
+}
+
+model VisitNoteMedia {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitNoteId String   @map("visit_note_id") @db.Uuid
+  type        String
+  mediaUrl    String   @map("media_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  visitNote VisitNote @relation(fields: [visitNoteId], references: [id], onDelete: Cascade)
+
+  @@map("visit_note_media")
+}
+
+model VisitRating {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId   String         @map("visit_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  dimension ScoreDimension
+  score     Int
+  comment   String?
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([visitId, userId, dimension])
+  @@map("visit_ratings")
+}
+
+model AiAnalysis {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String?        @map("venue_id") @db.Uuid
+  projectId String         @map("project_id") @db.Uuid
+  type      AiAnalysisType
+  inputHash String?        @map("input_hash")
+  output    String
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  venue   Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, type])
+  @@map("ai_analyses")
+}
+
+model Decision {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String   @unique @map("project_id") @db.Uuid
+  selectedVenueId String   @unique @map("selected_venue_id") @db.Uuid
+  rationale       String?
+  decidedAt       DateTime @default(now()) @map("decided_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  venue   Venue   @relation(fields: [selectedVenueId], references: [id])
+
+  @@map("decisions")
+}

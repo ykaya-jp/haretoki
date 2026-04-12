@@ -27,3 +27,29 @@ supabase/.temp/
 
 # Superpowers brainstorm sessions
 .superpowers/
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Build
+/build
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+*.pem
+
+/src/generated/prisma
