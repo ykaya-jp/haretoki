@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-primary: 221.2 83.2% 53.3%;
+    --color-on-primary: 0 0% 100%;
+    --color-secondary: 217.2 91.2% 59.8%;
+    --color-accent: 40.6 90.5% 32.9%;
+    --color-background: 210 40% 98%;
+    --color-foreground: 222.2 84% 4.9%;
+    --color-foreground-muted: 215.4 16.3% 46.9%;
+    --color-muted: 228 33.3% 93.7%;
+    --color-border: 213.8 93.9% 87.8%;
+    --color-destructive: 0 72.2% 50.6%;
+    --color-success: 142.1 76.2% 36.3%;
+    --color-card: 0 0% 100%;
+    --color-ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+    --shadow-soft: 4px 4px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8);
+  }
+}
+
+@layer base {
+  body {
+    font-family: "Noto Sans JP", sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Noto Serif JP", serif;
+  }
+}
