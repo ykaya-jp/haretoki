@@ -81,10 +81,11 @@ docs/            # 仕様書・設計ドキュメント
 - エラーメッセージ・バリデーションメッセージは日本語で具体的に書く
 
 ## Lessons
-- [2026-04-13] Button/InputのデフォルトサイズがMVPでh-8(32px)だった → モバイルでは全タッチターゲットを44px(h-11)以上にする。shadcn/uiのdefaultサイズを上書きすること
-- [2026-04-13] iOS SafeArea未対応でボトムナビがホームインジケーターに隠れた → `env(safe-area-inset-bottom)` を固定要素のpaddingに必ず入れる
-- [2026-04-13] Server Componentのページ遷移が遅くユーザーがストレスを感じた → loading.tsxスケルトンを必ず用意する。フィルタ・検索はクライアントサイドで処理する
-- [2026-04-13] error.tsxなしでServer Actionエラーが白画面になった → app/(app)/error.tsx と global-error.tsx を最初から用意する
-- [2026-04-13] requireUser/requireProjectIdが各ファイルにコピペされセキュリティ穴(updateProjectStepに認証なし)が発生 → 共通ヘルパーに統一すること
-- [2026-04-13] .envにプレースホルダーDBURLがあるとprisma.config.tsが.env.localより先に読む → .envにDB URLを書かない。prisma.config.tsでdotenv({path: '.env.local'})を先に読む
-- [2026-04-13] 評価ラベル「口コミ」が花嫁視点で意味不明だった → ユーザー向けラベルは実際の行動に合わせる(「総合印象」に変更)
+詳細は [docs/lessons.md](docs/lessons.md) を参照。CLAUDE.mdにはルール化された要点のみ記載:
+- IMPORTANT: 全タッチターゲットは44px(h-11)以上。shadcn/uiのdefaultサイズをプロジェクトレベルで上書きする
+- IMPORTANT: 固定要素（ボトムナビ等）には `env(safe-area-inset-bottom)` を必ず適用する
+- 新しいページを追加したら `loading.tsx` も必ず用意する。Server Component遷移の白画面を防ぐ
+- `app/(app)/error.tsx` と `global-error.tsx` はプロジェクト初期に作成する
+- 認証ヘルパーは `src/server/auth.ts` に統一。各Server Actionファイルにコピペしない
+- `.env` にDB URLのプレースホルダーを書かない（prisma.config.tsが.env.localより先に読む）
+- ユーザー向けラベルはエンジニア用語ではなく、実際のユーザー行動に合わせて命名する
