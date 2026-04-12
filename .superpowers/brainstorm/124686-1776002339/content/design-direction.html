@@ -1,0 +1,130 @@
+<h2>VenueLens — デザインの方向性</h2>
+<p class="subtitle">リサーチ結果をもとに2つのカラーパレット候補を提示します</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Romantic Elegant（ロマンティック・エレガント）</h3>
+      <p>ウェディング感を全面に。ピンク + ゴールドの温かみのある配色。</p>
+      <div style="display: flex; gap: 6px; margin-top: 12px;">
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #DB2777;" title="Primary"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #F472B6;" title="Secondary"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #A16207;" title="Accent/Gold"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #FDF2F8;" title="Background"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #831843;" title="Foreground"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #FBCFE8;" title="Border"></div>
+      </div>
+      <div style="margin-top: 12px; font-size: 13px; color: #6b7280;">
+        <strong>印象:</strong> 華やか、女性的、ウェディングらしい<br>
+        <strong>リスク:</strong> 男性パートナーが使いにくいと感じる可能性
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Luxury Navy（ラグジュアリー・ネイビー）</h3>
+      <p>高級ホテルのような信頼感。ネイビー + ゴールドのジェンダーレスな配色。</p>
+      <div style="display: flex; gap: 6px; margin-top: 12px;">
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #1E3A8A;" title="Primary"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #3B82F6;" title="Secondary"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #A16207;" title="Accent/Gold"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #F8FAFC;" title="Background"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #1E40AF;" title="Foreground"></div>
+        <div style="width: 40px; height: 40px; border-radius: 8px; background: #BFDBFE;" title="Border"></div>
+      </div>
+      <div style="margin-top: 12px; font-size: 13px; color: #6b7280;">
+        <strong>印象:</strong> 信頼感、高級感、ジェンダーレス<br>
+        <strong>リスク:</strong> ウェディングらしさがやや弱い
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Typography comparison -->
+<h2 style="margin-top: 32px;">タイポグラフィ候補</h2>
+<p class="subtitle">日本語サイトなので Noto フォントをベースに</p>
+
+<div class="options">
+  <div class="option" data-choice="typo-a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Japanese Elegant（推奨）</h3>
+      <p>見出し: <strong>Noto Serif JP</strong>（セリフ）+ 本文: <strong>Noto Sans JP</strong>（サンセリフ）</p>
+      <div style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+        <div style="font-size: 20px; font-weight: 600; font-family: serif; letter-spacing: 0.05em;">見出しサンプル — 式場を比較する</div>
+        <div style="font-size: 14px; margin-top: 4px; font-family: sans-serif;">本文サンプル — あなたの理想の結婚式場を見つけるためのスマートな比較ツール</div>
+      </div>
+      <div style="margin-top: 8px; font-size: 13px; color: #6b7280;">エレガントさと可読性のバランス。ウェディングの格式感あり。</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="typo-b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Modern Professional</h3>
+      <p>見出し: <strong>Poppins</strong>（英語）+ <strong>Noto Sans JP</strong>（日本語）+ 本文: <strong>Noto Sans JP</strong></p>
+      <div style="margin-top: 8px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+        <div style="font-size: 20px; font-weight: 600; font-family: sans-serif;">VenueLens — 式場を比較する</div>
+        <div style="font-size: 14px; margin-top: 4px; font-family: sans-serif;">本文サンプル — あなたの理想の結婚式場を見つけるためのスマートな比較ツール</div>
+      </div>
+      <div style="margin-top: 8px; font-size: 13px; color: #6b7280;">クリーンでモダン。BtoC展開時にも違和感なし。</div>
+    </div>
+  </div>
+</div>
+
+<!-- Style direction -->
+<h2 style="margin-top: 32px;">UIスタイル</h2>
+<p class="subtitle">Soft UI Evolution を採用</p>
+
+<div class="mockup">
+  <div class="mockup-header">スタイルの特徴</div>
+  <div class="mockup-body" style="padding: 24px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="background: #f8fafc; border-radius: 16px; padding: 20px; box-shadow: 6px 6px 16px rgba(0,0,0,0.06), -4px -4px 12px rgba(255,255,255,0.8);">
+        <div style="font-size: 13px; font-weight: 600; color: #374151;">Soft UI カード</div>
+        <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">柔らかなシャドウで奥行きを表現。フラットより上品、ニューモーフィズムよりアクセシブル。</div>
+      </div>
+      <div style="background: #ffffff; border-radius: 16px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="font-size: 13px; font-weight: 600; color: #374151;">フラットカード</div>
+        <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">比較: 従来のフラットデザイン。シンプルだが奥行きや高級感が弱い。</div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; padding: 12px; background: #f0fdf4; border-radius: 8px; font-size: 13px;">
+      <strong>採用理由:</strong> WCAG AA+ 準拠、ライト/ダーク両対応、モダンで上品な印象。結婚式場比較という「大きな決断を支えるツール」に信頼感を与える。
+    </div>
+  </div>
+</div>
+
+<!-- Key UX insights from research -->
+<h2 style="margin-top: 32px;">リサーチから得たUXインサイト</h2>
+
+<div class="mockup">
+  <div class="mockup-header">比較ツールのベストプラクティス</div>
+  <div class="mockup-body" style="padding: 24px; font-size: 13px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; gap: 8px;">
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">1</div>
+        <div><strong>レーダーチャートで多軸比較</strong> — 料理・ホスピタリティ・アクセス・コスパ等を視覚的に比較（5-8軸が最適、バーチャート代替も用意）</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">2</div>
+        <div><strong>段階的開示（Progressive Disclosure）</strong> — ステップごとに必要な情報だけ表示。初回は簡単な条件設定から。</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">3</div>
+        <div><strong>モバイルではスワイプ比較</strong> — Tinder風に式場カードをスワイプして「気になる/スキップ」、見学先でクイックメモ入力。</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">4</div>
+        <div><strong>AI分析はインラインで</strong> — チャットUIではなく、各式場カードや比較ビューにClaude分析を埋め込み。自然に意思決定をサポート。</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">5</div>
+        <div><strong>見積もりウォーターフォールチャート</strong> — 初期見積もり → ランクアップ → 最終金額の推移を可視化。「+102万円問題」を一目で把握。</div>
+      </div>
+    </div>
+  </div>
+</div>

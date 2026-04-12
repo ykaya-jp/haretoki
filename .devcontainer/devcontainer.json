@@ -1,26 +1,25 @@
 {
-  "name": "dev",
+  "name": "venuelens-${localWorkspaceFolderBasename}",
 
-  // ★worktree 対策：ホストの ~/projects をコンテナ内でも同じパスへ bind
-  // これで worktree の .git 参照先（本体 .git/worktrees/...）がコンテナ内でも解決できる
+  // ★worktree対策：~/projects を同一パスで見せる
   "workspaceMount": "source=${localEnv:HOME}/projects,target=${localEnv:HOME}/projects,type=bind,consistency=cached",
   "workspaceFolder": "${localWorkspaceFolder}",
 
   "build": {
-    "dockerfile": "Dockerfile"
-
-    // ★任意：後述の GHCR prebuild を使うなら cacheFrom を入れる
-    "cacheFrom": ["ghcr.io/<OWNER>/<REPO>-devcontainer:latest"]
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
 
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "username": "vscode"
+      "username": "vscode",
+      "upgradePackages": "true"
     },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
 
-  // UID/GID をホストに合わせ bind mount の権限事故を減らす（デフォルト true）
   "updateRemoteUserUID": true
 }
