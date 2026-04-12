@@ -2,7 +2,7 @@
 
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/server/auth";
+import { requireUser, requireProjectMembership } from "@/server/auth";
 import { ratingSchema } from "@/server/actions/rating-schema";
 import type { RatingInput } from "@/server/actions/rating-schema";
 import type { ScoreDimension } from "@/generated/prisma/client";
@@ -130,4 +130,54 @@ export async function saveDirectRatings(venueId: string, input: RatingInput) {
 
   // Reuse existing saveRatings logic with the visit id
   return saveRatings(venueId, visit.id, input);
+}
+
+/**
+ * Get both owner and partner ratings for a venue, grouped by user.
+ * Returns null for partnerRatings if no partner exists.
+ */
+export async function getPartnerRatings(venueId: string) {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  // Get all project members
+  const members = await prisma.projectMember.findMany({
+    where: { projectId, acceptedAt: { not: null } },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+
+  const owner = members.find((m) => m.role === "owner");
+  const partner = members.find((m) => m.role === "partner");
+
+  // Get all visit ratings for this venue, grouped by userId
+  const allRatings = await prisma.visitRating.findMany({
+    where: { visit: { venueId } },
+    select: { userId: true, dimension: true, score: true },
+  });
+
+  function buildRatingsMap(userId: string): Record<string, number> {
+    const map: Record<string, number> = {};
+    for (const r of allRatings) {
+      if (r.userId === userId) {
+        // If multiple ratings per dimension, use latest (last in array)
+        map[r.dimension] = r.score;
+      }
+    }
+    return map;
+  }
+
+  return {
+    ownerRatings: owner
+      ? {
+          name: owner.user.name ?? owner.user.email,
+          ratings: buildRatingsMap(owner.user.id),
+        }
+      : null,
+    partnerRatings: partner
+      ? {
+          name: partner.user.name ?? partner.user.email,
+          ratings: buildRatingsMap(partner.user.id),
+        }
+      : null,
+  };
 }

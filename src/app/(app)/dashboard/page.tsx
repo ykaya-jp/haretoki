@@ -9,6 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Plus, BarChart3, Star, CheckCircle } from "lucide-react";
+import { InvitePartnerCard } from "@/components/partner/invite-partner-card";
+import { getInvitationStatus } from "@/server/actions/invitations";
 
 async function getDashboardData() {
   const supabase = await createClient();
@@ -56,8 +58,8 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
-  const { venues, ratedCount, shortlistedCount, hasDecision } =
-    await getDashboardData();
+  const [{ venues, ratedCount, shortlistedCount, hasDecision }, partnerStatus] =
+    await Promise.all([getDashboardData(), getInvitationStatus()]);
 
   const venueCount = venues.length;
 
@@ -130,6 +132,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Partner invitation */}
+      <InvitePartnerCard partnerStatus={partnerStatus} />
 
       {/* Decision banner */}
       {hasDecision && (
