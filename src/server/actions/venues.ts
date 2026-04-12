@@ -46,6 +46,7 @@ export async function getVenues() {
     include: {
       scores: true,
       estimates: {
+        include: { items: true },
         orderBy: { version: "desc" },
         take: 1,
       },

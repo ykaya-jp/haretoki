@@ -10,15 +10,23 @@ import {
 import { VenueRadarChart } from "@/components/compare/radar-chart";
 import type { RadarChartData } from "@/components/compare/radar-chart";
 import { ComparisonMatrix, type VenueData } from "@/components/compare/comparison-matrix";
+import { EstimateBarChart } from "@/components/compare/estimate-bar-chart";
 import { cn } from "@/lib/utils";
 
 const RADAR_COLORS = ["#1E3A8A", "#3B82F6", "#A16207", "#059669", "#DC2626"];
+
+type EstimateBarData = {
+  name: string;
+  initial: number | null;
+  predicted: number | null;
+};
 
 type VenueInfo = {
   id: string;
   name: string;
   radarData: RadarChartData;
   matrixData: VenueData;
+  barData: EstimateBarData;
 };
 
 export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
@@ -62,6 +70,16 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
     [selectedVenues]
   );
 
+  const barData = useMemo(
+    () => selectedVenues.map((v) => v.barData),
+    [selectedVenues]
+  );
+
+  // Show bar chart only if at least one venue has estimate data
+  const hasEstimateData = barData.some(
+    (v) => v.initial !== null || v.predicted !== null
+  );
+
   return (
     <div className="space-y-4">
       {/* Venue selector chips */}
@@ -96,6 +114,18 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
           <VenueRadarChart data={radarData} />
         </CardContent>
       </Card>
+
+      {/* Estimate bar chart (between radar and matrix) */}
+      {hasEstimateData && (
+        <Card className="shadow-[var(--shadow-soft)]">
+          <CardHeader>
+            <CardTitle className="font-serif text-base">見積もり比較</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EstimateBarChart venues={barData} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Comparison matrix */}
       <Card className="shadow-[var(--shadow-soft)]">
