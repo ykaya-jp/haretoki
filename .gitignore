@@ -51,3 +51,5 @@ next-env.d.ts
 
 # Misc
 *.pem
+
+/src/generated/prisma
