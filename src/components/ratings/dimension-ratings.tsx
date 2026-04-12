@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useTransition, useRef, useCallback, useEffect } from "react";
 import { StarRating } from "@/components/ratings/star-rating";
-import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
+import {
+  TIER1_DIMENSIONS,
+  DIMENSION_LABELS,
+  DIMENSION_HELP,
+} from "@/lib/constants";
 import { saveRatings } from "@/server/actions/ratings";
 
 interface DimensionRatingsProps {
@@ -21,46 +24,85 @@ export function DimensionRatings({
     initialRatings ?? {},
   );
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const doSave = useCallback(
+    (currentRatings: Record<string, number>) => {
+      if (Object.keys(currentRatings).length === 0) return;
+
+      setSaveStatus("saving");
+      startTransition(async () => {
+        const result = await saveRatings(venueId, visitId, {
+          ratings: currentRatings,
+        });
+        if (result.success) {
+          setSaveStatus("saved");
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        } else {
+          setSaveStatus("error");
+        }
+      });
+    },
+    [venueId, visitId, startTransition],
+  );
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   function handleChange(dimension: string, value: number) {
-    setRatings((prev) => ({ ...prev, [dimension]: value }));
-  }
+    const next = { ...ratings, [dimension]: value };
+    setRatings(next);
+    setSaveStatus("idle");
 
-  function handleSave() {
-    setError(null);
-    startTransition(async () => {
-      const result = await saveRatings(venueId, visitId, { ratings });
-      if (!result.success) {
-        setError("保存に失敗しました。もう一度お試しください。");
-      }
-    });
+    // Debounced auto-save after 500ms
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSave(next), 500);
   }
 
   return (
     <div className="space-y-4">
       {TIER1_DIMENSIONS.map((dimension) => (
-        <div key={dimension} className="flex items-center justify-between">
-          <span className="text-sm font-medium">
-            {DIMENSION_LABELS[dimension]}
-          </span>
-          <StarRating
-            value={ratings[dimension] ?? 0}
-            onChange={(value) => handleChange(dimension, value)}
-            disabled={isPending}
-          />
+        <div key={dimension} className="space-y-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {DIMENSION_LABELS[dimension]}
+            </span>
+            <StarRating
+              value={ratings[dimension] ?? 0}
+              onChange={(value) => handleChange(dimension, value)}
+              disabled={isPending}
+            />
+          </div>
+          {DIMENSION_HELP[dimension] && (
+            <p className="text-xs text-muted-foreground">
+              {DIMENSION_HELP[dimension]}
+            </p>
+          )}
         </div>
       ))}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <Button
-        onClick={handleSave}
-        disabled={isPending || Object.keys(ratings).length === 0}
-        className="w-full"
-      >
-        {isPending ? "保存中..." : "評価を保存"}
-      </Button>
+      <div className="h-5 text-center text-xs">
+        {saveStatus === "saving" && (
+          <span className="text-muted-foreground">保存中...</span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="text-green-600 dark:text-green-400">
+            保存しました
+          </span>
+        )}
+        {saveStatus === "error" && (
+          <span className="text-destructive">
+            保存に失敗しました。もう一度お試しください。
+          </span>
+        )}
+      </div>
     </div>
   );
 }
