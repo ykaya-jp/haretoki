@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { getDecision } from "@/server/actions/decisions";
 import { getVenues } from "@/server/actions/venues";
 import { DecisionForm } from "@/components/decision/decision-form";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function DecisionPage() {
@@ -43,9 +45,14 @@ export default async function DecisionPage() {
       <h1 className="font-serif text-xl font-bold">式場決定</h1>
 
       {shortlisted.length === 0 ? (
-        <p className="py-12 text-center text-muted-foreground">
-          まず候補リストに式場を追加してください
-        </p>
+        <div className="py-12 text-center">
+          <p className="text-muted-foreground">
+            まず候補リストに式場を追加してください
+          </p>
+          <Link href="/shortlist" className="mt-4 inline-block">
+            <Button variant="outline">候補リストへ</Button>
+          </Link>
+        </div>
       ) : (
         <DecisionForm
           venues={shortlisted.map((v) => ({ id: v.id, name: v.name }))}

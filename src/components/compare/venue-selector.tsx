@@ -72,7 +72,7 @@ export function VenueSelector({ venues }: { venues: VenueInfo[] }) {
               key={v.id}
               onClick={() => toggleVenue(v.id)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors min-h-[36px]",
+                "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors min-h-[44px]",
                 selectedIds.has(v.id)
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"

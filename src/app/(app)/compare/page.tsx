@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { VenueSelector } from "@/components/compare/venue-selector";
 import type { RadarChartData } from "@/components/compare/radar-chart";
 import type { VenueData } from "@/components/compare/comparison-matrix";
+import { Button } from "@/components/ui/button";
 import { getVenues } from "@/server/actions/venues";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
 
@@ -11,9 +13,14 @@ export default async function ComparePage() {
     return (
       <div className="space-y-6">
         <h1 className="font-serif text-xl font-bold">比較ボード</h1>
-        <p className="text-sm text-muted-foreground">
-          比較するには2件以上の式場を登録してください。
-        </p>
+        <div className="py-12 text-center">
+          <p className="text-muted-foreground">
+            比較するには2件以上の式場を登録してください。
+          </p>
+          <Link href="/venues" className="mt-4 inline-block">
+            <Button variant="outline">式場を探す</Button>
+          </Link>
+        </div>
       </div>
     );
   }

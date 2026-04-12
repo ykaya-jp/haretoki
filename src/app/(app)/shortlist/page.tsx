@@ -26,9 +26,11 @@ export default async function ShortlistPage() {
 
       {shortlisted.length === 0 ? (
         <div className="py-12 text-center">
-          <p className="text-muted-foreground">まだ候補がありません</p>
+          <p className="text-muted-foreground">
+            式場一覧でハートをタップすると候補に追加されます
+          </p>
           <Link href="/venues" className="mt-4 inline-block">
-            <Button variant="outline">式場を探す</Button>
+            <Button variant="outline">式場一覧を見る</Button>
           </Link>
         </div>
       ) : (

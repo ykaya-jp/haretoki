@@ -49,7 +49,7 @@ export function ProgressBar({ currentStep }: ProgressBarProps) {
                 </div>
                 <span
                   className={cn(
-                    "text-[10px] leading-tight sm:text-xs",
+                    "text-xs leading-tight",
                     isCurrent
                       ? "font-medium text-primary"
                       : isCompleted

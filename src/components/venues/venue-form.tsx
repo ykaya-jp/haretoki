@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createVenue } from "@/server/actions/venues";
 import type { VenueInput } from "@/server/actions/venue-schema";
+import { toast } from "sonner";
 
 export function VenueForm() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export function VenueForm() {
         return;
       }
 
+      toast.success("式場を追加しました");
       router.push(`/venues/${result.venue.id}`);
     } catch {
       setError("式場の登録に失敗しました");
@@ -90,6 +92,7 @@ export function VenueForm() {
             id="capacityMin"
             name="capacityMin"
             type="number"
+            inputMode="numeric"
             min="1"
             placeholder="30"
           />
@@ -100,6 +103,7 @@ export function VenueForm() {
             id="capacityMax"
             name="capacityMax"
             type="number"
+            inputMode="numeric"
             min="1"
             placeholder="150"
           />

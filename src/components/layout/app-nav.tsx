@@ -25,19 +25,19 @@ export function AppNav() {
         <div className="flex items-center gap-4">
           <Link
             href="/venues"
-            className="hidden text-sm text-primary-foreground/80 transition-colors hover:text-primary-foreground md:block"
+            className="hidden min-h-[44px] min-w-[44px] items-center justify-center text-sm text-primary-foreground/80 transition-colors hover:text-primary-foreground md:inline-flex"
           >
             式場探索
           </Link>
           <Link
             href="/compare"
-            className="hidden text-sm text-primary-foreground/80 transition-colors hover:text-primary-foreground md:block"
+            className="hidden min-h-[44px] min-w-[44px] items-center justify-center text-sm text-primary-foreground/80 transition-colors hover:text-primary-foreground md:inline-flex"
           >
             比較
           </Link>
           <button
             onClick={handleSignOut}
-            className="rounded-md px-3 py-1.5 text-sm text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+            className="min-h-[44px] min-w-[44px] rounded-md px-3 py-1.5 text-sm text-primary-foreground/80 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
           >
             ログアウト
           </button>
