@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Cloud, CloudSun, Sun, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface JourneyCardProps {
   totalVenues: number;
@@ -71,21 +74,28 @@ export function JourneyCard(props: JourneyCardProps) {
   const Icon = state.icon;
 
   return (
-    <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-2xl bg-gradient-to-br from-card via-card to-[var(--gold-subtle)] p-6 shadow-[var(--shadow-card)]"
+    >
       <div className="flex items-center gap-3 mb-3">
-        <Icon className={`h-6 w-6 ${state.iconColor}`} />
-        <h3 className="text-lg">{state.message}</h3>
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
+          <Icon className={`h-8 w-8 ${state.iconColor}`} />
+        </div>
+        <h3 className="font-serif text-lg tracking-[0.03em]">{state.message}</h3>
       </div>
-      <p className="text-sm text-muted-foreground mb-4">{state.summary}</p>
+      <p className="text-sm text-muted-foreground mb-5">{state.summary}</p>
       {state.cta && (
         <Link
           href={state.cta.href}
-          className="inline-flex items-center gap-1 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all active:scale-[0.97] hover:shadow-md"
         >
           {state.cta.label}
-          <Sparkles className="h-3.5 w-3.5 ml-1" />
+          <Sparkles className="h-4 w-4" />
         </Link>
       )}
-    </div>
+    </motion.div>
   );
 }

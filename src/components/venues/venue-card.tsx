@@ -24,10 +24,11 @@ function calcAverageScore(scores: VenueScore[]): number | null {
 
 export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
   const avgScore = calcAverageScore(venue.scores);
+  const hasCost = venue.costMin || venue.costMax;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98]">
-      {/* Photo section */}
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]">
+      {/* Photo section — larger, with gradient overlay */}
       <div className="relative">
         <Link href={`/venues/${venue.id}`}>
           <PhotoCarousel
@@ -35,6 +36,10 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
             alt={venue.name}
             aspectRatio="4/3"
           />
+          {/* Gradient overlay at bottom of photo */}
+          {venue.photoUrls.length > 0 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
+          )}
         </Link>
 
         {/* Status badge - top left */}
@@ -42,66 +47,81 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
           <VenueStatusBadge status={venue.status} />
         </div>
 
+        {/* Score badge - top right (before heart) */}
+        {avgScore !== null && (
+          <div className="absolute left-3 bottom-3 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
+            <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+            <span className="tabular-nums text-sm font-medium text-white">
+              {avgScore.toFixed(1)}
+            </span>
+          </div>
+        )}
+
         {/* Heart button - top right */}
         <div className="absolute right-3 top-3">
           <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
         </div>
       </div>
 
-      {/* Info section */}
-      <Link href={`/venues/${venue.id}`} className="block p-4">
-        {/* Venue name */}
-        <h3 className="truncate font-serif text-base font-medium tracking-[0.05em]">
+      {/* Info section — generous padding */}
+      <Link href={`/venues/${venue.id}`} className="block p-6">
+        {/* Venue name — serif, larger */}
+        <h3 className="truncate font-serif text-lg font-medium tracking-[0.05em]">
           {venue.name}
         </h3>
 
-        {/* Score + Location */}
-        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-          {avgScore !== null && (
-            <>
-              <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
-              <span className="tabular-nums font-medium text-foreground">
-                {avgScore.toFixed(1)}
-              </span>
-              <span className="mx-0.5">·</span>
-            </>
-          )}
-          {venue.location && <span>{venue.location}</span>}
-        </div>
+        {/* Location */}
+        {venue.location && (
+          <p className="mt-1 text-sm text-muted-foreground">{venue.location}</p>
+        )}
 
-        {/* Capacity + Price */}
-        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-          {(venue.capacityMin || venue.capacityMax) && (
-            <>
-              <span>
-                着席
-                {venue.capacityMin && venue.capacityMax
-                  ? `${venue.capacityMin}〜${venue.capacityMax}名`
-                  : venue.capacityMax
-                    ? `〜${venue.capacityMax}名`
-                    : `${venue.capacityMin}名〜`}
-              </span>
-              {venue.estimates?.[0] && <span className="mx-0.5">·</span>}
-            </>
+        {/* Cost + Capacity row */}
+        <div className="mt-2 flex items-center gap-2 text-sm">
+          {hasCost && (
+            <span className="tabular-nums font-medium text-[var(--gold-warm)]">
+              {venue.costMin && venue.costMax
+                ? `${(venue.costMin / 10000).toFixed(0)}〜${(venue.costMax / 10000).toFixed(0)}万円`
+                : venue.costMax
+                  ? `〜${(venue.costMax / 10000).toFixed(0)}万円`
+                  : `${(venue.costMin! / 10000).toFixed(0)}万円〜`}
+            </span>
           )}
-          {venue.estimates?.[0] && (
+          {!hasCost && venue.estimates?.[0] && (
             <span className="tabular-nums font-medium text-[var(--gold-warm)]">
               ¥{(venue.estimates[0].total / 10000).toFixed(0)}万〜
             </span>
           )}
+          {(hasCost || venue.estimates?.[0]) && (venue.capacityMin || venue.capacityMax) && (
+            <span className="text-muted-foreground">·</span>
+          )}
+          {(venue.capacityMin || venue.capacityMax) && (
+            <span className="text-muted-foreground">
+              着席
+              {venue.capacityMin && venue.capacityMax
+                ? `${venue.capacityMin}〜${venue.capacityMax}名`
+                : venue.capacityMax
+                  ? `〜${venue.capacityMax}名`
+                  : `${venue.capacityMin}名〜`}
+            </span>
+          )}
         </div>
 
-        {/* Style tags */}
-        {venue.ceremonyStyles.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+        {/* Style tags + dress info */}
+        {(venue.ceremonyStyles.length > 0 || venue.dressBringIn) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {venue.ceremonyStyles.map((style) => (
               <span
                 key={style}
-                className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+                className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
               >
                 {style}
               </span>
             ))}
+            {venue.dressBringIn && (
+              <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                持ち込み{venue.dressBringIn === "allowed" ? "可" : venue.dressBringIn === "not_allowed" ? "不可" : "要相談"}
+              </span>
+            )}
           </div>
         )}
       </Link>

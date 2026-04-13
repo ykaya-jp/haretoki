@@ -15,7 +15,7 @@ export default async function ExplorePage() {
   const favoriteIds = favorites.map((f) => f.venue.id);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2>式場を探す</h2>

@@ -39,12 +39,49 @@ export async function createVenue(input: VenueInput) {
   return { success: true as const, venue };
 }
 
-export async function getVenues() {
+export interface VenueFilters {
+  status?: string;
+  minScore?: number;
+  costMin?: number;
+  costMax?: number;
+  dressBringIn?: string;
+  paymentMethod?: string;
+  sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
+}
+
+export async function getVenues(filters?: VenueFilters) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
+  // Build where clause
+  const where: Record<string, unknown> = { projectId };
+
+  if (filters?.status) {
+    where.status = filters.status;
+  }
+  if (filters?.costMin !== undefined) {
+    where.costMin = { gte: filters.costMin };
+  }
+  if (filters?.costMax !== undefined) {
+    where.costMax = { lte: filters.costMax };
+  }
+  if (filters?.dressBringIn) {
+    where.dressBringIn = filters.dressBringIn;
+  }
+  if (filters?.paymentMethod) {
+    where.paymentMethods = { has: filters.paymentMethod };
+  }
+
+  // Build orderBy
+  let orderBy: Record<string, string> = { createdAt: "desc" };
+  if (filters?.sortBy === "cost_asc") {
+    orderBy = { costMin: "asc" };
+  } else if (filters?.sortBy === "cost_desc") {
+    orderBy = { costMax: "desc" };
+  }
+
   const venues = await prisma.venue.findMany({
-    where: { projectId },
+    where,
     include: {
       scores: true,
       estimates: {
@@ -53,10 +90,35 @@ export async function getVenues() {
         take: 1,
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy,
   });
 
+  // Post-query filter for score (requires aggregation)
+  if (filters?.minScore !== undefined) {
+    return venues.filter((venue) => {
+      const userScores = venue.scores.filter((s) => s.source === "user_rating");
+      if (userScores.length === 0) return false;
+      const avg = userScores.reduce((acc, s) => acc + Number(s.score), 0) / userScores.length;
+      return avg >= (filters.minScore ?? 0);
+    });
+  }
+
+  // Post-query sort for score (requires aggregation)
+  if (filters?.sortBy === "score_desc") {
+    return venues.sort((a, b) => {
+      const avgA = calcAvgScore(a.scores);
+      const avgB = calcAvgScore(b.scores);
+      return (avgB ?? 0) - (avgA ?? 0);
+    });
+  }
+
   return venues;
+}
+
+function calcAvgScore(scores: Array<{ source: string; score: unknown }>): number | null {
+  const userScores = scores.filter((s) => s.source === "user_rating");
+  if (userScores.length === 0) return null;
+  return userScores.reduce((acc, s) => acc + Number(s.score), 0) / userScores.length;
 }
 
 export async function getVenue(id: string) {
