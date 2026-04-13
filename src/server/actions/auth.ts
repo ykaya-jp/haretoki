@@ -2,6 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
+import { redirect } from "next/navigation";
+
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
 
 export async function syncUser() {
   const supabase = await createClient();
