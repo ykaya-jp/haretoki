@@ -67,16 +67,36 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
           </div>
         </>
       ) : (
-        <div className="text-center">
-          <p className="text-sm">
-            {partnerStatus === "invited" && "招待を送りました"}
-            {partnerStatus === "viewed" && "パートナーがリンクを見てくれました"}
-            {partnerStatus === "reacted" && "パートナーが反応してくれました"}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            リンクを開くと、おふたりの式場リストを共有できます
-          </p>
-        </div>
+        <>
+          <div className="text-center space-y-1">
+            <p className="text-sm">
+              {partnerStatus === "invited" && "招待を送りました"}
+              {partnerStatus === "viewed" && "パートナーがリンクを見てくれました"}
+              {partnerStatus === "reacted" && "パートナーが反応してくれました"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              届いていないときは、もう一度送れます
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleLineShare}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white transition-all duration-[400ms] active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4" />
+              もう一度LINEで送る
+            </button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm transition-all duration-[400ms] active:scale-95"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "コピー済" : "リンクをコピー"}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import { getFavorites } from "@/server/actions/favorites";
 import { getVenueReviews } from "@/server/actions/reviews";
 import { getVenuePlans } from "@/server/actions/plans";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
+import { AddPhotosButton } from "@/components/venues/add-photos-button";
 import { VenueHeader } from "@/components/venues/venue-header";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
@@ -66,11 +67,16 @@ export default async function VenueDetailPage({
       </Link>
 
       {/* Photo Gallery */}
-      <PhotoCarousel
-        photos={venue.photoUrls}
-        alt={venue.name}
-        aspectRatio="4/3"
-      />
+      <div className="space-y-3">
+        <PhotoCarousel
+          photos={venue.photoUrls}
+          alt={venue.name}
+          aspectRatio="4/3"
+        />
+        <div className="flex justify-end">
+          <AddPhotosButton venueId={venue.id} />
+        </div>
+      </div>
 
       {/* Venue Header */}
       <VenueHeader

@@ -184,13 +184,43 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
   return updated;
 }
 
-export async function uploadVenuePhotos(formData: FormData): Promise<{ success: boolean; urls?: string[]; error?: string }> {
+/**
+ * Upload photos for an existing venue (append to venue.photoUrls).
+ * Also supports the pre-create flow (venueId = "temp") where URLs are just returned.
+ */
+export async function uploadVenuePhotos(
+  venueIdOrFormData: string | FormData,
+  maybeFormData?: FormData,
+): Promise<{ success: boolean; urls?: string[]; error?: string }> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+
+  // Support both signatures:
+  //   uploadVenuePhotos(formData)           — pre-create (old)
+  //   uploadVenuePhotos(venueId, formData)  — append to existing venue (new)
+  let venueId: string | null = null;
+  let formData: FormData;
+  if (typeof venueIdOrFormData === "string") {
+    venueId = venueIdOrFormData;
+    formData = maybeFormData!;
+  } else {
+    formData = venueIdOrFormData;
+  }
 
   const files = formData.getAll("photos") as File[];
   if (files.length === 0) return { success: false, error: "写真が選択されていません" };
   if (files.length > 10) return { success: false, error: "一度にアップロードできるのは10枚までです" };
+
+  // If appending to existing venue, verify ownership
+  let venueForUpload: { id: string } | null = null;
+  if (venueId) {
+    const venue = await prisma.venue.findFirst({
+      where: { id: venueId, projectId },
+      select: { id: true },
+    });
+    if (!venue) return { success: false, error: "式場が見つかりません" };
+    venueForUpload = venue;
+  }
 
   const { uploadVenuePhoto } = await import("@/lib/supabase/storage");
 
@@ -199,8 +229,17 @@ export async function uploadVenuePhotos(formData: FormData): Promise<{ success: 
     if (!file.type.startsWith("image/")) continue;
     if (file.size > 10 * 1024 * 1024) continue; // 10MB limit per file
     const buffer = Buffer.from(await file.arrayBuffer());
-    const url = await uploadVenuePhoto(buffer, file.name, projectId, "temp");
+    const url = await uploadVenuePhoto(buffer, file.name, projectId, venueId ?? "temp");
     urls.push(url);
+  }
+
+  // If venue exists, append URLs to photoUrls
+  if (venueForUpload && urls.length > 0) {
+    await prisma.venue.update({
+      where: { id: venueForUpload.id },
+      data: { photoUrls: { push: urls } },
+    });
+    revalidatePath(`/venues/${venueForUpload.id}`);
   }
 
   return { success: true, urls };
