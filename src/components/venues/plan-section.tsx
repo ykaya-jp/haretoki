@@ -5,6 +5,11 @@ import { ChevronDown, Check, X, DollarSign, ShirtIcon, PartyPopper } from "lucid
 import { formatYen } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Luxury easing: smooth deceleration (Aesop/Apple-inspired)
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
+const COLLAPSE_TRANSITION = { duration: 0.7, ease: LUXURY_EASE };
+const CHEVRON_TRANSITION = { duration: 0.6, ease: LUXURY_EASE };
+
 interface VenuePlan {
   id: string;
   name: string;
@@ -41,7 +46,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
             <button
               type="button"
               onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 text-left transition-colors active:bg-muted/50"
+              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-400 active:bg-muted/50"
             >
               <div className="flex-1 min-w-0">
                 <p className="font-serif text-base font-normal truncate">{plan.name}</p>
@@ -60,7 +65,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
               </div>
               <motion.div
                 animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
+                transition={CHEVRON_TRANSITION}
               >
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </motion.div>
@@ -73,7 +78,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  transition={COLLAPSE_TRANSITION}
                   className="overflow-hidden"
                 >
                   <div className="space-y-4 border-t border-border px-4 py-4">

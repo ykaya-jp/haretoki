@@ -22,6 +22,12 @@ interface VisitChecklistProps {
 
 const CATEGORY_ORDER = ["chapel", "facility", "banquet", "dress_item", "staff_estimate", "cuisine_drink"] as const;
 
+// Luxury easing: smooth deceleration (Aesop/Apple-inspired)
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
+const COLLAPSE_TRANSITION = { duration: 0.7, ease: LUXURY_EASE };
+const CHEVRON_TRANSITION = { duration: 0.6, ease: LUXURY_EASE };
+const MEMO_TRANSITION = { duration: 0.6, ease: LUXURY_EASE };
+
 function getCategoryLabel(category: string): string {
   return CHECKLIST_TEMPLATES[category]?.label ?? category;
 }
@@ -104,7 +110,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
             <button
               type="button"
               onClick={() => toggleCategory(cat)}
-              className="flex w-full min-h-[48px] items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors active:bg-muted"
+              className="flex w-full min-h-[48px] items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors duration-400 active:bg-muted"
             >
               <span className="text-sm font-medium">{getCategoryLabel(cat)}</span>
               <div className="flex items-center gap-2">
@@ -118,7 +124,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                 </span>
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={CHEVRON_TRANSITION}
                 >
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </motion.div>
@@ -132,7 +138,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  transition={COLLAPSE_TRANSITION}
                   className="overflow-hidden"
                 >
                   <div className="divide-y divide-border">
@@ -146,11 +152,11 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                               type="button"
                               onClick={() => handleToggleCheck(item.id, item.status)}
                               disabled={isPending}
-                              className="flex h-12 w-12 shrink-0 items-center justify-center transition-transform active:scale-90"
+                              className="flex h-12 w-12 shrink-0 items-center justify-center transition-transform duration-300 active:scale-90"
                               aria-label={`${item.item}: ${item.status === "yes" ? "OK" : item.status === "no" ? "NG" : "未確認"}`}
                             >
                               <div className={cn(
-                                "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors",
+                                "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-400",
                                 item.status === "yes" ? "border-green-500 bg-green-500 text-white" :
                                 item.status === "no" ? "border-red-400 bg-red-50 text-red-500" :
                                 "border-muted-foreground/30 bg-card"
@@ -172,7 +178,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                 type="button"
                                 onClick={() => toggleMemo(item.id)}
                                 className={cn(
-                                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors",
+                                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-400",
                                   memoExpanded || item.memo ? "text-primary" : "text-muted-foreground/50",
                                   "active:bg-muted"
                                 )}
@@ -190,7 +196,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
+                                transition={MEMO_TRANSITION}
                                 className="overflow-hidden"
                               >
                                 <div className="px-4 pb-3 pl-16">
