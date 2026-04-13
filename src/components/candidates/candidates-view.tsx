@@ -105,8 +105,8 @@ export function CandidatesView({
           {favorites.length === 0 ? (
             <EmptyState
               icon={Heart}
-              title="気になる式場をハートで候補に追加しましょう"
-              description="式場一覧でハートをタップすると候補に追加されます"
+              title="いいね！と感じた式場を集めましょう"
+              description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上集めると比較もできます。"
               action={{ label: "式場を探す", href: "/explore" }}
             />
           ) : (

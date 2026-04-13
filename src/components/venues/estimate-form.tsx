@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createEstimate } from "@/server/actions/estimates";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = [
   { value: "venue_fee", label: "会場費" },
@@ -100,6 +101,7 @@ export function EstimateForm({
       setTotal("");
       setItems([]);
       setShowItems(false);
+      toast.success("見積もりを保存しました");
       onSaved?.();
     } catch {
       setError("見積もりの保存に失敗しました");

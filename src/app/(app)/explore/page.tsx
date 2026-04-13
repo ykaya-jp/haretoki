@@ -29,8 +29,8 @@ export default async function ExplorePage() {
       {venues.length === 0 ? (
         <EmptyState
           icon={Search}
-          title="まだ式場が登録されていません"
-          description="上の「追加」ボタンからURLを貼り付けるか、手動で式場を登録しましょう"
+          title="式場の下見は、ここから始まります"
+          description="右上の「追加」ボタンから、ゼクシィなどのURLを貼り付けるだけでAIが自動で情報を読み取ります。手動での登録もできます。"
         />
       ) : (
         <ExploreContent venues={venues} favoriteIds={favoriteIds} />

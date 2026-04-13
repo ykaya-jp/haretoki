@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselProps {
@@ -37,7 +38,7 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
           aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video"
         )}
       >
-        <span className="text-sm text-muted-foreground">写真なし</span>
+        <span className="text-sm text-muted-foreground">写真はまだありません</span>
       </div>
     );
   }
@@ -90,8 +91,29 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
           ))}
         </div>
       </div>
+      {/* Navigation buttons */}
+      {selectedIndex > 0 && (
+        <button
+          type="button"
+          onClick={() => scrollTo(selectedIndex - 1)}
+          aria-label="前の写真"
+          className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50 active:scale-95"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      {selectedIndex < photos.length - 1 && (
+        <button
+          type="button"
+          onClick={() => scrollTo(selectedIndex + 1)}
+          aria-label="次の写真"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50 active:scale-95"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
       {/* Dot indicators */}
-      <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
+      <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2">
         {photos.map((_, index) => (
           <button
             key={index}
@@ -99,8 +121,10 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
             onClick={() => scrollTo(index)}
             aria-label={`写真 ${index + 1} に移動`}
             className={cn(
-              "h-1.5 w-1.5 rounded-full transition-colors",
-              index === selectedIndex ? "bg-white" : "bg-white/40"
+              "rounded-full transition-all",
+              index === selectedIndex
+                ? "h-2 w-2 bg-white"
+                : "h-1.5 w-1.5 bg-white/50 hover:bg-white/70"
             )}
           />
         ))}

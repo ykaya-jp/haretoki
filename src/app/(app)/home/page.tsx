@@ -19,10 +19,10 @@ export default async function HomePage() {
         <Greeting userName={homeData.userName} />
         <Link
           href="/settings"
-          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors active:bg-muted"
-          aria-label="設定"
+          className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors active:bg-muted"
         >
           <Settings className="h-5 w-5 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">設定</span>
         </Link>
       </div>
 

@@ -44,7 +44,8 @@ export function ChatBar() {
           type="button"
           onClick={handleSend}
           disabled={isPending || !message.trim()}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-50"
+          aria-label={isPending ? "送信中..." : "メッセージを送信"}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 disabled:opacity-50"
         >
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
