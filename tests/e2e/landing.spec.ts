@@ -16,7 +16,7 @@ test.describe("Landing Page", () => {
 
     // Main headline
     await expect(
-      page.locator("text=ふたりで選ぶ").first()
+      page.locator("text=その直感").first()
     ).toBeVisible();
 
     // CTAs
@@ -35,9 +35,9 @@ test.describe("Landing Page", () => {
     await page.goto("/");
 
     await expect(
-      page.locator("text=見積もりの裏側を知る")
+      page.locator("text=見積もりの先を読む")
     ).toBeVisible();
-    await expect(page.locator("text=データで比較する")).toBeVisible();
+    await expect(page.locator("text=数字で選ぶ").first()).toBeVisible();
   });
 
   test("CTA links to signup", async ({ page }) => {

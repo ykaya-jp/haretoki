@@ -8,6 +8,9 @@ import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
+import { DecisionMatrix } from "@/components/comparison/decision-matrix";
+import { DimensionFocus } from "@/components/comparison/dimension-focus";
+import { PriorityWeights } from "@/components/comparison/priority-weights";
 import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { DecisionCeremony } from "@/components/decision/decision-ceremony";
 import { Heart, BarChart3, Trophy } from "lucide-react";
@@ -15,7 +18,7 @@ import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 
-type Tab = "shortlist" | "comparison" | "decision";
+type Tab = "shortlist" | "matrix" | "focus" | "decision";
 
 interface FavoriteVenue {
   venue: {
@@ -62,8 +65,9 @@ export function CandidatesView({
   }, [filter]);
 
   const SEGMENTS = [
-    { id: "shortlist" as const, label: "お気に入り" },
-    { id: "comparison" as const, label: "比べる", disabled: false },
+    { id: "shortlist" as const, label: "候補" },
+    { id: "matrix" as const, label: "比べる", disabled: false },
+    { id: "focus" as const, label: "観点別", disabled: false },
     { id: "decision" as const, label: "決める", disabled: false },
   ];
 
@@ -175,24 +179,27 @@ export function CandidatesView({
           </motion.div>
         )}
 
-        {tab === "comparison" && (
+        {tab === "matrix" && (
           <motion.div
-            key="comparison"
+            key="matrix"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
-            {venueOptions.length < 2 ? (
-              <EmptyState
-                icon={BarChart3}
-                title="比べるには2件以上の式場が必要です"
-                description="お気に入りの式場を2件以上集めると、さまざまな角度から比較できます。"
-                action={{ label: "式場を見てみる", href: "/explore" }}
-              />
-            ) : (
-              <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
-            )}
+            <DecisionMatrix />
+          </motion.div>
+        )}
+
+        {tab === "focus" && (
+          <motion.div
+            key="focus"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <DimensionFocus />
           </motion.div>
         )}
 
@@ -234,12 +241,7 @@ export function CandidatesView({
                 )}
               </motion.div>
             ) : (
-              <EmptyState
-                icon={Trophy}
-                title="まだ決まっていません"
-                description="お気に入りを見比べて、おふたりが納得できる一軒を。ゆっくり話し合って選んでいけます。"
-                action={{ label: "お気に入りを比べる", href: "#" }}
-              />
+              <PriorityWeights onDecide={handleDecide} />
             )}
           </motion.div>
         )}
