@@ -30,8 +30,7 @@ export default async function ExplorePage() {
         <EmptyState
           icon={Search}
           title="まだ式場が登録されていません"
-          description="AIのおすすめから追加するか、URLを貼り付けて式場を登録しましょう"
-          action={{ label: "式場を追加する", href: "#" }}
+          description="上の「追加」ボタンからURLを貼り付けるか、手動で式場を登録しましょう"
         />
       ) : (
         <ExploreContent venues={venues} favoriteIds={favoriteIds} />
