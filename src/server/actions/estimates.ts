@@ -65,7 +65,7 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
   });
 
   revalidatePath(`/venues/${validation.data.venueId}`);
-  revalidatePath("/compare");
+  revalidatePath("/candidates");
   return { estimate };
 }
 
@@ -284,6 +284,6 @@ export async function saveAnalyzedEstimate(input: {
   });
 
   revalidatePath(`/venues/${input.venueId}`);
-  revalidatePath("/compare");
+  revalidatePath("/candidates");
   return { estimate };
 }

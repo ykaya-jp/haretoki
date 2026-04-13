@@ -3,7 +3,7 @@ import { Noto_Sans_JP, Noto_Serif_JP, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({subsets:['latin'],variable:'--font-geist'});
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -13,7 +13,7 @@ const notoSansJP = Noto_Sans_JP({
 
 const notoSerifJP = Noto_Serif_JP({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["300", "400", "500"],
   variable: "--font-noto-serif-jp",
   display: "swap",
 });

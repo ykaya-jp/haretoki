@@ -41,9 +41,9 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
     },
   });
 
-  revalidatePath("/decision");
-  revalidatePath("/dashboard");
-  revalidatePath("/venues");
+  revalidatePath("/candidates");
+  revalidatePath("/");
+  revalidatePath("/explore");
   return { decision };
 }
 

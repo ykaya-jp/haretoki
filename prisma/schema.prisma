@@ -81,6 +81,13 @@ enum AiAnalysisType {
   estimate_prediction
   comparison
   visit_prep
+  coach_chat
+}
+
+enum ReactionType {
+  like
+  maybe
+  pass
 }
 
 model User {
@@ -92,6 +99,7 @@ model User {
 
   projectMembers ProjectMember[]
   visitRatings   VisitRating[]
+  favorites      VenueFavorite[]
 
   @@map("users")
 }
@@ -104,11 +112,12 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  members    ProjectMember[]
-  venues     Venue[]
-  estimates  Estimate[]
-  analyses   AiAnalysis[]
-  decisions  Decision[]
+  members          ProjectMember[]
+  venues           Venue[]
+  estimates        Estimate[]
+  analyses         AiAnalysis[]
+  decisions        Decision[]
+  partnerReactions PartnerReaction[]
 
   @@map("projects")
 }
@@ -138,18 +147,22 @@ model Venue {
   capacityMax    Int?        @map("capacity_max")
   ceremonyStyles String[]    @map("ceremony_styles")
   sourceUrls     String[]    @map("source_urls")
+  photoUrls      String[]    @default([]) @map("photo_urls")
   status         VenueStatus @default(researching)
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  scores    VenueScore[]
-  estimates Estimate[]
-  visits    Visit[]
-  analyses  AiAnalysis[]
-  decision  Decision?
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scores           VenueScore[]
+  estimates        Estimate[]
+  visits           Visit[]
+  analyses         AiAnalysis[]
+  decision         Decision?
+  favorites        VenueFavorite[]
+  partnerReactions PartnerReaction[]
 
   @@index([projectId])
+  @@index([projectId, status])
   @@map("venues")
 }
 
@@ -313,4 +326,34 @@ model Decision {
   venue   Venue   @relation(fields: [selectedVenueId], references: [id])
 
   @@map("decisions")
+}
+
+model PartnerReaction {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId      String       @map("venue_id") @db.Uuid
+  projectId    String       @map("project_id") @db.Uuid
+  visitorToken String       @map("visitor_token")
+  reaction     ReactionType
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  venue   Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, visitorToken])
+  @@index([projectId])
+  @@map("partner_reactions")
+}
+
+model VenueFavorite {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, userId])
+  @@index([userId])
+  @@map("venue_favorites")
 }
