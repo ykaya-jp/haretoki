@@ -5,6 +5,7 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { QuickActions } from "@/components/home/quick-actions";
 import { RecentVenues } from "@/components/home/recent-venues";
+import { ThemeSwitcher } from "@/components/settings/theme-switcher";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
@@ -13,7 +14,10 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <Greeting userName={homeData.userName} />
+      <div className="flex items-center justify-between">
+        <Greeting userName={homeData.userName} />
+        <ThemeSwitcher />
+      </div>
 
       {/* Bento Grid: AI Insight (2/3) + Progress Ring (1/3) */}
       <div className="grid grid-cols-3 gap-4">

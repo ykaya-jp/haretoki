@@ -137,6 +137,17 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.6 0.18 260);
+
+  /* Shadow adjustments for dark mode */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3), 0 20px 40px rgba(0,0,0,0.4);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-gold: 0 0 20px rgba(201,168,76,0.25);
+
+  /* Gold variants for dark mode */
+  --gold-warm: oklch(0.72 0.14 80);
+  --gold-light: oklch(0.82 0.12 80);
+  --gold-subtle: oklch(0.72 0.14 80 / 0.2);
 }
 
 @layer base {
