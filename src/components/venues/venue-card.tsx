@@ -3,9 +3,12 @@ import { Star } from "lucide-react";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
-import type { Venue, VenueScore } from "@/generated/prisma/client";
+import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 
-type VenueWithScores = Venue & { scores: VenueScore[] };
+type VenueWithScores = Venue & {
+  scores: VenueScore[];
+  estimates?: Estimate[];
+};
 
 interface VenueCardProps {
   venue: VenueWithScores;
@@ -66,16 +69,24 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
           {venue.location && <span>{venue.location}</span>}
         </div>
 
-        {/* Capacity */}
+        {/* Capacity + Price */}
         <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           {(venue.capacityMin || venue.capacityMax) && (
-            <span>
-              着席
-              {venue.capacityMin && venue.capacityMax
-                ? `${venue.capacityMin}〜${venue.capacityMax}名`
-                : venue.capacityMax
-                  ? `〜${venue.capacityMax}名`
-                  : `${venue.capacityMin}名〜`}
+            <>
+              <span>
+                着席
+                {venue.capacityMin && venue.capacityMax
+                  ? `${venue.capacityMin}〜${venue.capacityMax}名`
+                  : venue.capacityMax
+                    ? `〜${venue.capacityMax}名`
+                    : `${venue.capacityMin}名〜`}
+              </span>
+              {venue.estimates?.[0] && <span className="mx-0.5">·</span>}
+            </>
+          )}
+          {venue.estimates?.[0] && (
+            <span className="tabular-nums font-medium text-[var(--gold-warm)]">
+              ¥{(venue.estimates[0].total / 10000).toFixed(0)}万〜
             </span>
           )}
         </div>
