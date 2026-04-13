@@ -2,7 +2,7 @@
 
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
-import { requireUser, requireProjectMembership } from "@/server/auth";
+import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { ratingSchema } from "@/server/actions/rating-schema";
 import type { RatingInput } from "@/server/actions/rating-schema";
 import type { ScoreDimension } from "@/generated/prisma/client";
@@ -20,6 +20,7 @@ export async function saveRatings(
   }
 
   const user = await requireUser();
+  await requireVenueAccess(user.id, venueId);
 
   // Upsert each dimension rating for this visit
   const upserts = Object.entries(parsed.data.ratings).map(
@@ -110,7 +111,8 @@ export async function saveDirectRatings(venueId: string, input: RatingInput) {
     return { success: false as const, error: parsed.error.flatten() };
   }
 
-  await requireUser();
+  const user = await requireUser();
+  await requireVenueAccess(user.id, venueId);
 
   // Find or create a visit for direct ratings
   let visit = await prisma.visit.findFirst({
@@ -139,6 +141,7 @@ export async function saveDirectRatings(venueId: string, input: RatingInput) {
 export async function getPartnerRatings(venueId: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, venueId);
 
   // Get all project members
   const members = await prisma.projectMember.findMany({
