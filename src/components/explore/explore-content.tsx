@@ -29,11 +29,16 @@ export function ExploreContent({ venues, favoriteIds }: ExploreContentProps) {
   const [activeFilter, setActiveFilter] = useState("all");
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
-  const chips = STATUS_FILTERS.map((f) => ({
-    id: f.id,
-    label: f.label,
-    active: activeFilter === f.id,
-  }));
+  const chips = STATUS_FILTERS.map((f) => {
+    const count = f.id === "all"
+      ? venues.length
+      : venues.filter((v) => v.status === f.id).length;
+    return {
+      id: f.id,
+      label: count > 0 ? `${f.label} (${count})` : f.label,
+      active: activeFilter === f.id,
+    };
+  });
 
   const handleToggle = (id: string) => {
     setActiveFilter(id === activeFilter ? "all" : id);

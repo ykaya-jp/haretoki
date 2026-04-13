@@ -3,7 +3,14 @@ import { test, expect } from "@playwright/test";
 test.describe("Authentication", () => {
   test("login page renders with form fields", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.locator("h1, h2, h3").first()).toContainText("VenueLens");
+    // VenueLens branding — may be in desktop panel (hidden on mobile) or mobile header
+    const logos = page.locator("text=VenueLens");
+    const count = await logos.count();
+    let found = false;
+    for (let i = 0; i < count; i++) {
+      if (await logos.nth(i).isVisible()) { found = true; break; }
+    }
+    expect(found).toBe(true);
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
@@ -28,9 +35,18 @@ test.describe("Authentication", () => {
     await expect(loginLink).toBeVisible();
   });
 
-  test("unauthenticated user is redirected to login", async ({ page }) => {
-    await page.goto("/");
+  test("unauthenticated user accessing /explore is redirected to login", async ({
+    page,
+  }) => {
+    await page.goto("/explore");
     await page.waitForURL("**/login**");
     expect(page.url()).toContain("/login");
+  });
+
+  test("landing page (/) is accessible without auth", async ({ page }) => {
+    await page.goto("/");
+    // Should NOT redirect to login — landing is public
+    await expect(page).toHaveURL("/");
+    await expect(page.locator("text=VenueLens").first()).toBeVisible();
   });
 });

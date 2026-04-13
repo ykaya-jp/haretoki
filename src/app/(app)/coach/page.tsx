@@ -15,7 +15,7 @@ export default async function CoachPage() {
   const hasContent = insights.length > 0 || history.length > 0;
 
   return (
-    <div className="pb-[72px]">
+    <div className="pb-20">
       <h2 className="mb-4">AIコーチ</h2>
 
       {!hasContent ? (

@@ -29,12 +29,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/signup") &&
-    !request.nextUrl.pathname.startsWith("/callback")
-  ) {
+  // Public paths that don't require authentication
+  const publicPaths = ["/login", "/signup", "/callback", "/accept-invite"];
+  const isPublic =
+    request.nextUrl.pathname === "/" ||
+    publicPaths.some((p) => request.nextUrl.pathname.startsWith(p));
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
