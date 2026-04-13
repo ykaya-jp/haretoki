@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="hidden flex-1 flex-col justify-between bg-[var(--primary)] p-12 lg:flex">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-            VenueLens
+            Harenohi
           </p>
         </div>
         <div className="max-w-md">
@@ -60,7 +60,7 @@ export default function LoginPage() {
           </p>
         </div>
         <p className="text-[10px] text-white/30">
-          © 2026 VenueLens
+          © 2026 Harenohi
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="text-center lg:hidden">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-              VenueLens
+              Harenohi
             </p>
             <h2 className="mt-2">ログイン</h2>
           </div>

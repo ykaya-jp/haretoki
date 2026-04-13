@@ -66,7 +66,7 @@ export function LandingPage() {
             variants={fadeUp}
             className="text-sm font-medium uppercase tracking-[0.25em] text-[var(--gold-warm)]"
           >
-            VenueLens
+            Harenohi
           </motion.p>
 
           {/* Headline */}
@@ -129,7 +129,7 @@ export function LandingPage() {
       <section className="border-b border-border bg-background px-4 py-16">
         <div className="mx-auto max-w-4xl">
           <p className="mb-8 text-center text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-            なぜ VenueLens が必要なのか
+            なぜ Harenohi が必要なのか
           </p>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             {STATS.map((stat) => (
@@ -201,7 +201,7 @@ export function LandingPage() {
       {/* ─── Footer ─── */}
       <footer className="bg-background px-4 py-12">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="font-serif text-lg text-foreground">VenueLens</p>
+          <p className="font-serif text-lg text-foreground">Harenohi</p>
           <p className="mt-2 text-xs text-muted-foreground">
             二人で自然に、迷わず、後悔なく式場を選べるプロダクト
           </p>
@@ -210,7 +210,7 @@ export function LandingPage() {
             <Link href="/signup" className="hover:text-foreground">新規登録</Link>
           </div>
           <p className="mt-8 text-[10px] text-muted-foreground/50">
-            © 2026 VenueLens. All rights reserved.
+            © 2026 Harenohi. All rights reserved.
           </p>
         </div>
       </footer>
