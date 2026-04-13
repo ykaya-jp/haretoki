@@ -117,7 +117,133 @@ export async function getAIInsights(): Promise<AIInsight[]> {
     });
   }
 
+  // 5. Gap Finder: insufficient candidates
+  if (venues.length > 0 && venues.length < 3) {
+    insights.push({
+      id: "gap-venue-count",
+      type: "comparison",
+      title: "候補が少ないかも",
+      body: `現在${venues.length}件の式場があります。比較の幅を広げるなら、3件以上がおすすめです。`,
+      actions: [{ label: "もっと式場を探す", href: "/explore" }],
+      priority: 3,
+    });
+  }
+
+  // 6. Gap Finder: no cost data
+  const venuesWithoutCost = venues.filter(
+    (v) => !estimates.some((e) => e.venueId === v.id),
+  );
+  if (venues.length > 0 && venuesWithoutCost.length === venues.length) {
+    insights.push({
+      id: "gap-no-estimate",
+      type: "estimate",
+      title: "見積もり情報がありません",
+      body: "見積もりを入力すると、予算感の比較ができるようになります。",
+      actions: [
+        { label: "式場を見る", href: "/explore" },
+      ],
+      priority: 2,
+    });
+  }
+
+  // 7. Partner Gap Finder: dimensions where user & partner disagree
+  const partnerGaps = await findPartnerGaps(user.id, projectId);
+  for (const gap of partnerGaps.slice(0, 2)) {
+    insights.push({
+      id: `partner-gap-${gap.venueId}-${gap.dimension}`,
+      type: "partner",
+      title: "話し合ってみませんか？",
+      body: `${gap.venueName}の${gap.dimensionLabel}で、おふたりの評価に${gap.diff}の差があります。お互いの感じ方を共有してみましょう。`,
+      venueId: gap.venueId,
+      venueName: gap.venueName,
+      actions: [{ label: "式場を見る", href: `/venues/${gap.venueId}` }],
+      priority: 2,
+    });
+  }
+
   return insights
     .sort((a, b) => a.priority - b.priority)
     .slice(0, 5);
+}
+
+interface PartnerGap {
+  venueId: string;
+  venueName: string;
+  dimension: string;
+  dimensionLabel: string;
+  diff: string;
+}
+
+async function findPartnerGaps(
+  userId: string,
+  projectId: string,
+): Promise<PartnerGap[]> {
+  // Get members of this project
+  const members = await prisma.projectMember.findMany({
+    where: { projectId, acceptedAt: { not: null } },
+    select: { userId: true },
+  });
+  const partnerId = members.find((m) => m.userId !== userId)?.userId;
+  if (!partnerId) return [];
+
+  const DIMENSION_LABELS: Record<string, string> = {
+    atmosphere: "雰囲気",
+    cuisine: "料理",
+    hospitality: "サービス",
+    cost: "コスパ",
+    access: "設備",
+    reviews: "総合印象",
+  };
+
+  // Get all ratings for both users on venues in this project
+  const venues = await prisma.venue.findMany({
+    where: { projectId },
+    include: {
+      visits: {
+        include: {
+          ratings: true,
+        },
+      },
+    },
+  });
+
+  const gaps: PartnerGap[] = [];
+
+  for (const venue of venues) {
+    // Aggregate ratings by user and dimension
+    const userRatings: Record<string, number> = {};
+    const partnerRatings: Record<string, number> = {};
+
+    for (const visit of venue.visits) {
+      for (const rating of visit.ratings) {
+        if (rating.userId === userId) {
+          userRatings[rating.dimension] = rating.score;
+        } else if (rating.userId === partnerId) {
+          partnerRatings[rating.dimension] = rating.score;
+        }
+      }
+    }
+
+    // Find dimensions with significant disagreement (>= 2 points diff)
+    for (const dim of Object.keys(userRatings)) {
+      const u = userRatings[dim];
+      const p = partnerRatings[dim];
+      if (u !== undefined && p !== undefined && Math.abs(u - p) >= 2) {
+        gaps.push({
+          venueId: venue.id,
+          venueName: venue.name,
+          dimension: dim,
+          dimensionLabel: DIMENSION_LABELS[dim] ?? dim,
+          diff: `${Math.abs(u - p)}点`,
+        });
+      }
+    }
+  }
+
+  // Sort by largest gap first
+  return gaps.sort((a, b) => {
+    const da = parseInt(a.diff);
+    const db = parseInt(b.diff);
+    return db - da;
+  });
 }
