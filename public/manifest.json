@@ -1,0 +1,14 @@
+{
+  "name": "VenueLens - 式場選びのパートナー",
+  "short_name": "VenueLens",
+  "description": "二人で自然に、迷わず、後悔なく式場を選べるアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1E3A5F",
+  "background_color": "#FAFBFC",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

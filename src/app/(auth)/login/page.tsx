@@ -88,6 +88,30 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">または</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signInWithOAuth({
+                  provider: "google",
+                  options: { redirectTo: `${window.location.origin}/callback` },
+                });
+              }}
+            >
+              Googleでログイン
+            </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             アカウントをお持ちでない方は{" "}

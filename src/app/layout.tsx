@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Geist } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const notoSerifJP = Noto_Serif_JP({
 export const metadata: Metadata = {
   title: "VenueLens — 結婚式場比較ツール",
   description: "見学メモ、見積もり、口コミをひとつにまとめて、最適な式場を選べるようにする",
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -35,9 +37,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" className={cn(notoSansJP.variable, notoSerifJP.variable, "font-sans", geist.variable)}>
+    <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, "font-sans", geist.variable)}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
