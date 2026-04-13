@@ -305,10 +305,12 @@ export function LandingPage() {
           <h2 className="mb-6 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-[1.4] tracking-[0.06em] text-foreground">
             3つの質問から、
             <br />
-            あなたに合う式場を見つけます
+            ぴったりの式場を提案
           </h2>
           <p className="mx-auto mb-12 max-w-sm text-[15px] leading-[2] text-muted-foreground">
-            好みや予算を伝えるだけ。AIが条件に合った式場を提案します。
+            好みや予算を伝えるだけ。
+            <br />
+            AIが条件に合った式場を提案します。
           </p>
           <Link
             href="/signup"
