@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { getVenue } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
+import { getVenueReviews } from "@/server/actions/reviews";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { VenueHeader } from "@/components/venues/venue-header";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
+import { ReviewSection } from "@/components/venues/review-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 
 export default async function VenueDetailPage({
@@ -14,10 +16,11 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [venue, partnerRatingsData, favorites] = await Promise.all([
+  const [venue, partnerRatingsData, favorites, reviews] = await Promise.all([
     getVenue(id),
     getPartnerRatings(id).catch(() => null),
     getFavorites("mine"),
+    getVenueReviews(id),
   ]);
 
   if (!venue) notFound();
@@ -82,6 +85,19 @@ export default async function VenueDetailPage({
           }))}
         />
       )}
+
+      {/* Review Section */}
+      <ReviewSection
+        venueId={venue.id}
+        reviews={reviews.map(r => ({
+          id: r.id,
+          source: r.source,
+          sourceUrl: r.sourceUrl,
+          aiSummary: r.aiSummary,
+          sentiment: r.sentiment as Record<string, number> | null,
+          rating: r.rating ? Number(r.rating) : null,
+        }))}
+      />
 
       {/* Visit Section - placeholder for R3 */}
       <section className="space-y-2">

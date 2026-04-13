@@ -3,6 +3,8 @@
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
+import { isClaudeAvailable, askClaude, stripPII, withRetry } from "@/lib/anthropic";
+import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
 
 interface CoachResponse {
   answer: string;
@@ -51,6 +53,37 @@ const FALLBACK_RESPONSE: CoachResponse = {
   matched: false,
 };
 
+async function loadUserContext(projectId: string): Promise<UserContext> {
+  const [project, venues, favorites, latestEstimate] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { conditions: true },
+    }),
+    prisma.venue.findMany({
+      where: { projectId },
+      select: { name: true, status: true },
+    }),
+    prisma.venueFavorite.findMany({
+      where: { venue: { projectId } },
+      include: { venue: { select: { name: true } } },
+    }),
+    prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+      include: { venue: { select: { name: true } } },
+    }),
+  ]);
+
+  return {
+    conditions: project?.conditions as Record<string, unknown> | null,
+    venues: venues.map((v) => ({ name: v.name, status: v.status })),
+    favorites: favorites.map((f) => f.venue.name),
+    latestEstimate: latestEstimate
+      ? { venueName: latestEstimate.venue.name, total: latestEstimate.total }
+      : null,
+  };
+}
+
 export async function sendCoachMessage(message: string): Promise<CoachResponse> {
   if (!message || message.length > 500) {
     return { answer: "メッセージは1〜500文字で入力してください。", suggestedActions: [], matched: false };
@@ -59,7 +92,54 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // FAQ keyword matching
+  // R2: Use Claude API if available
+  if (isClaudeAvailable()) {
+    const context = await loadUserContext(projectId);
+
+    // Load conversation history (last 20 messages)
+    await prisma.coachMessage.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    // Save user message
+    await prisma.coachMessage.create({
+      data: { projectId, role: "user", content: message },
+    });
+
+    try {
+      const response = await withRetry(() =>
+        askClaude({
+          system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
+          userMessage: stripPII(message),
+          maxTokens: 2048,
+        })
+      );
+
+      // Save assistant response
+      await prisma.coachMessage.create({
+        data: {
+          projectId,
+          role: "assistant",
+          content: response,
+          metadata: { model: "claude-sonnet-4-20250514" },
+        },
+      });
+
+      revalidatePath("/coach");
+      return { answer: response, suggestedActions: [], matched: true };
+    } catch {
+      // Fallback to FAQ on Claude API failure
+      return matchFAQ(message, projectId);
+    }
+  }
+
+  // Fallback: R1 keyword matching
+  return matchFAQ(message, projectId);
+}
+
+function matchFAQ(message: string, projectId: string): CoachResponse {
   const normalizedMessage = message.toLowerCase();
   const matchedFaq = FAQ_PATTERNS.find((faq) =>
     faq.keywords.some((keyword) => normalizedMessage.includes(keyword))
@@ -69,14 +149,15 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
     ? { answer: matchedFaq.answer, suggestedActions: matchedFaq.actions, matched: true }
     : FALLBACK_RESPONSE;
 
-  // Save to AiAnalysis for history
-  await prisma.aiAnalysis.create({
+  // Still save to AiAnalysis for backward compat (R1 pattern)
+  // Note: We don't await this to avoid blocking the response
+  prisma.aiAnalysis.create({
     data: {
       projectId,
       type: "coach_chat",
       output: JSON.stringify({ question: message, answer: response.answer }),
     },
-  });
+  }).catch(() => {}); // fire and forget
 
   revalidatePath("/coach");
   return response;
@@ -86,19 +167,35 @@ export async function getCoachHistory() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
+  // R2: Read from CoachMessage table
+  const messages = await prisma.coachMessage.findMany({
+    where: { projectId },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
+
+  if (messages.length > 0) {
+    // R2 format: individual messages
+    return messages.map((m) => ({
+      id: m.id,
+      role: m.role as "user" | "assistant",
+      content: m.content,
+      createdAt: m.createdAt,
+    }));
+  }
+
+  // Fallback: Read from AiAnalysis (R1 format)
   const history = await prisma.aiAnalysis.findMany({
     where: { projectId, type: "coach_chat" },
     orderBy: { createdAt: "asc" },
     take: 50,
   });
 
-  return history.map((h) => {
+  return history.flatMap((h) => {
     const parsed = JSON.parse(h.output) as { question?: string; answer?: string };
-    return {
-      id: h.id,
-      question: parsed.question ?? "",
-      answer: parsed.answer ?? "",
-      createdAt: h.createdAt,
-    };
+    const items: Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: Date }> = [];
+    if (parsed.question) items.push({ id: `${h.id}-q`, role: "user", content: parsed.question, createdAt: h.createdAt });
+    if (parsed.answer) items.push({ id: `${h.id}-a`, role: "assistant", content: parsed.answer, createdAt: h.createdAt });
+    return items;
   });
 }

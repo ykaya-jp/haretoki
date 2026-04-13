@@ -3,6 +3,8 @@
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { DIMENSION_LABELS } from "@/lib/constants";
+import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib/anthropic";
+import { COMPARISON_PROMPT } from "@/lib/prompts/comparison";
 
 interface ComparisonVenue {
   id: string;
@@ -38,13 +40,19 @@ export async function getComparisonData(venueIds: string[]): Promise<ComparisonD
     throw new Error("比較は2-3件の式場を選択してください");
   }
 
-  const venues = await prisma.venue.findMany({
-    where: { id: { in: venueIds }, projectId },
-    include: {
-      scores: { where: { source: "user_rating" } },
-      estimates: { orderBy: { version: "desc" }, take: 1 },
-    },
-  });
+  const [venues, project] = await Promise.all([
+    prisma.venue.findMany({
+      where: { id: { in: venueIds }, projectId },
+      include: {
+        scores: { where: { source: "user_rating" } },
+        estimates: { orderBy: { version: "desc" }, take: 1 },
+      },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { conditions: true },
+    }),
+  ]);
 
   const comparisonVenues: ComparisonVenue[] = venues.map((venue) => {
     const scores = venue.scores.map((s) => ({
@@ -84,10 +92,83 @@ export async function getComparisonData(venueIds: string[]): Promise<ComparisonD
     };
   });
 
-  // Template-based comparison insight (Release 1)
-  const insight = generateTemplateInsight(comparisonVenues);
+  const insight = await generateInsight(comparisonVenues, projectId, project?.conditions);
 
   return { venues: comparisonVenues, insight };
+}
+
+async function generateInsight(
+  venues: ComparisonVenue[],
+  projectId: string,
+  conditions: unknown,
+): Promise<ComparisonInsight> {
+  if (!isClaudeAvailable() || venues.length < 2) {
+    return generateTemplateInsight(venues);
+  }
+
+  try {
+    const inputHash = computeInputHash(venues.map((v) => v.id).sort().join(","));
+
+    // Check cache (24h TTL)
+    const cached = await prisma.aiAnalysis.findFirst({
+      where: {
+        type: "comparison",
+        inputHash,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+    if (cached) {
+      const parsed = JSON.parse(cached.output);
+      return {
+        text: parsed.summary ?? "",
+        recommendations: parsed.recommendations ?? [],
+      };
+    }
+
+    // Build venue descriptions
+    const venueDescriptions = venues
+      .map(
+        (v) => `
+【${v.name}】
+- エリア: ${v.location ?? "不明"}
+- 収容: ${v.capacityMin ?? "?"}〜${v.capacityMax ?? "?"}名
+- スタイル: ${v.ceremonyStyles.join(", ") || "不明"}
+- 見積もり: ${v.latestEstimate ? `¥${Math.round(v.latestEstimate.total / 10000)}万円` : "未入力"}
+- スコア: ${v.scores.map((s) => `${s.dimension}=${s.score}`).join(", ") || "未評価"}
+- 総合: ${v.totalScore}点`,
+      )
+      .join("\n");
+
+    const conditionsDesc = conditions
+      ? `\nカップルの希望: ${JSON.stringify(conditions)}`
+      : "";
+
+    const response = await withRetry(() =>
+      askClaude({
+        system: COMPARISON_PROMPT.system,
+        userMessage: COMPARISON_PROMPT.buildUserMessage(venueDescriptions, conditionsDesc),
+      }),
+    );
+
+    const result = JSON.parse(response);
+
+    // Cache
+    await prisma.aiAnalysis.create({
+      data: {
+        projectId,
+        type: "comparison",
+        inputHash,
+        output: response,
+      },
+    });
+
+    return {
+      text: result.summary ?? "",
+      recommendations: result.recommendations ?? [],
+    };
+  } catch {
+    return generateTemplateInsight(venues);
+  }
 }
 
 function generateTemplateInsight(venues: ComparisonVenue[]): ComparisonInsight {
