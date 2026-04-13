@@ -12,7 +12,7 @@ interface FavoriteFilterProps {
 const FILTERS: { id: FavoriteFilter; label: string }[] = [
   { id: "mine", label: "自分" },
   { id: "partner", label: "パートナー" },
-  { id: "both", label: "二人とも" },
+  { id: "both", label: "おふたり" },
 ];
 
 export function FavoriteFilter({ active, onChange }: FavoriteFilterProps) {

@@ -68,7 +68,7 @@ export function EstimateForm({
 
     const totalNum = parseInt(total.replace(/,/g, ""), 10);
     if (isNaN(totalNum) || totalNum <= 0) {
-      setError("総額を正しく入力してください");
+      setError("総額をご入力ください");
       setLoading(false);
       return;
     }
@@ -93,7 +93,7 @@ export function EstimateForm({
 
       if (result.error) {
         const messages = Object.values(result.error).flat();
-        setError(messages.join(", ") || "入力に間違いがあるようです");
+        setError(messages.join(", ") || "入力内容をご確認ください");
         return;
       }
 
@@ -101,10 +101,10 @@ export function EstimateForm({
       setTotal("");
       setItems([]);
       setShowItems(false);
-      toast.success("見積もりを保存しました");
+      toast.success("見積もりを記録しました");
       onSaved?.();
     } catch {
-      setError("保存できませんでした");
+      setError("記録できませんでした");
     } finally {
       setLoading(false);
     }
@@ -233,7 +233,7 @@ export function EstimateForm({
       )}
 
       <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "保存中..." : "見積もりを保存"}
+        {loading ? "記録しています..." : "見積もりを記録する"}
       </Button>
     </form>
   );

@@ -30,8 +30,8 @@ interface OnboardingAnswer {
 const QUESTIONS = [
   {
     id: "style",
-    question: "どんな雰囲気の式場が好みですか？",
-    subtitle: "あなたにぴったりの式場をお勧めするために",
+    question: "どんな雰囲気がお好みですか？",
+    subtitle: "おふたりにぴったりの式場をご提案するために",
     type: "pills" as const,
     options: [
       { id: "チャペル", label: "チャペル" },
@@ -44,14 +44,14 @@ const QUESTIONS = [
   },
   {
     id: "guests",
-    question: "ゲストは何名くらいですか？",
-    subtitle: "収容人数に合った式場をお探しします",
+    question: "ゲストは何名くらいをお考えですか？",
+    subtitle: "人数に合った会場をお探しします",
     type: "number" as const,
   },
   {
     id: "area",
-    question: "エリアの希望はありますか？",
-    subtitle: "アクセスの良い式場をお探しします",
+    question: "気になるエリアはありますか？",
+    subtitle: "通いやすい式場をお探しします",
     type: "pills" as const,
     options: [
       { id: "表参道", label: "表参道" },
@@ -64,8 +64,8 @@ const QUESTIONS = [
   },
   {
     id: "budget",
-    question: "予算の目安は？",
-    subtitle: "費用感に合った式場をご提案します",
+    question: "ご予算の目安はありますか？",
+    subtitle: "おふたりに合った式場をご提案します",
     type: "pills" as const,
     options: [
       { id: "200", label: "〜200万" },
@@ -215,7 +215,7 @@ export function OnboardingFlow() {
         ceremonyStyles: rec.ceremonyStyles,
       });
       if (result.success) {
-        toast.success(`${rec.name}を追加しました`);
+        toast.success(`${rec.name}をリストに追加しました`);
       }
     } catch {
       toast.error("追加できませんでした");
@@ -235,12 +235,12 @@ export function OnboardingFlow() {
         <div className="border-l-[3px] border-l-[hsl(var(--gold))] bg-[hsl(var(--gold-subtle))] rounded-r-lg p-4 space-y-1">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Sparkles className="h-4 w-4 text-[hsl(var(--gold))]" />
-            <span>AIのおすすめ式場</span>
+            <span>あなたへのおすすめ</span>
           </div>
           {isLoadingRecs ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>あなたにぴったりの式場を探しています…</span>
+              <span>おふたりに合う式場を探しています…</span>
             </div>
           ) : advice ? (
             <p className="text-sm text-muted-foreground">{advice}</p>
@@ -309,7 +309,7 @@ export function OnboardingFlow() {
             }}
             className="text-sm text-muted-foreground underline"
           >
-            スキップしてホームへ
+            あとで見る
           </button>
         </div>
       </div>
@@ -320,7 +320,7 @@ export function OnboardingFlow() {
     <div className="mx-auto max-w-lg space-y-6 py-4">
       {/* Progress bar */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>Step {step + 1} of {QUESTIONS.length}</span>
+        <span>{step + 1} / {QUESTIONS.length}</span>
         <div className="flex-1">
           <div className="h-1 rounded-full bg-muted">
             <div
@@ -375,7 +375,7 @@ export function OnboardingFlow() {
 
           <div className="flex items-center gap-3">
             <Button onClick={handleNext} disabled={isPending}>
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : step < QUESTIONS.length - 1 ? "次へ" : "はじめる"}
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : step < QUESTIONS.length - 1 ? "次へ" : "おすすめを見る"}
             </Button>
             <button
               type="button"

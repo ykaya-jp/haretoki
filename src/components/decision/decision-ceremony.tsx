@@ -55,7 +55,7 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
           おめでとう、{userName}さん！
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          {venueName}に決定しました
+          {venueName}に決まりました
         </p>
       </div>
     );
@@ -66,23 +66,23 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
       <div className="flex flex-col items-center gap-6 py-8">
         <div className="text-center">
           <h2 className="text-lg font-medium">{venueName}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">式場選びの旅路</p>
+          <p className="mt-2 text-sm text-muted-foreground">おふたりの式場さがし</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{journeyStats.totalVenues}会場調査</span>
+          <span>{journeyStats.totalVenues}会場を調べて</span>
           <span>→</span>
-          <span>{journeyStats.shortlisted}候補</span>
+          <span>{journeyStats.shortlisted}件に絞り</span>
           <span>→</span>
-          <span>{journeyStats.compared}比較</span>
+          <span>{journeyStats.compared}件を比べて</span>
           <span>→</span>
-          <span className="font-medium text-foreground">{venueName}に決定</span>
+          <span className="font-medium text-foreground">{venueName}に</span>
         </div>
         <button
           type="button"
           onClick={() => setPhase("reason")}
           className="rounded-lg bg-primary px-6 py-3 text-primary-foreground"
         >
-          決め手を記録する
+          決めた理由を残す
         </button>
         <button
           type="button"
@@ -98,7 +98,7 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
   // Phase: reason
   return (
     <div className="space-y-6 py-8">
-      <h2 className="text-center text-lg">決め手は何でしたか？</h2>
+      <h2 className="text-center text-lg">決め手を教えてください</h2>
       <div className="flex flex-wrap justify-center gap-2">
         {REASON_TAGS.map((tag) => (
           <button
@@ -122,7 +122,7 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
       <textarea
         value={reasonText}
         onChange={(e) => setReasonText(e.target.value)}
-        placeholder="決め手を一言で..."
+        placeholder="この式場にした理由を一言で"
         className="w-full rounded-lg border border-border bg-card p-3 text-sm"
         rows={3}
       />
@@ -133,7 +133,7 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
           disabled={saving}
           className="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
         >
-          {saving ? "保存中..." : "記録する"}
+          {saving ? "記録しています..." : "この想いを残す"}
         </button>
         <button
           type="button"

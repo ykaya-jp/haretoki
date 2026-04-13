@@ -18,7 +18,7 @@ export default async function ExplorePage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2>式場を探す</h2>
+        <h2>式場をさがす</h2>
         <AddVenueSheet />
       </div>
 
@@ -30,8 +30,8 @@ export default async function ExplorePage() {
         <EmptyState
           icon={Search}
           imageUrl="/images/empty-explore.png"
-          title="式場の下見は、ここから始まります"
-          description="右上の「追加」から、ゼクシィなどのURLを貼り付けるだけ。AIが自動で情報を読み取ります。"
+          title="式場さがしは、ここから"
+          description="右上の「追加」からURLを貼るだけ。AIが自動で情報を読み取ります。"
         />
       ) : (
         <ExploreContent venues={venues} favoriteIds={favoriteIds} />

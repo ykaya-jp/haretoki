@@ -21,9 +21,9 @@ export default async function CoachPage() {
       {!hasContent ? (
         <EmptyState
           icon={Search}
-          title="式場を追加するとAIコーチが分析を開始します"
-          description="気になる式場を登録すると、あなたにぴったりのアドバイスや比較分析をお届けします。まずは式場を探してみましょう。"
-          action={{ label: "式場を探す", href: "/explore" }}
+          title="式場を追加すると、AIコーチが寄り添います"
+          description="気になる式場を追加すると、おふたりに合ったアドバイスや比較をお届けします。"
+          action={{ label: "式場を見てみる", href: "/explore" }}
         />
       ) : (
         <div className="space-y-5">
@@ -43,7 +43,7 @@ export default async function CoachPage() {
             <>
               <div className="my-2 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted-foreground">チャット履歴</span>
+                <span className="text-xs text-muted-foreground">これまでの会話</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
               <div className="space-y-3">

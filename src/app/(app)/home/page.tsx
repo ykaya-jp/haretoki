@@ -22,7 +22,7 @@ export default async function HomePage() {
           className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors active:bg-muted"
         >
           <Settings className="h-5 w-5 text-muted-foreground" />
-          <span className="text-[10px] text-muted-foreground">設定</span>
+          <span className="text-[10px] text-muted-foreground">マイページ</span>
         </Link>
       </div>
 

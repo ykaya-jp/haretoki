@@ -62,9 +62,9 @@ export function CandidatesView({
   }, [filter]);
 
   const SEGMENTS = [
-    { id: "shortlist" as const, label: "候補" },
-    { id: "comparison" as const, label: "比較", disabled: false },
-    { id: "decision" as const, label: "決定", disabled: false },
+    { id: "shortlist" as const, label: "お気に入り" },
+    { id: "comparison" as const, label: "比べる", disabled: false },
+    { id: "decision" as const, label: "決める", disabled: false },
   ];
 
   const handleDecide = async (venueId: string) => {
@@ -76,7 +76,7 @@ export function CandidatesView({
     });
 
     if ("error" in result) {
-      toast.error("保存できませんでした");
+      toast.error("記録できませんでした");
       return;
     }
 
@@ -120,9 +120,9 @@ export function CandidatesView({
                 <EmptyState
                   icon={Heart}
                   imageUrl="/images/empty-candidates.png"
-                  title="いいね！と感じた式場を集めましょう"
-                  description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上で比較もできます。"
-                  action={{ label: "式場を探す", href: "/explore" }}
+                  title="心に残った式場を集める場所です"
+                  description="式場カードの♡をタップすると、ここに表示されます。2件以上で比較もできます。"
+                  action={{ label: "式場を見てみる", href: "/explore" }}
                 />
               </motion.div>
             ) : (
@@ -134,7 +134,7 @@ export function CandidatesView({
                     whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 250, damping: 25 } }}
                     className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-center shadow-[var(--shadow-card)] transition-colors active:bg-muted"
                   >
-                    スワイプで絞り込む ({favorites.length}件)
+                    スワイプで選ぶ ({favorites.length}件)
                   </motion.button>
                 )}
 
@@ -186,9 +186,9 @@ export function CandidatesView({
             {venueOptions.length < 2 ? (
               <EmptyState
                 icon={BarChart3}
-                title="比較するには2件以上の候補が必要です"
-                description="まずはお気に入りの式場を2件以上追加してみましょう。データで納得のいく比較ができます。"
-                action={{ label: "式場を探す", href: "/explore" }}
+                title="比べるには2件以上の式場が必要です"
+                description="お気に入りの式場を2件以上集めると、さまざまな角度から比較できます。"
+                action={{ label: "式場を見てみる", href: "/explore" }}
               />
             ) : (
               <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
@@ -226,19 +226,19 @@ export function CandidatesView({
                   <span className="text-3xl">{"\u{1F389}"}</span>
                 </div>
                 <h3 className="font-serif text-xl font-light tracking-wide">{decision.venueName}</h3>
-                <p className="text-sm text-muted-foreground">に決定しました</p>
+                <p className="text-sm text-muted-foreground">に決まりました</p>
                 {decision.rationale && (
                   <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                    決め手: {decision.rationale}
+                    決めた理由: {decision.rationale}
                   </p>
                 )}
               </motion.div>
             ) : (
               <EmptyState
                 icon={Trophy}
-                title="まだ決めていません"
-                description="候補を見比べて、納得のいく一つを選びましょう。二人で話し合って決めるのが大切です。"
-                action={{ label: "候補を比較する", href: "#" }}
+                title="まだ決まっていません"
+                description="お気に入りを見比べて、おふたりが納得できる一軒を。ゆっくり話し合って選んでいけます。"
+                action={{ label: "お気に入りを比べる", href: "#" }}
               />
             )}
           </motion.div>

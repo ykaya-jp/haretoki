@@ -23,7 +23,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
 
       try {
         await toggleFavorite(venueId);
-        toast.success(newState ? "候補に追加しました" : "候補から外しました", {
+        toast.success(newState ? "お気に入りに追加しました" : "お気に入りから外しました", {
           duration: 2000,
         });
       } catch {
@@ -38,7 +38,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
     <motion.button
       type="button"
       onClick={handleToggle}
-      aria-label={optimisticFavorite ? "候補から外す" : "候補に追加"}
+      aria-label={optimisticFavorite ? "お気に入りから外す" : "お気に入りに追加"}
       className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-colors hover:bg-white active:bg-white/60"
       whileTap={{ scale: 1.15 }}
       transition={{ type: "spring", stiffness: 100, damping: 16 }}

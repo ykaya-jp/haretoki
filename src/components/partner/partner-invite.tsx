@@ -15,13 +15,13 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteLink);
     setCopied(true);
-    toast.success("リンクをコピーしました");
+    toast.success("招待リンクをコピーしました");
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleLineShare = () => {
     window.open(
-      `https://line.me/R/share?text=${encodeURIComponent(`式場選び一緒にやりませんか？\n${inviteLink}`)}`,
+      `https://line.me/R/share?text=${encodeURIComponent(`一緒に式場を選びませんか？\n${inviteLink}`)}`,
       "_blank"
     );
   };
@@ -29,7 +29,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
   if (partnerStatus === "joined") {
     return (
       <div className="rounded-lg border border-border bg-card p-4 text-center">
-        <p className="text-sm text-muted-foreground">パートナーが参加しています</p>
+        <p className="text-sm text-muted-foreground">パートナーと一緒に式場さがし中です</p>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
             </div>
             <div>
               <p className="text-sm font-medium">パートナーを招待</p>
-              <p className="text-xs text-muted-foreground">一緒に式場選びをしましょう</p>
+              <p className="text-xs text-muted-foreground">おふたりで式場を選べます</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -69,12 +69,12 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
       ) : (
         <div className="text-center">
           <p className="text-sm">
-            {partnerStatus === "invited" && "招待を送信しました"}
-            {partnerStatus === "viewed" && "パートナーがリンクを確認しました"}
-            {partnerStatus === "reacted" && "パートナーがリアクションしました"}
+            {partnerStatus === "invited" && "招待を送りました"}
+            {partnerStatus === "viewed" && "パートナーがリンクを見てくれました"}
+            {partnerStatus === "reacted" && "パートナーが反応してくれました"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            パートナーがリンクを開くと式場カードが表示されます
+            リンクを開くと、おふたりの式場リストを共有できます
           </p>
         </div>
       )}

@@ -24,7 +24,7 @@ interface VenueFilterSheetProps {
 
 const SORT_OPTIONS = [
   { value: "created_desc", label: "新しい順" },
-  { value: "score_desc", label: "スコア順" },
+  { value: "score_desc", label: "評価が高い順" },
   { value: "cost_asc", label: "費用が安い順" },
   { value: "cost_desc", label: "費用が高い順" },
 ] as const;
@@ -75,7 +75,7 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
         }
       >
         <SlidersHorizontal className="h-4 w-4" />
-        <span>絞り込み</span>
+        <span>条件で探す</span>
         {activeCount > 0 && (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
             {activeCount}
@@ -85,7 +85,7 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
 
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>絞り込み・並べ替え</SheetTitle>
+          <SheetTitle>条件をしぼる・並べ替え</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 px-4 pb-4">
@@ -119,7 +119,7 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
           {/* Score range */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              最低スコア
+              評価の下限
               {draft.minScore !== undefined && (
                 <span className="ml-2 tabular-nums text-[var(--gold-warm)]">
                   {draft.minScore.toFixed(1)} 以上
@@ -244,7 +244,7 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
                 <Button onClick={handleApply} className="flex-1" />
               }
             >
-              適用する
+              この条件で探す
             </SheetClose>
           </div>
         </SheetFooter>

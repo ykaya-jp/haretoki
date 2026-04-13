@@ -50,7 +50,7 @@ export function AddVenueSheet() {
         setExtracted(result.extracted);
       }
     } catch {
-      toast.error("うまくいきませんでした");
+      toast.error("追加できませんでした");
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export function AddVenueSheet() {
         router.refresh();
       }
     } catch {
-      toast.error("登録できませんでした");
+      toast.error("追加できませんでした");
     } finally {
       setLoading(false);
     }
@@ -122,10 +122,10 @@ export function AddVenueSheet() {
         resetForm();
         router.refresh();
       } else {
-        toast.error("登録できませんでした");
+        toast.error("追加できませんでした");
       }
     } catch {
-      toast.error("うまくいきませんでした");
+      toast.error("追加できませんでした");
     } finally {
       setLoading(false);
     }
@@ -151,19 +151,19 @@ export function AddVenueSheet() {
       </SheetTrigger>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader>
-          <SheetTitle>式場を追加</SheetTitle>
+          <SheetTitle>新しい式場を追加</SheetTitle>
         </SheetHeader>
         <Tabs value={tab} onValueChange={setTab} className="mt-4">
           <TabsList className="w-full">
-            <TabsTrigger value="url" className="flex-1">URLから追加</TabsTrigger>
-            <TabsTrigger value="manual" className="flex-1">手動で追加</TabsTrigger>
+            <TabsTrigger value="url" className="flex-1">URLで追加</TabsTrigger>
+            <TabsTrigger value="manual" className="flex-1">自分で入力</TabsTrigger>
           </TabsList>
 
           <TabsContent value="url" className="space-y-4 pt-4">
             {!extracted ? (
               <>
                 <div className="space-y-2">
-                  <Label>式場のURLを貼り付け</Label>
+                  <Label>式場ページのURLを貼り付け</Label>
                   <div className="flex gap-2">
                     <Input
                       value={url}
@@ -172,17 +172,17 @@ export function AddVenueSheet() {
                       type="url"
                     />
                     <Button onClick={handleUrlSubmit} disabled={loading || !url.trim()}>
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "読取"}
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "読み取る"}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    ゼクシィ、ハナユメ、Wedding Park等のURL対応
+                    ゼクシィ・ハナユメ・Wedding Park等に対応
                   </p>
                 </div>
               </>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm font-medium">読み取り結果を確認</p>
+                <p className="text-sm font-medium">読み取った情報</p>
                 <div className="rounded-lg border p-4 space-y-2">
                   <p className="font-serif font-medium">{extracted.name}</p>
                   {extracted.location && (
@@ -206,20 +206,20 @@ export function AddVenueSheet() {
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    読み取り精度: {extracted.confidence === "high" ? "高" : extracted.confidence === "medium" ? "中" : "低"}
+                    読み取り精度: {extracted.confidence === "high" ? "高い" : extracted.confidence === "medium" ? "ふつう" : "低い"}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">※ 情報は後から編集できます</p>
+                <p className="text-xs text-muted-foreground">あとから編集できます</p>
                 <div className="flex gap-2">
                   <Button onClick={handleConfirm} disabled={loading} className="flex-1">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "登録する"}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "この内容で追加"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => { setExtracted(null); setTab("manual"); }}
                     className="flex-1"
                   >
-                    修正して登録
+                    修正して追加
                   </Button>
                 </div>
               </div>
@@ -228,7 +228,7 @@ export function AddVenueSheet() {
 
           <TabsContent value="manual" className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="venue-name">式場名 *</Label>
+              <Label htmlFor="venue-name">式場のお名前 *</Label>
               <Input
                 id="venue-name"
                 value={manualName}
@@ -288,12 +288,12 @@ export function AddVenueSheet() {
                 className="gap-1"
               >
                 <ImagePlus className="h-4 w-4" />
-                {photoFiles.length > 0 ? `${photoFiles.length}/10 枚` : "写真を追加"}
+                {photoFiles.length > 0 ? `${photoFiles.length}/10枚` : "写真を選ぶ"}
               </Button>
             </div>
 
             <Button onClick={handleManualSubmit} disabled={loading || !manualName.trim()} className="w-full">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "追加する"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "この式場を追加"}
             </Button>
           </TabsContent>
         </Tabs>

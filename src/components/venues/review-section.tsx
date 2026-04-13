@@ -38,8 +38,8 @@ const SOURCE_OPTIONS: { value: ReviewSource; label: string }[] = [
 const CATEGORY_LABELS: Record<string, string> = {
   service: "接客",
   cuisine: "料理",
-  estimate_increase: "見積もり上昇",
-  negative_points: "ネガティブポイント",
+  estimate_increase: "追加費用の傾向",
+  negative_points: "気になる点",
 };
 
 export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
@@ -67,12 +67,12 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
     startTransition(async () => {
       const result = await analyzeVenueReviews(venueId, url, source);
       if (result.success) {
-        toast.success("口コミを分析しました");
+        toast.success("口コミをまとめました");
         setUrl("");
         setShowForm(false);
         router.refresh();
       } else {
-        toast.error(result.error ?? "分析に失敗しました");
+        toast.error(result.error ?? "まとめられませんでした");
       }
     });
   };
@@ -80,7 +80,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base">口コミ分析</h2>
+        <h2 className="text-base">口コミのまとめ</h2>
         <div className="flex items-center gap-2">
           {reviews.length > 0 && (
             <button
@@ -94,7 +94,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
               )}
             >
               <AlertTriangle className="h-3 w-3" />
-              ネガティブ優先
+              気になる点を先に
             </button>
           )}
           <Button
@@ -112,7 +112,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
       {showForm && (
         <div className="space-y-3 rounded-lg border border-border p-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">ソース</label>
+            <label className="text-sm font-medium">口コミサイト</label>
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as ReviewSource)}
@@ -134,14 +134,14 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
           </div>
           <Button onClick={handleAnalyze} disabled={isPending || !url.trim()}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            AIで分析する
+            AIにまとめてもらう
           </Button>
         </div>
       )}
 
       {reviews.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground">
-          口コミのURLを追加すると、AIが内容を分析します
+          口コミページのURLを追加すると、AIが要点をまとめます
         </p>
       )}
 
@@ -149,9 +149,9 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
         <div key={review.id} className="space-y-3">
           <AIInsightCard
             type="comparison"
-            title={`${SOURCE_OPTIONS.find(s => s.value === review.source)?.label ?? review.source} の分析`}
+            title={`${SOURCE_OPTIONS.find(s => s.value === review.source)?.label ?? review.source} のまとめ`}
             body={review.aiSummary!}
-            actions={[{ label: "元の口コミを見る", href: review.sourceUrl }]}
+            actions={[{ label: "口コミ元を読む", href: review.sourceUrl }]}
           />
 
           {/* Category summary chips */}

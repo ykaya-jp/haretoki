@@ -98,7 +98,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium">見学チェックリスト</p>
+      <p className="text-sm font-medium">見学の確認リスト</p>
       {sortedCategories.map((cat) => {
         const catItems = grouped.get(cat) ?? [];
         const checkedCount = catItems.filter(i => i.status !== "unchecked").length;
@@ -120,7 +120,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                     ? "bg-green-100 text-green-700"
                     : "bg-muted text-muted-foreground"
                 )}>
-                  {checkedCount}/{catItems.length} 確認済み
+                  {checkedCount}/{catItems.length}
                 </span>
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -153,7 +153,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                               onClick={() => handleToggleCheck(item.id, item.status)}
                               disabled={isPending}
                               className="flex h-12 w-12 shrink-0 items-center justify-center transition-transform duration-300 active:scale-90"
-                              aria-label={`${item.item}: ${item.status === "yes" ? "OK" : item.status === "no" ? "NG" : "未確認"}`}
+                              aria-label={`${item.item}: ${item.status === "yes" ? "よかった" : item.status === "no" ? "気になった" : "まだ見ていない"}`}
                             >
                               <div className={cn(
                                 "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-400",
@@ -204,7 +204,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                     value={memoValues[item.id] ?? ""}
                                     onChange={(e) => setMemoValues(prev => ({ ...prev, [item.id]: e.target.value }))}
                                     onBlur={() => handleMemoSave(item.id)}
-                                    placeholder="メモを入力..."
+                                    placeholder="気づいたことを書いておく"
                                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                                     rows={2}
                                   />

@@ -57,13 +57,13 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         memo: scheduleMemo || undefined,
       });
       if (result.success) {
-        toast.success("見学を予約しました");
+        toast.success("見学の予定を追加しました");
         setShowScheduleForm(false);
         setScheduleDate("");
         setScheduleMemo("");
         router.refresh();
       } else {
-        toast.error(result.error ?? "予約できませんでした");
+        toast.error(result.error ?? "追加できませんでした");
       }
     });
   };
@@ -71,7 +71,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   const handleComplete = (visitId: string) => {
     startTransition(async () => {
       await completeVisit(visitId);
-      toast.success("見学を完了しました");
+      toast.success("見学おつかれさまでした");
       router.refresh();
     });
   };
@@ -86,7 +86,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         locationLng: geo.longitude ?? undefined,
       });
       if (result.success) {
-        toast.success("メモを保存しました");
+        toast.success("メモを残しました");
         setNoteText("");
         setShowNoteForm(false);
         router.refresh();
@@ -99,11 +99,11 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base">見学記録</h2>
+        <h2 className="text-base">見学のきろく</h2>
         {!activeVisit && (
           <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} className="gap-1">
             <Calendar className="h-4 w-4" />
-            見学を予約
+            見学の予定を入れる
           </Button>
         )}
       </div>
@@ -112,16 +112,16 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
       {showScheduleForm && (
         <div className="space-y-3 rounded-lg border border-border p-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">見学日時</label>
+            <label className="text-sm font-medium">見学の日時</label>
             <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">メモ（任意）</label>
-            <Input value={scheduleMemo} onChange={(e) => setScheduleMemo(e.target.value)} placeholder="集合時間、担当者名など" />
+            <Input value={scheduleMemo} onChange={(e) => setScheduleMemo(e.target.value)} placeholder="待ち合わせ場所、担当の方のお名前など" />
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSchedule} disabled={isPending || !scheduleDate}>
-              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "予約する"}
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "予定を追加"}
             </Button>
             <Button variant="outline" onClick={() => setShowScheduleForm(false)}>キャンセル</Button>
           </div>
@@ -148,7 +148,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
               visit.status === "scheduled" ? "bg-blue-50 text-blue-700" :
               visit.status === "completed" ? "bg-green-50 text-green-700" : "bg-muted text-muted-foreground"
             )}>
-              {visit.status === "scheduled" ? "予定" : visit.status === "completed" ? "完了" : "キャンセル"}
+              {visit.status === "scheduled" ? "見学予定" : visit.status === "completed" ? "見学済み" : "取りやめ"}
             </span>
           </div>
 
@@ -157,7 +157,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
           {/* Complete button */}
           {visit.status === "scheduled" && (
             <Button size="sm" variant="outline" onClick={() => handleComplete(visit.id)} disabled={isPending} className="gap-1">
-              <Check className="h-4 w-4" /> 見学完了にする
+              <Check className="h-4 w-4" /> 見学を終えた
             </Button>
           )}
 
@@ -183,18 +183,18 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
               <textarea
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder="見学メモを入力..."
+                placeholder="感じたことを自由に書いてください"
                 className="w-full rounded-lg border border-border bg-card p-2 text-sm"
                 rows={3}
               />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
-                  {geo.latitude ? <><MapPin className="mr-1 inline h-3 w-3" />位置情報あり</> : "位置情報なし"}
+                  {geo.latitude ? <><MapPin className="mr-1 inline h-3 w-3" />位置情報を取得済み</> : "位置情報なし"}
                 </span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)}>キャンセル</Button>
                   <Button size="sm" onClick={() => handleAddNote(visit.id)} disabled={isPending || !noteText.trim()}>
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "保存"}
+                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "残す"}
                   </Button>
                 </div>
               </div>
@@ -228,7 +228,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
       ))}
 
       {visits.length === 0 && !showScheduleForm && (
-        <p className="text-sm text-muted-foreground">見学の記録をここに残せます</p>
+        <p className="text-sm text-muted-foreground">見学の思い出をここに残せます</p>
       )}
     </section>
   );

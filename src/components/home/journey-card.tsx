@@ -19,8 +19,8 @@ function getJourneyState(props: JourneyCardProps) {
     return {
       icon: Sun,
       iconColor: "text-[var(--gold-warm)]",
-      message: "おめでとうございます！晴れの日",
-      summary: "式場が決まりました",
+      message: "おめでとうございます、晴れの日です",
+      summary: "運命の一軒が決まりました",
       cta: null,
     };
   }
@@ -29,43 +29,43 @@ function getJourneyState(props: JourneyCardProps) {
       icon: CloudSun,
       iconColor: "text-[var(--gold-warm)]",
       message: "晴れ間が見えてきました",
-      summary: `候補 ${favoriteCount}件`,
-      cta: { label: "候補を比較する", href: "/candidates" },
+      summary: `お気に入り ${favoriteCount}件`,
+      cta: { label: "じっくり比べてみる", href: "/candidates" },
     };
   }
   if (favoriteCount === 1) {
     return {
       icon: CloudSun,
       iconColor: "text-muted-foreground",
-      message: "お気に入りが1件見つかりました",
-      summary: "もう1件追加すると比較できます",
-      cta: { label: "式場を探す", href: "/explore" },
+      message: "素敵な式場が見つかりましたね",
+      summary: "もう1件加えると比較できます",
+      cta: { label: "もっと式場を見てみる", href: "/explore" },
     };
   }
   if (visitedVenues > 0) {
     return {
       icon: CloudSun,
       iconColor: "text-muted-foreground",
-      message: "見学お疲れさまでした",
-      summary: `${visitedVenues}件 見学済み`,
-      cta: { label: "お気に入りに追加する", href: "/candidates" },
+      message: "見学おつかれさまでした",
+      summary: `${visitedVenues}件の式場を訪れました`,
+      cta: { label: "お気に入りに加える", href: "/candidates" },
     };
   }
   if (totalVenues > 0) {
     return {
       icon: Cloud,
       iconColor: "text-muted-foreground",
-      message: "気になる式場が見つかりましたね",
-      summary: `${totalVenues}件の式場${upcomingVisits > 0 ? ` · 見学予定 ${upcomingVisits}件` : ""}`,
-      cta: { label: "式場の詳細を見る", href: "/explore" },
+      message: "気になる式場がありますね",
+      summary: `${totalVenues}件の式場${upcomingVisits > 0 ? ` · 見学の予定 ${upcomingVisits}件` : ""}`,
+      cta: { label: "式場をもっと見てみる", href: "/explore" },
     };
   }
   return {
     icon: Cloud,
     iconColor: "text-muted-foreground",
-    message: "式場探しを始めましょう",
-    summary: "まだ式場が登録されていません",
-    cta: { label: "式場を探す", href: "/explore" },
+    message: "式場探しをはじめてみませんか",
+    summary: "あなたにぴったりの一軒を見つけます",
+    cta: { label: "式場を見てみる", href: "/explore" },
   };
 }
 

@@ -26,7 +26,7 @@ export function LogoutButton() {
       className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/20 px-4 py-3 text-sm text-destructive transition-colors hover:bg-destructive/5 active:scale-[0.98] disabled:opacity-50"
     >
       <LogOut className="h-4 w-4" />
-      {isPending ? "ログアウト中..." : "ログアウト"}
+      {isPending ? "ログアウトしています..." : "ログアウト"}
     </button>
   );
 }

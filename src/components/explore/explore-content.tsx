@@ -22,11 +22,11 @@ interface ExploreContentProps {
 }
 
 const STATUS_FILTERS = [
-  { id: "all", label: "全て" },
-  { id: "researching", label: "調査中" },
+  { id: "all", label: "すべて" },
+  { id: "researching", label: "気になる" },
   { id: "visit_scheduled", label: "見学予定" },
   { id: "visited", label: "見学済み" },
-  { id: "selected", label: "候補" },
+  { id: "selected", label: "お気に入り" },
 ] as const;
 
 export function ExploreContent({ venues: initialVenues, favoriteIds }: ExploreContentProps) {
@@ -82,8 +82,8 @@ export function ExploreContent({ venues: initialVenues, favoriteIds }: ExploreCo
       {!isPending && filteredVenues.length === 0 ? (
         <EmptyState
           icon={Search}
-          title="条件に合う式場が見つかりませんでした"
-          description="条件を変えて探してみましょう"
+          title="条件に合う式場が見つかりません"
+          description="条件を変えてみると、新しい出会いがあるかもしれません"
         />
       ) : (
         !isPending && (

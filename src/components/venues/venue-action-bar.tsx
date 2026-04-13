@@ -17,7 +17,7 @@ export function VenueActionBar({ venueId, isFavorite }: VenueActionBarProps) {
           href="/candidates"
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
         >
-          {isFavorite ? "比較ボードを開く" : "候補に追加して比較"}
+          {isFavorite ? "ほかの式場と比べる" : "お気に入りに追加して比べる"}
         </Link>
       </div>
     </div>

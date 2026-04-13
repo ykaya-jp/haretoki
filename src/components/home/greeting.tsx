@@ -19,7 +19,7 @@ export function Greeting({ userName, weddingDate }: GreetingProps) {
       </h1>
       {daysUntilWedding !== null && daysUntilWedding > 0 && (
         <p className="text-sm text-muted-foreground">
-          結婚式まであと <span className="tabular-nums">{daysUntilWedding}</span>日
+          おふたりの晴れの日まで あと<span className="tabular-nums">{daysUntilWedding}</span>日
         </p>
       )}
     </div>

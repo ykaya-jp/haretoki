@@ -36,7 +36,7 @@ export function ChatBar() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="AIコーチに質問する..."
+          placeholder="なんでも気軽に聞いてください"
           className="flex-1 rounded-2xl bg-muted px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-[var(--gold-warm)]/30"
           disabled={isPending}
         />
@@ -44,7 +44,7 @@ export function ChatBar() {
           type="button"
           onClick={handleSend}
           disabled={isPending || !message.trim()}
-          aria-label={isPending ? "送信中..." : "メッセージを送信"}
+          aria-label={isPending ? "送信しています" : "送信する"}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--gold-warm)] text-white shadow-[0_2px_8px_rgba(201,168,76,0.3)] transition-all duration-[400ms] active:scale-[0.93] disabled:opacity-50"
         >
           {isPending ? (

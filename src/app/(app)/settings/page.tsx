@@ -32,11 +32,11 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <h2 className="font-serif text-xl font-light tracking-wide">設定</h2>
+      <h2 className="font-serif text-xl font-light tracking-wide">マイページ</h2>
 
       {/* Profile */}
       <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">プロフィール</h3>
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">あなたの情報</h3>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
           <p className="text-xs text-muted-foreground">メールアドレス</p>
           <p className="mt-1 font-medium">{user.email}</p>
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
             <p className="text-xs text-muted-foreground">パートナー</p>
             <p className="mt-1 font-medium">{partner?.user.name ?? partner?.user.email}</p>
             <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2.5 py-0.5 text-xs text-[var(--gold-warm)]">
-              参加済み
+              一緒に参加中
             </span>
           </div>
         ) : (
@@ -64,7 +64,7 @@ export default async function SettingsPage() {
 
       {/* Preferences */}
       <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">好み・条件</h3>
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">おふたりの希望</h3>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
           <SettingsForm initialConditions={conditions} />
         </div>

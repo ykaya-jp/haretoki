@@ -16,7 +16,7 @@ export default async function CandidatesPage() {
 
   return (
     <div className="space-y-5">
-      <h2 className="font-serif text-xl font-light tracking-wide">候補</h2>
+      <h2 className="font-serif text-xl font-light tracking-wide">お気に入り</h2>
       <CandidatesView
         initialFavorites={favorites}
         venueOptions={venueOptions}

@@ -22,7 +22,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base">最近見た式場</h2>
+        <h2 className="text-base">最近ご覧になった式場</h2>
         <Link href="/explore" className="text-sm text-primary">
           すべて →
         </Link>
@@ -69,7 +69,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
               ) : (
                 <>
                   <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted">
-                    <span className="text-muted-foreground text-sm">写真なし</span>
+                    <span className="text-muted-foreground text-sm">写真はまだありません</span>
                   </div>
                   <div className="p-4">
                     <h3 className="truncate font-serif text-base font-medium tracking-[0.05em]">

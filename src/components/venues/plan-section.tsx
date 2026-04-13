@@ -37,7 +37,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-base">プラン情報</h2>
+      <h2 className="text-base">プランの詳細</h2>
       {plans.map((plan) => {
         const isExpanded = expandedPlan === plan.id;
         return (
@@ -87,7 +87,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-green-600">
                           <Check className="h-3.5 w-3.5" />
-                          含まれるもの
+                          プランに含まれるもの
                         </p>
                         <ul className="space-y-1">
                           {plan.includedItems.map((item, i) => (
@@ -105,7 +105,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-red-500">
                           <X className="h-3.5 w-3.5" />
-                          含まれないもの
+                          別途必要なもの
                         </p>
                         <ul className="space-y-1">
                           {plan.excludedItems.map((item, i) => (
@@ -123,7 +123,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-600">
                           <DollarSign className="h-3.5 w-3.5" />
-                          持ち込み可能なもの
+                          お持ち込みできるもの
                         </p>
                         <ul className="space-y-1">
                           {plan.bringInItems.map((bi, i) => (
@@ -145,7 +145,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
                         <ShirtIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <div>
-                          <p className="text-xs font-medium text-muted-foreground">衣裳限度額</p>
+                          <p className="text-xs font-medium text-muted-foreground">衣裳のご予算目安</p>
                           <p className="text-sm">{plan.dressAllowance}</p>
                         </div>
                       </div>
@@ -156,7 +156,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
                           <PartyPopper className="h-3.5 w-3.5" />
-                          キャンペーン・特典
+                          うれしい特典
                         </p>
                         <ul className="space-y-1.5">
                           {plan.campaigns.map((camp, i) => (
