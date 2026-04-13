@@ -75,7 +75,7 @@ export function LandingPage() {
             src="/images/hero-chapel.png"
             alt=""
             fill
-            className="object-cover opacity-[0.12]"
+            className="object-cover opacity-[0.18]"
             priority
           />
           <div
@@ -243,6 +243,44 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ─── How It Works ─── */}
+      <section className="border-y border-border/30 bg-[var(--muted)] px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.7 }}
+            className="mb-16 text-center"
+          >
+            <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
+              はじめかた
+            </h2>
+          </motion.div>
+          <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
+            {[
+              { step: "01", title: "式場を追加", desc: "URLを貼るだけ。AIが自動で情報を読み取ります。" },
+              { step: "02", title: "見学して記録", desc: "チェックリストとメモで印象を残します。" },
+              { step: "03", title: "比較して決める", desc: "データで並べて、ふたりで納得の一つを。" },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                custom={i}
+                variants={staggerIn}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                className="text-center"
+              >
+                <p className="text-3xl font-light text-[var(--gold-warm)] sm:text-4xl">{item.step}</p>
+                <h3 className="mt-4 text-base font-medium tracking-wide">{item.title}</h3>
+                <p className="mt-2 text-sm leading-[1.8] text-muted-foreground">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─── AI Coach ─── */}
       <section
         className="px-6 py-24 sm:py-32"
@@ -263,7 +301,9 @@ export function LandingPage() {
             AIコーチ
           </div>
           <h2 className="mb-6 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-[1.4] tracking-[0.06em] text-foreground">
-            3つの質問に答えるだけで、あなたに合う式場が見えてきます
+            3つの質問から、
+            <br />
+            あなたに合う式場を見つけます
           </h2>
           <p className="mx-auto mb-12 max-w-sm text-[15px] leading-[2] text-muted-foreground">
             好みや予算を伝えるだけ。AIが条件に合った式場を提案します。
