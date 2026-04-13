@@ -171,7 +171,7 @@ export default function LoginPage() {
               </Link>
             </p>
             <p>
-              <Link href="/" className="transition-colors duration-200 hover:text-foreground">
+              <Link href="/" className="transition-colors duration-[400ms] hover:text-foreground">
                 ランディングページへ
               </Link>
             </p>
