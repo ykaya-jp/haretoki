@@ -45,7 +45,7 @@ export async function scheduleVisit(
   generateVisitChecklist(visit.id).catch(console.error);
 
   revalidatePath(`/venues/${venueId}`);
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/explore");
   return { success: true, visitId: visit.id };
 }
@@ -66,7 +66,7 @@ export async function completeVisit(visitId: string): Promise<{ success: boolean
   });
 
   revalidatePath(`/venues/${visit.venueId}`);
-  revalidatePath("/");
+  revalidatePath("/home");
   return { success: true };
 }
 

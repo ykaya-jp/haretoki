@@ -46,7 +46,7 @@ export async function saveOnboardingAnswers(
     path: "/",
   });
 
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/explore");
   return { success: true };
 }

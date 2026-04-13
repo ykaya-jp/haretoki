@@ -69,6 +69,6 @@ export async function updateConditions(conditions: {
     where: { id: projectId },
     data: { conditions, currentStep: 2 },
   });
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/onboarding");
 }

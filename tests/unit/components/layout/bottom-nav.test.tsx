@@ -3,7 +3,7 @@ import { render, cleanup, within } from "@testing-library/react";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  usePathname: vi.fn(() => "/"),
+  usePathname: vi.fn(() => "/home"),
 }));
 
 // Mock next/link
@@ -27,7 +27,7 @@ describe("BottomNav", () => {
   });
 
   it("marks active tab with aria-current", () => {
-    vi.mocked(usePathname).mockReturnValue("/");
+    vi.mocked(usePathname).mockReturnValue("/home");
     const { container } = render(<BottomNav />);
     const homeLink = within(container).getByText("ホーム").closest("a");
     expect(homeLink).toHaveAttribute("aria-current", "page");
@@ -35,7 +35,7 @@ describe("BottomNav", () => {
   });
 
   it("does not mark inactive tabs", () => {
-    vi.mocked(usePathname).mockReturnValue("/");
+    vi.mocked(usePathname).mockReturnValue("/home");
     const { container } = render(<BottomNav />);
     const exploreLink = within(container).getByText("探す").closest("a");
     expect(exploreLink).not.toHaveAttribute("aria-current");

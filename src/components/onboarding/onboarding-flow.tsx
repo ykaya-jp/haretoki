@@ -301,7 +301,7 @@ export function OnboardingFlow() {
         <div className="flex justify-center pt-2">
           <button
             type="button"
-            onClick={() => { router.push("/"); router.refresh(); }}
+            onClick={() => { router.push("/home"); router.refresh(); }}
             className="text-sm text-muted-foreground underline"
           >
             スキップしてホームへ

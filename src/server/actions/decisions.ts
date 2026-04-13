@@ -42,7 +42,7 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   });
 
   revalidatePath("/candidates");
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/explore");
   return { decision };
 }

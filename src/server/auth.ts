@@ -16,7 +16,7 @@ export async function requireProjectMembership(userId: string) {
     where: { userId, acceptedAt: { not: null } },
     select: { projectId: true, role: true },
   });
-  if (!membership) redirect("/");
+  if (!membership) redirect("/home");
   return membership;
 }
 
