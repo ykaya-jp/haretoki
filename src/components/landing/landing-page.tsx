@@ -100,9 +100,9 @@ export function LandingPage() {
             <Image
               src="/icons/logo.png"
               alt="Harenohi"
-              width={120}
-              height={120}
-              className="h-24 w-24 sm:h-28 sm:w-28"
+              width={160}
+              height={160}
+              className="h-36 w-36 sm:h-40 sm:w-40"
             />
             <p className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl">
               Harenohi
