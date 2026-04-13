@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { scheduleVisit, completeVisit, addVisitNote, updateChecklistItemStatus } from "@/server/actions/visits";
+import { scheduleVisit, completeVisit, addVisitNote } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, Check, FileText, MapPin, Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { cn } from "@/lib/utils";
+import { VisitChecklist } from "@/components/visits/visit-checklist";
 
 interface Visit {
   id: string;
@@ -93,13 +94,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
     });
   };
 
-  const handleToggleCheck = (itemId: string, currentStatus: string) => {
-    const nextStatus = currentStatus === "unchecked" ? "yes" : currentStatus === "yes" ? "no" : "unchecked";
-    startTransition(async () => {
-      await updateChecklistItemStatus(itemId, nextStatus as "unchecked" | "yes" | "no");
-      router.refresh();
-    });
-  };
+  // handleToggleCheck is now in VisitChecklist component
 
   return (
     <section className="space-y-4">
@@ -168,29 +163,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
 
           {/* Checklist */}
           {visit.checklist.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">チェックリスト</p>
-              {visit.checklist.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleToggleCheck(item.id, item.status)}
-                  className="flex w-full min-h-[44px] items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors active:bg-muted"
-                >
-                  <div className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded border",
-                    item.status === "yes" ? "border-primary bg-primary text-primary-foreground" :
-                    item.status === "no" ? "border-destructive bg-destructive/10 text-destructive" : "border-border"
-                  )}>
-                    {item.status === "yes" && <Check className="h-3 w-3" />}
-                    {item.status === "no" && <span className="text-xs">✕</span>}
-                  </div>
-                  <span className={cn("text-sm", item.status === "yes" && "text-muted-foreground line-through")}>
-                    {item.item}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <VisitChecklist items={visit.checklist} />
           )}
 
           {/* Quick capture bar */}

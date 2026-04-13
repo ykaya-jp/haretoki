@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Loader2 } from "lucide-react";
-import { addVenueFromUrl, confirmVenueFromUrl, createVenue } from "@/server/actions/venues";
+import { Plus, Loader2, ImagePlus, X } from "lucide-react";
+import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -32,6 +32,10 @@ export function AddVenueSheet() {
   const [extracted, setExtracted] = useState<ExtractedVenueData | null>(null);
   const [manualName, setManualName] = useState("");
   const [manualLocation, setManualLocation] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const handleUrlSubmit = async () => {
@@ -70,13 +74,47 @@ export function AddVenueSheet() {
     }
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    const newFiles = [...photoFiles, ...files].slice(0, 10);
+    setPhotoFiles(newFiles);
+
+    // Generate preview URLs
+    const previews = newFiles.map(f => URL.createObjectURL(f));
+    // Revoke old previews
+    for (const old of photoPreviews) URL.revokeObjectURL(old);
+    setPhotoPreviews(previews);
+  };
+
+  const removePhoto = (index: number) => {
+    URL.revokeObjectURL(photoPreviews[index]);
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleManualSubmit = async () => {
     if (!manualName.trim()) return;
     setLoading(true);
     try {
+      // Upload photos first if any
+      let photoUrls = uploadedPhotoUrls;
+      if (photoFiles.length > 0 && uploadedPhotoUrls.length === 0) {
+        const formData = new FormData();
+        for (const file of photoFiles) {
+          formData.append("photos", file);
+        }
+        const uploadResult = await uploadVenuePhotos(formData);
+        if (uploadResult.success && uploadResult.urls) {
+          photoUrls = uploadResult.urls;
+          setUploadedPhotoUrls(uploadResult.urls);
+        }
+      }
+
       const result = await createVenue({
         name: manualName,
         location: manualLocation || undefined,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
       });
       if (result.success) {
         toast.success("式場を追加しました");
@@ -98,6 +136,10 @@ export function AddVenueSheet() {
     setExtracted(null);
     setManualName("");
     setManualLocation("");
+    setPhotoFiles([]);
+    for (const preview of photoPreviews) URL.revokeObjectURL(preview);
+    setPhotoPreviews([]);
+    setUploadedPhotoUrls([]);
     setTab("url");
   };
 
@@ -203,6 +245,53 @@ export function AddVenueSheet() {
                 placeholder="表参道"
               />
             </div>
+
+            {/* Photo upload */}
+            <div className="space-y-2">
+              <Label>写真</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+              {photoPreviews.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {photoPreviews.map((src, i) => (
+                    <div key={i} className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`写真 ${i + 1}`}
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
+                        aria-label="削除"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photoFiles.length >= 10}
+                className="gap-1"
+              >
+                <ImagePlus className="h-4 w-4" />
+                {photoFiles.length > 0 ? `${photoFiles.length}/10 枚` : "写真を追加"}
+              </Button>
+            </div>
+
             <Button onClick={handleManualSubmit} disabled={loading || !manualName.trim()} className="w-full">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "追加する"}
             </Button>

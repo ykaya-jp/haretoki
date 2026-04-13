@@ -5,11 +5,13 @@ import { getVenue } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
 import { getVenueReviews } from "@/server/actions/reviews";
+import { getVenuePlans } from "@/server/actions/plans";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { VenueHeader } from "@/components/venues/venue-header";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { ReviewSection } from "@/components/venues/review-section";
+import { PlanSection } from "@/components/venues/plan-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
 import { VisitSection } from "@/components/visits/visit-section";
@@ -21,11 +23,12 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [venue, partnerRatingsData, favorites, reviews] = await Promise.all([
+  const [venue, partnerRatingsData, favorites, reviews, plans] = await Promise.all([
     getVenue(id),
     getPartnerRatings(id).catch(() => null),
     getFavorites("mine"),
     getVenueReviews(id),
+    getVenuePlans(id),
   ]);
 
   if (!venue) notFound();
@@ -135,6 +138,25 @@ export default async function VenueDetailPage({
           aiSummary: r.aiSummary,
           sentiment: r.sentiment as Record<string, number> | null,
           rating: r.rating ? Number(r.rating) : null,
+          categorySummary: r.categorySummary as Record<string, string> | null,
+          isNegative: r.isNegative,
+        }))}
+      />
+
+      {/* Plan Section */}
+      <PlanSection
+        plans={plans.map(p => ({
+          id: p.id,
+          name: p.name,
+          basePrice: p.basePrice,
+          guestCountMin: p.guestCountMin,
+          guestCountMax: p.guestCountMax,
+          includedItems: (p.includedItems as string[]) ?? [],
+          excludedItems: (p.excludedItems as string[]) ?? [],
+          bringInItems: (p.bringInItems as Array<{ item: string; fee?: number }>) ?? [],
+          dressAllowance: p.dressAllowance,
+          campaigns: (p.campaigns as Array<{ name: string; discount?: string }>) ?? [],
+          notes: p.notes,
         }))}
       />
 

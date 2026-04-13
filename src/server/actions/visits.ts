@@ -5,6 +5,7 @@ import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership, requireVisitAccess } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
+import { getAllChecklistItems } from "@/lib/checklist-templates";
 
 const scheduleVisitSchema = z.object({
   scheduledAt: z.coerce.date(),
@@ -163,8 +164,6 @@ export async function updateChecklistItemStatus(
 }
 
 export async function generateVisitChecklist(visitId: string): Promise<void> {
-  if (!isClaudeAvailable()) return;
-
   const visit = await prisma.visit.findUnique({
     where: { id: visitId },
     include: {
@@ -178,44 +177,61 @@ export async function generateVisitChecklist(visitId: string): Promise<void> {
   });
   if (!visit) return;
 
-  const reviewContext = visit.venue.reviews.map(r => r.aiSummary).filter(Boolean).join("\n");
-  const conditions = visit.venue.project.conditions
-    ? JSON.stringify(visit.venue.project.conditions)
-    : "条件未設定";
+  // Try AI generation first
+  if (isClaudeAvailable()) {
+    const reviewContext = visit.venue.reviews.map(r => r.aiSummary).filter(Boolean).join("\n");
+    const conditions = visit.venue.project.conditions
+      ? JSON.stringify(visit.venue.project.conditions)
+      : "条件未設定";
 
-  try {
-    const response = await withRetry(() =>
-      askClaude({
-        system: `You are a wedding venue visit preparation assistant. Generate exactly 5 practical checklist items for a venue visit. Return ONLY a JSON array of strings, e.g. ["item1", "item2", ...]. Each item should be a specific action or question in Japanese, max 50 chars.`,
-        userMessage: `式場: ${visit.venue.name}\nカップルの条件: ${conditions}\n口コミ分析: ${reviewContext || "なし"}\n\n見学で確認すべき5つのポイントを生成してください。`,
-        maxTokens: 512,
-      })
-    );
-
-    let items: string[];
     try {
-      items = JSON.parse(response);
-      if (!Array.isArray(items)) return;
-      items = items.slice(0, 5).map(i => String(i).slice(0, 100));
-    } catch {
+      const response = await withRetry(() =>
+        askClaude({
+          system: `You are a wedding venue visit preparation assistant. Generate exactly 5 practical checklist items for a venue visit. Return ONLY a JSON array of strings, e.g. ["item1", "item2", ...]. Each item should be a specific action or question in Japanese, max 50 chars.`,
+          userMessage: `式場: ${visit.venue.name}\nカップルの条件: ${conditions}\n口コミ分析: ${reviewContext || "なし"}\n\n見学で確認すべき5つのポイントを生成してください。`,
+          maxTokens: 512,
+        })
+      );
+
+      let items: string[];
+      try {
+        items = JSON.parse(response);
+        if (!Array.isArray(items)) throw new Error("Not an array");
+        items = items.slice(0, 5).map(i => String(i).slice(0, 100));
+      } catch {
+        throw new Error("Parse failure");
+      }
+
+      await prisma.visitChecklistItem.deleteMany({ where: { visitId } });
+      await prisma.visitChecklistItem.createMany({
+        data: items.map((item, idx) => ({
+          visitId,
+          item,
+          category: "ai_generated",
+          sortOrder: idx,
+        })),
+      });
+
+      revalidatePath(`/venues/${visit.venueId}`);
       return;
+    } catch {
+      // Fall through to template-based generation
     }
-
-    // Delete existing AI-generated items, insert new
-    await prisma.visitChecklistItem.deleteMany({ where: { visitId } });
-    await prisma.visitChecklistItem.createMany({
-      data: items.map((item, idx) => ({
-        visitId,
-        item,
-        category: "ai_generated",
-        sortOrder: idx,
-      })),
-    });
-
-    revalidatePath(`/venues/${visit.venueId}`);
-  } catch {
-    // Silent failure — checklist is non-critical
   }
+
+  // Fallback: populate from checklist templates (63 items, 6 categories)
+  const templateItems = getAllChecklistItems();
+  await prisma.visitChecklistItem.deleteMany({ where: { visitId } });
+  await prisma.visitChecklistItem.createMany({
+    data: templateItems.map((item, idx) => ({
+      visitId,
+      item: item.item,
+      category: item.category,
+      sortOrder: idx,
+    })),
+  });
+
+  revalidatePath(`/venues/${visit.venueId}`);
 }
 
 export async function getVisitsByProject() {

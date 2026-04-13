@@ -30,6 +30,7 @@ export async function createVenue(input: VenueInput) {
       capacityMax: parsed.data.capacityMax ?? null,
       ceremonyStyles: parsed.data.ceremonyStyles ?? [],
       sourceUrls: parsed.data.sourceUrls ?? [],
+      photoUrls: parsed.data.photoUrls ?? [],
     },
   });
 
@@ -162,6 +163,28 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
   revalidatePath(`/venues/${id}`);
 
   return updated;
+}
+
+export async function uploadVenuePhotos(formData: FormData): Promise<{ success: boolean; urls?: string[]; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const files = formData.getAll("photos") as File[];
+  if (files.length === 0) return { success: false, error: "写真が選択されていません" };
+  if (files.length > 10) return { success: false, error: "一度にアップロードできるのは10枚までです" };
+
+  const { uploadVenuePhoto } = await import("@/lib/supabase/storage");
+
+  const urls: string[] = [];
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) continue;
+    if (file.size > 10 * 1024 * 1024) continue; // 10MB limit per file
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const url = await uploadVenuePhoto(buffer, file.name, projectId, "temp");
+    urls.push(url);
+  }
+
+  return { success: true, urls };
 }
 
 // --- URL venue extraction (R1 only Claude API usage) ---
