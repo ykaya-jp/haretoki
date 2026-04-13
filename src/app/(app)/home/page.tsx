@@ -2,12 +2,10 @@ import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
 import { Greeting } from "@/components/home/greeting";
 import { AIInsightCard } from "@/components/ai/insight-card";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import { QuickActions } from "@/components/home/quick-actions";
+import { JourneyCard } from "@/components/home/journey-card";
 import { RecentVenues } from "@/components/home/recent-venues";
-import { ThemeSwitcher } from "@/components/settings/theme-switcher";
-import { PartnerInvite } from "@/components/partner/partner-invite";
-import { AIRecommendations } from "@/components/venues/ai-recommendations";
+import { Settings } from "lucide-react";
+import Link from "next/link";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
@@ -16,59 +14,38 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
+      {/* Header: greeting + settings icon */}
       <div className="flex items-center justify-between">
         <Greeting userName={homeData.userName} />
-        <ThemeSwitcher />
+        <Link
+          href="/settings"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-colors active:bg-muted"
+          aria-label="設定"
+        >
+          <Settings className="h-5 w-5 text-muted-foreground" />
+        </Link>
       </div>
 
-      {/* Bento Grid: AI Insight (2/3) + Progress Ring (1/3) */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
-          {topInsight ? (
-            <AIInsightCard
-              type={topInsight.type}
-              title={topInsight.title}
-              body={topInsight.body}
-              actions={topInsight.actions}
-            />
-          ) : (
-            <AIInsightCard
-              type="visit"
-              title="はじめましょう"
-              body="式場を追加して、比較を始めましょう。"
-              actions={[{ label: "式場を探す", href: "/explore" }]}
-            />
-          )}
-        </div>
-        <div className="flex items-center justify-center rounded-lg bg-card shadow-[var(--shadow-card)] p-3">
-          <ProgressRing
-            progress={homeData.progress.percentage}
-            completedSteps={
-              [
-                homeData.progress.totalVenues > 0,
-                homeData.progress.visitedVenues > 0,
-                homeData.progress.estimateCount > 0,
-                homeData.progress.favoriteCount >= 2,
-                homeData.progress.hasDecision,
-              ].filter(Boolean).length
-            }
-            totalSteps={5}
-          />
-        </div>
-      </div>
+      {/* Journey Card — the hero of home */}
+      <JourneyCard
+        totalVenues={homeData.progress.totalVenues}
+        visitedVenues={homeData.progress.visitedVenues}
+        favoriteCount={homeData.progress.favoriteCount}
+        hasDecision={homeData.progress.hasDecision}
+        upcomingVisits={homeData.progress.upcomingVisits ?? 0}
+      />
 
-      <QuickActions />
-
-      {!homeData.hasPartner && (
-        <PartnerInvite
-          inviteLink={`${process.env.APP_URL || "https://venuelens.vercel.app"}/accept-invite?project=${homeData.project.id}`}
-          partnerStatus="not_invited"
+      {/* AI Insight — if available */}
+      {topInsight && (
+        <AIInsightCard
+          type={topInsight.type}
+          title={topInsight.title}
+          body={topInsight.body}
+          actions={topInsight.actions}
         />
       )}
 
-      {/* AI Recommendations — show when few venues registered */}
-      {homeData.progress.totalVenues < 3 && <AIRecommendations />}
-
+      {/* Recent venues */}
       <RecentVenues venues={homeData.recentVenues} />
     </div>
   );

@@ -25,6 +25,7 @@ interface HomeData {
     favoriteCount: number;
     hasDecision: boolean;
     percentage: number;
+    upcomingVisits: number;
   };
   userName: string;
 }
@@ -47,7 +48,7 @@ export async function getHomeData(): Promise<HomeData> {
     select: { id: true, name: true, conditions: true },
   });
 
-  const [venues, estimateCount, favoriteCount, decision, memberCount] = await Promise.all([
+  const [venues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits] = await Promise.all([
     prisma.venue.findMany({
       where: { projectId },
       include: {
@@ -63,6 +64,7 @@ export async function getHomeData(): Promise<HomeData> {
     prisma.venueFavorite.count({ where: { userId: user.id, venue: { projectId } } }),
     prisma.decision.findUnique({ where: { projectId } }),
     prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
+    prisma.visit.count({ where: { venue: { projectId }, status: "scheduled" } }),
   ]);
 
   const totalVenues = venues.length;
@@ -104,6 +106,7 @@ export async function getHomeData(): Promise<HomeData> {
       favoriteCount,
       hasDecision,
       percentage,
+      upcomingVisits,
     },
     userName: user.user_metadata?.name ?? user.email?.split("@")[0] ?? "ゲスト",
   };
