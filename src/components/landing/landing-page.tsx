@@ -34,55 +34,56 @@ const FEATURES = [
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { delay: i * 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
 const staggerIn = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { delay: i * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
 export function LandingPage() {
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh bg-background">
       {/* ─── Hero Section ─── */}
-      <section className="relative flex min-h-[85vh] flex-col items-center justify-center bg-background px-4 text-center">
-        {/* Warm gradient overlay — sunrise feel */}
+      <section className="relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+        {/* Soft radial gradient background — sunrise warmth */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
-            background: "radial-gradient(ellipse at 50% 20%, oklch(0.85 0.08 60 / 0.15), transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.70 0.13 80 / 0.08), transparent 50%)",
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 30%, oklch(0.88 0.08 60 / 0.25), transparent), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.75 0.12 45 / 0.12), transparent), radial-gradient(ellipse 50% 40% at 20% 80%, oklch(0.72 0.13 80 / 0.08), transparent)",
           }}
         />
 
         <motion.div
-          className="relative z-10 mx-auto max-w-3xl space-y-8"
+          className="relative z-10 mx-auto max-w-3xl space-y-10"
           initial="hidden"
           animate="visible"
         >
-          {/* Logo */}
+          {/* Logo — prominent */}
           <motion.p
             custom={0}
             variants={fadeUp}
-            className="text-sm font-medium uppercase tracking-[0.25em] text-[var(--gold-warm)]"
+            className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl"
           >
             Harenohi
           </motion.p>
 
-          {/* Headline */}
+          {/* Headline — large, airy, serif */}
           <motion.h1
             custom={1}
             variants={fadeUp}
-            className="font-serif text-[clamp(2rem,5vw,3.5rem)] font-light leading-[1.15] tracking-[0.04em] text-foreground"
+            className="font-serif text-[clamp(2.25rem,6vw,4rem)] font-light leading-[1.2] tracking-[0.06em] text-foreground"
           >
             二人で自然に、迷わず、
             <br />
@@ -93,9 +94,10 @@ export function LandingPage() {
           <motion.p
             custom={2}
             variants={fadeUp}
-            className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground"
+            className="mx-auto max-w-lg text-base leading-[1.8] text-muted-foreground sm:text-lg"
           >
             AIコーチが好みを理解し、見積もりの落とし穴を先回りで教え、
+            <br className="hidden sm:block" />
             パートナーとの意見のすり合わせを支援します。
           </motion.p>
 
@@ -103,44 +105,59 @@ export function LandingPage() {
           <motion.div
             custom={3}
             variants={fadeUp}
-            className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+            className="flex flex-col items-center gap-5 pt-4 sm:flex-row sm:justify-center"
           >
             <Link
               href="/signup"
-              className="group inline-flex min-h-[52px] items-center gap-2 rounded-full bg-primary px-10 py-3.5 text-sm font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all hover:shadow-[0_8px_32px_rgba(196,129,110,0.45)] hover:-translate-y-0.5 active:scale-95"
+              className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
             >
               無料ではじめる
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-border px-10 py-3.5 text-sm text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground active:scale-95"
+              className="inline-flex min-h-[56px] items-center gap-2 rounded-full border border-border px-12 py-4 text-base text-muted-foreground transition-all duration-300 hover:border-foreground/30 hover:text-foreground active:scale-95"
             >
               ログイン
             </Link>
           </motion.div>
 
           {/* Trust signal */}
-          <motion.p custom={4} variants={fadeUp} className="text-xs text-muted-foreground/60">
+          <motion.p
+            custom={4}
+            variants={fadeUp}
+            className="pt-2 text-sm tracking-wide text-muted-foreground/60"
+          >
             無料で利用可能 · クレジットカード不要 · 3分でスタート
           </motion.p>
         </motion.div>
 
         {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="h-8 w-5 rounded-full border-2 border-foreground/15 p-1">
-            <div className="h-2 w-1 rounded-full bg-foreground/25" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 1 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce"
+        >
+          <div className="h-10 w-6 rounded-full border-2 border-foreground/15 p-1.5">
+            <div className="h-2.5 w-1.5 rounded-full bg-foreground/25" />
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ─── Stats Section ─── */}
-      <section className="border-b border-border bg-[var(--muted)] px-4 py-16">
+      <section className="border-b border-border/50 bg-[var(--muted)] px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-8 text-center text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
+            className="mb-16 text-center text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground"
+          >
             なぜ Harenohi が必要なのか
-          </p>
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+          </motion.p>
+          <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
             {STATS.map((stat, i) => (
               <motion.div
                 key={stat.value}
@@ -149,13 +166,13 @@ export function LandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-50px" }}
-                className="text-center"
+                className="rounded-2xl bg-card/60 p-8 text-center shadow-[var(--shadow-card)] backdrop-blur-sm"
               >
-                <p className="font-serif text-3xl font-light tracking-tight text-[var(--gold-warm)]">
+                <p className="font-serif text-4xl font-light tracking-tight text-[var(--gold-warm)] sm:text-5xl">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-sm text-foreground">{stat.label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
+                <p className="mt-3 text-sm leading-relaxed text-foreground">{stat.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{stat.sub}</p>
               </motion.div>
             ))}
           </div>
@@ -163,12 +180,18 @@ export function LandingPage() {
       </section>
 
       {/* ─── Features Section ─── */}
-      <section className="bg-background px-4 py-20">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-12 text-center text-fluid-xl">
+      <section className="bg-background px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6 }}
+            className="mb-20 text-center font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]"
+          >
             式場選びの「不安」を「確信」に変える
-          </h2>
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+          </motion.h2>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
             {FEATURES.map((feature, i) => {
               const Icon = feature.icon;
               return (
@@ -179,13 +202,13 @@ export function LandingPage() {
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true, margin: "-50px" }}
-                  className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98]"
+                  className="rounded-2xl border border-border/60 bg-card p-8 shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98] sm:p-10"
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gold-subtle)]">
-                    <Icon className="h-5 w-5 text-[var(--gold-warm)]" />
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--gold-subtle)]">
+                    <Icon className="h-7 w-7 text-[var(--gold-warm)]" />
                   </div>
-                  <h3 className="mb-2 text-base font-medium">{feature.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <h3 className="mb-3 text-lg font-medium tracking-wide">{feature.title}</h3>
+                  <p className="text-sm leading-[1.8] text-muted-foreground">
                     {feature.description}
                   </p>
                 </motion.div>
@@ -196,48 +219,57 @@ export function LandingPage() {
       </section>
 
       {/* ─── AI Coach Preview ─── */}
-      <section className="bg-[var(--muted)] px-4 py-20">
+      <section className="px-6 py-24 sm:py-32" style={{
+        background: "linear-gradient(180deg, oklch(0.95 0.01 75) 0%, oklch(0.93 0.02 70) 50%, oklch(0.95 0.01 75) 100%)",
+      }}>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--gold-subtle)] px-4 py-1.5 text-xs text-[var(--gold-warm)]">
-            <MessageSquare className="h-3.5 w-3.5" />
+          <div className="mb-8 inline-flex items-center gap-2.5 rounded-full bg-[var(--gold-subtle)] px-5 py-2 text-sm text-[var(--gold-warm)]">
+            <MessageSquare className="h-4 w-4" />
             AIコーチ
           </div>
-          <h2 className="mb-4 font-serif text-2xl font-light leading-snug tracking-[0.04em] text-foreground">
+          <h2 className="mb-6 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-snug tracking-[0.06em] text-foreground">
             3問答えるだけで、
             <br />
             あなたに合う式場が見つかります
           </h2>
-          <p className="mb-8 text-sm text-muted-foreground">
-            好み・ゲスト人数・エリア・予算を伝えるだけ。AIが最適な式場を提案します。
+          <p className="mx-auto mb-12 max-w-md text-base leading-[1.8] text-muted-foreground">
+            好み・ゲスト人数・エリア・予算を伝えるだけ。
+            <br className="hidden sm:block" />
+            AIが最適な式場を提案します。
           </p>
           <Link
             href="/signup"
-            className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 active:scale-95"
+            className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
           >
             式場探しをはじめる
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </motion.div>
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="bg-background px-4 py-12">
+      <footer className="bg-background px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="font-serif text-lg text-foreground">Harenohi</p>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+            Harenohi
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             二人で自然に、迷わず、後悔なく式場を選べるプロダクト
           </p>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-muted-foreground">
-            <Link href="/login" className="hover:text-foreground transition-colors">ログイン</Link>
-            <Link href="/signup" className="hover:text-foreground transition-colors">新規登録</Link>
+          <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
+            <Link href="/login" className="transition-colors duration-200 hover:text-foreground">ログイン</Link>
+            <Link href="/signup" className="transition-colors duration-200 hover:text-foreground">新規登録</Link>
+            <Link href="#" className="transition-colors duration-200 hover:text-foreground">利用規約</Link>
+            <Link href="#" className="transition-colors duration-200 hover:text-foreground">プライバシーポリシー</Link>
           </div>
-          <p className="mt-8 text-[10px] text-muted-foreground/50">
+          <div className="mt-12 h-px w-full bg-border/40" />
+          <p className="mt-8 text-xs text-muted-foreground/50">
             © 2026 Harenohi. All rights reserved.
           </p>
         </div>
