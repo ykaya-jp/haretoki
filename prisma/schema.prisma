@@ -76,6 +76,18 @@ enum VisitStatus {
   cancelled
 }
 
+enum DressBringIn {
+  allowed
+  not_allowed
+  negotiable
+}
+
+enum ChecklistItemStatus {
+  unchecked
+  yes
+  no
+}
+
 enum AiAnalysisType {
   review_summary
   estimate_prediction
@@ -172,6 +184,11 @@ model Venue {
   sourceUrls     String[]    @map("source_urls")
   photoUrls      String[]    @default([]) @map("photo_urls")
   status         VenueStatus @default(researching)
+  costMin        Int?        @map("cost_min")
+  costMax        Int?        @map("cost_max")
+  dressBringIn   DressBringIn? @map("dress_bring_in")
+  dressBringInFee Int?       @map("dress_bring_in_fee")
+  paymentMethods String[]    @default([]) @map("payment_methods")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
@@ -184,6 +201,7 @@ model Venue {
   favorites        VenueFavorite[]
   partnerReactions PartnerReaction[]
   reviews          Review[]
+  plans            VenuePlan[]
 
   @@index([projectId])
   @@index([projectId, status])
@@ -267,13 +285,15 @@ model Visit {
 }
 
 model VisitChecklistItem {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  visitId   String    @map("visit_id") @db.Uuid
+  id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId   String              @map("visit_id") @db.Uuid
   item      String
   category  String?
-  checked   Boolean   @default(false)
-  checkedAt DateTime? @map("checked_at")
-  sortOrder Int       @default(0) @map("sort_order")
+  status    ChecklistItemStatus @default(unchecked)
+  memo      String?
+  photoUrls String[]            @default([]) @map("photo_urls")
+  checkedAt DateTime?           @map("checked_at")
+  sortOrder Int                 @default(0) @map("sort_order")
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
@@ -385,15 +405,39 @@ model VenueFavorite {
   @@map("venue_favorites")
 }
 
+model VenuePlan {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId        String   @map("venue_id") @db.Uuid
+  name           String
+  basePrice      Int?     @map("base_price")
+  guestCountMin  Int?     @map("guest_count_min")
+  guestCountMax  Int?     @map("guest_count_max")
+  includedItems  Json     @default("[]") @map("included_items")
+  excludedItems  Json     @default("[]") @map("excluded_items")
+  bringInItems   Json     @default("[]") @map("bring_in_items")
+  dressAllowance String?  @map("dress_allowance")
+  campaigns      Json     @default("[]")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
+  @@map("venue_plans")
+}
+
 model Review {
-  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueId   String       @map("venue_id") @db.Uuid
-  source    ReviewSource
-  sourceUrl String       @map("source_url")
-  rating    Decimal?     @db.Decimal(2, 1)
-  aiSummary String?      @map("ai_summary")
-  sentiment Json?
-  fetchedAt DateTime     @default(now()) @map("fetched_at")
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId         String       @map("venue_id") @db.Uuid
+  source          ReviewSource
+  sourceUrl       String       @map("source_url")
+  rating          Decimal?     @db.Decimal(2, 1)
+  aiSummary       String?      @map("ai_summary")
+  sentiment       Json?
+  categorySummary Json?        @map("category_summary")
+  isNegative      Boolean      @default(false) @map("is_negative")
+  fetchedAt       DateTime     @default(now()) @map("fetched_at")
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
 

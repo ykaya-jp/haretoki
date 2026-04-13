@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { scheduleVisit, completeVisit, addVisitNote, toggleChecklistItem } from "@/server/actions/visits";
+import { scheduleVisit, completeVisit, addVisitNote, updateChecklistItemStatus } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, Check, FileText, MapPin, Loader2 } from "lucide-react";
@@ -17,7 +17,7 @@ interface Visit {
   completedAt: Date | null;
   title: string | null;
   memo: string | null;
-  checklist: Array<{ id: string; item: string; checked: boolean }>;
+  checklist: Array<{ id: string; item: string; category: string | null; status: string; memo: string | null }>;
   notes: Array<{
     id: string;
     content: string;
@@ -93,9 +93,10 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
     });
   };
 
-  const handleToggleCheck = (itemId: string) => {
+  const handleToggleCheck = (itemId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "unchecked" ? "yes" : currentStatus === "yes" ? "no" : "unchecked";
     startTransition(async () => {
-      await toggleChecklistItem(itemId);
+      await updateChecklistItemStatus(itemId, nextStatus as "unchecked" | "yes" | "no");
       router.refresh();
     });
   };
@@ -173,16 +174,18 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleToggleCheck(item.id)}
+                  onClick={() => handleToggleCheck(item.id, item.status)}
                   className="flex w-full min-h-[44px] items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors active:bg-muted"
                 >
                   <div className={cn(
                     "flex h-5 w-5 shrink-0 items-center justify-center rounded border",
-                    item.checked ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                    item.status === "yes" ? "border-primary bg-primary text-primary-foreground" :
+                    item.status === "no" ? "border-destructive bg-destructive/10 text-destructive" : "border-border"
                   )}>
-                    {item.checked && <Check className="h-3 w-3" />}
+                    {item.status === "yes" && <Check className="h-3 w-3" />}
+                    {item.status === "no" && <span className="text-xs">✕</span>}
                   </div>
-                  <span className={cn("text-sm", item.checked && "text-muted-foreground line-through")}>
+                  <span className={cn("text-sm", item.status === "yes" && "text-muted-foreground line-through")}>
                     {item.item}
                   </span>
                 </button>

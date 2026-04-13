@@ -150,7 +150,7 @@ export default async function VenueDetailPage({
           completedAt: v.completedAt,
           title: v.title,
           memo: v.memo,
-          checklist: v.checklist?.map(c => ({ id: c.id, item: c.item, checked: c.checked })) ?? [],
+          checklist: v.checklist?.map(c => ({ id: c.id, item: c.item, category: c.category, status: c.status, memo: c.memo })) ?? [],
           notes: v.notes?.map(n => ({
             id: n.id,
             content: n.content,

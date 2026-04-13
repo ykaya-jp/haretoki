@@ -133,9 +133,11 @@ export async function addNoteMedia(
   return { success: true };
 }
 
-export async function toggleChecklistItem(
-  itemId: string
-): Promise<{ success: boolean; checked: boolean }> {
+export async function updateChecklistItemStatus(
+  itemId: string,
+  status: "unchecked" | "yes" | "no",
+  memo?: string,
+): Promise<{ success: boolean; status: string }> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
@@ -143,16 +145,21 @@ export async function toggleChecklistItem(
     where: { id: itemId },
     include: { visit: { include: { venue: { select: { projectId: true, id: true } } } } },
   });
-  if (!item || item.visit.venue.projectId !== projectId) return { success: false, checked: false };
+  if (!item || item.visit.venue.projectId !== projectId) {
+    return { success: false, status: "unchecked" };
+  }
 
-  const newChecked = !item.checked;
   await prisma.visitChecklistItem.update({
     where: { id: itemId },
-    data: { checked: newChecked, checkedAt: newChecked ? new Date() : null },
+    data: {
+      status,
+      memo: memo !== undefined ? memo : item.memo,
+      checkedAt: status !== "unchecked" ? new Date() : null,
+    },
   });
 
-  revalidatePath(`/venues/${item.visit.venueId}`);
-  return { success: true, checked: newChecked };
+  revalidatePath(`/venues/${item.visit.venue.id}`);
+  return { success: true, status };
 }
 
 export async function generateVisitChecklist(visitId: string): Promise<void> {
@@ -219,7 +226,7 @@ export async function getVisitsByProject() {
     where: { projectId },
     include: {
       visits: {
-        include: { checklist: { select: { checked: true } } },
+        include: { checklist: { select: { status: true } } },
         orderBy: { scheduledAt: "asc" },
       },
     },
@@ -237,7 +244,7 @@ export async function getVisitsByProject() {
       title: visit.title,
       checklistProgress: {
         total: visit.checklist.length,
-        checked: visit.checklist.filter(c => c.checked).length,
+        checked: visit.checklist.filter(c => c.status !== "unchecked").length,
       },
     }))
   );
