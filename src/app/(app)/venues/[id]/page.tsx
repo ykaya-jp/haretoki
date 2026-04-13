@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { getVenue } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
@@ -50,6 +52,15 @@ export default async function VenueDetailPage({
 
   return (
     <div className="space-y-6 pb-20">
+      {/* Back link */}
+      <Link
+        href="/explore"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground -ml-1 active:opacity-70"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        戻る
+      </Link>
+
       {/* Photo Gallery */}
       <PhotoCarousel
         photos={venue.photoUrls}
