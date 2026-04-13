@@ -30,7 +30,7 @@ export function SegmentedControl({ segments, activeId, onChange }: SegmentedCont
             <motion.div
               layoutId="segmented-indicator"
               className="absolute inset-0 rounded-xl bg-card shadow-[0_1px_3px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]"
-              transition={{ type: "spring", stiffness: 220, damping: 28 }}
+              transition={{ type: "spring", stiffness: 140, damping: 22 }}
             />
           )}
           {/* Gold underline indicator for active tab */}
@@ -38,7 +38,7 @@ export function SegmentedControl({ segments, activeId, onChange }: SegmentedCont
             <motion.div
               layoutId="segmented-gold-bar"
               className="absolute bottom-1 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-[var(--gold-warm)]"
-              transition={{ type: "spring", stiffness: 220, damping: 28 }}
+              transition={{ type: "spring", stiffness: 140, damping: 22 }}
             />
           )}
           <span className="relative z-10">{segment.label}</span>

@@ -59,7 +59,7 @@ export function BottomNav({ badges }: BottomNavProps) {
               <div className="relative">
                 <motion.div
                   animate={{ scale: isActive ? 1.12 : 1 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
                 >
                   <Icon className="h-5 w-5" />
                 </motion.div>
@@ -67,7 +67,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                    transition={{ type: "spring", stiffness: 120, damping: 18 }}
                     className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
                   >
                     {badgeCount > 99 ? "99+" : badgeCount}
@@ -79,7 +79,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                 <motion.div
                   layoutId="bottomNavIndicator"
                   className="absolute -top-px left-1/4 right-1/4 h-0.5 rounded-full bg-[var(--gold-warm)]"
-                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                  transition={{ type: "spring", stiffness: 120, damping: 22 }}
                 />
               )}
             </Link>

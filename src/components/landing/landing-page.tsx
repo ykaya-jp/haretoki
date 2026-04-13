@@ -51,16 +51,16 @@ const fadeUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15, duration: 0.8, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { delay: i * 0.2, duration: 1.0, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
 const staggerIn = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.14, duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { delay: i * 0.18, duration: 0.9, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
@@ -124,7 +124,9 @@ export function LandingPage() {
             variants={fadeUp}
             className="mx-auto max-w-md text-[15px] leading-[2] text-muted-foreground"
           >
-            見積もりの不安も、ふたりの迷いも。整理するところから始めませんか。
+            見積もりの不安も、ふたりの迷いも。
+            <br />
+            整理するところから始めませんか。
           </motion.p>
 
           <motion.div
@@ -164,7 +166,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="mb-16 text-center"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -204,7 +206,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="mb-20 text-center"
           >
             <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
@@ -250,7 +252,7 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="mb-16 text-center"
           >
             <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
@@ -293,7 +295,7 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="mx-auto max-w-2xl text-center"
         >
           <div className="mb-8 inline-flex items-center gap-2.5 rounded-full bg-[var(--gold-subtle)] px-5 py-2 text-sm text-[var(--gold-warm)]">
@@ -324,7 +326,7 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="mx-auto max-w-2xl text-center"
         >
           <div className="mb-8 inline-flex items-center gap-2.5 rounded-full bg-[var(--gold-subtle)] px-5 py-2 text-sm text-[var(--gold-warm)]">
