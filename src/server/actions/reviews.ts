@@ -155,6 +155,35 @@ export async function analyzeVenueReviews(
       });
     }
 
+    // Save AI-generated per-dimension scores to VenueScore
+    // Source: "ai_analysis" so they don't conflict with user ratings
+    if (result.suggestedScores) {
+      const scoreUpserts = Object.entries(result.suggestedScores)
+        .filter(([_, score]) => typeof score === "number" && score >= 1 && score <= 5)
+        .map(([dimension, score]) =>
+          prisma.venueScore.upsert({
+            where: {
+              venueId_dimension_source: {
+                venueId,
+                dimension: dimension as never,
+                source: "ai_analysis",
+              },
+            },
+            update: { score, reviewCount: result.reviewCount ?? 0 },
+            create: {
+              venueId,
+              dimension: dimension as never,
+              source: "ai_analysis",
+              score,
+              reviewCount: result.reviewCount ?? 0,
+            },
+          }),
+        );
+      if (scoreUpserts.length > 0) {
+        await prisma.$transaction(scoreUpserts);
+      }
+    }
+
     // Also save to AiAnalysis for cache
     await prisma.aiAnalysis.create({
       data: {

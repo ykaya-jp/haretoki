@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Loader2, ImagePlus, X } from "lucide-react";
-import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
+import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos, bulkAddVenuesFromUrls } from "@/server/actions/venues";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -35,8 +35,33 @@ export function AddVenueSheet() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [bulkUrls, setBulkUrls] = useState("");
+  const [bulkResults, setBulkResults] = useState<Array<{ url: string; success: boolean; venueName?: string; error?: string }> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const handleBulkSubmit = async () => {
+    const urls = bulkUrls
+      .split("\n")
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0);
+    if (urls.length === 0) return;
+    setLoading(true);
+    setBulkResults(null);
+    try {
+      const { results } = await bulkAddVenuesFromUrls(urls);
+      setBulkResults(results);
+      const successCount = results.filter((r) => r.success).length;
+      if (successCount > 0) {
+        toast.success(`${successCount}件の式場を追加しました`);
+        router.refresh();
+      }
+    } catch {
+      toast.error("一括取り込みに失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUrlSubmit = async () => {
     if (!url.trim()) return;
@@ -155,8 +180,9 @@ export function AddVenueSheet() {
         </SheetHeader>
         <Tabs value={tab} onValueChange={setTab} className="mt-4">
           <TabsList className="w-full">
-            <TabsTrigger value="url" className="flex-1">URLで追加</TabsTrigger>
-            <TabsTrigger value="manual" className="flex-1">自分で入力</TabsTrigger>
+            <TabsTrigger value="url" className="flex-1">URL</TabsTrigger>
+            <TabsTrigger value="bulk" className="flex-1">まとめて</TabsTrigger>
+            <TabsTrigger value="manual" className="flex-1">自分で</TabsTrigger>
           </TabsList>
 
           <TabsContent value="url" className="space-y-4 pt-4">
@@ -222,6 +248,49 @@ export function AddVenueSheet() {
                     修正して追加
                   </Button>
                 </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="bulk" className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>URLを改行区切りで入力（最大10件）</Label>
+              <textarea
+                value={bulkUrls}
+                onChange={(e) => setBulkUrls(e.target.value)}
+                placeholder="https://www.zexy.net/...&#10;https://www.hanayume.com/...&#10;https://www.weddingpark.net/..."
+                rows={6}
+                className="w-full rounded-lg border border-border bg-card p-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              />
+              <p className="text-xs text-muted-foreground">
+                ゼクシィ・ハナユメ・Wedding Park 等のURLを貼り付けてください
+              </p>
+            </div>
+            <Button
+              onClick={handleBulkSubmit}
+              disabled={loading || bulkUrls.trim().length === 0}
+              className="w-full"
+            >
+              {loading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />読み取り中...</>
+              ) : (
+                "まとめて追加"
+              )}
+            </Button>
+            {bulkResults && (
+              <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
+                <p className="font-medium">取り込み結果</p>
+                {bulkResults.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className={r.success ? "text-green-600" : "text-destructive"}>
+                      {r.success ? "✓" : "✗"}
+                    </span>
+                    <span className="flex-1 truncate">
+                      {r.success ? r.venueName : r.url}
+                    </span>
+                    {!r.success && <span className="text-muted-foreground">{r.error}</span>}
+                  </div>
+                ))}
               </div>
             )}
           </TabsContent>

@@ -38,7 +38,8 @@ export async function getMatrixData(): Promise<MatrixData> {
     include: {
       venue: {
         include: {
-          scores: { where: { source: "user_rating" } },
+          // Include both user_rating and ai_analysis scores (fallback)
+          scores: { where: { source: { in: ["user_rating", "ai_analysis"] } } },
           estimates: { orderBy: { version: "desc" }, take: 1 },
         },
       },
@@ -55,7 +56,14 @@ export async function getMatrixData(): Promise<MatrixData> {
     let totalScore: number | null = null;
 
     for (const id of TIER1_DIMENSIONS) {
-      const match = fav.venue.scores.find((s) => s.dimension === id);
+      // Prefer user_rating over ai_analysis
+      const userScore = fav.venue.scores.find(
+        (s) => s.dimension === id && s.source === "user_rating",
+      );
+      const aiScore = fav.venue.scores.find(
+        (s) => s.dimension === id && s.source === "ai_analysis",
+      );
+      const match = userScore ?? aiScore;
       scoresByDimension[id] = match ? Number(match.score) : null;
     }
 

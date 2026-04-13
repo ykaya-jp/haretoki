@@ -347,3 +347,60 @@ export async function confirmVenueFromUrl(
 
   return { success: true as const, venue };
 }
+
+/**
+ * Bulk-import multiple venues from a list of URLs.
+ * Processes each URL in parallel. Returns per-URL results.
+ */
+export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
+  results: Array<{
+    url: string;
+    success: boolean;
+    venueName?: string;
+    error?: string;
+  }>;
+}> {
+  const user = await requireUser();
+  await requireProjectMembership(user.id);
+
+  if (urls.length === 0) {
+    return { results: [] };
+  }
+  if (urls.length > 10) {
+    return {
+      results: urls.map((url) => ({
+        url,
+        success: false,
+        error: "一度に取り込めるのは10件までです",
+      })),
+    };
+  }
+
+  // Extract all URLs in parallel
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      try {
+        const extractResult = await addVenueFromUrl(url);
+        if (extractResult.error || !extractResult.extracted) {
+          return { url, success: false, error: extractResult.error ?? "読み取りに失敗" };
+        }
+        const confirmResult = await confirmVenueFromUrl(extractResult.extracted, url);
+        if (!confirmResult.success) {
+          return { url, success: false, error: "登録に失敗" };
+        }
+        return {
+          url,
+          success: true,
+          venueName: extractResult.extracted.name,
+        };
+      } catch {
+        return { url, success: false, error: "予期しないエラー" };
+      }
+    }),
+  );
+
+  revalidatePath("/explore");
+  revalidatePath("/home");
+
+  return { results };
+}
