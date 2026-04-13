@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
+import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { Heart } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 
@@ -32,6 +34,8 @@ export function CandidatesView({ initialFavorites, venueOptions }: CandidatesVie
   const [tab, setTab] = useState<Tab>("shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
   const [favorites, setFavorites] = useState(initialFavorites);
+  const [showSwipe, setShowSwipe] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Refetch when filter changes
@@ -65,7 +69,32 @@ export function CandidatesView({ initialFavorites, venueOptions }: CandidatesVie
             />
           ) : (
             <div className="space-y-4">
-              {favorites.map((fav) => (
+              {favorites.length >= 5 && !showSwipe && (
+                <button
+                  type="button"
+                  onClick={() => setShowSwipe(true)}
+                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-center transition-colors active:bg-muted"
+                >
+                  スワイプで絞り込む ({favorites.length}件)
+                </button>
+              )}
+
+              {showSwipe && (
+                <SwipeCompare
+                  venues={favorites.map(f => ({
+                    id: f.venue.id,
+                    name: f.venue.name,
+                    location: f.venue.location,
+                    photoUrls: f.venue.photoUrls,
+                    totalScore: 0,
+                    topStrengths: [],
+                    latestEstimate: null,
+                  }))}
+                  onComplete={() => { setShowSwipe(false); router.refresh(); }}
+                />
+              )}
+
+              {!showSwipe && favorites.map((fav) => (
                 <VenueCard
                   key={fav.venue.id}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
