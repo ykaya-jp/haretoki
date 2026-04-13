@@ -7,6 +7,7 @@ import {
   requireUser,
   requireProjectMembership,
   requireOwner,
+  requireVenueAccess,
 } from "@/server/auth";
 
 const decisionSchema = z.object({
@@ -22,9 +23,10 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
 
   const user = await requireUser();
   const { projectId } = await requireOwner(user.id);
+  await requireVenueAccess(user.id, validation.data.selectedVenueId);
 
   await prisma.venue.update({
-    where: { id: validation.data.selectedVenueId },
+    where: { id: validation.data.selectedVenueId, projectId },
     data: { status: "selected" },
   });
 

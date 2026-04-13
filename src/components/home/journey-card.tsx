@@ -30,6 +30,15 @@ function getJourneyState(props: JourneyCardProps) {
       cta: { label: "候補を比較する", href: "/candidates" },
     };
   }
+  if (favoriteCount === 1) {
+    return {
+      icon: CloudSun,
+      iconColor: "text-muted-foreground",
+      message: "お気に入りが1件見つかりました",
+      summary: "もう1件追加すると比較できます",
+      cta: { label: "式場を探す", href: "/explore" },
+    };
+  }
   if (visitedVenues > 0) {
     return {
       icon: CloudSun,

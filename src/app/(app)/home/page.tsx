@@ -32,7 +32,7 @@ export default async function HomePage() {
         visitedVenues={homeData.progress.visitedVenues}
         favoriteCount={homeData.progress.favoriteCount}
         hasDecision={homeData.progress.hasDecision}
-        upcomingVisits={homeData.progress.upcomingVisits ?? 0}
+        upcomingVisits={homeData.progress.upcomingVisits}
       />
 
       {/* AI Insight — if available */}

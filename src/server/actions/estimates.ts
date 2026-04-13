@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { requireUser, requireProjectMembership } from "@/server/auth";
+import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { revalidatePath } from "next/cache";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
@@ -38,10 +38,11 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, validation.data.venueId);
 
   // Get current version count
   const count = await prisma.estimate.count({
-    where: { venueId: validation.data.venueId },
+    where: { venueId: validation.data.venueId, projectId },
   });
 
   const estimate = await prisma.estimate.create({
@@ -129,6 +130,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   // Auth check
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, venueId);
 
   // Check Claude availability
   if (!isClaudeAvailable()) {
@@ -256,10 +258,11 @@ export async function saveAnalyzedEstimate(input: {
 }) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, input.venueId);
 
   // Get current version count
   const count = await prisma.estimate.count({
-    where: { venueId: input.venueId },
+    where: { venueId: input.venueId, projectId },
   });
 
   const estimate = await prisma.estimate.create({

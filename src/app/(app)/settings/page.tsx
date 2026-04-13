@@ -50,7 +50,7 @@ export default async function SettingsPage() {
           <div className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)]">
             <p className="text-sm text-muted-foreground">パートナー</p>
             <p className="font-medium">{partner?.user.name ?? partner?.user.email}</p>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">参加済み</p>
+            <p className="text-xs text-success mt-1">参加済み</p>
           </div>
         ) : (
           <PartnerInvite
