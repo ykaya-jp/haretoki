@@ -16,6 +16,7 @@ import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
 import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
+import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 
 export default async function VenueDetailPage({
   params,
@@ -125,6 +126,20 @@ export default async function VenueDetailPage({
           }))}
           totalEstimate={venue.estimates[0].total}
           predictedFinal={venue.estimates[0].predictedFinal}
+        />
+      )}
+
+      {/* Waterfall Chart — estimate cost increase visualization */}
+      {venue.estimates.length > 0 && venue.estimates[0].predictedFinal && (
+        <EstimateWaterfallChart
+          initialTotal={venue.estimates[0].total}
+          predictedFinal={venue.estimates[0].predictedFinal}
+          items={venue.estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            predictedUpgrade: item.predictedUpgrade ?? 0,
+          }))}
         />
       )}
 

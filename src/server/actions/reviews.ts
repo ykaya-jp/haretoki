@@ -120,15 +120,29 @@ export async function analyzeVenueReviews(
       return { success: false, error: "AIの分析結果が不完全です" };
     }
 
+    // Build categorySummary from AI output
+    const categorySummary = {
+      service: result.sentiment?.service != null ? `接客: ${result.strengths.filter(s => s.includes("スタッフ") || s.includes("接客")).join("、") || "特記なし"}` : null,
+      cuisine: result.sentiment?.cuisine != null ? `料理: ${result.strengths.filter(s => s.includes("料理") || s.includes("食")).join("、") || "特記なし"}` : null,
+      costIncrease: result.concerns.filter(c => c.includes("見積") || c.includes("費用") || c.includes("金額")).join("、") || null,
+      negativeHighlights: result.concerns,
+      overall: result.summary,
+    };
+    const isNegative = result.concerns.length > result.strengths.length;
+
     // Save or update review record
+    const reviewData = {
+      aiSummary: result.summary,
+      sentiment: result.sentiment,
+      categorySummary,
+      isNegative,
+      rating: result.suggestedScores?.reviews ? result.suggestedScores.reviews : null,
+    };
+
     if (existing) {
       await prisma.review.update({
         where: { id: existing.id },
-        data: {
-          aiSummary: result.summary,
-          sentiment: result.sentiment,
-          rating: result.suggestedScores?.reviews ? result.suggestedScores.reviews : null,
-        },
+        data: reviewData,
       });
     } else {
       await prisma.review.create({
@@ -136,9 +150,7 @@ export async function analyzeVenueReviews(
           venueId,
           source,
           sourceUrl,
-          aiSummary: result.summary,
-          sentiment: result.sentiment,
-          rating: result.suggestedScores?.reviews ? result.suggestedScores.reviews : null,
+          ...reviewData,
         },
       });
     }
