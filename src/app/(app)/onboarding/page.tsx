@@ -1,5 +1,5 @@
-import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { OnboardingGate } from "@/components/onboarding/onboarding-gate";
 
 export default function OnboardingPage() {
-  return <OnboardingFlow />;
+  return <OnboardingGate />;
 }

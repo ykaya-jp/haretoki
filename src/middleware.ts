@@ -2,23 +2,22 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  // First handle Supabase auth session
   const response = await updateSession(request);
 
-  // If auth redirected (to /login), don't check onboarding
+  // If auth redirected (to /login), stop here
   if (response.headers.get("location")) {
     return response;
   }
 
   const { pathname } = request.nextUrl;
 
-  // Skip onboarding check for these paths (including landing page)
-  const excludedPaths = ["/onboarding", "/accept-invite", "/login", "/signup", "/callback"];
+  // Public + excluded paths — skip onboarding check
+  const excludedPaths = ["/onboarding", "/accept-invite", "/login", "/signup", "/callback", "/settings"];
   if (pathname === "/" || excludedPaths.some((p) => pathname.startsWith(p))) {
     return response;
   }
 
-  // Onboarding redirect: if cookie is not set, redirect to /onboarding
+  // Onboarding redirect for authenticated users without the cookie
   const onboardingCompleted = request.cookies.get("onboarding_completed")?.value;
   if (!onboardingCompleted) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
