@@ -4,8 +4,8 @@ test.describe("Landing Page", () => {
   test("renders hero section with brand identity", async ({ page }) => {
     await page.goto("/");
 
-    // VenueLens logo text (multiple instances possible — hero + footer)
-    const logos = page.locator("text=VenueLens");
+    // Harenohi logo text (multiple instances possible — hero + footer)
+    const logos = page.locator("text=Harenohi");
     const count = await logos.count();
     expect(count).toBeGreaterThan(0);
     let logoVisible = false;

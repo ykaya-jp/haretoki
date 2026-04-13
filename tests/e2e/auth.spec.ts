@@ -3,8 +3,8 @@ import { test, expect } from "@playwright/test";
 test.describe("Authentication", () => {
   test("login page renders with form fields", async ({ page }) => {
     await page.goto("/login");
-    // VenueLens branding — may be in desktop panel (hidden on mobile) or mobile header
-    const logos = page.locator("text=VenueLens");
+    // Harenohi branding — may be in desktop panel (hidden on mobile) or mobile header
+    const logos = page.locator("text=Harenohi");
     const count = await logos.count();
     let found = false;
     for (let i = 0; i < count; i++) {
@@ -47,6 +47,6 @@ test.describe("Authentication", () => {
     await page.goto("/");
     // Should NOT redirect to login — landing is public
     await expect(page).toHaveURL("/");
-    await expect(page.locator("text=VenueLens").first()).toBeVisible();
+    await expect(page.locator("text=Harenohi").first()).toBeVisible();
   });
 });
