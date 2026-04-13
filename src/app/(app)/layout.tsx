@@ -4,6 +4,7 @@ import { RealtimeProvider } from "@/components/realtime-provider";
 import { getOrCreateProject } from "@/server/actions/projects";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { prisma } from "@/server/db";
 
 export default async function AppLayout({
   children,
@@ -12,6 +13,14 @@ export default async function AppLayout({
 }) {
   const project = await getOrCreateProject();
 
+  // Badge counts for BottomNav
+  const [favoriteCount, insightCount] = await Promise.all([
+    prisma.venueFavorite.count({ where: { venue: { projectId: project.id } } }),
+    prisma.aiAnalysis.count({
+      where: { projectId: project.id, type: { in: ["comparison", "review_summary", "visit_prep"] } },
+    }),
+  ]);
+
   return (
     <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
       <OfflineBanner />
@@ -19,7 +28,7 @@ export default async function AppLayout({
         <main className="mx-auto max-w-5xl px-4 py-4">{children}</main>
       </RealtimeProvider>
       <InstallPrompt />
-      <BottomNav />
+      <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />
       <Toaster position="bottom-center" />
     </div>
   );
