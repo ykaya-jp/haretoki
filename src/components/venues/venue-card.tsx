@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { MapPin, Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Star } from "lucide-react";
+import { PhotoCarousel } from "@/components/venues/photo-carousel";
+import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
-import { ShortlistButton } from "@/components/venues/shortlist-button";
-import { getScoreColor } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 import type { Venue, VenueScore } from "@/generated/prisma/client";
 
 type VenueWithScores = Venue & { scores: VenueScore[] };
+
+interface VenueCardProps {
+  venue: VenueWithScores;
+  isFavorite?: boolean;
+}
 
 function calcAverageScore(scores: VenueScore[]): number | null {
   const userScores = scores.filter((s) => s.source === "user_rating");
@@ -16,64 +19,81 @@ function calcAverageScore(scores: VenueScore[]): number | null {
   return sum / userScores.length;
 }
 
-export function VenueCard({ venue }: { venue: VenueWithScores }) {
+export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
   const avgScore = calcAverageScore(venue.scores);
 
-  const isShortlisted = venue.status === "shortlisted" || venue.status === "selected";
-
   return (
-    <Link href={`/venues/${venue.id}`}>
-      <Card className="shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]">
-        <CardContent className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <span className="text-lg" role="img" aria-label="venue">
-              🏛
-            </span>
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate font-medium">{venue.name}</span>
-              <VenueStatusBadge status={venue.status} />
-            </div>
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98]">
+      {/* Photo section */}
+      <div className="relative">
+        <Link href={`/venues/${venue.id}`}>
+          <PhotoCarousel
+            photos={venue.photoUrls}
+            alt={venue.name}
+            aspectRatio="4/3"
+          />
+        </Link>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              {venue.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {venue.location}
-                </span>
-              )}
-              {(venue.capacityMin || venue.capacityMax) && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {venue.capacityMin && venue.capacityMax
-                    ? `${venue.capacityMin}〜${venue.capacityMax}名`
-                    : venue.capacityMax
-                      ? `〜${venue.capacityMax}名`
-                      : `${venue.capacityMin}名〜`}
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Status badge - top left */}
+        <div className="absolute left-3 top-3">
+          <VenueStatusBadge status={venue.status} />
+        </div>
 
-          <div className="flex shrink-0 items-center gap-1">
-            {avgScore !== null && (
-              <span
-                className={cn(
-                  "text-lg font-bold tabular-nums",
-                  getScoreColor(avgScore),
-                )}
-              >
+        {/* Heart button - top right */}
+        <div className="absolute right-3 top-3">
+          <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
+        </div>
+      </div>
+
+      {/* Info section */}
+      <Link href={`/venues/${venue.id}`} className="block p-4">
+        {/* Venue name */}
+        <h3 className="truncate font-serif text-base font-medium tracking-[0.05em]">
+          {venue.name}
+        </h3>
+
+        {/* Score + Location */}
+        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+          {avgScore !== null && (
+            <>
+              <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+              <span className="tabular-nums font-medium text-foreground">
                 {avgScore.toFixed(1)}
               </span>
-            )}
-            <ShortlistButton
-              venueId={venue.id}
-              isShortlisted={isShortlisted}
-            />
+              <span className="mx-0.5">·</span>
+            </>
+          )}
+          {venue.location && <span>{venue.location}</span>}
+        </div>
+
+        {/* Capacity */}
+        <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+          {(venue.capacityMin || venue.capacityMax) && (
+            <span>
+              着席
+              {venue.capacityMin && venue.capacityMax
+                ? `${venue.capacityMin}〜${venue.capacityMax}名`
+                : venue.capacityMax
+                  ? `〜${venue.capacityMax}名`
+                  : `${venue.capacityMin}名〜`}
+            </span>
+          )}
+        </div>
+
+        {/* Style tags */}
+        {venue.ceremonyStyles.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {venue.ceremonyStyles.map((style) => (
+              <span
+                key={style}
+                className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {style}
+              </span>
+            ))}
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        )}
+      </Link>
+    </div>
   );
 }
