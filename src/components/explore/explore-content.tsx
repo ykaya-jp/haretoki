@@ -5,6 +5,7 @@ import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 
 type VenueWithRelations = Venue & {
@@ -61,13 +62,23 @@ export function ExploreContent({ venues, favoriteIds }: ExploreContentProps) {
         />
       ) : (
         <div className="space-y-4">
-          {filteredVenues.map((venue) => (
-            <VenueCard
-              key={venue.id}
-              venue={venue}
-              isFavorite={favoriteSet.has(venue.id)}
-            />
-          ))}
+          <AnimatePresence mode="popLayout">
+            {filteredVenues.map((venue, i) => (
+              <motion.div
+                key={venue.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ delay: i * 0.05, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                layout
+              >
+                <VenueCard
+                  venue={venue}
+                  isFavorite={favoriteSet.has(venue.id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </>

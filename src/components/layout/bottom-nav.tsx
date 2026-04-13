@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, Heart, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface NavItem {
   href: string;
@@ -56,14 +57,31 @@ export function BottomNav({ badges }: BottomNavProps) {
               )}
             >
               <div className="relative">
-                <Icon className="h-5 w-5" />
+                <motion.div
+                  animate={{ scale: isActive ? 1.1 : 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                >
+                  <Icon className="h-5 w-5" />
+                </motion.div>
                 {badgeCount != null && badgeCount > 0 && (
-                  <span className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
+                  >
                     {badgeCount > 99 ? "99+" : badgeCount}
-                  </span>
+                  </motion.span>
                 )}
               </div>
-              <span className="text-[10px]">{item.label}</span>
+              <span className={cn("text-[10px] transition-colors", isActive && "font-medium")}>{item.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="bottomNavIndicator"
+                  className="absolute -top-px left-1/4 right-1/4 h-0.5 rounded-full bg-[var(--gold-warm)]"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
             </Link>
           );
         })}
