@@ -21,7 +21,7 @@ export function AcceptInviteForm({ invitationId }: AcceptInviteFormProps) {
       const result = await acceptInvitation(invitationId);
       if (result.success) {
         toast.success("プロジェクトに参加しました");
-        router.push("/dashboard");
+        router.push("/");
       } else {
         toast.error(result.error);
       }

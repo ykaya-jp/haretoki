@@ -15,9 +15,9 @@ export function VenueActionBar({ venueId, isFavorite }: VenueActionBarProps) {
         <HeartButton venueId={venueId} initialFavorite={isFavorite} />
         <Link
           href="/candidates"
-          className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground transition-transform active:scale-95"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
         >
-          比較に追加
+          {isFavorite ? "比較ボードを開く" : "候補に追加して比較"}
         </Link>
       </div>
     </div>

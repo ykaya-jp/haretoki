@@ -6,19 +6,22 @@ export default async function AcceptInvitePage() {
   const invitation = await getPendingInvitation();
 
   if (!invitation) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return (
-    <div className="flex min-h-[50dvh] items-center justify-center">
+    <div className="flex min-h-[60dvh] items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6 text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
+          VenueLens
+        </p>
         <div>
-          <h1 className="text-xl">プロジェクトへの招待</h1>
+          <h1>プロジェクトへの招待</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            「{invitation.projectName}」に招待されています
+            「{invitation.projectName}」に招待されています。
+            パートナーとして式場選びに参加しましょう。
           </p>
         </div>
-
         <AcceptInviteForm invitationId={invitation.id} />
       </div>
     </div>
