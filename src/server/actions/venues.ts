@@ -31,8 +31,8 @@ export async function createVenue(input: VenueInput) {
     },
   });
 
-  revalidatePath("/venues");
-  revalidatePath("/dashboard");
+  revalidatePath("/explore");
+  revalidatePath("/");
 
   return { success: true as const, venue };
 }
@@ -93,7 +93,7 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
     data: { status },
   });
 
-  revalidatePath("/venues");
+  revalidatePath("/explore");
   revalidatePath(`/venues/${id}`);
 
   return updated;
