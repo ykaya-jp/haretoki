@@ -8,17 +8,17 @@ import { motion } from "framer-motion";
 const STATS = [
   {
     value: "80%",
-    description: "のカップルが最終的に見積もりを超えている",
+    description: "が見積もりより高い金額を支払っている",
     source: "リクルート ブライダル総研「結婚トレンド調査 2024」",
   },
   {
     value: "平均+110万円",
-    description: "が見積もりからの平均上昇額",
+    description: "最初の見積もりから、ここまで上がる",
     source: "ゼクシィ「結婚費用の相場 2024」",
   },
   {
     value: "2.8件",
-    description: "が式場の平均検討数",
+    description: "しか見学していない。比較は足りていますか",
     source: "リクルート ブライダル総研「結婚トレンド調査 2024」",
   },
 ];
@@ -26,23 +26,23 @@ const STATS = [
 const FEATURES = [
   {
     icon: Eye,
-    title: "見積もりの裏側を知る",
-    description: "最終金額までの値上がりをAIが予測。想定外の出費を未然に防ぎます。",
+    title: "見積もりの先を読む",
+    description: "衣装、装花、写真——上がりやすい項目をAIが先に教えます。",
   },
   {
     icon: ClipboardCheck,
-    title: "見学チェックリスト",
-    description: "6カテゴリ63項目を網羅。スマホ片手に確認できます。",
+    title: "見学で見落とさない",
+    description: "6カテゴリ63項目のリスト。当日スマホで確認するだけ。",
   },
   {
     icon: Heart,
-    title: "ふたりの意見を並べて見る",
-    description: "それぞれの評価をAIが分析。一致点も相違点もひと目でわかります。",
+    title: "ふたりの本音を並べる",
+    description: "別々に評価して、AIが比較。合う点もズレも見えてきます。",
   },
   {
     icon: BarChart3,
-    title: "データで比較する",
-    description: "雰囲気・料理・コスパなど6軸で並べて比較。口コミも含めた判断ができます。",
+    title: "数字で選ぶ、感覚も活かす",
+    description: "6軸のデータ比較と口コミ分析。納得できる判断材料を。",
   },
 ];
 
@@ -114,9 +114,9 @@ export function LandingPage() {
             variants={fadeUp}
             className="font-serif text-[clamp(1.75rem,5vw,3.5rem)] font-light leading-[1.3] tracking-[0.06em] text-foreground"
           >
-            ふたりで選ぶ、
+            その直感、
             <br />
-            後悔のない一日を。
+            信じていい日にする。
           </motion.h1>
 
           <motion.p
@@ -124,9 +124,11 @@ export function LandingPage() {
             variants={fadeUp}
             className="mx-auto max-w-md text-[15px] leading-[2] text-muted-foreground"
           >
-            見積もりの不安も、ふたりの迷いも。
+            見積もりの不透明さも、
             <br />
-            整理するところから始めませんか。
+            比較しきれない不安も。
+            <br />
+            ここで、晴れにできます。
           </motion.p>
 
           <motion.div
@@ -170,7 +172,7 @@ export function LandingPage() {
             className="mb-16 text-center"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              式場選びのリアル
+              知っておきたい数字
             </p>
           </motion.div>
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-8">
@@ -210,10 +212,10 @@ export function LandingPage() {
             className="mb-20 text-center"
           >
             <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
-              Harenohiにできること
+              不安を、安心に変える
             </h2>
             <p className="mt-4 text-sm leading-[1.8] text-muted-foreground">
-              迷わず選ぶための、4つの機能。
+              式場選びの「見えない」を、見える形に。
             </p>
           </motion.div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
@@ -261,9 +263,9 @@ export function LandingPage() {
           </motion.div>
           <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
             {[
-              { step: "01", title: "式場を追加", desc: "URLを貼るだけ。AIが自動で情報を読み取ります。" },
-              { step: "02", title: "見学して記録", desc: "チェックリストとメモで印象を残します。" },
-              { step: "03", title: "比較して決める", desc: "データで並べて、ふたりで納得の一つを。" },
+              { step: "01", title: "式場を登録する", desc: "URLを貼るだけ。情報はAIが読み取ります。" },
+              { step: "02", title: "見学して記録する", desc: "リストに沿って確認。印象をその場で残せます。" },
+              { step: "03", title: "並べて、決める", desc: "データと気持ち、両方を見て選べます。" },
             ].map((item, i) => (
               <motion.div
                 key={item.step}
@@ -303,14 +305,14 @@ export function LandingPage() {
             AIコーチ
           </div>
           <h2 className="mb-6 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-[1.4] tracking-[0.06em] text-foreground">
-            3つの質問から、
+            好みを話すだけで、
             <br />
-            ぴったりの式場を提案
+            候補が見えてくる
           </h2>
           <p className="mx-auto mb-12 max-w-sm text-[15px] leading-[2] text-muted-foreground">
-            好みや予算を伝えるだけ。
+            3つの質問に答えるだけ。
             <br />
-            AIが条件に合った式場を提案します。
+            AIがふたりに合う式場を提案します。
           </p>
           <Link
             href="/signup"
@@ -336,14 +338,14 @@ export function LandingPage() {
             私たちの約束
           </div>
           <h2 className="mb-6 font-serif text-[clamp(1.25rem,2.5vw,2rem)] font-light leading-[1.4] tracking-[0.06em]">
-            おふたりの「選ぶ」に
+            広告のない、
             <br />
-            寄り添うツールです
+            ふたりだけの判断材料
           </h2>
           <p className="text-[15px] leading-[2] text-muted-foreground">
-            どの式場からも掲載料を受け取らない、
+            式場からの掲載料は受け取りません。
             <br />
-            中立な立場でお届けしています。
+            だから、本当に合う場所だけを選べます。
           </p>
         </motion.div>
       </section>
@@ -355,7 +357,7 @@ export function LandingPage() {
             Harenohi
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            ふたりの式場選びに寄り添う
+            曇りのち、晴れの日へ
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
             <Link href="/login" className="transition-colors duration-[400ms] hover:text-foreground">
