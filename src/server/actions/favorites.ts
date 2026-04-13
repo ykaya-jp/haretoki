@@ -2,11 +2,11 @@
 
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
-import { requireUser, requireProjectMembership } from "@/server/auth";
+import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 
 export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boolean }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, venueId);
 
   const existing = await prisma.venueFavorite.findUnique({
     where: { venueId_userId: { venueId, userId: user.id } },
