@@ -71,7 +71,7 @@ export function JourneyCard(props: JourneyCardProps) {
   const Icon = state.icon;
 
   return (
-    <div className="rounded-xl bg-card p-5 shadow-[var(--shadow-card)]">
+    <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-center gap-3 mb-3">
         <Icon className={`h-6 w-6 ${state.iconColor}`} />
         <h3 className="text-lg">{state.message}</h3>

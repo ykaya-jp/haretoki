@@ -42,16 +42,25 @@ const fadeUp = {
   }),
 };
 
+const staggerIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+  }),
+};
+
 export function LandingPage() {
   return (
     <div className="min-h-dvh">
       {/* ─── Hero Section ─── */}
-      <section className="relative flex min-h-[85vh] flex-col items-center justify-center bg-[var(--primary)] px-4 text-center">
-        {/* Subtle gold gradient overlay */}
+      <section className="relative flex min-h-[85vh] flex-col items-center justify-center bg-background px-4 text-center">
+        {/* Warm gradient overlay — sunrise feel */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          className="pointer-events-none absolute inset-0"
           style={{
-            background: "radial-gradient(ellipse at 50% 30%, var(--gold-warm), transparent 70%)",
+            background: "radial-gradient(ellipse at 50% 20%, oklch(0.85 0.08 60 / 0.15), transparent 60%), radial-gradient(ellipse at 80% 80%, oklch(0.70 0.13 80 / 0.08), transparent 50%)",
           }}
         />
 
@@ -73,7 +82,7 @@ export function LandingPage() {
           <motion.h1
             custom={1}
             variants={fadeUp}
-            className="font-serif text-[clamp(2rem,5vw,3.5rem)] font-light leading-[1.15] tracking-[0.04em] text-white"
+            className="font-serif text-[clamp(2rem,5vw,3.5rem)] font-light leading-[1.15] tracking-[0.04em] text-foreground"
           >
             二人で自然に、迷わず、
             <br />
@@ -84,7 +93,7 @@ export function LandingPage() {
           <motion.p
             custom={2}
             variants={fadeUp}
-            className="mx-auto max-w-xl text-base leading-relaxed text-white/60"
+            className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground"
           >
             AIコーチが好みを理解し、見積もりの落とし穴を先回りで教え、
             パートナーとの意見のすり合わせを支援します。
@@ -98,48 +107,56 @@ export function LandingPage() {
           >
             <Link
               href="/signup"
-              className="group inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[var(--gold-warm)] px-10 py-3.5 text-sm font-medium text-white shadow-[0_4px_24px_rgba(201,168,76,0.35)] transition-all hover:shadow-[0_8px_32px_rgba(201,168,76,0.5)] hover:-translate-y-0.5 active:scale-95"
+              className="group inline-flex min-h-[52px] items-center gap-2 rounded-full bg-primary px-10 py-3.5 text-sm font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all hover:shadow-[0_8px_32px_rgba(196,129,110,0.45)] hover:-translate-y-0.5 active:scale-95"
             >
               無料ではじめる
               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-white/20 px-10 py-3.5 text-sm text-white/70 transition-all hover:border-white/40 hover:text-white active:scale-95"
+              className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-border px-10 py-3.5 text-sm text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground active:scale-95"
             >
               ログイン
             </Link>
           </motion.div>
 
           {/* Trust signal */}
-          <motion.p custom={4} variants={fadeUp} className="text-xs text-white/35">
+          <motion.p custom={4} variants={fadeUp} className="text-xs text-muted-foreground/60">
             無料で利用可能 · クレジットカード不要 · 3分でスタート
           </motion.p>
         </motion.div>
 
         {/* Scroll hint */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="h-8 w-5 rounded-full border-2 border-white/20 p-1">
-            <div className="h-2 w-1 rounded-full bg-white/40" />
+          <div className="h-8 w-5 rounded-full border-2 border-foreground/15 p-1">
+            <div className="h-2 w-1 rounded-full bg-foreground/25" />
           </div>
         </div>
       </section>
 
       {/* ─── Stats Section ─── */}
-      <section className="border-b border-border bg-background px-4 py-16">
+      <section className="border-b border-border bg-[var(--muted)] px-4 py-16">
         <div className="mx-auto max-w-4xl">
           <p className="mb-8 text-center text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
             なぜ Harenohi が必要なのか
           </p>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-            {STATS.map((stat) => (
-              <div key={stat.value} className="text-center">
+            {STATS.map((stat, i) => (
+              <motion.div
+                key={stat.value}
+                custom={i}
+                variants={staggerIn}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                className="text-center"
+              >
                 <p className="font-serif text-3xl font-light tracking-tight text-[var(--gold-warm)]">
                   {stat.value}
                 </p>
                 <p className="mt-1 text-sm text-foreground">{stat.label}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -152,12 +169,17 @@ export function LandingPage() {
             式場選びの「不安」を「確信」に変える
           </h2>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-            {FEATURES.map((feature) => {
+            {FEATURES.map((feature, i) => {
               const Icon = feature.icon;
               return (
-                <div
+                <motion.div
                   key={feature.title}
-                  className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1"
+                  custom={i}
+                  variants={staggerIn}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-50px" }}
+                  className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98]"
                 >
                   <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--gold-subtle)]">
                     <Icon className="h-5 w-5 text-[var(--gold-warm)]" />
@@ -166,7 +188,7 @@ export function LandingPage() {
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {feature.description}
                   </p>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -174,28 +196,34 @@ export function LandingPage() {
       </section>
 
       {/* ─── AI Coach Preview ─── */}
-      <section className="bg-[var(--primary)] px-4 py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-[var(--gold-warm)]">
+      <section className="bg-[var(--muted)] px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mx-auto max-w-3xl text-center"
+        >
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--gold-subtle)] px-4 py-1.5 text-xs text-[var(--gold-warm)]">
             <MessageSquare className="h-3.5 w-3.5" />
             AIコーチ
           </div>
-          <h2 className="mb-4 font-serif text-2xl font-light leading-snug tracking-[0.04em] text-white">
+          <h2 className="mb-4 font-serif text-2xl font-light leading-snug tracking-[0.04em] text-foreground">
             3問答えるだけで、
             <br />
             あなたに合う式場が見つかります
           </h2>
-          <p className="mb-8 text-sm text-white/60">
+          <p className="mb-8 text-sm text-muted-foreground">
             好み・ゲスト人数・エリア・予算を伝えるだけ。AIが最適な式場を提案します。
           </p>
           <Link
             href="/signup"
-            className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[var(--gold-warm)] px-8 py-3 text-sm font-medium text-white shadow-lg transition-transform active:scale-95"
+            className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-all hover:-translate-y-0.5 active:scale-95"
           >
             式場探しをはじめる
             <ChevronRight className="h-4 w-4" />
           </Link>
-        </div>
+        </motion.div>
       </section>
 
       {/* ─── Footer ─── */}
@@ -206,8 +234,8 @@ export function LandingPage() {
             二人で自然に、迷わず、後悔なく式場を選べるプロダクト
           </p>
           <div className="mt-4 flex justify-center gap-6 text-xs text-muted-foreground">
-            <Link href="/login" className="hover:text-foreground">ログイン</Link>
-            <Link href="/signup" className="hover:text-foreground">新規登録</Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">ログイン</Link>
+            <Link href="/signup" className="hover:text-foreground transition-colors">新規登録</Link>
           </div>
           <p className="mt-8 text-[10px] text-muted-foreground/50">
             © 2026 Harenohi. All rights reserved.

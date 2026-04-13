@@ -45,21 +45,28 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh">
       {/* Left: Brand panel (hidden on mobile) */}
-      <div className="hidden flex-1 flex-col justify-between bg-[var(--primary)] p-12 lg:flex">
-        <div>
+      <div className="relative hidden flex-1 flex-col justify-between bg-[var(--muted)] p-12 lg:flex overflow-hidden">
+        {/* Warm gradient overlay */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "radial-gradient(ellipse at 30% 70%, oklch(0.85 0.08 60 / 0.2), transparent 60%), radial-gradient(ellipse at 70% 30%, oklch(0.70 0.13 80 / 0.1), transparent 50%)",
+          }}
+        />
+        <div className="relative z-10">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
             Harenohi
           </p>
         </div>
-        <div className="max-w-md">
-          <h1 className="font-serif text-3xl font-light leading-snug tracking-[0.04em] text-white">
+        <div className="relative z-10 max-w-md">
+          <h1 className="font-serif text-3xl font-light leading-snug tracking-[0.04em] text-foreground">
             おかえりなさい
           </h1>
-          <p className="mt-4 text-sm leading-relaxed text-white/60">
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             式場探しの続きを始めましょう。AIコーチがあなたの進捗を覚えています。
           </p>
         </div>
-        <p className="text-[10px] text-white/30">
+        <p className="relative z-10 text-[10px] text-muted-foreground/50">
           © 2026 Harenohi
         </p>
       </div>
