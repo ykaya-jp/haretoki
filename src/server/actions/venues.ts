@@ -43,9 +43,11 @@ export async function createVenue(input: VenueInput) {
 export interface VenueFilters {
   status?: string;
   minScore?: number;
+  dimensionMinScore?: { dimension: string; score: number };
   costMin?: number;
   costMax?: number;
   dressBringIn?: string;
+  dressBringInFeeMax?: number;
   paymentMethod?: string;
   sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
 }
@@ -68,6 +70,9 @@ export async function getVenues(filters?: VenueFilters) {
   }
   if (filters?.dressBringIn) {
     where.dressBringIn = filters.dressBringIn;
+  }
+  if (filters?.dressBringInFeeMax !== undefined) {
+    where.dressBringInFee = { lte: filters.dressBringInFeeMax };
   }
   if (filters?.paymentMethod) {
     where.paymentMethods = { has: filters.paymentMethod };
@@ -94,9 +99,11 @@ export async function getVenues(filters?: VenueFilters) {
     orderBy,
   });
 
-  // Post-query filter for score (requires aggregation)
+  let filtered = venues;
+
+  // Post-query filter for overall score (requires aggregation)
   if (filters?.minScore !== undefined) {
-    return venues.filter((venue) => {
+    filtered = filtered.filter((venue) => {
       const userScores = venue.scores.filter((s) => s.source === "user_rating");
       if (userScores.length === 0) return false;
       const avg = userScores.reduce((acc, s) => acc + Number(s.score), 0) / userScores.length;
@@ -104,16 +111,28 @@ export async function getVenues(filters?: VenueFilters) {
     });
   }
 
+  // Post-query filter for category-level score
+  if (filters?.dimensionMinScore) {
+    const { dimension, score } = filters.dimensionMinScore;
+    filtered = filtered.filter((venue) => {
+      const dimScore = venue.scores.find(
+        (s) => s.dimension === dimension && s.source === "user_rating"
+      );
+      if (!dimScore) return false;
+      return Number(dimScore.score) >= score;
+    });
+  }
+
   // Post-query sort for score (requires aggregation)
   if (filters?.sortBy === "score_desc") {
-    return venues.sort((a, b) => {
+    return filtered.sort((a, b) => {
       const avgA = calcAvgScore(a.scores);
       const avgB = calcAvgScore(b.scores);
       return (avgB ?? 0) - (avgA ?? 0);
     });
   }
 
-  return venues;
+  return filtered;
 }
 
 function calcAvgScore(scores: Array<{ source: string; score: unknown }>): number | null {

@@ -23,9 +23,10 @@ export const CHECKLIST_TEMPLATES: Record<string, ChecklistCategory> = {
       { item: "ゲストの最大収容人数", sortOrder: 6 },
       { item: "席と席の間隔、ゲストとの距離感", sortOrder: 7 },
       { item: "どの席からも新郎新婦が見えやすいか", sortOrder: 8 },
-      { item: "希望の儀式や演出ができるか", sortOrder: 9 },
-      { item: "音楽の演奏方法は好みに合うか", sortOrder: 10 },
-      { item: "屋外の場合、雨天時の対応", sortOrder: 11 },
+      { item: "希望の儀式や親との演出ができるか（ベールダウン、リングリレーなど）", sortOrder: 9 },
+      { item: "音楽の演奏方法は好みに合うか（生演奏、曲目）", sortOrder: 10 },
+      { item: "希望の演出ができるか（フラワーシャワー、ブーケトス、バルーンリリースなど）", sortOrder: 11 },
+      { item: "屋外の場合、雨天時の対応", sortOrder: 12 },
     ],
   },
   facility: {

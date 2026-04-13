@@ -41,6 +41,20 @@ const PAYMENT_OPTIONS = [
   { value: "分割", label: "分割" },
 ] as const;
 
+const DIMENSION_OPTIONS = [
+  { value: "atmosphere", label: "雰囲気" },
+  { value: "cuisine", label: "料理" },
+  { value: "hospitality", label: "サービス" },
+  { value: "cost", label: "コスパ" },
+  { value: "access", label: "設備" },
+] as const;
+
+const DRESS_FEE_OPTIONS = [
+  { value: 0, label: "無料のみ" },
+  { value: 50000, label: "5万円以下" },
+  { value: 100000, label: "10万円以下" },
+] as const;
+
 export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<VenueFilters>(filters);
@@ -147,6 +161,56 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
             </div>
           </div>
 
+          {/* Category-specific rating */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">カテゴリ別の評価</Label>
+            <div className="flex flex-wrap gap-2">
+              {DIMENSION_OPTIONS.map((opt) => {
+                const isActive = draft.dimensionMinScore?.dimension === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setDraft((d) => ({
+                        ...d,
+                        dimensionMinScore: isActive
+                          ? undefined
+                          : { dimension: opt.value, score: 4.0 },
+                      }))
+                    }
+                    className={cn(
+                      "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
+                      isActive
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-foreground"
+                    )}
+                  >
+                    {opt.label} {isActive && "4.0+"}
+                  </button>
+                );
+              })}
+            </div>
+            {draft.dimensionMinScore && (
+              <input
+                type="range"
+                min="3.0"
+                max="5.0"
+                step="0.1"
+                value={draft.dimensionMinScore.score}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setDraft((d) =>
+                    d.dimensionMinScore
+                      ? { ...d, dimensionMinScore: { ...d.dimensionMinScore, score: val } }
+                      : d
+                  );
+                }}
+                className="w-full accent-primary"
+              />
+            )}
+          </div>
+
           {/* Cost range */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">費用の範囲（万円）</Label>
@@ -196,6 +260,33 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
                   className={cn(
                     "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
                     draft.dressBringIn === opt.value
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dress bring-in fee */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">ドレス持ち込み料</Label>
+            <div className="flex flex-wrap gap-2">
+              {DRESS_FEE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      dressBringInFeeMax: d.dressBringInFeeMax === opt.value ? undefined : opt.value,
+                    }))
+                  }
+                  className={cn(
+                    "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
+                    draft.dressBringInFeeMax === opt.value
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-card text-foreground"
                   )}
