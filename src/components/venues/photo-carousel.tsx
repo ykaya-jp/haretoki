@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,16 @@ interface PhotoCarouselProps {
 
 export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", onSelect);
+    onSelect(); // Set initial index
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi]);
 
   const scrollTo = useCallback(
     (index: number) => emblaApi?.scrollTo(index),
@@ -90,7 +100,7 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
             aria-label={`写真 ${index + 1} に移動`}
             className={cn(
               "h-1.5 w-1.5 rounded-full transition-colors",
-              "bg-white/60 hover:bg-white"
+              index === selectedIndex ? "bg-white" : "bg-white/40"
             )}
           />
         ))}

@@ -9,6 +9,7 @@ interface HomeData {
     name: string;
     conditions: Record<string, unknown> | null;
   };
+  hasPartner: boolean;
   recentVenues: Array<{
     id: string;
     name: string;
@@ -46,7 +47,7 @@ export async function getHomeData(): Promise<HomeData> {
     select: { id: true, name: true, conditions: true },
   });
 
-  const [venues, estimateCount, favoriteCount, decision] = await Promise.all([
+  const [venues, estimateCount, favoriteCount, decision, memberCount] = await Promise.all([
     prisma.venue.findMany({
       where: { projectId },
       include: {
@@ -61,6 +62,7 @@ export async function getHomeData(): Promise<HomeData> {
     prisma.estimate.count({ where: { projectId } }),
     prisma.venueFavorite.count({ where: { userId: user.id, venue: { projectId } } }),
     prisma.decision.findUnique({ where: { projectId } }),
+    prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
   ]);
 
   const totalVenues = venues.length;
@@ -82,6 +84,7 @@ export async function getHomeData(): Promise<HomeData> {
       name: project.name,
       conditions: project.conditions as Record<string, unknown> | null,
     },
+    hasPartner: memberCount >= 2,
     recentVenues: venues.slice(0, 5).map((v) => ({
       id: v.id,
       name: v.name,

@@ -6,9 +6,11 @@ interface DimensionBarProps {
 }
 
 function getBarColor(score: number) {
-  if (score >= 4.0) return "bg-[var(--gold-warm)]";
-  if (score >= 3.0) return "bg-muted-foreground";
-  return "bg-destructive/60";
+  if (score >= 4.5) return "bg-[var(--gold-warm)]";
+  if (score >= 4.0) return "bg-[var(--gold-light)]";
+  if (score >= 3.5) return "bg-[#9B8E7E]";
+  if (score >= 3.0) return "bg-[#6B7280]";
+  return "bg-[#9B6B6B]";
 }
 
 export function DimensionBar({ dimension, scores }: DimensionBarProps) {

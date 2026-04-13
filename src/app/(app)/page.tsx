@@ -6,6 +6,7 @@ import { ProgressRing } from "@/components/ui/progress-ring";
 import { QuickActions } from "@/components/home/quick-actions";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { ThemeSwitcher } from "@/components/settings/theme-switcher";
+import { PartnerInvite } from "@/components/partner/partner-invite";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
@@ -56,6 +57,13 @@ export default async function HomePage() {
       </div>
 
       <QuickActions />
+
+      {!homeData.hasPartner && (
+        <PartnerInvite
+          inviteLink={`${process.env.APP_URL || "https://venuelens.vercel.app"}/accept-invite?project=${homeData.project.id}`}
+          partnerStatus="not_invited"
+        />
+      )}
 
       <RecentVenues venues={homeData.recentVenues} />
     </div>

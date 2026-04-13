@@ -11,6 +11,7 @@ import { ReviewSection } from "@/components/venues/review-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
 import { VisitSection } from "@/components/visits/visit-section";
+import { EstimateXRay } from "@/components/venues/estimate-xray";
 
 export default async function VenueDetailPage({
   params,
@@ -94,6 +95,22 @@ export default async function VenueDetailPage({
             predictedFinal: e.predictedFinal,
             items: e.items.map((item) => ({ ...item })),
           }))}
+        />
+      )}
+
+      {/* Estimate X-Ray */}
+      {venue.estimates.length > 0 && venue.estimates[0].items.length > 0 && (
+        <EstimateXRay
+          items={venue.estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            tier: item.tier,
+            predictedUpgrade: item.predictedUpgrade ?? null,
+            upgradeProbability: item.upgradeProbability ? Number(item.upgradeProbability) : null,
+          }))}
+          totalEstimate={venue.estimates[0].total}
+          predictedFinal={venue.estimates[0].predictedFinal}
         />
       )}
 

@@ -12,8 +12,8 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-3 text-sm",
           role === "user"
-            ? "rounded-br bg-primary text-primary-foreground"
-            : "rounded-bl bg-muted text-foreground"
+            ? "rounded-br-sm bg-primary text-primary-foreground"
+            : "rounded-bl-sm bg-muted text-foreground"
         )}
       >
         {content}

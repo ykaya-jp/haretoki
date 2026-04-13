@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Search, Receipt, ClipboardCheck, Heart } from "lucide-react";
+import { Search, Receipt, MessageSquare, Heart } from "lucide-react";
 
 const ACTIONS = [
-  { href: "/explore", icon: Search, label: "式場検索" },
+  { href: "/explore", icon: Search, label: "式場を探す" },
   { href: "/candidates", icon: Receipt, label: "見積比較" },
-  { href: "/explore", icon: ClipboardCheck, label: "チェック" },
+  { href: "/coach", icon: MessageSquare, label: "AIコーチ" },
   { href: "/candidates", icon: Heart, label: "候補一覧" },
 ] as const;
 

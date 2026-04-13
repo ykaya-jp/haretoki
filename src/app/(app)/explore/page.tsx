@@ -1,7 +1,7 @@
 import { getVenues } from "@/server/actions/venues";
 import { getFavorites } from "@/server/actions/favorites";
-import { VenueCard } from "@/components/venues/venue-card";
 import { AddVenueSheet } from "@/components/explore/add-venue-sheet";
+import { ExploreContent } from "@/components/explore/explore-content";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 
@@ -11,7 +11,7 @@ export default async function ExplorePage() {
     getFavorites("mine"),
   ]);
 
-  const favoriteIds = new Set(favorites.map((f) => f.venue.id));
+  const favoriteIds = favorites.map((f) => f.venue.id);
 
   return (
     <div className="space-y-4">
@@ -21,7 +21,7 @@ export default async function ExplorePage() {
         <AddVenueSheet />
       </div>
 
-      {/* Venue list */}
+      {/* Venue list with filters */}
       {venues.length === 0 ? (
         <EmptyState
           icon={Search}
@@ -30,15 +30,7 @@ export default async function ExplorePage() {
           action={{ label: "式場を追加する", href: "#" }}
         />
       ) : (
-        <div className="space-y-4">
-          {venues.map((venue) => (
-            <VenueCard
-              key={venue.id}
-              venue={venue}
-              isFavorite={favoriteIds.has(venue.id)}
-            />
-          ))}
-        </div>
+        <ExploreContent venues={venues} favoriteIds={favoriteIds} />
       )}
     </div>
   );

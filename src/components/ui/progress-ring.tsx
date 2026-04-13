@@ -50,7 +50,7 @@ export function ProgressRing({ progress, completedSteps, totalSteps }: ProgressR
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold tabular-nums">{Math.round(animatedProgress)}%</span>
+          <span className="text-2xl font-semibold tabular-nums">{Math.round(animatedProgress)}%</span>
         </div>
       </div>
       <span className="text-xs font-normal text-muted-foreground">
