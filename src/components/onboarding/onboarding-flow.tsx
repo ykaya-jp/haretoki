@@ -301,7 +301,12 @@ export function OnboardingFlow() {
         <div className="flex justify-center pt-2">
           <button
             type="button"
-            onClick={() => { router.push("/home"); router.refresh(); }}
+            onClick={async () => {
+              // Save empty conditions to set the onboarding cookie
+              await saveOnboardingAnswers({});
+              router.push("/home");
+              router.refresh();
+            }}
             className="text-sm text-muted-foreground underline"
           >
             スキップしてホームへ
