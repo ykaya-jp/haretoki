@@ -22,6 +22,7 @@ const notoSerifJP = Noto_Serif_JP({
 export const metadata: Metadata = {
   title: "VenueLens — 結婚式場比較ツール",
   description: "見学メモ、見積もり、口コミをひとつにまとめて、最適な式場を選べるようにする",
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
