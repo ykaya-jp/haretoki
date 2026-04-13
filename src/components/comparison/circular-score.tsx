@@ -11,9 +11,13 @@ export function CircularProgressScore({ score, size = 64, label }: CircularProgr
   const offset = circumference - (score / 100) * circumference;
 
   const getColor = () => {
-    if (score >= 80) return "var(--gold-warm)";
-    if (score >= 50) return "var(--muted-foreground)";
-    return "var(--destructive)";
+    // score is 0-100, map to 0-5 for lookup
+    const stars = score / 20;
+    if (stars >= 4.5) return "var(--gold-warm)";
+    if (stars >= 4.0) return "var(--gold-light)";
+    if (stars >= 3.5) return "#9B8E7E";
+    if (stars >= 3.0) return "#6B7280";
+    return "#9B6B6B";
   };
 
   return (

@@ -8,12 +8,14 @@ import { DimensionBar } from "@/components/comparison/dimension-bar";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ComparisonBoardProps {
   venueOptions: Array<{ id: string; name: string }>;
+  onDecide?: (venueId: string) => void;
 }
 
-export function ComparisonBoard({ venueOptions }: ComparisonBoardProps) {
+export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(
     venueOptions.slice(0, 2).map((v) => v.id)
   );
@@ -96,8 +98,18 @@ export function ComparisonBoard({ venueOptions }: ComparisonBoardProps) {
                 </div>
                 {venue.latestEstimate && (
                   <span className="tabular-nums text-sm text-[var(--gold-warm)]">
-                    ¥{(venue.latestEstimate.total / 10000).toFixed(0)}万
+                    &yen;{(venue.latestEstimate.total / 10000).toFixed(0)}万
                   </span>
+                )}
+                {onDecide && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onDecide(venue.id)}
+                    className="mt-2 w-full"
+                  >
+                    この式場に決める
+                  </Button>
                 )}
               </div>
             ))}

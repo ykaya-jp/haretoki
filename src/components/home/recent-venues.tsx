@@ -27,7 +27,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
           すべて →
         </Link>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide">
         {venues.map((venue) => {
           const avg = calcAvg(venue.scores);
           return (
