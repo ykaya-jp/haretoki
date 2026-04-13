@@ -2,7 +2,9 @@
 
 import { useState, useTransition, useCallback } from "react";
 import { updateChecklistItemStatus } from "@/server/actions/visits";
-import { Check, X, ChevronDown, MessageSquare } from "lucide-react";
+import { Check, X, ChevronDown, MessageSquare, Camera, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { addChecklistPhoto } from "@/server/actions/visits";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +16,7 @@ interface ChecklistItem {
   category: string | null;
   status: string;
   memo: string | null;
+  photoUrls: string[];
 }
 
 interface VisitChecklistProps {
@@ -199,7 +202,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                 transition={MEMO_TRANSITION}
                                 className="overflow-hidden"
                               >
-                                <div className="px-4 pb-3 pl-16">
+                                <div className="px-4 pb-3 pl-16 space-y-2">
                                   <textarea
                                     value={memoValues[item.id] ?? ""}
                                     onChange={(e) => setMemoValues(prev => ({ ...prev, [item.id]: e.target.value }))}
@@ -208,6 +211,18 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
                                     rows={2}
                                   />
+                                  {/* Photo thumbnails */}
+                                  {item.photoUrls.length > 0 && (
+                                    <div className="flex gap-2 flex-wrap">
+                                      {item.photoUrls.map((url, idx) => (
+                                        <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden">
+                                          <Image src={url} alt="" fill className="object-cover" />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Photo upload */}
+                                  <PhotoUploadButton itemId={item.id} />
                                 </div>
                               </motion.div>
                             )}
@@ -223,5 +238,44 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
         );
       })}
     </div>
+  );
+}
+
+function PhotoUploadButton({ itemId }: { itemId: string }) {
+  const [uploading, setUploading] = useState(false);
+  const router = useRouter();
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      await addChecklistPhoto(itemId, formData);
+      router.refresh();
+    } catch {
+      // silent
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <label className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground cursor-pointer transition-colors duration-[400ms] hover:bg-muted active:scale-95">
+      {uploading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Camera className="h-3.5 w-3.5" />
+      )}
+      {uploading ? "送信中..." : "写真を撮る"}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handlePhotoSelect}
+        className="hidden"
+      />
+    </label>
   );
 }

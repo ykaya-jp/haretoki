@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership, requireVisitAccess } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 import { getAllChecklistItems } from "@/lib/checklist-templates";
+import { uploadChecklistPhoto } from "@/lib/supabase/storage";
 
 const scheduleVisitSchema = z.object({
   scheduledAt: z.coerce.date(),
@@ -161,6 +162,39 @@ export async function updateChecklistItemStatus(
 
   revalidatePath(`/venues/${item.visit.venue.id}`);
   return { success: true, status };
+}
+
+export async function addChecklistPhoto(
+  itemId: string,
+  formData: FormData,
+): Promise<{ success: boolean }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const item = await prisma.visitChecklistItem.findUnique({
+    where: { id: itemId },
+    include: { visit: { include: { venue: { select: { projectId: true, id: true } } } } },
+  });
+  if (!item || item.visit.venue.projectId !== projectId) {
+    return { success: false };
+  }
+
+  const file = formData.get("photo") as File | null;
+  if (!file || !file.type.startsWith("image/")) {
+    return { success: false };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `${Date.now()}-${file.name}`;
+  const photoUrl = await uploadChecklistPhoto(buffer, fileName, projectId, item.visit.venue.id);
+
+  await prisma.visitChecklistItem.update({
+    where: { id: itemId },
+    data: { photoUrls: { push: photoUrl } },
+  });
+
+  revalidatePath(`/venues/${item.visit.venue.id}`);
+  return { success: true };
 }
 
 export async function generateVisitChecklist(visitId: string): Promise<void> {

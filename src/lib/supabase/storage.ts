@@ -65,6 +65,37 @@ export async function uploadVenuePhoto(
   return urlData.publicUrl;
 }
 
+/**
+ * Upload a checklist photo to Supabase Storage.
+ * Uses the same "venue-photos" bucket as venue photos.
+ */
+export async function uploadChecklistPhoto(
+  file: Buffer,
+  fileName: string,
+  projectId: string,
+  venueId: string,
+): Promise<string> {
+  const supabase = await createClient();
+  const ext = fileName.split(".").pop() ?? "jpg";
+  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path = `${projectId}/${venueId}/checklist/${uniqueName}`;
+
+  const { data, error } = await supabase.storage
+    .from("venue-photos")
+    .upload(path, file, {
+      contentType: `image/${ext === "png" ? "png" : ext === "webp" ? "webp" : "jpeg"}`,
+      upsert: false,
+    });
+
+  if (error) throw new Error(`写真のアップロードに失敗しました: ${error.message}`);
+
+  const { data: urlData } = supabase.storage
+    .from("venue-photos")
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
+}
+
 export async function downloadEstimatePdf(pdfUrl: string): Promise<Buffer> {
   const response = await fetch(pdfUrl);
   if (!response.ok) {

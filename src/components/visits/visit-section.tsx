@@ -18,7 +18,7 @@ interface Visit {
   completedAt: Date | null;
   title: string | null;
   memo: string | null;
-  checklist: Array<{ id: string; item: string; category: string | null; status: string; memo: string | null }>;
+  checklist: Array<{ id: string; item: string; category: string | null; status: string; memo: string | null; photoUrls: string[] }>;
   notes: Array<{
     id: string;
     content: string;
