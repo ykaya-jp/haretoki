@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
@@ -12,6 +13,20 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const project = await getOrCreateProject();
+
+  // Auto-set onboarding cookie for existing users who already have conditions
+  if (project.conditions) {
+    const cookieStore = await cookies();
+    if (!cookieStore.get("onboarding_completed")) {
+      cookieStore.set("onboarding_completed", "true", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+      });
+    }
+  }
 
   // Badge counts for BottomNav
   const [favoriteCount, insightCount] = await Promise.all([

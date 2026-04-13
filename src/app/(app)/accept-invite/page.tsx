@@ -13,7 +13,7 @@ export default async function AcceptInvitePage() {
     <div className="flex min-h-[60dvh] items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-          VenueLens
+          Harenohi
         </p>
         <div>
           <h1>プロジェクトへの招待</h1>

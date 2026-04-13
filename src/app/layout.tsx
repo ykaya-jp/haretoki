@@ -20,8 +20,8 @@ const notoSerifJP = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "VenueLens — 結婚式場比較ツール",
-  description: "見学メモ、見積もり、口コミをひとつにまとめて、最適な式場を選べるようにする",
+  title: "Harenohi — ふたりの式場選びパートナー",
+  description: "AIコーチと一緒に、二人で自然に、迷わず、後悔なく結婚式場を選べるアプリ",
   manifest: "/manifest.json",
 };
 

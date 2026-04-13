@@ -67,7 +67,7 @@ export async function analyzeVenueReviews(
     // Fetch review page content
     const response = await fetch(sourceUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; VenueLens/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; Harenohi/1.0)",
         Accept: "text/html",
       },
       signal: AbortSignal.timeout(15000),

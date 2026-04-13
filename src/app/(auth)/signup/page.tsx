@@ -54,7 +54,7 @@ export default function SignupPage() {
       <div className="hidden flex-1 flex-col justify-between bg-[var(--primary)] p-12 lg:flex">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-            VenueLens
+            Harenohi
           </p>
         </div>
         <div className="max-w-md space-y-6">
@@ -72,12 +72,12 @@ export default function SignupPage() {
             <p className="text-xs font-medium text-[var(--gold-warm)]">知っていましたか？</p>
             <p className="text-sm text-white/80">
               80%のカップルが初期見積もりより平均<span className="font-medium text-[var(--gold-warm)]">+100万円</span>上がっています。
-              VenueLensは、その「想定外」を事前に教えます。
+              Harenohiは、その「想定外」を事前に教えます。
             </p>
           </div>
         </div>
         <p className="text-[10px] text-white/30">
-          © 2026 VenueLens
+          © 2026 Harenohi
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export default function SignupPage() {
           {/* Mobile header */}
           <div className="text-center lg:hidden">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-              VenueLens
+              Harenohi
             </p>
             <h2 className="mt-2">式場探し、はじめましょう</h2>
             <p className="mt-1 text-xs text-muted-foreground">
