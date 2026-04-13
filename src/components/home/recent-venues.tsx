@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Star } from "lucide-react";
 
 interface RecentVenue {
@@ -36,11 +37,15 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
               className="min-w-[280px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
             >
               {venue.photoUrls[0] ? (
-                <img
-                  src={venue.photoUrls[0]}
-                  alt={venue.name}
-                  className="aspect-[4/3] w-full object-cover"
-                />
+                <div className="relative aspect-[4/3] w-full">
+                  <Image
+                    src={venue.photoUrls[0]}
+                    alt={venue.name}
+                    fill
+                    className="object-cover"
+                    sizes="280px"
+                  />
+                </div>
               ) : (
                 <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted">
                   <span className="text-muted-foreground text-sm">写真なし</span>
