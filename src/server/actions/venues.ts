@@ -72,6 +72,7 @@ export async function getVenue(id: string) {
         include: {
           ratings: true,
           notes: { include: { media: true } },
+          checklist: true,
         },
       },
     },

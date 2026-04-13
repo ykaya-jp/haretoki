@@ -9,6 +9,8 @@ import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { ReviewSection } from "@/components/venues/review-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
+import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
+import { VisitSection } from "@/components/visits/visit-section";
 
 export default async function VenueDetailPage({
   params,
@@ -74,6 +76,15 @@ export default async function VenueDetailPage({
         }
       />
 
+      {/* Partner Comparison Summary */}
+      {Object.keys(partnerRatings).length > 0 && (
+        <PartnerComparisonSummary
+          venueId={venue.id}
+          myRatings={userRatings}
+          partnerRatings={partnerRatings}
+        />
+      )}
+
       {/* Estimate Section */}
       {venue.estimates.length > 0 && (
         <EstimateSection
@@ -99,13 +110,30 @@ export default async function VenueDetailPage({
         }))}
       />
 
-      {/* Visit Section - placeholder for R3 */}
-      <section className="space-y-2">
-        <h2 className="text-base">見学記録</h2>
-        <p className="text-sm text-muted-foreground">
-          見学の記録をここに残せます（Release 3で実装予定）
-        </p>
-      </section>
+      {/* Visit Section */}
+      <VisitSection
+        venueId={venue.id}
+        venueName={venue.name}
+        projectId={venue.projectId}
+        visits={venue.visits.map(v => ({
+          id: v.id,
+          scheduledAt: v.scheduledAt,
+          status: v.status,
+          completedAt: v.completedAt,
+          title: v.title,
+          memo: v.memo,
+          checklist: v.checklist?.map(c => ({ id: c.id, item: c.item, checked: c.checked })) ?? [],
+          notes: v.notes?.map(n => ({
+            id: n.id,
+            content: n.content,
+            tags: n.tags,
+            locationLat: n.locationLat ? Number(n.locationLat) : null,
+            locationLng: n.locationLng ? Number(n.locationLng) : null,
+            createdAt: n.createdAt,
+            media: n.media?.map(m => ({ id: m.id, type: m.type, mediaUrl: m.mediaUrl })) ?? [],
+          })) ?? [],
+        }))}
+      />
 
       {/* Action Bar */}
       <VenueActionBar venueId={venue.id} isFavorite={isFavorite} />

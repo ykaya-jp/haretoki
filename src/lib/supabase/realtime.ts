@@ -17,6 +17,10 @@ export function useRealtimeSync(projectId: string) {
   const supabase = createClient();
 
   useEffect(() => {
+    const handleChange = () => {
+      router.refresh();
+    };
+
     const channel = supabase
       .channel(`project-${projectId}`)
       .on(
@@ -26,9 +30,32 @@ export function useRealtimeSync(projectId: string) {
           schema: "public",
           filter: `project_id=eq.${projectId}`,
         },
-        () => {
-          router.refresh();
-        }
+        handleChange
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "visit_ratings" },
+        handleChange
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "visit_notes" },
+        handleChange
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "visit_checklist_items" },
+        handleChange
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "venue_favorites" },
+        handleChange
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "venue_scores" },
+        handleChange
       )
       .subscribe();
 

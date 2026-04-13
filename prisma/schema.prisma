@@ -82,6 +82,7 @@ enum AiAnalysisType {
   comparison
   visit_prep
   coach_chat
+  rating_comparison
 }
 
 enum ReactionType {
@@ -241,8 +242,11 @@ model Visit {
   venueId     String      @map("venue_id") @db.Uuid
   scheduledAt DateTime?   @map("scheduled_at")
   status      VisitStatus @default(scheduled)
-  completedAt DateTime?   @map("completed_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
+  completedAt    DateTime?   @map("completed_at")
+  title          String?
+  memo           String?
+  reminderSentAt DateTime?   @map("reminder_sent_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   venue     Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
