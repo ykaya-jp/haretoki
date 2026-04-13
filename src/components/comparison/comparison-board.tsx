@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { getComparisonData } from "@/server/actions/comparison";
 import { CircularProgressScore } from "@/components/comparison/circular-score";
 import { DimensionBar } from "@/components/comparison/dimension-bar";
@@ -82,7 +83,7 @@ export function ComparisonBoard({ venueOptions }: ComparisonBoardProps) {
             {data.venues.map((venue) => (
               <div key={venue.id} className="flex flex-col items-center gap-2 rounded-lg bg-card p-4 shadow-sm">
                 {venue.photoUrls[0] ? (
-                  <img src={venue.photoUrls[0]} alt={venue.name} className="aspect-square w-16 rounded-lg object-cover" />
+                  <Image src={venue.photoUrls[0]} alt={venue.name} width={64} height={64} className="rounded-lg object-cover" />
                 ) : (
                   <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">写真</div>
                 )}

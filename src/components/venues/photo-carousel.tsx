@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { cn } from "@/lib/utils";
 
@@ -35,14 +36,16 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
     return (
       <div
         className={cn(
-          "overflow-hidden rounded-2xl",
+          "relative overflow-hidden rounded-2xl",
           aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video"
         )}
       >
-        <img
+        <Image
           src={photos[0]}
           alt={`${alt} - 写真`}
-          className="h-full w-full object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
       </div>
     );
@@ -61,15 +64,17 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
             <div
               key={index}
               className={cn(
-                "min-w-0 flex-[0_0_100%]",
+                "relative min-w-0 flex-[0_0_100%]",
                 aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video"
               )}
               aria-label={`写真 ${index + 1}/${photos.length}`}
             >
-              <img
+              <Image
                 src={photo}
                 alt={`${alt} - 写真 ${index + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
             </div>
           ))}
