@@ -24,7 +24,7 @@ export function FavoriteFilter({ active, onChange }: FavoriteFilterProps) {
           type="button"
           onClick={() => onChange(f.id)}
           className={cn(
-            "rounded-full border px-3 py-1 text-sm transition-colors active:scale-95",
+            "rounded-full border px-3 py-1 text-sm transition-all duration-[400ms] active:scale-[0.97]",
             active === f.id
               ? "border-primary bg-primary text-primary-foreground"
               : "border-border bg-card text-muted-foreground"

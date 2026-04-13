@@ -14,7 +14,7 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
     <motion.div
       initial={{ opacity: 0, x: role === "user" ? 16 : -16, y: 8 }}
       animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={cn("flex gap-2.5", role === "user" ? "justify-end" : "justify-start")}
     >
       {role === "assistant" && (

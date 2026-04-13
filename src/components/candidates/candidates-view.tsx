@@ -103,18 +103,18 @@ export function CandidatesView({
         {tab === "shortlist" && (
           <motion.div
             key="shortlist"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             <FavoriteFilter active={filter} onChange={setFilter} />
 
             {favorites.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                 className="mt-4"
               >
                 <EmptyState
@@ -130,7 +130,7 @@ export function CandidatesView({
                   <motion.button
                     type="button"
                     onClick={() => setShowSwipe(true)}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 250, damping: 25 } }}
                     className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-center shadow-[var(--shadow-card)] transition-colors active:bg-muted"
                   >
                     スワイプで絞り込む ({favorites.length}件)
@@ -156,10 +156,10 @@ export function CandidatesView({
                   {!showSwipe && favorites.map((fav, index) => (
                     <motion.div
                       key={fav.venue.id}
-                      initial={{ opacity: 0, y: 16 }}
+                      initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -100 }}
-                      transition={{ delay: index * 0.06, duration: 0.3 }}
+                      exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
+                      transition={{ delay: index * 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <VenueCard
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -177,10 +177,10 @@ export function CandidatesView({
         {tab === "comparison" && (
           <motion.div
             key="comparison"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             {venueOptions.length < 2 ? (
               <EmptyState
@@ -198,10 +198,10 @@ export function CandidatesView({
         {tab === "decision" && (
           <motion.div
             key="decision"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             {showCeremony ? (
               <DecisionCeremony
@@ -218,7 +218,7 @@ export function CandidatesView({
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-5 rounded-2xl bg-card p-8 text-center shadow-[var(--shadow-card)]"
               >
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
