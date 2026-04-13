@@ -1,18 +1,12 @@
 import { notFound } from "next/navigation";
-import { MapPin, Users, ExternalLink } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { VenueStatusSelect } from "@/components/venues/venue-status-select";
-// TODO: v2 refactor — VenueRatingsSection replaced by v2 component
-// import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
-import { EstimateSection } from "@/components/venues/estimate-section";
 import { getVenue } from "@/server/actions/venues";
-// TODO: v2 refactor — getPartnerRatings removed with VenueRatingsSection
-// import { getPartnerRatings } from "@/server/actions/ratings";
+import { getPartnerRatings } from "@/server/actions/ratings";
+import { getFavorites } from "@/server/actions/favorites";
+import { PhotoCarousel } from "@/components/venues/photo-carousel";
+import { VenueHeader } from "@/components/venues/venue-header";
+import { RatingSection } from "@/components/venues/rating-section";
+import { EstimateSection } from "@/components/venues/estimate-section";
+import { VenueActionBar } from "@/components/venues/venue-action-bar";
 
 export default async function VenueDetailPage({
   params,
@@ -20,117 +14,85 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  // TODO: v2 refactor — partnerRatings removed with VenueRatingsSection; restore when v2 ratings component is ready
-  const [venue] = await Promise.all([
+  const [venue, partnerRatingsData, favorites] = await Promise.all([
     getVenue(id),
+    getPartnerRatings(id).catch(() => null),
+    getFavorites("mine"),
   ]);
 
   if (!venue) notFound();
 
+  const isFavorite = favorites.some((f) => f.venue.id === venue.id);
+
+  // Extract user ratings into Record<dimension, score>
+  const userRatings: Record<string, number> = {};
+  for (const score of venue.scores) {
+    if (score.source === "user_rating") {
+      userRatings[score.dimension] = Number(score.score);
+    }
+  }
+
+  // Extract partner ratings
+  const partnerRatings: Record<string, number> = {};
+  if (partnerRatingsData?.partnerRatings) {
+    for (const [dim, score] of Object.entries(
+      partnerRatingsData.partnerRatings.ratings,
+    )) {
+      partnerRatings[dim] = score;
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl">{venue.name}</h1>
-            <VenueStatusSelect
-              venueId={venue.id}
-              currentStatus={venue.status}
-            />
-          </div>
+    <div className="space-y-6 pb-20">
+      {/* Photo Gallery */}
+      <PhotoCarousel
+        photos={venue.photoUrls}
+        alt={venue.name}
+        aspectRatio="4/3"
+      />
 
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            {venue.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {venue.location}
-              </span>
-            )}
-            {(venue.capacityMin || venue.capacityMax) && (
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {venue.capacityMin && venue.capacityMax
-                  ? `${venue.capacityMin}〜${venue.capacityMax}名`
-                  : venue.capacityMax
-                    ? `〜${venue.capacityMax}名`
-                    : `${venue.capacityMin}名〜`}
-              </span>
-            )}
-          </div>
+      {/* Venue Header */}
+      <VenueHeader
+        name={venue.name}
+        location={venue.location}
+        accessInfo={venue.accessInfo}
+        capacityMin={venue.capacityMin}
+        capacityMax={venue.capacityMax}
+        ceremonyStyles={venue.ceremonyStyles}
+        status={venue.status}
+      />
 
-          {venue.accessInfo && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {venue.accessInfo}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Rating Section */}
+      <RatingSection
+        venueId={venue.id}
+        initialRatings={userRatings}
+        partnerRatings={
+          Object.keys(partnerRatings).length > 0 ? partnerRatings : undefined
+        }
+      />
 
-      {/* Source URLs */}
-      {venue.sourceUrls.length > 0 && (
-        <Card className="shadow-[var(--shadow-card)]">
-          <CardHeader>
-            <CardTitle className="font-serif text-base">参考リンク</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {venue.sourceUrls.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-primary hover:underline"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {url}
-              </a>
-            ))}
-          </CardContent>
-        </Card>
+      {/* Estimate Section */}
+      {venue.estimates.length > 0 && (
+        <EstimateSection
+          venueId={venue.id}
+          estimates={venue.estimates.map((e) => ({
+            ...e,
+            predictedFinal: e.predictedFinal,
+            items: e.items.map((item) => ({ ...item })),
+          }))}
+        />
       )}
 
-      {/* Ratings */}
-      {/* TODO: v2 refactor — replace with v2 ratings component */}
-      <Card className="shadow-[var(--shadow-card)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">おふたりの印象</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">v2で評価機能が追加されます</p>
-        </CardContent>
-      </Card>
+      {/* Visit Section - placeholder for R3 */}
+      <section className="space-y-2">
+        <h2 className="text-base">見学記録</h2>
+        <p className="text-sm text-muted-foreground">
+          見学の記録をここに残せます（Release 3で実装予定）
+        </p>
+      </section>
 
-      {/* Estimates */}
-      <Card className="shadow-[var(--shadow-card)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">見積もり</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EstimateSection
-            venueId={venue.id}
-            estimates={venue.estimates.map((e) => ({
-              ...e,
-              predictedFinal: e.predictedFinal,
-              items: e.items.map((item) => ({
-                ...item,
-              })),
-            }))}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Visit Notes - Phase 2 placeholder */}
-      <Card className="shadow-[var(--shadow-card)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">見学メモ</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Phase 2で見学メモ・写真記録機能が追加されます
-          </p>
-        </CardContent>
-      </Card>
+      {/* Action Bar */}
+      <VenueActionBar venueId={venue.id} isFavorite={isFavorite} />
     </div>
   );
 }
