@@ -91,7 +91,16 @@ export async function getOnboardingRecommendations(): Promise<{
       }),
     );
 
-    return JSON.parse(response);
+    let result;
+    try {
+      result = JSON.parse(response);
+    } catch {
+      return null;
+    }
+    if (!result.recommendations || !Array.isArray(result.recommendations)) {
+      return null;
+    }
+    return result;
   } catch {
     return null;
   }

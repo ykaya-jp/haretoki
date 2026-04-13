@@ -3,7 +3,7 @@
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib/anthropic";
+import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
 import type { ReviewSource } from "@/generated/prisma/client";
 
@@ -28,6 +28,27 @@ export async function analyzeVenueReviews(
     where: { id: venueId, projectId },
   });
   if (!venue) return { success: false, error: "式場が見つかりません" };
+
+  // Validate URL domain (allowlist)
+  const ALLOWED_REVIEW_DOMAINS = [
+    "zexy.net", "www.zexy.net",
+    "weddingpark.net", "www.weddingpark.net",
+    "hana-yume.net", "www.hana-yume.net",
+    "wedding.mynavi.jp",
+    "mwed.jp", "www.mwed.jp",
+  ];
+
+  try {
+    const parsedUrl = new URL(sourceUrl);
+    if (parsedUrl.protocol !== "https:") {
+      return { success: false, error: "HTTPSのURLのみ対応しています" };
+    }
+    if (!ALLOWED_REVIEW_DOMAINS.some(d => parsedUrl.hostname === d || parsedUrl.hostname.endsWith("." + d))) {
+      return { success: false, error: "対応していないサイトです。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングのURLを入力してください" };
+    }
+  } catch {
+    return { success: false, error: "有効なURLを入力してください" };
+  }
 
   if (!isClaudeAvailable()) {
     return { success: false, error: "AI機能を利用するにはAPIキーを設定してください" };
@@ -56,7 +77,23 @@ export async function analyzeVenueReviews(
       return { success: false, error: "レビューページを取得できませんでした" };
     }
 
-    const html = await response.text();
+    const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB
+    const reader = response.body?.getReader();
+    if (!reader) return { success: false, error: "レスポンスを読み取れませんでした" };
+
+    const chunks: Uint8Array[] = [];
+    let totalSize = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalSize += value.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        reader.cancel();
+        return { success: false, error: "ページサイズが大きすぎます" };
+      }
+      chunks.push(value);
+    }
+    const html = new TextDecoder().decode(Buffer.concat(chunks));
     const textContent = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -65,14 +102,23 @@ export async function analyzeVenueReviews(
       .trim();
 
     // Send to Claude for analysis
+    const strippedContent = stripPII(textContent);
     const claudeResponse = await withRetry(() =>
       askClaude({
         system: REVIEW_SUMMARY_PROMPT.system,
-        userMessage: REVIEW_SUMMARY_PROMPT.buildUserMessage([textContent], venue.name),
+        userMessage: REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name),
       })
     );
 
-    const result = JSON.parse(claudeResponse) as ReviewSummary & { reviewCount: number };
+    let result: ReviewSummary & { reviewCount: number };
+    try {
+      result = JSON.parse(claudeResponse) as ReviewSummary & { reviewCount: number };
+    } catch {
+      return { success: false, error: "AIの応答を解析できませんでした" };
+    }
+    if (!result.summary) {
+      return { success: false, error: "AIの分析結果が不完全です" };
+    }
 
     // Save or update review record
     if (existing) {
@@ -117,10 +163,10 @@ export async function analyzeVenueReviews(
 
 export async function getVenueReviews(venueId: string) {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   return prisma.review.findMany({
-    where: { venueId },
+    where: { venueId, venue: { projectId } },
     orderBy: { fetchedAt: "desc" },
   });
 }

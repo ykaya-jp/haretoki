@@ -97,11 +97,18 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
     const context = await loadUserContext(projectId);
 
     // Load conversation history (last 20 messages)
-    await prisma.coachMessage.findMany({
+    const history = await prisma.coachMessage.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
       take: 20,
     });
+
+    // Build conversation context
+    const historyText = history.length > 0
+      ? "\n\n## 最近の会話履歴:\n" + history.reverse().map(m =>
+          `${m.role === "user" ? "ユーザー" : "コーチ"}: ${m.content}`
+        ).join("\n")
+      : "";
 
     // Save user message
     await prisma.coachMessage.create({
@@ -112,7 +119,7 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
       const response = await withRetry(() =>
         askClaude({
           system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
-          userMessage: stripPII(message),
+          userMessage: stripPII(message) + historyText,
           maxTokens: 2048,
         })
       );

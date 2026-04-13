@@ -107,7 +107,9 @@ async function generateInsight(
   }
 
   try {
-    const inputHash = computeInputHash(venues.map((v) => v.id).sort().join(","));
+    const inputHash = computeInputHash(
+      venues.map(v => v.id).sort().join(",") + JSON.stringify(conditions ?? "")
+    );
 
     // Check cache (24h TTL)
     const cached = await prisma.aiAnalysis.findFirst({
@@ -150,7 +152,15 @@ async function generateInsight(
       }),
     );
 
-    const result = JSON.parse(response);
+    let result;
+    try {
+      result = JSON.parse(response);
+    } catch {
+      return generateTemplateInsight(venues);
+    }
+    if (!result.summary || !Array.isArray(result.recommendations)) {
+      return generateTemplateInsight(venues);
+    }
 
     // Cache
     await prisma.aiAnalysis.create({
