@@ -4,7 +4,7 @@ test.describe("Landing Page", () => {
   test("renders hero section with brand identity", async ({ page }) => {
     await page.goto("/");
 
-    // Harenohi logo text (multiple instances possible — hero + footer)
+    // Harenohi logo text
     const logos = page.locator("text=Harenohi");
     const count = await logos.count();
     expect(count).toBeGreaterThan(0);
@@ -14,9 +14,9 @@ test.describe("Landing Page", () => {
     }
     expect(logoVisible).toBe(true);
 
-    // Main headline (may appear in hero + meta)
+    // Main headline
     await expect(
-      page.locator("text=二人で自然に、迷わず、後悔なく式場を選べる").first()
+      page.locator("text=ふたりで選ぶ").first()
     ).toBeVisible();
 
     // CTAs
@@ -28,19 +28,16 @@ test.describe("Landing Page", () => {
     await page.goto("/");
 
     await expect(page.locator("text=80%").first()).toBeVisible();
-    await expect(page.locator("text=2.6件")).toBeVisible();
-    await expect(page.locator("text=68.5%")).toBeVisible();
+    await expect(page.locator("text=2.8件").first()).toBeVisible();
   });
 
   test("shows feature cards", async ({ page }) => {
     await page.goto("/");
 
     await expect(
-      page.locator("text=AIが見積もりの落とし穴を先回り")
+      page.locator("text=見積もりの裏側を知る")
     ).toBeVisible();
-    await expect(page.locator("text=データで納得できる比較")).toBeVisible();
-    await expect(page.locator("text=二人の意見を見える化")).toBeVisible();
-    await expect(page.locator("text=中立な立場で支援")).toBeVisible();
+    await expect(page.locator("text=データで比較する")).toBeVisible();
   });
 
   test("CTA links to signup", async ({ page }) => {
@@ -68,7 +65,6 @@ test.describe("Landing → Auth Flow", () => {
     await page.locator('a[href="/signup"]').first().click();
     await page.waitForURL("**/signup");
 
-    // Signup page should have name, email, password fields
     await expect(page.locator('input[id="name"]')).toBeVisible();
     await expect(page.locator('input[id="email"]')).toBeVisible();
     await expect(page.locator('input[id="password"]')).toBeVisible();

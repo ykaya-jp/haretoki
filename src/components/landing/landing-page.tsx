@@ -154,7 +154,7 @@ export function LandingPage() {
             variants={fadeUp}
             className="pt-2 text-sm tracking-wide text-muted-foreground/50"
           >
-            無料 · カード登録不要 · 3分ではじめられます
+            無料 · カード不要 · 3分で開始
           </motion.p>
         </motion.div>
       </section>
@@ -336,10 +336,14 @@ export function LandingPage() {
             私たちの約束
           </div>
           <h2 className="mb-6 font-serif text-[clamp(1.25rem,2.5vw,2rem)] font-light leading-[1.4] tracking-[0.06em]">
-            おふたりの「選ぶ」に寄り添うツールです
+            おふたりの「選ぶ」に
+            <br />
+            寄り添うツールです
           </h2>
           <p className="text-[15px] leading-[2] text-muted-foreground">
-            どの式場からも掲載料を受け取っていない、中立な立場でお届けしています。
+            どの式場からも掲載料を受け取らない、
+            <br />
+            中立な立場でお届けしています。
           </p>
         </motion.div>
       </section>
