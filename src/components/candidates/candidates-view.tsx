@@ -5,6 +5,7 @@ import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import { Heart } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 
@@ -24,9 +25,10 @@ interface FavoriteVenue {
 
 interface CandidatesViewProps {
   initialFavorites: FavoriteVenue[];
+  venueOptions: Array<{ id: string; name: string }>;
 }
 
-export function CandidatesView({ initialFavorites }: CandidatesViewProps) {
+export function CandidatesView({ initialFavorites, venueOptions }: CandidatesViewProps) {
   const [tab, setTab] = useState<Tab>("shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
   const [favorites, setFavorites] = useState(initialFavorites);
@@ -77,14 +79,14 @@ export function CandidatesView({ initialFavorites }: CandidatesViewProps) {
       )}
 
       {tab === "comparison" && (
-        <div className="py-8 text-center text-muted-foreground">
-          <p>比較ボード — Phase C で実装</p>
-        </div>
+        <ComparisonBoard venueOptions={venueOptions} />
       )}
 
       {tab === "decision" && (
-        <div className="py-8 text-center text-muted-foreground">
-          <p>決定セレモニー — Phase C で実装</p>
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">
+            比較ボードで式場を選んで「この式場に決める」を実行してください
+          </p>
         </div>
       )}
     </div>
