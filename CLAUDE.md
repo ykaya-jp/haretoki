@@ -1,10 +1,20 @@
 # VenueLens
 
 ## Overview
-結婚式場の情報収集・整理・比較Webアプリ。夫婦でスマホからアクセスし、式場情報を共有・評価・比較して最終候補を絞り込む。商用化を視野に入れている。
+結婚式場の比較・評価・最終決定を支援するWebアプリ。AIコンシェルジュが二人の好みを理解し、自然に式場選びを導く。モバイルファースト（375px基準）、商用化を視野に入れている。
+
+## Product Vision
+「二人で自然に、迷わず、後悔なく式場を選べるプロダクト」— 式場を「売る」メディアではなく、カップルの「選ぶ」を支援する中立ツール。
+
+## Roadmap & Design Docs
+- IMPORTANT: [docs/roadmap.md](docs/roadmap.md) — 統合ロードマップ（Release 1-4）。機能スコープとAI境界の判断はここを参照
+- IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム（Single Source of Truth）
+- [docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md](docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md) — 全画面UI仕様
+- [docs/superpowers/specs/2026-04-13-release1-technical-spec.md](docs/superpowers/specs/2026-04-13-release1-technical-spec.md) — Release 1 技術設計書（Prisma変更、Server Actions、worktree計画）
+- IMPORTANT: [docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md](docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md) — 非機能要件（パフォーマンス予算、楽観的更新、バンドル管理）。実装時に必ず準拠すること
 
 ## Tech Stack
-- Framework: Next.js 15 (App Router) + TypeScript 5.x
+- Framework: Next.js 16 (App Router) + TypeScript 5.x
 - Styling: Tailwind CSS + shadcn/ui
 - Database: PostgreSQL via Supabase
 - ORM: Prisma
@@ -58,6 +68,16 @@ docs/            # 仕様書・設計ドキュメント
 - 環境変数は .env.local に置き、.env.example にキー名だけ記録する。IMPORTANT: 秘密情報をコミットしない
 - Supabase の型は `npx supabase gen types typescript --project-id <id> > src/types/supabase.ts` で自動生成する。手書きしない
 
+## App Structure (v2 — redesigned)
+4タブ構成: ホーム / 探す / 候補 / コーチ
+- ホーム: AIインサイトカード + 進捗リング + 最近見た式場 + クイックアクション
+- 探す: 式場カードブラウズ + フィルタチップ + 式場追加
+- 候補: ショートリスト + 比較ボード + 最終決定
+- コーチ: AIインサイトカードフィード + チャットバー
+
+初回のみAI対話オンボーディング（3-4問で好み把握→式場提案）。
+6ステップ進捗バーは廃止。進捗は控えめなリング表示のみ。
+
 ## Domain Model（主要エンティティ）
 - Project: カップル単位のプロジェクト。ProjectMember(owner/partner)で共有
 - Venue: 式場の基本情報（名前、住所、アクセス、収容人数、ステータス）
@@ -68,18 +88,23 @@ docs/            # 仕様書・設計ドキュメント
 - 詳細は [docs/superpowers/specs/2026-04-12-venuelens-design.md](docs/superpowers/specs/2026-04-12-venuelens-design.md) のData Model参照
 
 ## UI/UX Rules
-- IMPORTANT: 詳細は [docs/ux-guidelines.md](docs/ux-guidelines.md) を参照。以下は最重要ルールのみ
+- IMPORTANT: デザインシステムの詳細は [DESIGN.md](DESIGN.md) を参照（Single Source of Truth — v2で全面刷新済み）
 - IMPORTANT: モバイルファースト。375px幅を基準に設計する
 - IMPORTANT: 全タッチターゲットは最低44px（h-11）。shadcn/uiのdefaultを上書き済み
-- IMPORTANT: 全タップに即時フィードバック（active:scale, active:bg-muted）
+- IMPORTANT: 全タップに即時フィードバック（active:scale-[0.98], active:bg-muted）
 - IMPORTANT: 固定要素にはiOS SafeArea（env(safe-area-inset-bottom)）を適用
+- IMPORTANT: 見出しは細字（font-weight 300-400）。太字禁止。ラグジュアリー感の源泉
+- IMPORTANT: 式場名にはNoto Serif JP（明朝）を使用。本文はNoto Sans JP
+- IMPORTANT: 数値にはtabular-numsを適用（font-variant-numeric: tabular-nums）
 - 情報密度は高めに保つ（日本ユーザーは「情報量 = 信頼」）
 - 費用は概算でも数字を見せる。「お問い合わせください」は禁止
 - UIコピーは丁寧体（「予約する」→「見学してみる」）、急かさないトーン
-- 式場カードには写真・価格帯・収容人数・エリア・スタイルタグを表示
+- 式場カードは写真ファースト（4:3）、ハートお気に入り、カルーセル対応
+- AIインサイトカードはgold-subtle背景 + 3px gold左ボーダー + Sparklesアイコン
 - 新しいページには必ず loading.tsx（スケルトン）と空ステート（CTA付き）を用意
 - フィードバック: Sonner（トースト）でServer Action結果を通知
 - ダークモード対応（Phase 5）
+- 6ステップ進捗バーは廃止。ステップ感を出さない
 
 ## Conventions
 - 新しいページを追加したら、対応するテストファイルを tests/ に作成する
@@ -87,6 +112,12 @@ docs/            # 仕様書・設計ドキュメント
 - IMPORTANT: 既存のコードパターンに従う。新しいライブラリやパターンを導入する前に確認する
 - コンポーネントは shadcn/ui の既存コンポーネントを最大限活用する。同等のものを自作しない
 - エラーメッセージ・バリデーションメッセージは日本語で具体的に書く
+
+### 用語対応表
+| UI上の表記 | コード/DB上の名前 | 注意事項 |
+|-----------|-----------------|---------|
+| 候補 | `VenueFavorite` | ハートで追加。旧「ショートリスト」は使わない |
+| AIコーチ | Coach画面、`sendCoachMessage` 等 | UI上は「AIコーチ」で統一。「AIコンシェルジュ」はマーケティング用語（Overview等の説明文のみ） |
 
 ## Lessons
 詳細は [docs/lessons.md](docs/lessons.md) を参照。CLAUDE.mdにはルール化された要点のみ記載:

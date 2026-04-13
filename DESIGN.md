@@ -1,0 +1,666 @@
+# VenueLens Design System v2
+
+> Single Source of Truth for all design decisions.
+> Zero-base redesign: Phase 0 (user research) → Phase 1 (feature design) → Phase 2 (Refero MCP research) → Phase 3 (design integration).
+> Implementation must conform to this document.
+
+---
+
+## Product Vision
+
+**「二人で自然に、迷わず、後悔なく式場を選べるプロダクト」**
+
+VenueLens is not a listing site. It is a premium decision companion that guides couples through venue selection with AI-powered insights, transparent estimates, and collaborative tools.
+
+### Core Insights (Research-backed)
+
+| Stat | Source | Design Implication |
+|------|--------|--------------------|
+| 80% experience estimate gap (+¥84-110万) | ゼクシィ結婚トレンド調査 | Estimate transparency is #1 feature |
+| 66% fight during wedding prep | ハナユメ調査 | Partner experience must reduce friction |
+| 68.5% regret venue selection process | Wedding Table | Decision confidence > decision speed |
+| Average 2.6 venue visits | ゼクシィ調査 | Online comparison must be powerful |
+
+### Target Persona
+
+**Primary**: 20-30代カップル。こだわりたいが時間がない。IT リテラシーは高め（前提）。右も左も分からないが、妥協はしたくない。
+
+### Competitive Position
+
+VenueLens is **not** a media/advertising platform (unlike Zexy, Hanayume). It is a **neutral decision tool** — no venue pays for placement. The design must convey this independence through data transparency and AI attribution.
+
+---
+
+## User Journey
+
+### Core Flow: AI-Guided → Free Navigation
+
+```
+[初回] AI対話オンボーディング (3-4問)
+  ↓ 好み・条件を把握 → 式場を自動提案
+[2回目以降] ホーム中心の自由ナビゲーション
+  ↓ AIコーチが「次のおすすめ」をカードで提案
+  ↓ ユーザーは自由にどのタブからでも行動
+```
+
+**設計原則**:
+- ステップ番号は見せない（仕事感の排除）
+- 進捗は控えめなリング表示のみ
+- AIが行動を見て先回りで提案（プロアクティブ）
+- どの画面からでも自由にジャンプ可能
+
+### Emotion Arc
+
+```
+不安 → 発見 → 比較 → 確信 → 祝福
+"何から始めれば?" → "こんな式場が!" → "データで納得" → "二人で決めた!" → "おめでとう!"
+```
+
+---
+
+## Navigation
+
+### Bottom Navigation (4 tabs)
+
+| Tab | Icon | Label | Content |
+|-----|------|-------|---------|
+| 1 | Home | ホーム | パーソナライズグリーティング + AIインサイトカード + 進捗リング + 最近見た式場 + クイックアクション |
+| 2 | Search | 探す | 式場カードブラウズ + フィルタチップ + 式場追加（URL/手動）|
+| 3 | Heart | 候補 | ショートリスト + 比較ボード + 最終決定 |
+| 4 | MessageSquare | コーチ | AIインサイトカード（フィード）+ チャットバー |
+
+**設計ルール**:
+- アイコン + テキストラベル（アイコンのみ禁止）
+- アクティブタブ: gold-warm (#C9A84C) アイコン + ラベル
+- 非アクティブ: muted-foreground (#64748B)
+- バッジ: 候補タブに件数、コーチタブに未読インサイト数
+- 高さ: 56px + env(safe-area-inset-bottom)
+- タッチターゲット: 各タブ最低48x48px
+
+---
+
+## Screen Specifications
+
+### 1. AI Onboarding (初回のみ)
+
+**Pattern**: Jasper AI式チャットバブル + Intercom式プログレス
+
+```
+┌─────────────────────────────┐
+│  Step 1 of 4  ████░░░░      │ ← thin progress bar
+│                             │
+│  ┌─────────────────────┐   │
+│  │ 🤖 AIアバター        │   │
+│  │ おめでとうございます！  │   │ ← chat bubble (left-aligned)
+│  │ まず教えてください。   │   │
+│  │ どんな式場が気になり   │   │
+│  │ ますか？              │   │
+│  └─────────────────────┘   │
+│                             │
+│  ┌──────┐ ┌──────┐        │ ← pill buttons
+│  │チャペル│ │ガーデン│        │
+│  └──────┘ └──────┘        │
+│  ┌──────┐ ┌──────────┐   │
+│  │ホテル │ │レストラン │   │
+│  └──────┘ └──────────┘   │
+│                             │
+│  [スキップ]                  │ ← always available
+└─────────────────────────────┘
+```
+
+**設計ポイント**:
+- 3-4問で必ず終わる。5問以上にしない
+- 各質問にコンテキスト副題（「あなたにぴったりの式場をお勧めするために」）
+- Skip動線を全ステップに配置
+- 回答はチャットバブルとして蓄積表示（会話感）
+- 最終ステップ後に「パーソナライズ完了」→ おすすめ式場カード表示 → ホームへ
+
+### 2. Home (ホーム)
+
+**Pattern**: Asana式グリーティング + Bento式グリッド + Tripadvisor式横スクロール
+
+```
+┌─────────────────────────────┐
+│ VenueLens            🔔 👤  │ ← header
+├─────────────────────────────┤
+│                             │
+│ こんにちは、○○さん           │ ← greeting (Noto Serif JP, 300, 24px)
+│ 結婚式まであと 127日         │ ← subtitle (muted, 14px)
+│                             │
+│ ┌────────────────┬────────┐│
+│ │ ✨ AIコーチ     │ 進捗    ││ ← bento grid (2/3 + 1/3)
+│ │ 見積もりが出揃い │  62%   ││
+│ │ ました。比較し  │ ○──○   ││ ← progress ring
+│ │ てみましょう    │ 4/7    ││
+│ │ [比較する][質問] │        ││ ← suggestion chips
+│ └────────────────┴────────┘│
+│                             │
+│ [🔍式場検索][💰見積比較]     │ ← quick actions (4 grid)
+│ [📋チェック][❤️候補一覧]     │
+│                             │
+│ 最近見た式場      すべて → │ ← section header
+│ ┌────┐┌────┐┌────┐        │ ← horizontal scroll cards
+│ │ 📷 ││ 📷 ││ 📷 │        │    280x180px photo + info
+│ │名前││名前││名前│        │
+│ │★4.2││★4.5││★3.8│        │
+│ └────┘└────┘└────┘        │
+│                             │
+├─────────────────────────────┤
+│ 🏠  🔍  ❤️  💬             │ ← bottom nav
+└─────────────────────────────┘
+```
+
+**AIインサイトカード**:
+- 背景: gold-subtle (rgba(201,168,76,0.08))
+- 左ボーダー: 3px gold-warm
+- アイコン: Sparkles (Lucide), gold-warm
+- チップ: 白背景, border #E0E5EB, 32px高, 14px text
+- タップでコーチタブまたは該当画面に遷移
+
+**進捗リング**:
+- 直径: 80px, ストローク6px
+- 背景トラック: border色
+- プログレス: primary色
+- 中央: % (24px, 700)
+- 下部: "4/7完了" (12px, 400, muted-foreground)
+- アニメーション: 0→現在値, 600ms ease-out
+
+**クイックアクション**:
+- 4等分グリッド, gap 12px
+- 各: 白背景, 角丸12px, shadow-card, padding 16px
+- アイコン24px (primary) + ラベル12px/500 中央揃え
+- タップ: scale(0.98) 120ms
+
+### 3. Explore (探す)
+
+**Pattern**: Airbnb式カード + Fresha式フィルタチップ
+
+```
+┌─────────────────────────────┐
+│ 式場を探す          [+ 追加]│
+├─────────────────────────────┤
+│ [エリア▼][人数▼][予算▼][+]  │ ← filter chips (horizontal scroll)
+├─────────────────────────────┤
+│ ┌───────────────────────┐  │
+│ │ [4:3 Photo]       [♡] │  │ ← venue card
+│ │ [見学済]               │  │ ← status badge (pill, top-left)
+│ │ ← ● ● ● →             │  │ ← carousel dots
+│ ├───────────────────────┤  │
+│ │ アニヴェルセル表参道     │  │ ← Noto Serif JP, 16px, 500
+│ │ ★ 4.5 (128件) · 表参道  │  │ ← rating + location
+│ │ 着席80名 · ¥350万〜     │  │ ← capacity + price (gold-warm)
+│ │ [チャペル] [ガーデン]    │  │ ← style tags
+│ └───────────────────────┘  │
+│                             │
+│ ┌───────────────────────┐  │
+│ │ [4:3 Photo]       [♡] │  │ ← next card
+│ │ ...                    │  │
+│ └───────────────────────┘  │
+├─────────────────────────────┤
+│ 🏠  🔍  ❤️  💬             │
+└─────────────────────────────┘
+```
+
+**式場カード仕様**:
+
+| Element | Spec |
+|---------|------|
+| Card width | 100% (mobile 1col), 50% (tablet 2col), 33% (desktop 3col) |
+| Photo ratio | 4:3, object-fit: cover |
+| Photo占有率 | ~65% of card height |
+| Border radius | 16px |
+| Shadow (rest) | 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06) |
+| Shadow (hover) | 0 4px 12px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.1) |
+| Hover | translateY(-4px) 300ms cubic-bezier(0.4,0,0.2,1) |
+| Tap | scale(0.98) 150ms |
+| Heart icon | 右上, 白半透明背景円(32px), アイコン20px |
+| Heart color | 未選択: white, 選択: #FF385C |
+| Heart animation | scale 1→1.2→1.0, 200ms ease-out |
+| Badge | pill, 左上, 白背景, 黒文字, font-size 11px, px-2 py-0.5 |
+| Venue name | Noto Serif JP, 16px, weight 500, letter-spacing 0.05em |
+| Price | gold-warm color, tabular-nums |
+| Style tags | pill chips, muted background, 11px |
+
+**カード内カルーセル** (Trulia式):
+- 写真部分を左右スワイプで切替
+- ドットインジケーター（写真下部中央）
+- 式場の異なる写真（チャペル、披露宴会場、料理）
+
+**フィルタチップ**:
+- 水平スクロール, gap 8px
+- pill形状, 高さ36px, padding 8px 16px
+- 未選択: 白背景 + border色ボーダー
+- 選択済み: primary背景 + 白文字
+- タップでボトムシート展開 (mobile) / ドロップダウン (desktop)
+
+**式場追加**:
+- ヘッダー右の「+ 追加」ボタン
+- URL貼り付け → AI自動抽出 or 手動入力の選択
+
+### 4. Candidates (候補)
+
+**3つのサブビュー**: ショートリスト / 比較ボード / 最終決定
+
+#### 4a. ショートリスト
+
+- ハートで追加した式場のカードリスト
+- 各カードに二人のクイックリアクション（♥/🤔/✗）表示
+- 「比較する」ボタンで比較ボードへ (2-3件選択)
+
+#### 4b. 比較ボード
+
+**Pattern**: Tesla式Help Me Choose + DJI式差分トグル + Teal式スコア
+
+```
+┌─────────────────────────────┐
+│ 比較ボード [AIにおすすめを聞く]│ ← Tesla-style CTA
+├─────────────────────────────┤
+│ [式場A ▼] [式場B ▼] [+ 追加]│ ← venue selector dropdowns
+├─────────────────────────────┤
+│ Quick Look                   │ ← Apple-style summary
+│ ┌──────────┬──────────┐     │
+│ │ 📷 式場A  │ 📷 式場B  │     │
+│ │ ○ 82点   │ ○ 75点   │     │ ← circular progress score
+│ │ 料理◎    │ アクセス◎│     │ ← top strengths (3 items)
+│ │ 雰囲気◎  │ コスパ◎  │     │
+│ │ ¥380万   │ ¥320万   │     │
+│ └──────────┴──────────┘     │
+├─────────────────────────────┤
+│ カテゴリ別スコア              │
+│ [差分のみ表示 ○]              │ ← DJI-style toggle
+│                             │
+│ 雰囲気    ████████░░ 4.2    │ ← progress bars per dimension
+│           ██████░░░░ 3.5    │
+│ 料理      █████████░ 4.8    │
+│           ███████░░░ 3.8    │
+│ ...                         │
+├─────────────────────────────┤
+│ ▼ 基本情報                   │ ← accordion sections
+│ ▼ 費用・見積もり              │
+│ ▼ アクセス・設備              │
+│ ▼ 持ち込みポリシー            │
+├─────────────────────────────┤
+│ ✨ AIインサイト               │ ← Grammarly-style inline card
+│ 「式場Aは料理が高評価。       │
+│  式場Bはコスパが優秀。        │
+│  予算重視なら式場Bが...」     │
+│ [詳しく聞く]                  │ ← links to Coach tab
+└─────────────────────────────┘
+```
+
+**比較スコア表示**:
+- 円形プログレス: 直径64px, ストローク5px
+- カテゴリ別バー: 高さ8px, 角丸4px
+- カラーコード: 4.0+ gold-warm, 3.0-3.9 warm-gray, <3.0 muted-rose
+- 「差分のみ表示」トグルで同値行を非表示
+
+**モバイル対応**:
+- 2式場まで横並び、3式場目は横スクロール
+- ヘッダー行（式場名）: sticky top
+- 各セクションはアコーディオン
+
+#### 4c. 最終決定
+
+**Pattern**: Riverside式コンフェッティ + Instacart式タグチップ + Zapier式旅路サマリ
+
+**3フェーズ構成**:
+
+1. **セレブレーション (0-2秒)**: フルスクリーンコンフェッティ (800ms, Navy+Gold粒子) + 「おめでとう、○○さん!」
+2. **決定サマリカード**: 式場写真 + 名前 + 旅路サマリ（「10会場調査 → 5候補 → 3比較 → [会場名]に決定」）
+3. **理由記録 (任意)**: タグチップ選択 (「雰囲気」「料理」「コスパ」「アクセス」「サービス」) + 自由テキスト + 「スキップ」リンク
+
+### 5. Coach (コーチ)
+
+**Pattern**: カード + チャットのハイブリッド
+
+```
+┌─────────────────────────────┐
+│ AIコーチ                     │
+├─────────────────────────────┤
+│ ┌───────────────────────┐  │
+│ │ ✨ 見積もりインサイト    │  │ ← insight card (gold border)
+│ │ アニヴェルセルの見積もり  │  │
+│ │ 料理が最低ランクです。   │  │
+│ │ 一般的に+15〜30万円      │  │
+│ │ 上がります。             │  │
+│ │ [詳しく見る] [了解]      │  │
+│ └───────────────────────┘  │
+│                             │
+│ ┌───────────────────────┐  │
+│ │ 💑 パートナー比較       │  │ ← partner insight card
+│ │ 料理で2点差あり。       │  │
+│ │ 話し合ってみませんか？   │  │
+│ │ [比較を見る]            │  │
+│ └───────────────────────┘  │
+│                             │
+│ ┌───────────────────────┐  │
+│ │ 📋 見学準備             │  │ ← visit prep card
+│ │ 明日の見学で確認すべき   │  │
+│ │ 5つのポイント           │  │
+│ │ [チェックリストを見る]   │  │
+│ └───────────────────────┘  │
+│                             │
+│ ─────────────────────────  │
+│ [質問を入力...]         [↑] │ ← chat input bar
+└─────────────────────────────┘
+```
+
+**インサイトカード種別**:
+
+| Type | Icon | Border Color | Trigger |
+|------|------|-------------|---------|
+| 見積もり | Receipt | gold-warm | 見積もり入力後 |
+| パートナー | Users | primary | 評価差分検出時 |
+| 見学準備 | ClipboardCheck | success | 見学3日前 |
+| 比較分析 | BarChart3 | secondary | 候補2件以上時 |
+| リマインダー | Bell | muted-foreground | 見学後未評価時 |
+
+**チャットUI**:
+- AI回答: 左寄せ、muted背景、角丸12px (左下のみ4px)
+- ユーザー入力: 右寄せ、primary背景、白文字
+- サジェストチップ: チャット下に最大3個、pill形式
+
+### 6. Venue Detail (式場詳細 — ドリルダウン)
+
+式場カードタップで遷移。全情報をここに集約。
+
+**セクション構成**:
+1. フォトギャラリー (横スワイプ、4:3)
+2. 基本情報 (名前、住所、アクセス、収容人数、スタイル)
+3. 評価 (6次元星評価 + パートナー比較ビュー)
+4. 見積もり (バージョン一覧 + AI分析)
+5. 見学記録 (メモ、写真、チェックリスト)
+6. 口コミAI要約
+
+### 7. Partner Experience (パートナー体験)
+
+**段階的エンゲージメント (3レベル)**:
+
+| Level | Trigger | UI | Account Required |
+|-------|---------|-----|-----------------|
+| 1. 招待 | LINEリンク共有 | 式場カード + 👍/🤔/👎 リアクション | No (guest) |
+| 2. 関心 | リアクション後の誘導 | 6次元星評価 + 一言コメント | Yes |
+| 3. 本気 | 自発的 | フルアプリ（全機能） | Yes |
+
+**招待フロー (Revolut式)**:
+- シェアバー: LINE (最優先) → コピーリンク → メッセージ → More
+- Daze式空きスロット: パートナー未招待 = 空き円形アバター
+
+**パートナー評価比較ビュー**:
+- 各次元で二人の星を並べて表示
+- 2点以上の差分をハイライト (amber背景)
+- AIが「雰囲気では一致。料理で意見が分かれています」とサマリ
+
+---
+
+## Design System
+
+### 1. Color System
+
+#### Light Mode (oklch)
+
+| Token | Value | Hex Approx | Usage |
+|-------|-------|------------|-------|
+| `--background` | `oklch(0.98 0.003 250)` | `#FAFBFC` | Page background (warm white) |
+| `--foreground` | `oklch(0.17 0.03 260)` | `#0D1B2A` | Primary text (navy-deep) |
+| `--card` | `oklch(1 0 0)` | `#FFFFFF` | Card surfaces |
+| `--card-foreground` | `oklch(0.17 0.03 260)` | `#0D1B2A` | Card text |
+| `--primary` | `oklch(0.45 0.15 260)` | `#1E3A5F` | Navy — nav, headings, primary actions |
+| `--primary-foreground` | `oklch(1 0 0)` | `#FFFFFF` | Text on primary |
+| `--secondary` | `oklch(0.55 0.18 260)` | `#3B5998` | Secondary actions |
+| `--accent` | `oklch(0.68 0.12 80)` | `#C9A84C` | Gold — borders, icons, stars only |
+| `--accent-foreground` | `oklch(1 0 0)` | `#FFFFFF` | Text on accent |
+| `--muted` | `oklch(0.94 0.01 260)` | `#E9EEF5` | Muted backgrounds |
+| `--muted-foreground` | `oklch(0.5 0.03 250)` | `#64748B` | Secondary text |
+| `--border` | `oklch(0.9 0.02 260)` | `#E0E5EB` | Default borders |
+| `--destructive` | `oklch(0.577 0.245 27.325)` | `#DC2626` | Errors |
+| `--success` | `oklch(0.52 0.17 155)` | `#16A34A` | Positive indicators |
+
+#### Gold Accent Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--gold-warm` | `#C9A84C` | Star ratings, icons, borders, AI card accent |
+| `--gold-light` | `#E8C97A` | Hover highlights |
+| `--gold-subtle` | `rgba(201,168,76,0.08)` | AI card backgrounds, featured items |
+
+**Gold Rules**: Borders, icon strokes, star ratings, underlines, AI card left-border (3px), score badge text. **Never** button fills, large backgrounds, body text.
+
+#### Score Color Scale
+
+| Range | Color | Meaning |
+|-------|-------|---------|
+| 4.5-5.0 | `--gold-warm` | Excellent |
+| 4.0-4.4 | `--gold-light` | Very Good |
+| 3.5-3.9 | `#9B8E7E` | Good |
+| 3.0-3.4 | `#6B7280` | Average |
+| < 3.0 | `#9B6B6B` | Below Average |
+
+#### Dark Mode (Phase 5)
+
+| Token | Value |
+|-------|-------|
+| `--background` | `#0D1B2A` (navy-deep) |
+| `--card` | `#1C2E45` (navy-mid) |
+| `--foreground` | `#F0F4F8` |
+| `--border` | `rgba(255,255,255,0.06)` |
+| `--accent` | brighter gold for dark bg |
+
+### 2. Typography
+
+#### Font Stack
+
+| Role | Font | Weights | Usage |
+|------|------|---------|-------|
+| Heading (JP) | Noto Serif JP | 300, 400, 500 | Page titles, venue names, section headings |
+| Body (JP/EN) | Noto Sans JP | 300, 400, 500, 700 | Body text, labels, UI, data |
+| Numbers | Geist | 400, 500, 600, 700 | Prices, scores, stats (tabular-nums) |
+
+#### Heading Treatment (Luxury)
+
+```css
+h1 { font-weight: 300; letter-spacing: 0.15em; line-height: 1.8; }
+h2 { font-weight: 400; letter-spacing: 0.1em;  line-height: 1.6; }
+h3+ { font-weight: 400; letter-spacing: 0.05em; line-height: 1.5; }
+```
+
+**Key**: Light weight (300-400), NOT Bold. Wide tracking + generous line-height = Japanese luxury.
+
+#### Fluid Type Scale
+
+| Token | Size | Usage |
+|-------|------|-------|
+| `--text-fluid-3xl` | `clamp(1.75rem, 1.25rem + 2.5vw, 3rem)` | Hero/display |
+| `--text-fluid-xl` | `clamp(1.25rem, 1rem + 1.5vw, 2rem)` | Page headings |
+| `--text-fluid-lg` | `clamp(1.125rem, 1rem + 0.75vw, 1.375rem)` | Card titles, venue names |
+| `--text-fluid-base` | `clamp(1rem, 0.9rem + 0.5vw, 1.125rem)` | Body text |
+| `--text-fluid-sm` | `clamp(0.875rem, 0.8rem + 0.3vw, 1rem)` | Metadata |
+| `--text-fluid-xs` | `clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem)` | Labels |
+
+#### Tabular Numbers
+
+All numeric data: `font-variant-numeric: tabular-nums;`
+
+### 3. Spacing & Layout
+
+**Base unit**: 4px — `4 8 12 16 20 24 32 40 48 64 80 96`
+
+| Context | Value |
+|---------|-------|
+| Card internal padding | 16px (mobile), 24px (desktop) |
+| Card gap | 12px (mobile), 16-24px (desktop) |
+| Section gap | 32-48px (mobile), 64-80px (desktop) |
+| Page padding | 16px (375px), 24px (768px+) |
+| Touch target gap | 8px minimum |
+| Content max-width | 64rem / 1024px |
+
+**Breakpoints**: 375 / 768 / 1024 / 1440
+
+**Border Radius**: 4px (badges) / 8px (inputs, chips) / 12px (buttons) / 16px (cards, modals)
+
+### 4. Shadows
+
+```css
+--shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+--shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.1);
+--shadow-modal: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+--shadow-gold: 0 0 20px rgba(201,168,76,0.15); /* featured items only */
+```
+
+### 5. Motion
+
+| Category | Duration | Easing |
+|----------|----------|--------|
+| Micro (hover, press) | 120-150ms | ease-out |
+| State change (tabs, accordion) | 200-250ms | ease-in-out |
+| Card hover | 300ms | cubic-bezier(0.4,0,0.2,1) |
+| Page transition | 400-600ms | cubic-bezier(0.16,1,0.3,1) |
+| Celebration | 800-1400ms | ease-out |
+
+**Spring config (framer-motion)**:
+```typescript
+const springStandard = { type: "spring", stiffness: 400, damping: 30 };
+const springPremium = { type: "spring", stiffness: 300, damping: 25 };
+const springLuxury = { type: "spring", stiffness: 200, damping: 20 };
+```
+
+**Rules**:
+- Enter: ease-out. Exit: ease-in (70% of enter duration)
+- Card tap: `scale: 0.98` (instant feedback)
+- Page enter: `y: 20 → 0, opacity: 0 → 1`
+- `prefers-reduced-motion`: all animations disabled
+- Max simultaneous animated elements: 3-5
+
+### 6. Icons
+
+**Library**: Lucide Icons (SVG only). No emoji in structural UI.
+
+**Sizing**: Match text visual weight. 20px for nav, 24px for actions, 16px for inline.
+
+---
+
+## AI Features Architecture
+
+### Cost Model (商用化考慮)
+
+| Feature | API Calls | Frequency | Cost Strategy |
+|---------|-----------|-----------|---------------|
+| Onboarding | 1 call | Once per user | Free tier |
+| URL extraction | 1 call per URL | Low | Free tier (limit 10/month) — **R1から使用（唯一のAI例外）** |
+| Estimate analysis | 1 call per PDF | Low | Free tier (limit 5/month) |
+| Comparison analysis | 1 call per comparison | Medium | Free/Premium threshold |
+| Coach chat | 1 call per message | High | Premium feature or rate-limited |
+| Review summary | 1 call per venue | Low | Background batch |
+
+### Privacy
+
+- PII stripped before API calls
+- No review original text stored (AI summaries only)
+- API key: `ANTHROPIC_API_KEY` env var
+- Server Actions only (never client-side)
+
+---
+
+## Persuasion Layer
+
+| Element | Implementation |
+|---------|---------------|
+| **Hook** (3 sec) | AI onboarding: instant personalized venue suggestion |
+| **Story Arc** | 不安→発見→比較→確信→祝福 |
+| **Objection: "ゼクシィと何が違う?"** | 中立・比較特化・AI分析。広告モデルではない |
+| **Objection: "見積もりが不安"** | 80%上がる問題をAIが先回り。具体的な金額予測 |
+| **Objection: "パートナーが使ってくれない"** | LINE1リンク、3タップから。段階的エンゲージメント |
+| **Trust: AI根拠** | 「328件の口コミを分析」等のソース表示 |
+| **Trust: データ** | 見積もり上昇率の統計データ表示 |
+| **Memorable** | 決定セレモニー（コンフェッティ+旅路サマリ） |
+
+---
+
+## Soul — VenueLensの独自性
+
+80% proven patterns (Airbnb cards, Tripadvisor scroll, Tesla comparison) + 20% unique:
+
+1. **二人のベン図** — パートナー評価の重なりを可視化。一致を祝い、違いを建設的に扱う
+2. **見積もりX線** — AIが見積もりPDFを透視。「料理は最低ランク。+15万想定」と具体的に警告
+3. **決定セレモニー** — コンフェッティ + 旅路サマリ + 理由記録。式場選びの「ゴール」を祝う
+4. **AIコンシェルジュ** — カード+チャットのハイブリッド。開くだけで価値が見える
+
+---
+
+## Anti-Patterns (Never Do)
+
+- Indigo/violet as primary (AI slop indicator)
+- Pink theme (Zexy differentiation)
+- Generic blob/wave backgrounds
+- "残りわずか!" urgency messaging (wrong for weddings)
+- Stock illustrations (use Lucide icons)
+- Desktop-first design
+- Information hiding ("Contact us for price")
+- Bold headings (luxury = light weight 300-400)
+- Single-shadow cards (always multi-layer)
+- Fast bouncy animations (luxury = smooth, deliberate)
+- 6-step progress bar (abolished — replaced by organic AI guidance)
+- Radar chart as primary comparison (use progress bars)
+
+---
+
+## Cultural Design Patterns (Japan)
+
+- **情報密度は高めに保つ**: 過度なホワイトスペースは「情報不足 = 信頼できない」
+- **費用の早期表示**: 概算でも数字を出す。「お問い合わせください」は禁止
+- **急かさないUX**: フェア当日即決を前提としない。「じっくり比較しましょう」のトーン
+- **UIコピーは丁寧体**: 「予約する」→「見学してみる」、「決定」→「この式場に決めましょう」
+
+---
+
+## Implementation Priorities
+
+| Priority | Screen | Key Components |
+|----------|--------|----------------|
+| 1 | Bottom Nav + Layout | 4タブ構造、SafeArea、タッチターゲット |
+| 2 | Venue Card | 写真カード、ハート、カルーセル、バッジ |
+| 3 | Home | グリーティング、AIカード、進捗リング、横スクロール |
+| 4 | Explore (探す) | カードリスト、フィルタチップ、式場追加 |
+| 5 | Coach | インサイトカードフィード、チャットバー |
+| 6 | AI Onboarding | チャットバブル、ピル選択、プログレス |
+| 7 | Comparison Board | Quick Look、スコアバー、差分トグル、AIインサイト |
+| 8 | Candidates (候補) | ショートリスト、比較への遷移 |
+| 9 | Rating Input | 6次元星評価、感情ラベル、auto-save |
+| 10 | Venue Detail | フォトギャラリー、セクション、見積もり |
+| 11 | Partner | 招待フロー、評価比較ビュー |
+| 12 | Decision Ceremony | コンフェッティ、旅路サマリ、理由記録 |
+| 13 | Estimate Analysis | PDF/手動入力、AI分析、ウォーターフォール |
+
+---
+
+## Steal List (Reference)
+
+> Full list of 25 design patterns adopted from Refero research.
+
+| # | Source | Pattern | Applied To |
+|---|--------|---------|-----------|
+| 1 | Asana | パーソナライズグリーティング | Home |
+| 2 | GlossGenius | AIチップサジェスト | Home, Coach |
+| 3 | Chargetrip | プログレスリング | Home |
+| 4 | Tripadvisor | 横スクロールカード | Home |
+| 5 | Bento | ベントグリッド | Home |
+| 6 | Airbnb | ハートトグル | Cards |
+| 7 | Trulia | カード内カルーセル | Cards |
+| 8 | Fresha | pillフィルタチップ | Explore |
+| 9 | Onefinestay | セリフ体式場名 | Cards |
+| 10 | Airbnb | ステータスバッジ | Cards |
+| 11 | Tesla | "AIにおすすめを聞く" CTA | Comparison |
+| 12 | DJI | 差分のみ表示トグル | Comparison |
+| 13 | Teal | 円形プログレス+カテゴリバー | Comparison |
+| 14 | Apple | Quick Look サマリ | Comparison |
+| 15 | Grammarly | インラインAIインサイト | Comparison, Coach |
+| 16 | Jasper AI | チャットバブル型オンボーディング | Onboarding |
+| 17 | Intercom | ピル型選択肢+Skip | Onboarding |
+| 18 | Yelp | カテゴリ別タグ+星評価 | Rating |
+| 19 | Kitchen Stories | 感情ラベル | Rating |
+| 20 | Pi | 温かみカードグリッド | Onboarding |
+| 21 | Riverside | パーソナライズコンフェッティ | Decision |
+| 22 | Instacart | タグチップ理由記録 | Decision |
+| 23 | Zapier | 旅路サマリ | Decision |
+| 24 | Revolut | モバイルシェアバー | Partner |
+| 25 | Daze | 空きスロット可視化 | Partner |
