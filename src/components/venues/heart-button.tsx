@@ -27,8 +27,8 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
           duration: 2000,
         });
       } catch {
-        toast.error("保存に失敗しました", {
-          action: { label: "リトライ", onClick: handleToggle },
+        toast.error("保存できませんでした", {
+          action: { label: "もう一度", onClick: handleToggle },
         });
       }
     });

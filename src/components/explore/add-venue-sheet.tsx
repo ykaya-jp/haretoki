@@ -50,7 +50,7 @@ export function AddVenueSheet() {
         setExtracted(result.extracted);
       }
     } catch {
-      toast.error("エラーが発生しました");
+      toast.error("うまくいきませんでした");
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export function AddVenueSheet() {
         router.refresh();
       }
     } catch {
-      toast.error("登録に失敗しました");
+      toast.error("登録できませんでした");
     } finally {
       setLoading(false);
     }
@@ -122,10 +122,10 @@ export function AddVenueSheet() {
         resetForm();
         router.refresh();
       } else {
-        toast.error("登録に失敗しました");
+        toast.error("登録できませんでした");
       }
     } catch {
-      toast.error("エラーが発生しました");
+      toast.error("うまくいきませんでした");
     } finally {
       setLoading(false);
     }

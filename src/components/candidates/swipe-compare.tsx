@@ -38,7 +38,7 @@ export function SwipeCompare({ venues, onComplete }: SwipeCompareProps) {
       try {
         await toggleFavorite(venue.id);
       } catch {
-        toast.error("操作に失敗しました");
+        toast.error("うまくいきませんでした");
       }
     } else if (direction === "up") {
       setCompareIds(prev => [...prev, venue.id]);

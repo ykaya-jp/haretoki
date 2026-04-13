@@ -63,7 +63,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         setScheduleMemo("");
         router.refresh();
       } else {
-        toast.error(result.error ?? "予約に失敗しました");
+        toast.error(result.error ?? "予約できませんでした");
       }
     });
   };

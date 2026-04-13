@@ -93,7 +93,7 @@ export function EstimateForm({
 
       if (result.error) {
         const messages = Object.values(result.error).flat();
-        setError(messages.join(", ") || "入力内容を確認してください");
+        setError(messages.join(", ") || "入力に間違いがあるようです");
         return;
       }
 
@@ -104,7 +104,7 @@ export function EstimateForm({
       toast.success("見積もりを保存しました");
       onSaved?.();
     } catch {
-      setError("見積もりの保存に失敗しました");
+      setError("保存できませんでした");
     } finally {
       setLoading(false);
     }

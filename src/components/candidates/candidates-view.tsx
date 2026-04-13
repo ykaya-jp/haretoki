@@ -76,7 +76,7 @@ export function CandidatesView({
     });
 
     if ("error" in result) {
-      toast.error("決定に失敗しました");
+      toast.error("保存できませんでした");
       return;
     }
 
@@ -235,9 +235,9 @@ export function CandidatesView({
             ) : (
               <EmptyState
                 icon={Trophy}
-                title="まだ最終決定がされていません"
-                description="比較ボードで式場を見比べて、納得のいく一つを選びましょう。二人で話し合って決めるのが大切です。"
-                action={{ label: "比較ボードへ", href: "#" }}
+                title="まだ決めていません"
+                description="候補を見比べて、納得のいく一つを選びましょう。二人で話し合って決めるのが大切です。"
+                action={{ label: "候補を比較する", href: "#" }}
               />
             )}
           </motion.div>

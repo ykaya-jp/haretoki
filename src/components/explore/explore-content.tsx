@@ -82,8 +82,8 @@ export function ExploreContent({ venues: initialVenues, favoriteIds }: ExploreCo
       {!isPending && filteredVenues.length === 0 ? (
         <EmptyState
           icon={Search}
-          title="該当する式場がありません"
-          description="フィルタを変更してみてください"
+          title="条件に合う式場が見つかりませんでした"
+          description="条件を変えて探してみましょう"
         />
       ) : (
         !isPending && (
