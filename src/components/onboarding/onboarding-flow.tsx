@@ -6,8 +6,19 @@ import { PillOptions } from "@/components/ui/pill-options";
 import { ChatBubble } from "@/components/coach/chat-bubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { saveOnboardingAnswers } from "@/server/actions/onboarding";
-import { Loader2 } from "lucide-react";
+import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/actions/onboarding";
+import { createVenue } from "@/server/actions/venues";
+import { Loader2, Sparkles, Plus } from "lucide-react";
+import { toast } from "sonner";
+
+interface VenueRecommendation {
+  name: string;
+  location: string;
+  reason: string;
+  estimatedPrice: number | null;
+  ceremonyStyles: string[];
+  strengths: string[];
+}
 
 interface OnboardingAnswer {
   style?: string[];
@@ -73,6 +84,11 @@ export function OnboardingFlow() {
   const [guestCount, setGuestCount] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [isPending, startTransition] = useTransition();
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [recommendations, setRecommendations] = useState<VenueRecommendation[]>([]);
+  const [advice, setAdvice] = useState("");
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+  const [addingVenues, setAddingVenues] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const currentQ = QUESTIONS[step];
@@ -143,11 +159,20 @@ export function OnboardingFlow() {
         }
       }
 
-      // Save and redirect
+      // Save then fetch AI recommendations
       startTransition(async () => {
         await saveOnboardingAnswers(finalAnswers);
-        router.push("/");
-        router.refresh();
+        setIsLoadingRecs(true);
+        setShowRecommendations(true);
+        try {
+          const result = await getOnboardingRecommendations();
+          if (result) {
+            setRecommendations(result.recommendations);
+            setAdvice(result.advice);
+          }
+        } finally {
+          setIsLoadingRecs(false);
+        }
       });
     }
   };
@@ -166,11 +191,125 @@ export function OnboardingFlow() {
     } else {
       startTransition(async () => {
         await saveOnboardingAnswers(answers);
-        router.push("/");
-        router.refresh();
+        setIsLoadingRecs(true);
+        setShowRecommendations(true);
+        try {
+          const result = await getOnboardingRecommendations();
+          if (result) {
+            setRecommendations(result.recommendations);
+            setAdvice(result.advice);
+          }
+        } finally {
+          setIsLoadingRecs(false);
+        }
       });
     }
   };
+
+  const handleAddVenue = async (rec: VenueRecommendation) => {
+    setAddingVenues((prev) => new Set(prev).add(rec.name));
+    try {
+      const result = await createVenue({
+        name: rec.name,
+        location: rec.location,
+        ceremonyStyles: rec.ceremonyStyles,
+      });
+      if (result.success) {
+        toast.success(`${rec.name}を追加しました`);
+      }
+    } catch {
+      toast.error("追加に失敗しました");
+    } finally {
+      setAddingVenues((prev) => {
+        const next = new Set(prev);
+        next.delete(rec.name);
+        return next;
+      });
+    }
+  };
+
+  if (showRecommendations) {
+    return (
+      <div className="mx-auto max-w-lg space-y-6 py-4">
+        {/* AI recommendations header */}
+        <div className="border-l-[3px] border-l-[hsl(var(--gold))] bg-[hsl(var(--gold-subtle))] rounded-r-lg p-4 space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Sparkles className="h-4 w-4 text-[hsl(var(--gold))]" />
+            <span>AIのおすすめ式場</span>
+          </div>
+          {isLoadingRecs ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>あなたにぴったりの式場を探しています…</span>
+            </div>
+          ) : advice ? (
+            <p className="text-sm text-muted-foreground">{advice}</p>
+          ) : null}
+        </div>
+
+        {/* Recommendation cards */}
+        {!isLoadingRecs && recommendations.length > 0 && (
+          <div className="space-y-3">
+            {recommendations.map((rec) => (
+              <div
+                key={rec.name}
+                className="rounded-xl border bg-card p-4 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-[hsl(var(--venue-name))]">{rec.name}</p>
+                    <p className="text-xs text-muted-foreground">{rec.location}</p>
+                  </div>
+                  {rec.estimatedPrice && (
+                    <p className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+                      ¥{Math.round(rec.estimatedPrice / 10000)}万円〜
+                    </p>
+                  )}
+                </div>
+                <p className="text-sm text-foreground/80">{rec.reason}</p>
+                {rec.strengths.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {rec.strengths.map((s) => (
+                      <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  disabled={addingVenues.has(rec.name)}
+                  onClick={() => handleAddVenue(rec)}
+                >
+                  {addingVenues.has(rec.name) ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-1" />
+                      追加する
+                    </>
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Skip link */}
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={() => { router.push("/"); router.refresh(); }}
+            className="text-sm text-muted-foreground underline"
+          >
+            スキップしてホームへ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-4">

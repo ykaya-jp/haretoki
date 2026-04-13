@@ -44,10 +44,7 @@ export default async function CoachPage() {
               <hr className="border-border" />
               <div className="space-y-3">
                 {history.map((msg) => (
-                  <div key={msg.id} className="space-y-2">
-                    <ChatBubble role="user" content={msg.question} />
-                    <ChatBubble role="assistant" content={msg.answer} />
-                  </div>
+                  <ChatBubble key={msg.id} role={msg.role} content={msg.content} />
                 ))}
               </div>
             </>
