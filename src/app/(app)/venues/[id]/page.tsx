@@ -7,10 +7,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VenueStatusSelect } from "@/components/venues/venue-status-select";
-import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
+// TODO: v2 refactor — VenueRatingsSection replaced by v2 component
+// import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { getVenue } from "@/server/actions/venues";
-import { getPartnerRatings } from "@/server/actions/ratings";
+// TODO: v2 refactor — getPartnerRatings removed with VenueRatingsSection
+// import { getPartnerRatings } from "@/server/actions/ratings";
 
 export default async function VenueDetailPage({
   params,
@@ -18,20 +20,12 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [venue, partnerRatingsData] = await Promise.all([
+  // TODO: v2 refactor — partnerRatings removed with VenueRatingsSection; restore when v2 ratings component is ready
+  const [venue] = await Promise.all([
     getVenue(id),
-    getPartnerRatings(id).catch(() => null),
   ]);
 
   if (!venue) notFound();
-
-  // Extract existing user_rating scores into a Record<dimension, score>
-  const existingScores: Record<string, number> = {};
-  for (const s of venue.scores) {
-    if (s.source === "user_rating") {
-      existingScores[s.dimension] = Number(s.score);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -97,17 +91,13 @@ export default async function VenueDetailPage({
       )}
 
       {/* Ratings */}
+      {/* TODO: v2 refactor — replace with v2 ratings component */}
       <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="font-serif text-base">おふたりの印象</CardTitle>
         </CardHeader>
         <CardContent>
-          <VenueRatingsSection
-            venueId={venue.id}
-            initialScores={existingScores}
-            ownerRatings={partnerRatingsData?.ownerRatings}
-            partnerRatings={partnerRatingsData?.partnerRatings}
-          />
+          <p className="text-sm text-muted-foreground">v2で評価機能が追加されます</p>
         </CardContent>
       </Card>
 
