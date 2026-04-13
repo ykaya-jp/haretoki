@@ -34,7 +34,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
       type="button"
       onClick={handleToggle}
       aria-label={optimisticFavorite ? "候補から外す" : "候補に追加"}
-      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/70 transition-transform active:scale-110"
+      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 transition-transform active:scale-110"
     >
       <Heart
         className={cn(

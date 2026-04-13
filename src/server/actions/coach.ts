@@ -52,6 +52,10 @@ const FALLBACK_RESPONSE: CoachResponse = {
 };
 
 export async function sendCoachMessage(message: string): Promise<CoachResponse> {
+  if (!message || message.length > 500) {
+    return { answer: "メッセージは1〜500文字で入力してください。", suggestedActions: [], matched: false };
+  }
+
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
@@ -78,9 +82,9 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
   return response;
 }
 
-export async function getCoachHistory(projectId: string) {
+export async function getCoachHistory() {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const history = await prisma.aiAnalysis.findMany({
     where: { projectId, type: "coach_chat" },

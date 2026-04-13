@@ -6,6 +6,7 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
 import type { VenueStatus } from "@/generated/prisma/client";
+import { z } from "zod";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 
 // --- Server actions ---
@@ -115,6 +116,19 @@ interface ExtractedVenueData {
   confidence: "high" | "medium" | "low";
 }
 
+const extractedVenueSchema = z.object({
+  name: z.string().min(1).max(200),
+  location: z.string().max(200).nullable(),
+  accessInfo: z.string().max(500).nullable(),
+  capacityMin: z.number().int().positive().nullable(),
+  capacityMax: z.number().int().positive().nullable(),
+  ceremonyStyles: z.array(z.string().max(50)).max(10),
+  estimatedPrice: z.number().int().positive().nullable(),
+  features: z.array(z.string().max(100)).max(20),
+  photoUrls: z.array(z.string().url().max(1000)).max(20),
+  confidence: z.enum(["high", "medium", "low"]),
+});
+
 const URL_EXTRACTION_SYSTEM_PROMPT = `You are an expert at extracting structured wedding venue information from Japanese web page content.
 
 Given raw HTML text content from a wedding venue page (Zexy, Wedding Park, Hanayume, Mynavi, etc.), extract the following information.
@@ -201,20 +215,25 @@ export async function confirmVenueFromUrl(
   extracted: ExtractedVenueData,
   sourceUrl: string
 ) {
+  const parsed = extractedVenueSchema.safeParse(extracted);
+  if (!parsed.success) {
+    return { success: false as const, error: "データの形式が正しくありません" };
+  }
+
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
   const venue = await prisma.venue.create({
     data: {
       projectId,
-      name: extracted.name,
-      location: extracted.location,
-      accessInfo: extracted.accessInfo,
-      capacityMin: extracted.capacityMin,
-      capacityMax: extracted.capacityMax,
-      ceremonyStyles: extracted.ceremonyStyles,
+      name: parsed.data.name,
+      location: parsed.data.location,
+      accessInfo: parsed.data.accessInfo,
+      capacityMin: parsed.data.capacityMin,
+      capacityMax: parsed.data.capacityMax,
+      ceremonyStyles: parsed.data.ceremonyStyles,
       sourceUrls: [sourceUrl],
-      photoUrls: extracted.photoUrls,
+      photoUrls: parsed.data.photoUrls,
     },
   });
 

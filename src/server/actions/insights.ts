@@ -20,9 +20,9 @@ export interface AIInsight {
  * Rule-based AI insights. No Claude API in Release 1.
  * Returns up to 5 insights sorted by priority.
  */
-export async function getAIInsights(projectId: string): Promise<AIInsight[]> {
+export async function getAIInsights(): Promise<AIInsight[]> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const insights: AIInsight[] = [];
 

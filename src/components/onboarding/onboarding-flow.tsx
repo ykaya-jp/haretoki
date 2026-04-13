@@ -118,9 +118,34 @@ export function OnboardingFlow() {
     if (step < QUESTIONS.length - 1) {
       setStep(step + 1);
     } else {
+      // Build final answers inline to avoid stale closure over `answers`
+      const q = QUESTIONS[step];
+      const finalAnswers: OnboardingAnswer = { ...answers };
+
+      if (q.id === "style") {
+        finalAnswers.style = selectedPills;
+      } else if (q.id === "guests") {
+        const count = parseInt(guestCount, 10);
+        if (count > 0) finalAnswers.guestCount = count;
+      } else if (q.id === "area") {
+        finalAnswers.area = selectedPills;
+      } else if (q.id === "budget") {
+        const budgetMap: Record<string, { min: number; max: number }> = {
+          "200": { min: 0, max: 2000000 },
+          "300": { min: 2000000, max: 3000000 },
+          "400": { min: 3000000, max: 4000000 },
+          "500": { min: 4000000, max: 5000000 },
+          "over500": { min: 5000000, max: 99999999 },
+        };
+        const selected = selectedPills[0];
+        if (selected && budgetMap[selected]) {
+          finalAnswers.budget = budgetMap[selected];
+        }
+      }
+
       // Save and redirect
       startTransition(async () => {
-        await saveOnboardingAnswers(answers);
+        await saveOnboardingAnswers(finalAnswers);
         router.push("/");
         router.refresh();
       });

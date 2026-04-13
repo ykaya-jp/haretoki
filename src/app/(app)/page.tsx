@@ -8,7 +8,7 @@ import { RecentVenues } from "@/components/home/recent-venues";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
-  const insights = await getAIInsights(homeData.project.id);
+  const insights = await getAIInsights();
   const topInsight = insights[0];
 
   return (

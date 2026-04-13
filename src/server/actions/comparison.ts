@@ -32,14 +32,14 @@ interface ComparisonData {
 
 export async function getComparisonData(venueIds: string[]): Promise<ComparisonData> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   if (venueIds.length < 2 || venueIds.length > 3) {
     throw new Error("比較は2-3件の式場を選択してください");
   }
 
   const venues = await prisma.venue.findMany({
-    where: { id: { in: venueIds } },
+    where: { id: { in: venueIds }, projectId },
     include: {
       scores: { where: { source: "user_rating" } },
       estimates: { orderBy: { version: "desc" }, take: 1 },

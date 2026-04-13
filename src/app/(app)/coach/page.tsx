@@ -1,4 +1,3 @@
-import { getOrCreateProject } from "@/server/actions/projects";
 import { getAIInsights } from "@/server/actions/insights";
 import { getCoachHistory } from "@/server/actions/coach";
 import { AIInsightCard } from "@/components/ai/insight-card";
@@ -8,10 +7,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { MessageSquare } from "lucide-react";
 
 export default async function CoachPage() {
-  const project = await getOrCreateProject();
   const [insights, history] = await Promise.all([
-    getAIInsights(project.id),
-    getCoachHistory(project.id),
+    getAIInsights(),
+    getCoachHistory(),
   ]);
 
   const hasContent = insights.length > 0 || history.length > 0;
