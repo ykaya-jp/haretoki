@@ -61,9 +61,9 @@ export default function SignupPage() {
           }}
         />
         <div className="relative z-10">
-          <p className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+          <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
             Harenohi
-          </p>
+          </Link>
         </div>
         <div className="relative z-10 max-w-lg space-y-8">
           <h1 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-light leading-snug tracking-[0.06em] text-foreground">
@@ -98,9 +98,9 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-10">
           {/* Mobile header */}
           <div className="text-center lg:hidden">
-            <p className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
               Harenohi
-            </p>
+            </Link>
             <h2 className="mt-4 font-serif text-2xl font-light tracking-[0.06em]">
               式場探し、はじめましょう
             </h2>
@@ -204,19 +204,12 @@ export default function SignupPage() {
             </Button>
           </form>
 
-          <div className="space-y-4 text-center text-sm text-muted-foreground">
-            <p>
-              すでにアカウントをお持ちの方は{" "}
-              <Link href="/login" className="font-medium text-primary underline underline-offset-4">
-                ログイン
-              </Link>
-            </p>
-            <p>
-              <Link href="/" className="transition-colors duration-[400ms] hover:text-foreground">
-                ランディングページへ
-              </Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            すでにアカウントをお持ちの方は{" "}
+            <Link href="/login" className="font-medium text-primary underline underline-offset-4">
+              ログイン
+            </Link>
+          </p>
         </div>
       </div>
     </div>
