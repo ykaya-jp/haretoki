@@ -28,3 +28,26 @@ export async function requireOwner(userId: string) {
   if (!membership) throw new Error("プロジェクトオーナーのみ実行できます");
   return membership;
 }
+
+export async function requireVenueAccess(userId: string, venueId: string) {
+  const { projectId } = await requireProjectMembership(userId);
+  const venue = await prisma.venue.findUnique({
+    where: { id: venueId },
+  });
+  if (!venue || venue.projectId !== projectId) {
+    throw new Error("式場が見つからないか、アクセス権がありません");
+  }
+  return { projectId, venue };
+}
+
+export async function requireVisitAccess(userId: string, visitId: string) {
+  const { projectId } = await requireProjectMembership(userId);
+  const visit = await prisma.visit.findUnique({
+    where: { id: visitId },
+    include: { venue: { select: { projectId: true, id: true } } },
+  });
+  if (!visit || visit.venue.projectId !== projectId) {
+    throw new Error("見学記録が見つからないか、アクセス権がありません");
+  }
+  return { projectId, visit };
+}
