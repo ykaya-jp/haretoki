@@ -13,7 +13,7 @@ export default async function HomePage() {
   const topInsight = insights[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header: greeting + settings icon */}
       <div className="flex items-center justify-between">
         <Greeting userName={homeData.userName} />

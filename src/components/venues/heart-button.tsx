@@ -40,14 +40,14 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
       onClick={handleToggle}
       aria-label={optimisticFavorite ? "候補から外す" : "候補に追加"}
       className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-colors hover:bg-white active:bg-white/60"
-      whileTap={{ scale: 1.12 }}
-      transition={{ type: "spring", stiffness: 220, damping: 28 }}
+      whileTap={{ scale: 1.15 }}
+      transition={{ type: "spring", stiffness: 150, damping: 20 }}
     >
       <motion.div
         key={optimisticFavorite ? "filled" : "empty"}
-        initial={{ scale: 0.5 }}
+        initial={{ scale: 0.3 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 240, damping: 26 }}
+        transition={{ type: "spring", stiffness: 160, damping: 18 }}
       >
         <Heart
           className={cn(

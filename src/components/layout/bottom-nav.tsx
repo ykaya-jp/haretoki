@@ -34,7 +34,7 @@ export function BottomNav({ badges }: BottomNavProps) {
     <nav
       role="navigation"
       aria-label="メインナビゲーション"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20 bg-card/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
     >
       <div className="flex h-14 items-center justify-around">
         {NAV_ITEMS.map((item) => {
@@ -58,8 +58,8 @@ export function BottomNav({ badges }: BottomNavProps) {
             >
               <div className="relative">
                 <motion.div
-                  animate={{ scale: isActive ? 1.1 : 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  animate={{ scale: isActive ? 1.12 : 1 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
                 >
                   <Icon className="h-5 w-5" />
                 </motion.div>
@@ -67,7 +67,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
                     className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
                   >
                     {badgeCount > 99 ? "99+" : badgeCount}
@@ -79,7 +79,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                 <motion.div
                   layoutId="bottomNavIndicator"
                   className="absolute -top-px left-1/4 right-1/4 h-0.5 rounded-full bg-[var(--gold-warm)]"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 25 }}
                 />
               )}
             </Link>
