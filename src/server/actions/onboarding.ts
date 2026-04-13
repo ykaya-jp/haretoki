@@ -69,25 +69,37 @@ export async function getOnboardingRecommendations(): Promise<{
 
   if (!isClaudeAvailable()) return null;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { conditions: true },
-  });
+  const [project, existingVenues] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { conditions: true },
+    }),
+    prisma.venue.findMany({
+      where: { projectId },
+      select: { name: true },
+    }),
+  ]);
 
-  if (!project?.conditions) return null;
-
-  const conditions = project.conditions as {
+  // Allow recommendations even without conditions (use defaults)
+  const conditions = (project?.conditions ?? {}) as {
     style?: string[];
     guestCount?: number;
     area?: string[];
     budget?: { min: number; max: number };
   };
 
+  const existingNames = existingVenues.map((v) => v.name);
+
   try {
+    // Build enhanced prompt including existing venues to avoid duplicates
+    const exclusionNote = existingNames.length > 0
+      ? `\n\n注意: 以下の式場は既に登録済みなので、それ以外をおすすめしてください: ${existingNames.join("、")}`
+      : "";
+
     const response = await withRetry(() =>
       askClaude({
         system: ONBOARDING_RECOMMENDATION_PROMPT.system,
-        userMessage: ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions),
+        userMessage: ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote,
       }),
     );
 
