@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
-import { requireUser, requireProjectMembership } from "@/server/auth";
+import { requireUser, requireProjectMembership, requireVisitAccess } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 
 const scheduleVisitSchema = z.object({
@@ -52,7 +52,7 @@ export async function scheduleVisit(
 
 export async function completeVisit(visitId: string): Promise<{ success: boolean }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  await requireVisitAccess(user.id, visitId);
 
   const visit = await prisma.visit.update({
     where: { id: visitId },
@@ -82,7 +82,7 @@ export async function addVisitNote(
   input: z.infer<typeof visitNoteSchema>
 ): Promise<{ success: boolean; noteId?: string }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  await requireVisitAccess(user.id, visitId);
 
   const parsed = visitNoteSchema.safeParse(input);
   if (!parsed.success) return { success: false };
@@ -111,7 +111,14 @@ export async function addNoteMedia(
   type: string = "photo"
 ): Promise<{ success: boolean }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
+  const note = await prisma.visitNote.findUnique({
+    where: { id: noteId },
+    include: { visit: { include: { venue: { select: { projectId: true, id: true } } } } },
+  });
+  if (!note || note.visit.venue.projectId !== projectId) {
+    return { success: false };
+  }
 
   // Validate mediaUrl is from our Supabase storage
   if (!mediaUrl.includes("supabase.co/storage")) {
@@ -122,11 +129,7 @@ export async function addNoteMedia(
     data: { visitNoteId: noteId, type, mediaUrl },
   });
 
-  const note = await prisma.visitNote.findUnique({
-    where: { id: noteId },
-    include: { visit: { select: { venueId: true } } },
-  });
-  revalidatePath(`/venues/${note?.visit.venueId}`);
+  revalidatePath(`/venues/${note.visit.venue.id}`);
   return { success: true };
 }
 
@@ -134,13 +137,13 @@ export async function toggleChecklistItem(
   itemId: string
 ): Promise<{ success: boolean; checked: boolean }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   const item = await prisma.visitChecklistItem.findUnique({
     where: { id: itemId },
-    include: { visit: { select: { venueId: true } } },
+    include: { visit: { include: { venue: { select: { projectId: true, id: true } } } } },
   });
-  if (!item) return { success: false, checked: false };
+  if (!item || item.visit.venue.projectId !== projectId) return { success: false, checked: false };
 
   const newChecked = !item.checked;
   await prisma.visitChecklistItem.update({
