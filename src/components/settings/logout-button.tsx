@@ -1,16 +1,21 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
 import { LogOut } from "lucide-react";
-import { logout } from "@/server/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 
 export function LogoutButton() {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const handleLogout = () => {
-    startTransition(async () => {
-      await logout();
-    });
+  const handleLogout = async () => {
+    setIsPending(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    } catch {
+      setIsPending(false);
+    }
   };
 
   return (
