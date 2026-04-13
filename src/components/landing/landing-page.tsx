@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -68,26 +69,45 @@ export function LandingPage() {
     <div className="min-h-dvh bg-background">
       {/* ─── Hero ─── */}
       <section className="relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% 30%, oklch(0.88 0.08 60 / 0.25), transparent), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.75 0.12 45 / 0.12), transparent), radial-gradient(ellipse 50% 40% at 20% 80%, oklch(0.72 0.13 80 / 0.08), transparent)",
-          }}
-        />
+        {/* Background chapel image with warm overlay */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/images/hero-chapel.png"
+            alt=""
+            fill
+            className="object-cover opacity-[0.12]"
+            priority
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 80% 60% at 50% 30%, oklch(0.97 0.01 80 / 0.9), transparent), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.75 0.12 45 / 0.08), transparent)",
+            }}
+          />
+        </div>
 
         <motion.div
           className="relative z-10 mx-auto max-w-2xl space-y-10"
           initial="hidden"
           animate="visible"
         >
-          <motion.p
+          <motion.div
             custom={0}
             variants={fadeUp}
-            className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl"
+            className="flex flex-col items-center gap-3"
           >
-            Harenohi
-          </motion.p>
+            <Image
+              src="/icons/logo.png"
+              alt="Harenohi"
+              width={64}
+              height={64}
+              className="h-16 w-16"
+            />
+            <p className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl">
+              Harenohi
+            </p>
+          </motion.div>
 
           <motion.h1
             custom={1}

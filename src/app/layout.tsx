@@ -21,8 +21,23 @@ const notoSerifJP = Noto_Serif_JP({
 
 export const metadata: Metadata = {
   title: "Harenohi — ふたりの式場選びパートナー",
-  description: "AIコーチと一緒に、二人で自然に、迷わず、後悔なく結婚式場を選べるアプリ",
+  description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Harenohi — ふたりの式場選びパートナー",
+    description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Harenohi — ふたりの式場選びパートナー",
+    description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/icons/logo.png",
+    apple: "/icons/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {

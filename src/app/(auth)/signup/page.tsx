@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,15 +53,24 @@ export default function SignupPage() {
     <div className="flex min-h-dvh">
       {/* Left: Brand panel (hidden on mobile) */}
       <div className="relative hidden flex-1 flex-col justify-between p-16 lg:flex overflow-hidden">
-        {/* Warm gradient overlay — layered, immersive */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 30% 70%, oklch(0.88 0.08 60 / 0.3), transparent), radial-gradient(ellipse 60% 50% at 70% 30%, oklch(0.75 0.12 45 / 0.15), transparent), linear-gradient(180deg, oklch(0.95 0.01 75) 0%, oklch(0.93 0.02 70) 100%)",
-          }}
-        />
-        <div className="relative z-10">
+        {/* Floral pattern background */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/images/auth-pattern.png"
+            alt=""
+            fill
+            className="object-cover opacity-40"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, oklch(0.97 0.01 80 / 0.7) 0%, oklch(0.95 0.01 75 / 0.6) 100%)",
+            }}
+          />
+        </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
           <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
             Harenohi
           </Link>

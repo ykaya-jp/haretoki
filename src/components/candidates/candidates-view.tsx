@@ -119,8 +119,9 @@ export function CandidatesView({
               >
                 <EmptyState
                   icon={Heart}
-                  title="お気に入りの式場を集めましょう"
-                  description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上集めると比較もできますよ。"
+                  imageUrl="/images/empty-candidates.png"
+                  title="いいね！と感じた式場を集めましょう"
+                  description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上で比較もできます。"
                   action={{ label: "式場を探す", href: "/explore" }}
                 />
               </motion.div>
