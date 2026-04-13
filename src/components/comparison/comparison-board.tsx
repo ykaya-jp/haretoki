@@ -9,6 +9,7 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChecklistComparison } from "@/components/comparison/checklist-comparison";
 
 interface ComparisonBoardProps {
   venueOptions: Array<{ id: string; name: string }>;
@@ -150,6 +151,12 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
               actions={[{ label: "コーチに詳しく聞く", href: "/coach" }]}
             />
           )}
+
+          {/* Checklist comparison */}
+          <ChecklistComparison
+            venueIds={data.venues.map(v => v.id)}
+            venueNames={data.venues.map(v => v.name)}
+          />
         </>
       )}
     </div>
