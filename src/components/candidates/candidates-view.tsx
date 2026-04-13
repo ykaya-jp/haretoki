@@ -61,7 +61,7 @@ export function CandidatesView({
   }, [filter]);
 
   const SEGMENTS = [
-    { id: "shortlist" as const, label: "ショートリスト" },
+    { id: "shortlist" as const, label: "候補" },
     { id: "comparison" as const, label: "比較", disabled: false },
     { id: "decision" as const, label: "決定", disabled: false },
   ];
@@ -150,7 +150,22 @@ export function CandidatesView({
       )}
 
       {tab === "comparison" && (
-        <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
+        venueOptions.length < 2 ? (
+          <div className="space-y-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              比較するには2件以上の式場を候補に追加してください
+            </p>
+            <button
+              type="button"
+              onClick={() => setTab("shortlist")}
+              className="rounded-lg bg-primary px-6 py-3 text-sm text-primary-foreground active:scale-95"
+            >
+              候補リストへ戻る
+            </button>
+          </div>
+        ) : (
+          <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
+        )
       )}
 
       {tab === "decision" && (
