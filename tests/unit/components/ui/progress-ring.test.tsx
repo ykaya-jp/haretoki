@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, cleanup, within } from "@testing-library/react";
 import { ProgressRing } from "@/components/ui/progress-ring";
 
 describe("ProgressRing", () => {
