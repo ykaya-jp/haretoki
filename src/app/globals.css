@@ -204,6 +204,60 @@
   }
 }
 
+/* ═══ Component Refinements ═══ */
+@layer components {
+  /* Buttons — elevated, letter-spaced, smooth transitions */
+  button[data-slot="button"],
+  a[data-slot="button"] {
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    transition: all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  button[data-slot="button"]:not(:disabled):hover,
+  a[data-slot="button"]:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+  button[data-slot="button"]:not(:disabled):active,
+  a[data-slot="button"]:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* Inputs — larger, rounded, warm focus */
+  input[data-slot="input"],
+  textarea[data-slot="textarea"] {
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: border-color 400ms, box-shadow 400ms;
+  }
+  input[data-slot="input"]:focus,
+  textarea[data-slot="textarea"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px oklch(0.62 0.12 45 / 0.08);
+  }
+
+  /* Cards — borderless, warm shadow */
+  [data-slot="card"] {
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-slot="card"]:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Sheet — warm overlay */
+  [data-slot="sheet-overlay"] {
+    background-color: oklch(0.22 0.02 50 / 0.4);
+    backdrop-filter: blur(4px);
+  }
+  [data-slot="sheet-content"] {
+    border-radius: 24px 24px 0 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
