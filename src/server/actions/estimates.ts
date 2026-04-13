@@ -71,10 +71,10 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
 
 export async function getEstimatesForVenue(venueId: string) {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   return prisma.estimate.findMany({
-    where: { venueId },
+    where: { venueId, projectId },
     include: { items: true },
     orderBy: { version: "desc" },
   });
