@@ -7,6 +7,7 @@ import { QuickActions } from "@/components/home/quick-actions";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { ThemeSwitcher } from "@/components/settings/theme-switcher";
 import { PartnerInvite } from "@/components/partner/partner-invite";
+import { AIRecommendations } from "@/components/venues/ai-recommendations";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
@@ -64,6 +65,9 @@ export default async function HomePage() {
           partnerStatus="not_invited"
         />
       )}
+
+      {/* AI Recommendations — show when few venues registered */}
+      {homeData.progress.totalVenues < 3 && <AIRecommendations />}
 
       <RecentVenues venues={homeData.recentVenues} />
     </div>
