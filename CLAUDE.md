@@ -1,14 +1,15 @@
-# VenueLens
+# Harenohi (晴れの日)
 
 ## Overview
-結婚式場の比較・評価・最終決定を支援するWebアプリ。AIコンシェルジュが二人の好みを理解し、自然に式場選びを導く。モバイルファースト（375px基準）、商用化を視野に入れている。
+結婚式場の比較・評価・最終決定を支援するWebアプリ。AIコーチが二人の好みを理解し、見積もりの落とし穴を先回りで教え、自然に式場選びを導く。モバイルファースト（375px基準）、商用化を視野に入れている。
 
 ## Product Vision
-「二人で自然に、迷わず、後悔なく式場を選べるプロダクト」— 式場を「売る」メディアではなく、カップルの「選ぶ」を支援する中立ツール。
+「式場選びを、もっと納得のいくものに。」— 式場を「売る」メディアではなく、カップルの「選ぶ」を支援する中立ツール。
+ブランドメタファー: 曇り（不安）→ 晴れ間（見えてきた）→ 晴れの日（確信と喜び）
 
 ## Roadmap & Design Docs
 - IMPORTANT: [docs/roadmap.md](docs/roadmap.md) — 統合ロードマップ（Release 1-4）。機能スコープとAI境界の判断はここを参照
-- IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム（Single Source of Truth）
+- IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム v3 "Morning Light"（Single Source of Truth）
 - [docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md](docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md) — 全画面UI仕様
 - [docs/superpowers/specs/2026-04-13-release1-technical-spec.md](docs/superpowers/specs/2026-04-13-release1-technical-spec.md) — Release 1 技術設計書（Prisma変更、Server Actions、worktree計画）
 - IMPORTANT: [docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md](docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md) — 非機能要件（パフォーマンス予算、楽観的更新、バンドル管理）。実装時に必ず準拠すること

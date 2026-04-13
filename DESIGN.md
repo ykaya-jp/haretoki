@@ -1,8 +1,8 @@
-# VenueLens Design System v2
+# Harenohi Design System v3 — "Morning Light"
 
 > Single Source of Truth for all design decisions.
-> Zero-base redesign: Phase 0 (user research) → Phase 1 (feature design) → Phase 2 (Refero MCP research) → Phase 3 (design integration).
-> Implementation must conform to this document.
+> v3: Full rebrand from VenueLens Navy theme to Harenohi "Morning Light" warm palette.
+> カラー、タイポ、モーション、画像アセットの全仕様。実装はこのドキュメントに準拠する。
 
 ---
 
@@ -10,7 +10,7 @@
 
 **「二人で自然に、迷わず、後悔なく式場を選べるプロダクト」**
 
-VenueLens is not a listing site. It is a premium decision companion that guides couples through venue selection with AI-powered insights, transparent estimates, and collaborative tools.
+Harenohi (晴れの日) is not a listing site. It is a premium decision companion that guides couples through venue selection with AI-powered insights, transparent estimates, and collaborative tools. The brand metaphor is a journey from cloudy uncertainty to sunny confidence.
 
 ### Core Insights (Research-backed)
 
@@ -27,7 +27,7 @@ VenueLens is not a listing site. It is a premium decision companion that guides 
 
 ### Competitive Position
 
-VenueLens is **not** a media/advertising platform (unlike Zexy, Hanayume). It is a **neutral decision tool** — no venue pays for placement. The design must convey this independence through data transparency and AI attribution.
+Harenohi is **not** a media/advertising platform (unlike Zexy, Hanayume). It is a **neutral decision tool** — no venue pays for placement. The design must convey this independence through data transparency and AI attribution.
 
 ---
 
@@ -395,36 +395,41 @@ VenueLens is **not** a media/advertising platform (unlike Zexy, Hanayume). It is
 
 ## Design System
 
-### 1. Color System
+### 1. Color System — "Morning Light" Palette
+
+コンセプト: 夜明けから朝日が差し込む瞬間。Rose = ユーザーのアクション、Gold = AIの贈り物。
 
 #### Light Mode (oklch)
 
 | Token | Value | Hex Approx | Usage |
 |-------|-------|------------|-------|
-| `--background` | `oklch(0.98 0.003 250)` | `#FAFBFC` | Page background (warm white) |
-| `--foreground` | `oklch(0.17 0.03 260)` | `#0D1B2A` | Primary text (navy-deep) |
-| `--card` | `oklch(1 0 0)` | `#FFFFFF` | Card surfaces |
-| `--card-foreground` | `oklch(0.17 0.03 260)` | `#0D1B2A` | Card text |
-| `--primary` | `oklch(0.45 0.15 260)` | `#1E3A5F` | Navy — nav, headings, primary actions |
-| `--primary-foreground` | `oklch(1 0 0)` | `#FFFFFF` | Text on primary |
-| `--secondary` | `oklch(0.55 0.18 260)` | `#3B5998` | Secondary actions |
-| `--accent` | `oklch(0.68 0.12 80)` | `#C9A84C` | Gold — borders, icons, stars only |
-| `--accent-foreground` | `oklch(1 0 0)` | `#FFFFFF` | Text on accent |
-| `--muted` | `oklch(0.94 0.01 260)` | `#E9EEF5` | Muted backgrounds |
-| `--muted-foreground` | `oklch(0.5 0.03 250)` | `#64748B` | Secondary text |
-| `--border` | `oklch(0.9 0.02 260)` | `#E0E5EB` | Default borders |
-| `--destructive` | `oklch(0.577 0.245 27.325)` | `#DC2626` | Errors |
-| `--success` | `oklch(0.52 0.17 155)` | `#16A34A` | Positive indicators |
+| `--background` | `oklch(0.97 0.01 80)` | `#FBF7F1` | Page background (warm cream) |
+| `--foreground` | `oklch(0.22 0.02 50)` | `#2A2320` | Primary text (warm charcoal) |
+| `--card` | `oklch(0.99 0.005 80)` | `#FFFCF8` | Card surfaces (ivory) |
+| `--card-foreground` | `oklch(0.22 0.02 50)` | `#2A2320` | Card text |
+| `--primary` | `oklch(0.62 0.12 45)` | `#C4816E` | Rose terracotta — CTA, active states |
+| `--primary-foreground` | `oklch(0.99 0 0)` | `#FFFCF8` | Text on primary |
+| `--secondary` | `oklch(0.45 0.06 50)` | `#6B5A4E` | Warm brown — secondary actions |
+| `--accent` / `--gold-warm` | `oklch(0.70 0.13 80)` | `#C9A44C` | Gold — AI features, logo, special moments |
+| `--accent-foreground` | `oklch(0.22 0.02 50)` | `#2A2320` | Text on accent |
+| `--muted` | `oklch(0.95 0.01 75)` | `#F3EDE4` | Muted backgrounds (linen) |
+| `--muted-foreground` | `oklch(0.52 0.02 60)` | `#7A7068` | Secondary text |
+| `--border` | `oklch(0.91 0.02 70)` | `#E8E0D6` | Default borders |
+| `--destructive` | `oklch(0.55 0.15 25)` | `#C75B5B` | Errors (soft red) |
+| `--success` | `oklch(0.58 0.14 155)` | `#5BA87A` | Positive (gentle green) |
 
 #### Gold Accent Tokens
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--gold-warm` | `#C9A84C` | Star ratings, icons, borders, AI card accent |
-| `--gold-light` | `#E8C97A` | Hover highlights |
-| `--gold-subtle` | `rgba(201,168,76,0.08)` | AI card backgrounds, featured items |
+| `--gold-warm` | `oklch(0.70 0.13 80)` / `#C9A44C` | AI insights, logo, star ratings |
+| `--gold-light` | `oklch(0.80 0.10 80)` / `#E2CC8A` | AI card backgrounds |
+| `--gold-subtle` | `oklch(0.70 0.13 80 / 0.10)` | AI card backgrounds, featured items |
 
-**Gold Rules**: Borders, icon strokes, star ratings, underlines, AI card left-border (3px), score badge text. **Never** button fills, large backgrounds, body text.
+**Color Usage Rules**:
+- **Rose** = user actions (buttons, hearts, tap targets)
+- **Gold** = AI features (insights, recommendations, coach)
+- When both appear: Gold for text/icons only, Rose for buttons/interactive only
 
 #### Score Color Scale
 
@@ -433,16 +438,16 @@ VenueLens is **not** a media/advertising platform (unlike Zexy, Hanayume). It is
 | 4.5-5.0 | `--gold-warm` | Excellent |
 | 4.0-4.4 | `--gold-light` | Very Good |
 | 3.5-3.9 | `#9B8E7E` | Good |
-| 3.0-3.4 | `#6B7280` | Average |
-| < 3.0 | `#9B6B6B` | Below Average |
+| 3.0-3.4 | `--muted-foreground` | Average |
+| < 3.0 | `--destructive` | Below Average |
 
-#### Dark Mode (Phase 5)
+#### Dark Mode
 
 | Token | Value |
 |-------|-------|
-| `--background` | `#0D1B2A` (navy-deep) |
-| `--card` | `#1C2E45` (navy-mid) |
-| `--foreground` | `#F0F4F8` |
+| `--background` | `oklch(0.15 0.01 50)` (warm dark) |
+| `--card` | `oklch(0.20 0.01 50)` |
+| `--foreground` | `oklch(0.95 0.005 80)` |
 | `--border` | `rgba(255,255,255,0.06)` |
 | `--accent` | brighter gold for dark bg |
 
