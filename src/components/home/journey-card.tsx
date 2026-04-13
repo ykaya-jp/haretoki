@@ -75,9 +75,9 @@ export function JourneyCard(props: JourneyCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className="rounded-2xl bg-gradient-to-br from-card via-card to-[var(--gold-subtle)] p-6 shadow-[var(--shadow-card)]"
     >
       <div className="flex items-center gap-3 mb-3">
@@ -90,7 +90,7 @@ export function JourneyCard(props: JourneyCardProps) {
       {state.cta && (
         <Link
           href={state.cta.href}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all active:scale-[0.97] hover:shadow-md"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-400 ease-out active:scale-[0.97] hover:shadow-md"
         >
           {state.cta.label}
           <Sparkles className="h-4 w-4" />

@@ -27,7 +27,7 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
   const hasCost = venue.costMin || venue.costMax;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]">
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all duration-400 ease-out hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]">
       {/* Photo section — larger, with gradient overlay */}
       <div className="relative">
         <Link href={`/venues/${venue.id}`}>
