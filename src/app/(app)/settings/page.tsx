@@ -32,25 +32,27 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <h2>設定</h2>
+      <h2 className="font-serif text-xl font-light tracking-wide">設定</h2>
 
       {/* Profile */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">プロフィール</h3>
-        <div className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)]">
-          <p className="text-sm text-muted-foreground">メールアドレス</p>
-          <p className="font-medium">{user.email}</p>
+      <section className="space-y-3">
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">プロフィール</h3>
+        <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+          <p className="text-xs text-muted-foreground">メールアドレス</p>
+          <p className="mt-1 font-medium">{user.email}</p>
         </div>
       </section>
 
       {/* Partner */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">パートナー</h3>
+      <section className="space-y-3">
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">パートナー</h3>
         {hasPartner ? (
-          <div className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <p className="text-sm text-muted-foreground">パートナー</p>
-            <p className="font-medium">{partner?.user.name ?? partner?.user.email}</p>
-            <p className="text-xs text-success mt-1">参加済み</p>
+          <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+            <p className="text-xs text-muted-foreground">パートナー</p>
+            <p className="mt-1 font-medium">{partner?.user.name ?? partner?.user.email}</p>
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2.5 py-0.5 text-xs text-[var(--gold-warm)]">
+              参加済み
+            </span>
           </div>
         ) : (
           <PartnerInvite
@@ -61,22 +63,24 @@ export default async function SettingsPage() {
       </section>
 
       {/* Preferences */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">好み・条件</h3>
-        <SettingsForm initialConditions={conditions} />
+      <section className="space-y-3">
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">好み・条件</h3>
+        <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+          <SettingsForm initialConditions={conditions} />
+        </div>
       </section>
 
       {/* Theme */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">テーマ</h3>
-        <div className="rounded-xl bg-card p-4 shadow-[var(--shadow-card)] flex items-center justify-between">
-          <span className="text-sm">ダークモード</span>
+      <section className="space-y-3">
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">テーマ</h3>
+        <div className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+          <span className="text-sm">表示モード</span>
           <ThemeSwitcher />
         </div>
       </section>
 
       {/* Logout */}
-      <section>
+      <section className="pt-4">
         <LogoutButton />
       </section>
     </div>

@@ -4,7 +4,7 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { ChatBubble } from "@/components/coach/chat-bubble";
 import { ChatBar } from "@/components/coach/chat-bar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MessageSquare } from "lucide-react";
+import { Search } from "lucide-react";
 
 export default async function CoachPage() {
   const [insights, history] = await Promise.all([
@@ -16,17 +16,17 @@ export default async function CoachPage() {
 
   return (
     <div className="pb-20">
-      <h2 className="mb-4">AIコーチ</h2>
+      <h2 className="mb-5 font-serif text-xl font-light tracking-wide">AIコーチ</h2>
 
       {!hasContent ? (
         <EmptyState
-          icon={MessageSquare}
-          title="式場を追加すると、AIコーチがアドバイスを始めます"
-          description="気になる式場を登録してみましょう"
-          action={{ label: "式場を追加する", href: "/explore" }}
+          icon={Search}
+          title="式場を追加するとAIコーチが分析を開始します"
+          description="気になる式場を登録すると、あなたにぴったりのアドバイスや比較分析をお届けします。まずは式場を探してみましょう。"
+          action={{ label: "式場を探す", href: "/explore" }}
         />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Insight cards */}
           {insights.map((insight) => (
             <AIInsightCard
@@ -41,7 +41,11 @@ export default async function CoachPage() {
           {/* Chat history */}
           {history.length > 0 && (
             <>
-              <hr className="border-border" />
+              <div className="my-2 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">チャット履歴</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
               <div className="space-y-3">
                 {history.map((msg) => (
                   <ChatBubble key={msg.id} role={msg.role} content={msg.content} />

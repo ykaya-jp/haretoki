@@ -55,15 +55,15 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Venue selectors */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {[0, 1].map((idx) => (
           <select
             key={idx}
             value={selectedIds[idx] ?? ""}
             onChange={(e) => handleSelect(idx, e.target.value)}
-            className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-sm shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
           >
             {venueOptions.map((v) => (
               <option key={v.id} value={v.id}>{v.name}</option>
@@ -81,9 +81,9 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
       {data && !loading && (
         <>
           {/* Quick Look */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-5">
             {data.venues.map((venue) => (
-              <div key={venue.id} className="flex flex-col items-center gap-2 rounded-lg bg-card p-4 shadow-sm">
+              <div key={venue.id} className="flex flex-col items-center gap-3 rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
                 {venue.photoUrls[0] ? (
                   <Image src={venue.photoUrls[0]} alt={venue.name} width={64} height={64} className="rounded-lg object-cover" />
                 ) : (
@@ -116,9 +116,9 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
           </div>
 
           {/* Score bars */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">カテゴリ別スコア</h3>
+              <h3 className="font-serif text-sm font-light tracking-wide">カテゴリ別スコア</h3>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 差分のみ表示
                 <input

@@ -15,8 +15,8 @@ export default async function CandidatesPage() {
   const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
 
   return (
-    <div className="space-y-4">
-      <h2>候補</h2>
+    <div className="space-y-5">
+      <h2 className="font-serif text-xl font-light tracking-wide">候補</h2>
       <CandidatesView
         initialFavorites={favorites}
         venueOptions={venueOptions}

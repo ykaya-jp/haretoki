@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
@@ -9,7 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { DecisionCeremony } from "@/components/decision/decision-ceremony";
-import { Heart } from "lucide-react";
+import { Heart, BarChart3, Trophy } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
@@ -91,125 +92,157 @@ export function CandidatesView({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <SegmentedControl
         segments={SEGMENTS}
         activeId={tab}
         onChange={(id) => setTab(id as Tab)}
       />
 
-      {tab === "shortlist" && (
-        <>
-          <FavoriteFilter active={filter} onChange={setFilter} />
+      <AnimatePresence mode="wait">
+        {tab === "shortlist" && (
+          <motion.div
+            key="shortlist"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <FavoriteFilter active={filter} onChange={setFilter} />
 
-          {favorites.length === 0 ? (
-            <EmptyState
-              icon={Heart}
-              title="いいね！と感じた式場を集めましょう"
-              description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上集めると比較もできます。"
-              action={{ label: "式場を探す", href: "/explore" }}
-            />
-          ) : (
-            <div className="space-y-4">
-              {favorites.length >= 5 && !showSwipe && (
-                <button
-                  type="button"
-                  onClick={() => setShowSwipe(true)}
-                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-center transition-colors active:bg-muted"
-                >
-                  スワイプで絞り込む ({favorites.length}件)
-                </button>
-              )}
-
-              {showSwipe && (
-                <SwipeCompare
-                  venues={favorites.map(f => ({
-                    id: f.venue.id,
-                    name: f.venue.name,
-                    location: f.venue.location,
-                    photoUrls: f.venue.photoUrls,
-                    totalScore: 0,
-                    topStrengths: [],
-                    latestEstimate: null,
-                  }))}
-                  onComplete={() => { setShowSwipe(false); router.refresh(); }}
-                />
-              )}
-
-              {!showSwipe && favorites.map((fav) => (
-                <VenueCard
-                  key={fav.venue.id}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  venue={fav.venue as any}
-                  isFavorite={true}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === "comparison" && (
-        venueOptions.length < 2 ? (
-          <div className="space-y-4 py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              比較するには2件以上の式場を候補に追加してください
-            </p>
-            <button
-              type="button"
-              onClick={() => setTab("shortlist")}
-              className="rounded-lg bg-primary px-6 py-3 text-sm text-primary-foreground active:scale-95"
-            >
-              候補リストへ戻る
-            </button>
-          </div>
-        ) : (
-          <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
-        )
-      )}
-
-      {tab === "decision" && (
-        <>
-          {showCeremony ? (
-            <DecisionCeremony
-              venueName={ceremonyVenueName}
-              userName={userName ?? ""}
-              journeyStats={{
-                totalVenues: venueOptions.length,
-                shortlisted: favorites.length,
-                compared: Math.min(venueOptions.length, 2),
-              }}
-              onRecordReason={handleCeremonyComplete}
-            />
-          ) : decision ? (
-            <div className="space-y-4 py-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
-                <span className="text-2xl">{"\u{1F389}"}</span>
-              </div>
-              <h3 className="text-lg font-medium">{decision.venueName}</h3>
-              <p className="text-sm text-muted-foreground">に決定しました</p>
-              {decision.rationale && (
-                <p className="text-sm text-muted-foreground">
-                  決め手: {decision.rationale}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4 py-8 text-center">
-              <p className="text-muted-foreground">
-                比較ボードで式場を選んで「この式場に決める」を実行してください
-              </p>
-              <button
-                type="button"
-                onClick={() => setTab("comparison")}
-                className="rounded-lg bg-primary px-6 py-3 text-sm text-primary-foreground active:scale-95"
+            {favorites.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mt-4"
               >
-                比較ボードへ
-              </button>
-            </div>
-          )}
-        </>
-      )}
+                <EmptyState
+                  icon={Heart}
+                  title="お気に入りの式場を集めましょう"
+                  description="式場カードの♡をタップすると、ここに候補として表示されます。2件以上集めると比較もできますよ。"
+                  action={{ label: "式場を探す", href: "/explore" }}
+                />
+              </motion.div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {favorites.length >= 5 && !showSwipe && (
+                  <motion.button
+                    type="button"
+                    onClick={() => setShowSwipe(true)}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-sm text-center shadow-[var(--shadow-card)] transition-colors active:bg-muted"
+                  >
+                    スワイプで絞り込む ({favorites.length}件)
+                  </motion.button>
+                )}
+
+                {showSwipe && (
+                  <SwipeCompare
+                    venues={favorites.map(f => ({
+                      id: f.venue.id,
+                      name: f.venue.name,
+                      location: f.venue.location,
+                      photoUrls: f.venue.photoUrls,
+                      totalScore: 0,
+                      topStrengths: [],
+                      latestEstimate: null,
+                    }))}
+                    onComplete={() => { setShowSwipe(false); router.refresh(); }}
+                  />
+                )}
+
+                <AnimatePresence>
+                  {!showSwipe && favorites.map((fav, index) => (
+                    <motion.div
+                      key={fav.venue.id}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -100 }}
+                      transition={{ delay: index * 0.06, duration: 0.3 }}
+                    >
+                      <VenueCard
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        venue={fav.venue as any}
+                        isFavorite={true}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {tab === "comparison" && (
+          <motion.div
+            key="comparison"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {venueOptions.length < 2 ? (
+              <EmptyState
+                icon={BarChart3}
+                title="比較するには2件以上の候補が必要です"
+                description="まずはお気に入りの式場を2件以上追加してみましょう。データで納得のいく比較ができます。"
+                action={{ label: "式場を探す", href: "/explore" }}
+              />
+            ) : (
+              <ComparisonBoard venueOptions={venueOptions} onDecide={handleDecide} />
+            )}
+          </motion.div>
+        )}
+
+        {tab === "decision" && (
+          <motion.div
+            key="decision"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {showCeremony ? (
+              <DecisionCeremony
+                venueName={ceremonyVenueName}
+                userName={userName ?? ""}
+                journeyStats={{
+                  totalVenues: venueOptions.length,
+                  shortlisted: favorites.length,
+                  compared: Math.min(venueOptions.length, 2),
+                }}
+                onRecordReason={handleCeremonyComplete}
+              />
+            ) : decision ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-5 rounded-2xl bg-card p-8 text-center shadow-[var(--shadow-card)]"
+              >
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
+                  <span className="text-3xl">{"\u{1F389}"}</span>
+                </div>
+                <h3 className="font-serif text-xl font-light tracking-wide">{decision.venueName}</h3>
+                <p className="text-sm text-muted-foreground">に決定しました</p>
+                {decision.rationale && (
+                  <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                    決め手: {decision.rationale}
+                  </p>
+                )}
+              </motion.div>
+            ) : (
+              <EmptyState
+                icon={Trophy}
+                title="まだ最終決定がされていません"
+                description="比較ボードで式場を見比べて、納得のいく一つを選びましょう。二人で話し合って決めるのが大切です。"
+                action={{ label: "比較ボードへ", href: "#" }}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
