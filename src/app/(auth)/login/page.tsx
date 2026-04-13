@@ -33,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/home");
       router.refresh();
     } catch {
       setError("ログイン中にエラーが発生しました。もう一度お試しください");

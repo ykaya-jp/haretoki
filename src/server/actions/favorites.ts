@@ -18,7 +18,7 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
     });
     revalidatePath("/explore");
     revalidatePath("/candidates");
-    revalidatePath("/");
+    revalidatePath("/home");
     return { isFavorite: false };
   }
 
@@ -28,7 +28,7 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
 
   revalidatePath("/explore");
   revalidatePath("/candidates");
-  revalidatePath("/");
+  revalidatePath("/home");
   return { isFavorite: true };
 }
 

@@ -42,7 +42,7 @@ export async function submitPartnerReaction(
     },
   });
 
-  revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/candidates");
   return { success: true };
 }

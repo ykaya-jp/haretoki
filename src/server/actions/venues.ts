@@ -34,7 +34,7 @@ export async function createVenue(input: VenueInput) {
   });
 
   revalidatePath("/explore");
-  revalidatePath("/");
+  revalidatePath("/home");
 
   return { success: true as const, venue };
 }
@@ -239,7 +239,7 @@ export async function confirmVenueFromUrl(
   });
 
   revalidatePath("/explore");
-  revalidatePath("/");
+  revalidatePath("/home");
 
   return { success: true as const, venue };
 }

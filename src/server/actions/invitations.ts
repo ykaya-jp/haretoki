@@ -60,7 +60,7 @@ export async function invitePartner(email: string) {
     },
   });
 
-  revalidatePath("/");
+  revalidatePath("/home");
   return { success: true as const, membershipId: membership.id };
 }
 
@@ -93,7 +93,7 @@ export async function acceptInvitation(invitationId: string) {
     data: { acceptedAt: new Date() },
   });
 
-  revalidatePath("/");
+  revalidatePath("/home");
   return { success: true as const };
 }
 

@@ -13,7 +13,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "ホーム", icon: Home },
+  { href: "/home", label: "ホーム", icon: Home },
   { href: "/explore", label: "探す", icon: Search },
   { href: "/candidates", label: "候補", icon: Heart, badgeKey: "candidates" },
   { href: "/coach", label: "コーチ", icon: MessageSquare, badgeKey: "coach" },
@@ -38,8 +38,8 @@ export function BottomNav({ badges }: BottomNavProps) {
       <div className="flex h-14 items-center justify-around">
         {NAV_ITEMS.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/home"
+              ? pathname === "/home"
               : pathname.startsWith(item.href);
           const Icon = item.icon;
           const badgeCount = item.badgeKey ? badges?.[item.badgeKey] : undefined;

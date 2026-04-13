@@ -39,7 +39,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/home");
       router.refresh();
     } catch {
       setError("登録中にエラーが発生しました。もう一度お試しください");
