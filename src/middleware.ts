@@ -12,9 +12,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Skip onboarding check for these paths
+  // Skip onboarding check for these paths (including landing page)
   const excludedPaths = ["/onboarding", "/accept-invite", "/login", "/signup", "/callback"];
-  if (excludedPaths.some((p) => pathname.startsWith(p))) {
+  if (pathname === "/" || excludedPaths.some((p) => pathname.startsWith(p))) {
     return response;
   }
 
