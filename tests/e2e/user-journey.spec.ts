@@ -16,7 +16,7 @@ test.describe("花嫁のユースケース — 認証不要", () => {
 
     // Stats section
     await expect(page.locator("text=80%").first()).toBeVisible();
-    await expect(page.locator("text=平均+110万円").first()).toBeVisible();
+    await expect(page.locator("text=+84〜110万円").first()).toBeVisible();
 
     // Features section
     await expect(page.locator("text=見積もりの先を読む")).toBeVisible();

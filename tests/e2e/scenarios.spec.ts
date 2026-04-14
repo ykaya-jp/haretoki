@@ -20,7 +20,7 @@ test.describe("シナリオ1: はじめての来訪者", () => {
     // 2. スクロールして統計を確認
     await page.locator("text=80%").first().scrollIntoViewIfNeeded();
     await expect(page.locator("text=80%").first()).toBeVisible();
-    await expect(page.locator("text=平均+110万円").first()).toBeVisible();
+    await expect(page.locator("text=+84〜110万円").first()).toBeVisible();
 
     // 3. 特徴を理解
     await page.locator("text=見積もりの先を読む").scrollIntoViewIfNeeded();
