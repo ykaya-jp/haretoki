@@ -4,8 +4,8 @@ import type { VenueFilters } from "@/server/actions/venue-filters";
 import { getFavorites } from "@/server/actions/favorites";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { AddVenueSheet } from "@/components/explore/add-venue-sheet";
 import { ExploreContent } from "@/components/explore/explore-content";
+import { ExploreAddVenue } from "@/components/explore/explore-add-venue";
 import { AIRecommendations } from "@/components/venues/ai-recommendations";
 import { getExploreAIRecommendationsSeed } from "@/server/actions/onboarding";
 import { VenueSearchBar } from "@/components/venues/venue-search-bar";
@@ -118,14 +118,12 @@ export default async function ExplorePage({
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between">
-          <h2 className="text-h1 font-serif font-extralight">式場をさがす</h2>
-          <AddVenueSheet defaultOpen={params.addVenue === "1"} />
-        </div>
-        <p className="mt-1 text-meta text-muted-foreground">
-          URL貼付 or 検索で、気になる式場を集める場所
-        </p>
+        <h2 className="text-h1 font-serif font-extralight">式場を、見つける</h2>
+        <p className="mt-1 text-meta text-muted-foreground">まだ知らない一つを</p>
       </div>
+
+      {/* FAB + Sheet (client component, shared open state) */}
+      <ExploreAddVenue defaultOpen={params.addVenue === "1"} />
 
       {/* Search bar */}
       <VenueSearchBar initialQuery={query} />
@@ -169,7 +167,7 @@ export default async function ExplorePage({
             imageUrl="/images/empty-explore.png"
             imageAlt="式場を探す"
             title="式場さがしは、ここから"
-            description="右上の「追加」からURLを貼るだけ。AIが自動で情報を読み取ります。"
+            description="画面右下の「＋」からURLを貼るだけ。AIが自動で情報を読み取ります。"
           />
         )
       ) : (
