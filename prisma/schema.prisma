@@ -297,6 +297,7 @@ model VisitChecklistItem {
   photoUrls String[]            @default([]) @map("photo_urls")
   checkedAt DateTime?           @map("checked_at")
   sortOrder Int                 @default(0) @map("sort_order")
+  metadata  Json?
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 

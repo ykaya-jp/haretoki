@@ -103,7 +103,8 @@ export const CHECKLIST_TEMPLATES: Record<string, ChecklistCategory> = {
       { item: "プレートやカトラリーはテーマに合うか", sortOrder: 6 },
       { item: "サービススタッフの印象", sortOrder: 7 },
       { item: "ドリンクの種類はゲスト層に合うか", sortOrder: 8 },
-      { item: "ウエディングケーキの選択肢", sortOrder: 9 },
+      { item: "ウエディングケーキ（オリジナル可否）", sortOrder: 9 },
+      { item: "ケーキカット以外のケーキ演出（ファーストバイト、ドレッシングなど）が可能か", sortOrder: 10 },
     ],
   },
 };
