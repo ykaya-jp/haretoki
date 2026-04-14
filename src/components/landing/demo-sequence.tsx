@@ -140,7 +140,7 @@ export function DemoSequence() {
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex h-11 min-w-[44px] items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-4 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
           aria-label={paused ? "アニメーション再開" : "アニメーション停止"}
         >
           {paused ? (

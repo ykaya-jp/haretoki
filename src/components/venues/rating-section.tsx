@@ -43,16 +43,21 @@ export function RatingSection({
           const result = await saveDirectRatings(venueId, { ratings: newRatings });
           if (!result.success) {
             setSaving(false);
-            toast.error("評価の保存に失敗しました");
+            const detail =
+              typeof result.error === "object" && result.error && "formErrors" in result.error
+                ? (result.error.formErrors?.[0] ?? null)
+                : null;
+            toast.error(detail ? `評価を保存できませんでした: ${detail}` : "評価を保存できませんでした");
             return;
           }
           setSaving(false);
           setJustSaved(true);
           if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
           savedTimerRef.current = setTimeout(() => setJustSaved(false), 1000);
-        } catch {
+        } catch (err) {
           setSaving(false);
-          toast.error("評価の保存に失敗しました");
+          console.error("[rating] save failed:", err);
+          toast.error("評価を保存できませんでした。時間をおいて再度お試しください");
         }
       }, 500);
     },

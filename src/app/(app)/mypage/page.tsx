@@ -100,7 +100,7 @@ export default async function MyPage() {
         {hasPartner ? (
           <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
             <p className="text-xs text-muted-foreground">パートナー</p>
-            <p className="mt-1 font-medium">{partner?.user.name ?? partner?.user.email}</p>
+            <p className="mt-1 font-medium">{partner?.user?.name ?? partner?.user?.email ?? "—"}</p>
             <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2.5 py-0.5 text-xs text-[var(--gold-warm)]">
               一緒に参加中
             </span>
