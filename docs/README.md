@@ -41,6 +41,7 @@
 | **完了定義（DoD）** | [`definition-of-done.md`](./definition-of-done.md) |
 | **次セッション投入プロンプト** | [`next-session-prompt.md`](./next-session-prompt.md) |
 | **GTM 粗書き** | [`gtm-draft.md`](./gtm-draft.md) |
+| **Phase/Release/Sprint 対応表** | [`phase-release-map.md`](./phase-release-map.md) |
 
 ### 方針・仕様・ロードマップ
 | 目的 | ファイル |
@@ -75,6 +76,8 @@
 ## 📋 用語・体系
 
 - **Release 1-4**: 機能リリース単位（UI Foundation / AI / Visit+Partner / Polish）
-- **Phase 0-4**: Release 間の改善イテレーション（hotfix / perf / IA / visual / finish）
-- **Sprint N**: 次セッション以降で切る実行単位（このインデックスの Next 参照）
+- **Phase 0-4**: Release 1 内部の改善イテレーション（hotfix / perf / IA / visual / finish）
+- **Sprint R-6**: 次セッション以降で切る実行単位（このインデックスの Next 参照）
 - **bug-tracker の F-/B-番号**: 妻フィードバック ID
+
+3 軸の**横串対応表** → [`phase-release-map.md`](./phase-release-map.md)
