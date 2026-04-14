@@ -171,7 +171,7 @@ export function CandidatesView({
                   icon={Heart}
                   imageUrl="/images/empty-candidates.png"
                   imageAlt="候補を集める"
-                  title="心に残った式場を集める場所です"
+                  title="まだ候補はありません。気になる1件から始めましょう"
                   description="式場カードの♡をタップすると、ここに表示されます。2件以上で比較もできます。"
                   action={
                     venueOptions.length === 0
@@ -255,8 +255,8 @@ export function CandidatesView({
                 title="候補を2件以上集めると比較できます"
                 description={
                   favorites.length === 0
-                    ? "まず気になる式場を2つ以上お気に入りに追加してください。"
-                    : "あと1件以上お気に入りに追加すると、比較ボードが使えます。"
+                    ? "まず気になる式場を2つ以上候補に入れてください。"
+                    : "あと1件以上候補に入れると、比較ボードが使えます。"
                 }
                 action={{ label: "式場を探す", href: "/explore" }}
               />
@@ -278,7 +278,7 @@ export function CandidatesView({
               <EmptyState
                 icon={BarChart3}
                 title="観点別の比較には2件必要です"
-                description="お気に入りに2件以上追加すると、雰囲気や料理などの観点ごとに比べられます。"
+                description="候補を2件以上入れると、雰囲気や料理などの観点ごとに比べられます。"
                 action={{ label: "式場を探す", href: "/explore" }}
               />
             )}
@@ -320,8 +320,8 @@ export function CandidatesView({
             {!canDecide ? (
               <EmptyState
                 icon={Trophy}
-                title="まずは式場を1件お気に入りしてください"
-                description="お気に入りした式場から、最終決定を行えます。"
+                title="まずは式場を1件候補に入れてください"
+                description="候補の式場から、最終決定を行えます。"
                 action={{ label: "式場を探す", href: "/explore" }}
               />
             ) : showCeremony ? (

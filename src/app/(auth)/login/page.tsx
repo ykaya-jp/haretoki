@@ -84,7 +84,7 @@ function LoginPageInner() {
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
-          <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
+          <Link href="/" prefetch={true} className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
             Haretoki
           </Link>
         </div>
@@ -211,7 +211,7 @@ function LoginPageInner() {
 
           <p className="text-center text-sm text-muted-foreground">
             アカウントをお持ちでない方は{" "}
-            <Link href="/signup" className="font-medium text-primary underline underline-offset-4">
+            <Link href="/signup" prefetch={true} className="font-medium text-primary underline underline-offset-4">
               新規登録
             </Link>
           </p>

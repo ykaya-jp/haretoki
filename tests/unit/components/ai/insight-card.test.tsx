@@ -23,10 +23,10 @@ describe("AIInsightCard", () => {
         type="comparison"
         title="比較提案"
         body="比較してみましょう"
-        actions={[{ label: "比較する", href: "/candidates" }]}
+        actions={[{ label: "比べる", href: "/candidates" }]}
       />
     );
-    const link = within(container).getByText("比較する");
+    const link = within(container).getByText("比べる");
     expect(link).toBeInTheDocument();
     expect(link.closest("a")).toHaveAttribute("href", "/candidates");
     cleanup();

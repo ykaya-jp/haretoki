@@ -33,7 +33,11 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base">先日ご覧になった式場</h2>
-        <Link href="/candidates?view=recent" className="text-sm text-primary">
+        <Link
+          href="/candidates?view=recent"
+          prefetch={true}
+          className="text-sm text-primary"
+        >
           すべて →
         </Link>
       </div>
@@ -44,6 +48,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
             <Link
               key={venue.id}
               href={`/venues/${venue.id}`}
+              prefetch={true}
               className="relative min-w-[300px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
             >
               {venue.photoUrls[0] ? (

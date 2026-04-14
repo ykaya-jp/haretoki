@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { JourneyCard } from "@/components/home/journey-card";
+import { HeroNba } from "@/components/home/hero-nba";
 import { useDemoData } from "@/components/demo/demo-data-provider";
 
-// Demo index page — simplified "ホーム" showing the real JourneyCard pre-filled
+// Demo index page — simplified "ホーム" showing the real HeroNba pre-filled
 // with the demo dataset's progress state (3 venues, 2 favorites, 1 visit).
 export default function DemoHomePage() {
   const { venues, favorites, visits, insights } = useDemoData();
@@ -29,13 +29,12 @@ export default function DemoHomePage() {
         </p>
       </header>
 
-      <JourneyCard
+      <HeroNba
         totalVenues={totalVenues}
         visitedVenues={visitedVenues}
         favoriteCount={favoriteCount}
         hasDecision={false}
         upcomingVisits={0}
-        ratedCount={favoriteCount}
       />
 
       {/* Quick-tour CTAs */}

@@ -156,6 +156,7 @@ export default async function ExplorePage({
                 pattern (?addVenue=1) already wired up in the header. */}
             <Link
               href="/explore?addVenue=1"
+              prefetch={true}
               className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4"
             >
               URLから式場を追加

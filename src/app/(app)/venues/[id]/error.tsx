@@ -66,7 +66,7 @@ export default function VenueDetailError({
             </Button>
             <Button
               variant="outline"
-              render={<Link href="/candidates" />}
+              render={<Link href="/candidates" prefetch={true} />}
               className="w-full"
             >
               候補一覧に戻る

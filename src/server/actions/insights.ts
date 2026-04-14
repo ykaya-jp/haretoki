@@ -85,7 +85,7 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
       type: "comparison",
       title: "比較してみましょう",
       body: `${favorites}件の候補があります。比較ボードで並べて見てみませんか？`,
-      actions: [{ label: "比較する", href: "/candidates" }],
+      actions: [{ label: "比べる", href: "/candidates" }],
       priority: 3,
     });
   }

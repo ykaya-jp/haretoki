@@ -30,6 +30,7 @@ export default function DemoVenueDetailPage({
         </p>
         <Link
           href="/demo/venues"
+          prefetch={true}
           className="mt-4 inline-flex h-11 items-center gap-1 rounded-full border border-border px-5 text-sm"
         >
           一覧に戻る

@@ -74,10 +74,11 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
     return (
       <div className="py-12 text-center space-y-4">
         <p className="text-sm text-muted-foreground">
-          重み付けには2件以上のお気に入りが必要です
+          重み付けには候補が2件以上必要です
         </p>
         <Link
           href="/explore"
+          prefetch={true}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
         >
           式場を見てみる

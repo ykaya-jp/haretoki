@@ -62,7 +62,7 @@ export default function Error({
             <Button onClick={reset} className="w-full">
               もう一度試す
             </Button>
-            <Button variant="outline" render={<Link href="/home" />} className="w-full">
+            <Button variant="outline" render={<Link href="/home" prefetch={true} />} className="w-full">
               ホームに戻る
             </Button>
             <a

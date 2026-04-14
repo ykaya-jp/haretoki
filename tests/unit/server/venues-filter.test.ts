@@ -144,6 +144,22 @@ describe("buildVenueWhere — dress bring-in fee", () => {
     expect(where.costMax).toEqual({ lte: 4_000_000 });
   });
 
+  it("[sort] category score sortBy values are valid in the type (compile-time check)", () => {
+    // Verify the new per-category sort values are accepted by buildVenueWhere without error.
+    // The actual sort logic is in getVenues (requires live DB), so we just verify type-safety here.
+    const categorySorts = [
+      "score_cuisine_desc",
+      "score_hospitality_desc",
+      "score_atmosphere_desc",
+      "score_cost_desc",
+      "score_access_desc",
+    ] as const;
+    for (const sortBy of categorySorts) {
+      const where = buildVenueWhere(PROJECT_ID, { sortBy });
+      expect(where.projectId).toBe(PROJECT_ID);
+    }
+  });
+
   it("[payment enum] legacy `paymentMethod` string still emits `has` on free-text column for backward compat", () => {
     const where = buildVenueWhere(PROJECT_ID, { paymentMethod: "カード" });
     expect(where.paymentMethods).toEqual({ has: "カード" });

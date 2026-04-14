@@ -26,7 +26,7 @@ const FAQ_PATTERNS: Array<{
   {
     keywords: ["比較", "どっち", "どちら", "違い", "選べない"],
     answer: "比較ボードで候補の式場を並べて見てみましょう。6つの評価軸でスコアを比較できます。",
-    actions: [{ label: "比較する", href: "/candidates" }],
+    actions: [{ label: "比べる", href: "/candidates" }],
   },
   {
     keywords: ["見学", "ブライダルフェア", "フェア", "予約"],

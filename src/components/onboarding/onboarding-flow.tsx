@@ -425,6 +425,7 @@ export function OnboardingFlow() {
           </Button>
           <Link
             href="/explore?addVenue=1"
+            prefetch={true}
             className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
           >
             スキップして式場を追加
