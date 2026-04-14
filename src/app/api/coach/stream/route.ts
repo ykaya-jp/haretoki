@@ -84,25 +84,43 @@ export async function POST(request: NextRequest) {
   });
   const historyAsc = history.reverse();
 
-  // Persist the user message first (matches Server Action pattern).
-  await prisma.coachMessage.create({
+  // Persist the user message BEFORE the stream starts so it's visible in
+  // history if the client reconnects mid-stream. We also capture the new row's
+  // id so we can roll it back if streamClaude() throws before any bytes are
+  // emitted (otherwise the client's fallback to sendCoachMessage would create
+  // a duplicate user turn).
+  const userMessageRow = await prisma.coachMessage.create({
     data: { projectId, role: "user", content: message },
+    select: { id: true },
   });
 
   // Build Claude messages array: prior history + new user message.
+  // stripPII is applied to EVERY message (not just the new one) so emails/
+  // phones captured in earlier turns never leak to Anthropic on replay.
   const claudeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
     ...historyAsc.map((m) => ({
       role: m.role as "user" | "assistant",
-      content: m.content,
+      content: stripPII(m.content),
     })),
     { role: "user" as const, content: stripPII(message) },
   ];
 
-  const textStream = await streamClaude({
-    system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
-    messages: claudeMessages,
-    maxTokens: 2048,
-  });
+  let textStream: ReadableStream<string>;
+  try {
+    textStream = await streamClaude({
+      system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
+      messages: claudeMessages,
+      maxTokens: 2048,
+    });
+  } catch (error) {
+    // Stream never started — roll back the user message so the client's
+    // fallback (sendCoachMessage) can re-persist without duplicating.
+    await prisma.coachMessage
+      .delete({ where: { id: userMessageRow.id } })
+      .catch(() => {});
+    const errMsg = error instanceof Error ? error.message : "stream init failed";
+    return NextResponse.json({ error: errMsg }, { status: 502 });
+  }
 
   const encoder = new TextEncoder();
   const sse = new ReadableStream<Uint8Array>({
@@ -131,13 +149,14 @@ export async function POST(request: NextRequest) {
       } finally {
         controller.close();
         // Persist assistant response (fire-and-forget; don't block stream close).
+        // stripPII applied so Claude-echoed PII isn't persisted.
         if (assembled.trim().length > 0) {
           prisma.coachMessage
             .create({
               data: {
                 projectId,
                 role: "assistant",
-                content: assembled,
+                content: stripPII(assembled),
                 metadata: { model: "claude-sonnet-4-6" },
               },
             })

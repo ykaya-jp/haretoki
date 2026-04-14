@@ -84,6 +84,33 @@ async function loadUserContext(projectId: string): Promise<UserContext> {
   };
 }
 
+/**
+ * Idempotent user-message persist.
+ * Skips the insert if the most-recent message in the project is already this
+ * exact user turn written within the last 60s. This lets stream-route and
+ * server-action code paths (e.g. fallback chain) both call us without
+ * producing duplicate rows when the stream route already saved the message.
+ */
+async function persistUserMessageIdempotent(projectId: string, message: string) {
+  const latest = await prisma.coachMessage.findFirst({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+    select: { role: true, content: true, createdAt: true },
+  });
+  const now = Date.now();
+  if (
+    latest &&
+    latest.role === "user" &&
+    latest.content === message &&
+    now - latest.createdAt.getTime() < 60_000
+  ) {
+    return; // already persisted by stream route; skip duplicate
+  }
+  await prisma.coachMessage.create({
+    data: { projectId, role: "user", content: message },
+  });
+}
+
 export async function sendCoachMessage(message: string): Promise<CoachResponse> {
   if (!message || message.length > 500) {
     return { answer: "メッセージは1〜500文字で入力してください。", suggestedActions: [], matched: false };
@@ -103,17 +130,16 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
       take: 20,
     });
 
-    // Build conversation context
+    // Build conversation context with PII stripped from every turn so
+    // previously-captured emails/phones don't leak to Anthropic on replay.
     const historyText = history.length > 0
       ? "\n\n## 最近の会話履歴:\n" + history.reverse().map(m =>
-          `${m.role === "user" ? "ユーザー" : "コーチ"}: ${m.content}`
+          `${m.role === "user" ? "ユーザー" : "コーチ"}: ${stripPII(m.content)}`
         ).join("\n")
       : "";
 
-    // Save user message
-    await prisma.coachMessage.create({
-      data: { projectId, role: "user", content: message },
-    });
+    // Save user message (idempotent — no-op if stream route already saved it)
+    await persistUserMessageIdempotent(projectId, message);
 
     try {
       const response = await withRetry(() =>
@@ -124,12 +150,12 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
         })
       );
 
-      // Save assistant response
+      // Save assistant response (PII stripped)
       await prisma.coachMessage.create({
         data: {
           projectId,
           role: "assistant",
-          content: response,
+          content: stripPII(response),
           metadata: { model: "claude-sonnet-4-6" },
         },
       });
@@ -143,11 +169,9 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
   }
 
   // Fallback: R1 keyword matching (no Claude API available)
-  // Save user message so history view shows the turn
+  // Save user message so history view shows the turn (idempotent)
   try {
-    await prisma.coachMessage.create({
-      data: { projectId, role: "user", content: message },
-    });
+    await persistUserMessageIdempotent(projectId, message);
   } catch {
     // Swallow — response still returned below
   }

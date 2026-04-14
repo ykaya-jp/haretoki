@@ -92,6 +92,20 @@ export function stripPII(text: string): string {
   return result;
 }
 
+// --- Prompt-injection sanitization for untrusted user-sourced data ---
+// Venue names, favorites, conditions can originate from URL-scraped sites or
+// raw user input. When those strings are interpolated into Claude's system
+// prompt they must be neutralized: strip tags that could close our delimiter,
+// and shorten to avoid giving attackers room to maneuver.
+export function sanitizeForPrompt(text: string, maxLen: number = 120): string {
+  return text
+    .replace(/<\/?[^>]*>/g, "") // strip angle-bracket tags
+    .replace(/[\r\n]+/g, " ") // flatten newlines
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLen);
+}
+
 // --- Retry with exponential backoff ---
 export async function withRetry<T>(
   fn: () => Promise<T>,
