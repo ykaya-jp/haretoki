@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteUserAccount } from "@/server/actions/user-data";
 
 
@@ -50,10 +51,30 @@ export async function DELETE(req: NextRequest) {
 
   await deleteUserAccount(prisma, user.id);
 
+  // Delete the Supabase Auth user too. Without this, the auth account would
+  // survive DB deletion and the same email could sign back in to a zombie
+  // state (valid auth cookie, missing Prisma rows → every Server Action
+  // fails). Requires SUPABASE_SERVICE_ROLE_KEY; without it we log and
+  // continue so local/dev environments without admin credentials still work
+  // (the Prisma rows are gone and sign-out clears the cookie).
+  const admin = createAdminClient();
+  if (admin) {
+    const { error } = await admin.auth.admin.deleteUser(user.id);
+    if (error) {
+      console.error("supabase admin.deleteUser failed:", {
+        userId: user.id,
+        error: error.message,
+      });
+    }
+  } else {
+    console.warn(
+      "SUPABASE_SERVICE_ROLE_KEY not set — skipping Supabase Auth user deletion. " +
+        "Prisma rows were deleted but the auth account still exists.",
+    );
+  }
+
   // Clear the Supabase session so the client isn't left with a half-valid
-  // cookie pointing at a deleted Prisma row. signOut uses the user's own
-  // access token (no admin SDK needed); if it fails we still proceed since
-  // the DB rows are already gone.
+  // cookie pointing at a deleted Prisma row.
   try {
     const supabase = await createClient();
     await supabase.auth.signOut();

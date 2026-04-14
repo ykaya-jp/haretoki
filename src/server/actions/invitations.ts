@@ -130,6 +130,52 @@ export async function invitePartner(email: string) {
 }
 
 /**
+ * Is the given project a throw-away auto-created project for `userId` that
+ * carries no real user data? Safe to silently drop when the user accepts an
+ * invitation to join someone else's project.
+ *
+ * Rules (all must hold):
+ *   - `userId` is the sole owner (others may not have joined yet).
+ *   - The project has no venues, no estimates, no decisions, no partner
+ *     member (accepted or pending).
+ */
+async function isAutoCreatedEmptyProject(
+  projectId: string,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  if (role !== "owner") return false;
+
+  const [memberCount, venueCount, estimateCount, decisionCount] =
+    await Promise.all([
+      prisma.projectMember.count({ where: { projectId } }),
+      prisma.venue.count({ where: { projectId } }),
+      prisma.estimate.count({ where: { venue: { projectId } } }),
+      prisma.decision.count({ where: { projectId } }),
+    ]);
+
+  // A fresh auto-project has exactly one ProjectMember (the owner, this
+  // user). Any extra membership means a partner was invited/accepted and we
+  // must not silently delete the project.
+  const singleOwnerMembership = await prisma.projectMember.findMany({
+    where: { projectId },
+    select: { userId: true, role: true },
+  });
+  const isSoleOwner =
+    singleOwnerMembership.length === 1 &&
+    singleOwnerMembership[0].userId === userId &&
+    singleOwnerMembership[0].role === "owner";
+
+  return (
+    isSoleOwner &&
+    memberCount === 1 &&
+    venueCount === 0 &&
+    estimateCount === 0 &&
+    decisionCount === 0
+  );
+}
+
+/**
  * Accept a pending invitation.
  * The logged-in user's email must match the invited user.
  */
@@ -167,19 +213,46 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "すでに承諾済みです" };
   }
 
-  // Already-joined guard: if this user already belongs to another project,
-  // don't silently move them. They must be re-invited by the owner so the
-  // transfer is explicit on both sides.
-  const existingMembership = await prisma.projectMember.findFirst({
-    where: { userId: user.id, acceptedAt: { not: null } },
-    select: { projectId: true },
+  // Already-joined guard. An existing user who signed up on their own has an
+  // auto-created empty project (getOrCreateProject on first /home visit). If
+  // that's their only active membership AND the project has no real data,
+  // we silently drop it and let them join the inviter's project — otherwise
+  // they'd be locked out of every invitation. Projects with actual content
+  // (venues, estimates, decisions, partner) are preserved and we return an
+  // explanatory error so the transfer is explicit on both sides.
+  const existingMemberships = await prisma.projectMember.findMany({
+    where: {
+      userId: user.id,
+      acceptedAt: { not: null },
+      NOT: { projectId: membership.projectId },
+    },
+    select: { id: true, projectId: true, role: true },
   });
-  if (existingMembership && existingMembership.projectId !== membership.projectId) {
-    return {
-      success: false as const,
-      error:
-        "すでに別のプロジェクトに参加しています。パートナーと同じプロジェクトに合流するには、オーナーに再招待を依頼してください。",
-    };
+
+  for (const existing of existingMemberships) {
+    const canAutoDiscard = await isAutoCreatedEmptyProject(
+      existing.projectId,
+      user.id,
+      existing.role,
+    );
+    if (!canAutoDiscard) {
+      return {
+        success: false as const,
+        error:
+          "すでに別のプロジェクトに参加しています。パートナーと同じプロジェクトに合流するには、オーナーに再招待を依頼してください。",
+      };
+    }
+  }
+
+  // All blocking memberships point at discardable auto-projects — remove
+  // them. Owner memberships trigger project deletion (cascades to venues
+  // etc.), non-owner memberships are just the row.
+  for (const existing of existingMemberships) {
+    if (existing.role === "owner") {
+      await prisma.project.delete({ where: { id: existing.projectId } });
+    } else {
+      await prisma.projectMember.delete({ where: { id: existing.id } });
+    }
   }
 
   // Atomic conditional update: only flip acceptedAt if it's still null.
