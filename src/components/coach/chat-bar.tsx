@@ -12,15 +12,24 @@ interface InFlight {
   streaming: boolean;
 }
 
+interface ChatBarProps {
+  /** Current session id — passed through to stream API for context. */
+  sessionId?: string;
+  /** Callback when a new session is created by the stream route. */
+  onNewSession?: (id: string) => void;
+}
+
 async function streamReply(
   message: string,
+  sessionId: string | undefined,
   onChunk: (text: string) => void,
+  onSessionId: (id: string) => void,
   signal: AbortSignal,
 ): Promise<void> {
   const response = await fetch("/api/coach/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, sessionId }),
     signal,
   });
   if (!response.ok || !response.body) {
@@ -36,7 +45,6 @@ async function streamReply(
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
 
-    // Parse SSE frames separated by a blank line.
     let idx: number;
     while ((idx = buffer.indexOf("\n\n")) !== -1) {
       const frame = buffer.slice(0, idx);
@@ -50,7 +58,8 @@ async function streamReply(
       const dataStr = dataLines.join("\n");
       if (dataStr === "[DONE]") return;
       try {
-        const parsed = JSON.parse(dataStr) as { text?: string };
+        const parsed = JSON.parse(dataStr) as { text?: string; sessionId?: string };
+        if (parsed.sessionId) onSessionId(parsed.sessionId);
         if (parsed.text) onChunk(parsed.text);
       } catch {
         // ignore malformed frame
@@ -59,16 +68,12 @@ async function streamReply(
   }
 }
 
-export function ChatBar() {
+export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [inFlight, setInFlight] = useState<InFlight | null>(null);
-  // Shows a subtle "送信するだけ" hint when a use-case card just pre-filled the
-  // input. Cleared on first keystroke, send, or after a short window.
   const [hasPrefill, setHasPrefill] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  // Synchronous guard: React state updates are queued, so `busy` can be stale
-  // between back-to-back Enter presses. A ref flips immediately.
   const sendingRef = useRef<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -76,18 +81,12 @@ export function ChatBar() {
   const pathname = usePathname();
   const promptParam = searchParams.get("prompt");
 
-  // Abort any in-flight SSE stream on unmount to stop burning Anthropic tokens
-  // after the user navigates away.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  // Conversation-starter hand-off: when a CoachQuickStart use-case card
-  // navigates to /coach?prompt=..., pre-fill the input, focus it, and scrub
-  // the query param so refreshes don't re-populate a stale prompt.
   useEffect(() => {
     if (!promptParam) return;
     setMessage(promptParam);
     setHasPrefill(true);
-    // Defer focus to next tick so the input is mounted and keyboard opens.
     const t = window.setTimeout(() => {
       inputRef.current?.focus();
       const el = inputRef.current;
@@ -109,11 +108,8 @@ export function ChatBar() {
     const msg = message.trim();
     setMessage("");
     setHasPrefill(false);
-    // Keep keyboard up + caret in the input so the user can chain messages
-    // without re-focusing manually (especially important on mobile).
     inputRef.current?.focus();
 
-    // Optimistic: show user bubble + empty assistant bubble (typing indicator).
     setInFlight({ userText: msg, assistantText: "", streaming: true });
 
     const controller = new AbortController();
@@ -122,12 +118,14 @@ export function ChatBar() {
     try {
       await streamReply(
         msg,
+        sessionId,
         (chunk) => {
           setInFlight((prev) =>
-            prev
-              ? { ...prev, assistantText: prev.assistantText + chunk }
-              : prev,
+            prev ? { ...prev, assistantText: prev.assistantText + chunk } : prev,
           );
+        },
+        (newSessionId) => {
+          onNewSession?.(newSessionId);
         },
         controller.signal,
       );
@@ -135,14 +133,17 @@ export function ChatBar() {
       setInFlight((prev) => (prev ? { ...prev, streaming: false } : prev));
       startTransition(() => {
         router.refresh();
-        // Hold optimistic pair briefly so the refreshed history can paint in.
         setTimeout(() => setInFlight(null), 80);
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      // Fallback to non-streaming server action so user still gets an answer.
+      // Fallback to non-streaming server action
       try {
-        const result = await sendCoachMessage(msg);
+        const result = await sendCoachMessage(msg, sessionId);
+        // If a new session was created during fallback, propagate id
+        if (result.sessionId && result.sessionId !== sessionId) {
+          onNewSession?.(result.sessionId);
+        }
         setInFlight({
           userText: msg,
           assistantText: result.answer,
@@ -153,8 +154,6 @@ export function ChatBar() {
           setTimeout(() => setInFlight(null), 80);
         });
       } catch {
-        // Both streaming AND non-streaming fallback failed — restore the
-        // user's message so they don't have to retype it.
         setInFlight(null);
         setMessage(msg);
       }
