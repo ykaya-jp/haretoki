@@ -27,10 +27,10 @@ function answerTag(venueId: string) {
 
 // ── List active item ids for the current project ───────────────────────────────
 
-export async function listActiveItems(): Promise<{ projectId: string; activeItemIds: string[] }> {
+// Inner cached loader — pure DB I/O, no cookies()/headers() so it's safe
+// under Next 16 cacheComponents.
+async function fetchActiveItemIds(projectId: string): Promise<string[]> {
   "use cache";
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
   cacheTag(checklistTag(projectId));
 
   const rows = await prisma.projectChecklist.findMany({
@@ -39,7 +39,15 @@ export async function listActiveItems(): Promise<{ projectId: string; activeItem
     orderBy: { createdAt: "asc" },
   });
 
-  return { projectId, activeItemIds: rows.map((r) => r.itemId) };
+  return rows.map((r) => r.itemId);
+}
+
+export async function listActiveItems(): Promise<{ projectId: string; activeItemIds: string[] }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const activeItemIds = await fetchActiveItemIds(projectId);
+  return { projectId, activeItemIds };
 }
 
 // ── Toggle a single item on/off ────────────────────────────────────────────────
@@ -103,12 +111,10 @@ export async function bulkToggleCategory(
 
 // ── Get answers for a single venue ────────────────────────────────────────────
 
-export async function getAnswersForVenue(
-  venueId: string
-): Promise<Record<string, { status: string | null; memo: string | null; numberValue: number | null; photoUrls: string[] }>> {
+type AnswerMap = Record<string, { status: string | null; memo: string | null; numberValue: number | null; photoUrls: string[] }>;
+
+async function fetchAnswersForVenue(venueId: string, projectId: string): Promise<AnswerMap> {
   "use cache";
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
   cacheTag(answerTag(venueId));
   cacheTag(checklistTag(projectId));
 
@@ -124,7 +130,7 @@ export async function getAnswersForVenue(
     include: { projectChecklist: { select: { itemId: true } } },
   });
 
-  const result: Record<string, { status: string | null; memo: string | null; numberValue: number | null; photoUrls: string[] }> = {};
+  const result: AnswerMap = {};
   for (const ans of answers) {
     result[ans.projectChecklist.itemId] = {
       status: ans.status,
@@ -134,6 +140,12 @@ export async function getAnswersForVenue(
     };
   }
   return result;
+}
+
+export async function getAnswersForVenue(venueId: string): Promise<AnswerMap> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  return fetchAnswersForVenue(venueId, projectId);
 }
 
 // ── Save (upsert) an answer ────────────────────────────────────────────────────
