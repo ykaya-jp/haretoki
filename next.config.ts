@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/dashboard", destination: "/home", permanent: true },
       { source: "/conditions", destination: "/onboarding", permanent: true },
-      { source: "/compare", destination: "/candidates", permanent: true },
+      // /compare is now a real route (Phase 3 cross-venue checklist matrix),
+      // so no redirect. /shortlist and /decision remain legacy → /candidates.
       { source: "/shortlist", destination: "/candidates", permanent: true },
       { source: "/decision", destination: "/candidates", permanent: true },
       { source: "/venues", destination: "/explore", permanent: true },

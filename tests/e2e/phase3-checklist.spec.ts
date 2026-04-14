@@ -54,6 +54,15 @@ async function login(page: Page) {
   await page.click('button[type="submit"]');
   // Wait for redirect away from /login
   await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 });
+  // Bypass the middleware onboarding redirect for brand-new users — the
+  // (app)/layout's getOrCreateProject still auto-creates the Prisma User +
+  // Project + ProjectMember on first /home visit, so hitting /home once
+  // primes the membership row before we navigate elsewhere.
+  await page.context().addCookies([
+    { name: "onboarding_completed", value: "1", domain: "localhost", path: "/" },
+  ]);
+  await page.goto("/home");
+  await page.waitForLoadState("networkidle");
 }
 
 async function setupProjectAndVenue(page: Page) {
