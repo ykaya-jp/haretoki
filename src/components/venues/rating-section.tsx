@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS, DIMENSION_HELP } from "@/lib/constants";
@@ -146,7 +146,8 @@ export function RatingSection({
               "formErrors" in result.error
                 ? (result.error.formErrors?.[0] ?? null)
                 : null;
-            toast.error(
+            showToast(
+              "error",
               detail
                 ? `保存できませんでした: ${detail}。もう一度お試しください`
                 : "保存できませんでした。もう一度お試しください",
@@ -160,7 +161,7 @@ export function RatingSection({
         } catch (err) {
           setSaving(false);
           console.error("[rating] save failed:", err);
-          toast.error("保存できませんでした。もう一度お試しください");
+          showToast("error", "保存できませんでした。もう一度お試しください");
         }
       }, 500);
     },

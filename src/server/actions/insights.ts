@@ -169,9 +169,13 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
     .slice(0, 5);
 }
 
+/** Minimum interval (ms) between fresh insight generation rounds (3 days). */
+const INSIGHT_THROTTLE_MS = 3 * 24 * 60 * 60 * 1000;
+
 /**
  * Rule-based AI insights. No Claude API in Release 1.
  * Returns up to 5 insights sorted by priority.
+ * Throttled to generate at most once per 3 days per project.
  *
  * Per-request memoization via React.cache() dedupes calls from home + coach
  * layouts in one SSR pass. "use cache" on fetchAIInsights provides the
@@ -180,6 +184,21 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
 async function getAIInsightsImpl(): Promise<AIInsight[]> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+
+  // Throttle: skip generation if any AI analysis was recorded within 3 days.
+  // Uses the most recent AiAnalysis row as a proxy for "last generated" time.
+  const lastAnalysis = await prisma.aiAnalysis.findFirst({
+    where: { projectId },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (lastAnalysis) {
+    const elapsed = Date.now() - lastAnalysis.createdAt.getTime();
+    if (elapsed < INSIGHT_THROTTLE_MS) {
+      return [];
+    }
+  }
+
   return fetchAIInsights(projectId, user.id);
 }
 

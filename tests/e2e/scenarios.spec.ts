@@ -211,7 +211,9 @@ test.describe("シナリオ6: Phase 1-3 実装範囲の網羅確認", () => {
   });
 
   test("Phase 2B: 適切な出典表記", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.waitForSelector("text=ブライダル総研", { timeout: 10000 });
+    await page.waitForLoadState("domcontentloaded");
     const bodyText = await page.locator("body").innerText();
     // Stats section must cite sources
     expect(bodyText).toContain("ブライダル総研");
