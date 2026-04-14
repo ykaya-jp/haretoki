@@ -1,10 +1,13 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireOwner, requireProjectMembership } from "@/server/auth";
 import { captureServerEvent } from "@/lib/analytics/server";
+import { sendEmail, isEmailAvailable } from "@/lib/email/send";
+import { renderPartnerInviteEmail } from "@/lib/email/templates/partner-invite";
 
 const inviteSchema = z.object({
   email: z
@@ -30,6 +33,18 @@ export async function invitePartner(email: string) {
   if (parsed.data.email === user.email?.toLowerCase()) {
     return { success: false as const, error: "ご自身のメールアドレスは指定できません" };
   }
+
+  // Fetch inviter name + project name up front for the email template.
+  const [inviterRecord, projectRecord] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, email: true },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    }),
+  ]);
 
   // Check if partner already exists for this project
   const existingPartner = await prisma.projectMember.findFirst({
@@ -61,14 +76,56 @@ export async function invitePartner(email: string) {
     },
   });
 
+  // Attempt email delivery. Email infra is optional: if RESEND_API_KEY is
+  // unset (or Resend fails), we still return success and let the UI prompt
+  // the owner to share the URL manually. Do NOT throw on email failure.
+  let emailSent = false;
+  if (isEmailAvailable()) {
+    const h = await headers();
+    const forwardedHost = h.get("x-forwarded-host") ?? h.get("host");
+    const forwardedProto = h.get("x-forwarded-proto") ?? "https";
+    const origin = forwardedHost
+      ? `${forwardedProto}://${forwardedHost}`
+      : process.env.APP_URL ?? "https://haretoki.vercel.app";
+    const inviteUrl = `${origin}/accept-invite`;
+    const inviterName =
+      inviterRecord?.name ?? inviterRecord?.email?.split("@")[0] ?? "オーナー";
+    const projectName = projectRecord?.name ?? "結婚式プロジェクト";
+    const { subject, html, text } = renderPartnerInviteEmail({
+      inviterName,
+      projectName,
+      inviteUrl,
+    });
+    const result = await sendEmail({
+      to: parsed.data.email,
+      subject,
+      html,
+      text,
+    });
+    if (result.success) {
+      emailSent = true;
+    } else if (result.error !== "EMAIL_NOT_CONFIGURED") {
+      // Log real delivery failures; keep silent on not-configured.
+      console.error("partner invite email failed:", {
+        to: parsed.data.email,
+        error: result.error,
+      });
+    }
+  }
+
   revalidatePath("/home");
 
   await captureServerEvent(user.id, "partner_invited", {
     projectId,
     membershipId: membership.id,
+    emailSent,
   });
 
-  return { success: true as const, membershipId: membership.id };
+  return {
+    success: true as const,
+    membershipId: membership.id,
+    emailSent,
+  };
 }
 
 /**

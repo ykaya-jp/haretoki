@@ -63,7 +63,11 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
         toast.error(result.error);
         return;
       }
-      toast.success("招待を作成しました。リンクをパートナーに共有してください");
+      toast.success(
+        result.emailSent
+          ? "招待を作成しました。パートナーにメールもお送りしました"
+          : "招待を作成しました。リンクをパートナーに共有してください",
+      );
       setEmail("");
     });
   };
