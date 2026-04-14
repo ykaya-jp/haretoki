@@ -14,15 +14,19 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  // If the logged-in user has a pending partner invitation, take them to the
-  // accept screen before showing home. This is how a brand-new user who
-  // signed up from a shared invite link gets routed into the right project.
-  const pendingInvitation = await getPendingInvitation();
+  // Run all independent fetches in parallel. getPendingInvitation no longer
+  // blocks getHomeData/getAIInsights — we simply act on its result after all
+  // three have resolved. requireUser/requireProjectMembership are React.cache
+  // so the extra calls inside getHomeData/getAIInsights are free.
+  const [pendingInvitation, homeData, insights] = await Promise.all([
+    getPendingInvitation(),
+    getHomeData(),
+    getAIInsights(),
+  ]);
+
   if (pendingInvitation) {
     redirect("/accept-invite");
   }
-
-  const [homeData, insights] = await Promise.all([getHomeData(), getAIInsights()]);
   const topInsight = insights[0];
 
   return (

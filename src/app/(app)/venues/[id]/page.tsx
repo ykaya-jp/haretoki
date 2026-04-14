@@ -1,6 +1,10 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { getVenue } from "@/server/actions/venues";
+import {
+  getVenueHeader,
+  getVenueEstimates,
+  getVenueVisits,
+} from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
 import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actions/reviews";
@@ -26,24 +30,16 @@ export default async function VenueDetailPage({
 }) {
   const { id } = await params;
 
-  // Above-the-fold data is fetched synchronously so the header renders
-  // immediately. getVenue already loads scores/estimates/visits in one query;
-  // we reuse that single fetch rather than splitting it up.
+  // Fetch only the above-the-fold header + favorites synchronously.
+  // requireUser / requireProjectMembership are React.cache'd, so the repeated
+  // calls inside the Suspense children (getVenueEstimates, getVenueVisits, …)
+  // reuse the same cached result — no extra DB round-trips.
   const [venue, favorites] = await Promise.all([
-    getVenue(id),
+    getVenueHeader(id),
     getFavorites("mine"),
   ]);
 
   if (!venue) notFound();
-
-  // Review-derived estimate aggregate — used by both the waterfall overlay
-  // (above the fold) and the ReviewSection. Fetched once and passed down to
-  // avoid double-fetching.
-  const reviewEstimateAgg = await getVenueReviewEstimateAggregate(venue.id);
-  const reviewMeanFinal =
-    reviewEstimateAgg?.deltaYen != null && venue.estimates.length > 0
-      ? venue.estimates[0].total + reviewEstimateAgg.deltaYen
-      : undefined;
 
   const isFavorite = favorites.some((f) => f.venue.id === venue.id);
 
@@ -84,61 +80,15 @@ export default async function VenueDetailPage({
         className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
       />
 
-      {/* Rating Section — above the fold (needs synchronous userRatings) */}
-      <Suspense
-        fallback={<RatingSkeleton />}
-      >
-        <RatingWithPartner
-          venueId={venue.id}
-          userRatings={userRatings}
-        />
+      {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
+      <Suspense fallback={<RatingSkeleton />}>
+        <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
       </Suspense>
 
-      {/* Estimate Sections — synchronous data already loaded by getVenue,
-          but wrap in Suspense so the charts can stream their client JS
-          independently and users see the text first. */}
-      {venue.estimates.length > 0 && (
-        <EstimateSection
-          venueId={venue.id}
-          estimates={venue.estimates.map((e) => ({
-            ...e,
-            predictedFinal: e.predictedFinal,
-            items: e.items.map((item) => ({ ...item })),
-          }))}
-        />
-      )}
-
-      {venue.estimates.length > 0 && venue.estimates[0].items.length > 0 && (
-        <EstimateXRay
-          items={venue.estimates[0].items.map((item) => ({
-            category: item.category,
-            itemName: item.itemName,
-            amount: item.amount,
-            tier: item.tier,
-            predictedUpgrade: item.predictedUpgrade ?? null,
-            upgradeProbability: item.upgradeProbability
-              ? Number(item.upgradeProbability)
-              : null,
-          }))}
-          totalEstimate={venue.estimates[0].total}
-          predictedFinal={venue.estimates[0].predictedFinal}
-        />
-      )}
-
-      {venue.estimates.length > 0 && venue.estimates[0].predictedFinal && (
-        <EstimateWaterfallChart
-          initialTotal={venue.estimates[0].total}
-          predictedFinal={venue.estimates[0].predictedFinal}
-          items={venue.estimates[0].items.map((item) => ({
-            category: item.category,
-            itemName: item.itemName,
-            amount: item.amount,
-            predictedUpgrade: item.predictedUpgrade ?? 0,
-          }))}
-          reviewMeanFinal={reviewMeanFinal}
-          reviewSampleCount={reviewEstimateAgg?.sampleCount ?? undefined}
-        />
-      )}
+      {/* Estimate sections — fetched in this Suspense child, streams independently */}
+      <Suspense fallback={<EstimatesSkeleton />}>
+        <EstimatesContent venueId={venue.id} />
+      </Suspense>
 
       <div
         aria-hidden="true"
@@ -149,7 +99,7 @@ export default async function VenueDetailPage({
           This lets the server flush the HTML for the above-the-fold content
           before these queries finish, cutting perceived TTFB significantly. */}
       <Suspense fallback={<ReviewsSkeleton />}>
-        <ReviewsContent venueId={venue.id} venueAgg={reviewEstimateAgg} />
+        <ReviewsContent venueId={venue.id} />
       </Suspense>
 
       <Suspense fallback={<PlansSkeleton />}>
@@ -161,7 +111,6 @@ export default async function VenueDetailPage({
           venueId={venue.id}
           venueName={venue.name}
           projectId={venue.projectId}
-          visits={venue.visits}
         />
       </Suspense>
 
@@ -216,14 +165,70 @@ async function RatingWithPartner({
   );
 }
 
-async function ReviewsContent({
-  venueId,
-  venueAgg,
-}: {
-  venueId: string;
-  venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
-}) {
-  const reviews = await getVenueReviews(venueId);
+async function EstimatesContent({ venueId }: { venueId: string }) {
+  const [estimates, reviewEstimateAgg] = await Promise.all([
+    getVenueEstimates(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
+
+  if (estimates.length === 0) return null;
+
+  const reviewMeanFinal =
+    reviewEstimateAgg?.deltaYen != null
+      ? estimates[0].total + reviewEstimateAgg.deltaYen
+      : undefined;
+
+  return (
+    <>
+      <EstimateSection
+        venueId={venueId}
+        estimates={estimates.map((e) => ({
+          ...e,
+          predictedFinal: e.predictedFinal,
+          items: e.items.map((item) => ({ ...item })),
+        }))}
+      />
+
+      {estimates[0].items.length > 0 && (
+        <EstimateXRay
+          items={estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            tier: item.tier,
+            predictedUpgrade: item.predictedUpgrade ?? null,
+            upgradeProbability: item.upgradeProbability
+              ? Number(item.upgradeProbability)
+              : null,
+          }))}
+          totalEstimate={estimates[0].total}
+          predictedFinal={estimates[0].predictedFinal}
+        />
+      )}
+
+      {estimates[0].predictedFinal && (
+        <EstimateWaterfallChart
+          initialTotal={estimates[0].total}
+          predictedFinal={estimates[0].predictedFinal}
+          items={estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            predictedUpgrade: item.predictedUpgrade ?? 0,
+          }))}
+          reviewMeanFinal={reviewMeanFinal}
+          reviewSampleCount={reviewEstimateAgg?.sampleCount ?? undefined}
+        />
+      )}
+    </>
+  );
+}
+
+async function ReviewsContent({ venueId }: { venueId: string }) {
+  const [reviews, venueAgg] = await Promise.all([
+    getVenueReviews(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
   return (
     <ReviewSection
       venueId={venueId}
@@ -276,20 +281,16 @@ async function PlansContent({ venueId }: { venueId: string }) {
   );
 }
 
-// The visits payload is already loaded inside getVenue's single query; this
-// wrapper exists purely to keep the rendering symmetric with the other
-// Suspense children. It resolves immediately.
 async function VisitsContent({
   venueId,
   venueName,
   projectId,
-  visits,
 }: {
   venueId: string;
   venueName: string;
   projectId: string;
-  visits: NonNullable<Awaited<ReturnType<typeof getVenue>>>["visits"];
 }) {
+  const visits = await getVenueVisits(venueId);
   return (
     <VisitSection
       venueId={venueId}
@@ -348,6 +349,16 @@ function RatingSkeleton() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function EstimatesSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-32 w-full" />
     </div>
   );
 }

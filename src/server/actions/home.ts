@@ -31,6 +31,16 @@ interface HomeData {
   userName: string;
 }
 
+/** Lightweight helper — returns only the current user's display name. */
+export async function getCurrentUserName(): Promise<string> {
+  const user = await requireUser();
+  return (
+    (user.user_metadata?.name as string | undefined) ??
+    (user.user_metadata?.full_name as string | undefined) ??
+    "おふたり"
+  );
+}
+
 /**
  * Cached inner loader. Keyed on (projectId, userId, userName).
  * Progress % logic:
