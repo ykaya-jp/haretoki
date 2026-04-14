@@ -222,7 +222,10 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
             aria-label="コーチへのメッセージ"
             enterKeyHint="send"
             autoComplete="off"
-            className="flex-1 rounded-2xl bg-muted px-5 py-3 text-base outline-none focus:ring-2 focus:ring-primary/30"
+            /* min-w-0 lets flex shrink the input below its intrinsic width
+             * so long placeholder text / composed IME buffer can't push the
+             * adjacent send button past the right edge on mobile Safari. */
+            className="min-w-0 flex-1 rounded-2xl bg-muted px-5 py-3 text-base outline-none focus:ring-2 focus:ring-primary/30"
             disabled={busy}
           />
           <button
