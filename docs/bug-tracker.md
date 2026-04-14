@@ -1,82 +1,91 @@
-# Haretoki Bug Tracker
+# Haretoki Bug / UX Tracker
 
-> 課題の一元管理。解消されたら即削除（見つけたら追加）。
-> 原文フィードバックは `docs/myreview/problems_01.md`, `docs/wife-requirements.md`。
+**課題一元管理**。解消したら Closed に移動 → 次 push で削除。新規発見は Open に追加。
 
-最終更新: 2026-04-14
+最終更新: 2026-04-15
 
-凡例:
-- 🟥 Critical: 機能が壊れて使えない
-- 🟧 High: UX 致命的
-- 🟨 Medium: 使いづらい
-- 🟦 Low: ポリッシュ
+---
+
+## 優先度運用
+
+- **P1** = H × S/M: Sprint 1-2 で必ず消化（妻体験のブロッカー）
+- **P2** = H × L / M × S: Sprint 2-3
+- **P3** = M × M: Sprint 3-4
+- **P4** = L: Sprint 5+ or Later
+
+凡例: Impact H(High)/M(Medium)/L(Low) × Effort S(Small)/M(Medium)/L(Large)
 
 ---
 
 ## Open
 
-### コーチ（最優先）
-- 🟥 **F-23 AI コーチがテンプレ応答しかしない**
-  - 現状: プロンプトが簡素、応答に個性がない
-  - 望ましい: 結婚式コーディネーターとして、候補式場・見積もり・見学記録などアプリ内情報 + 一般知識を総動員して提案
-  - 修正先: `src/lib/prompts/coach-chat.ts` `loadUserContext`
-- 🟥 **F-24「ほかの質問」が機能していない**
-  - 現状: `CoachQuickStart` のチップを押しても動かない / 何も起きない
-  - 修正先: `src/components/coach/coach-quick-start.tsx`
+### P1 — 妻体験ブロッカー
 
-### デザイン刷新（refero-design スキル使用予定）
-- 🟧 **F-01** 式場追加 Sheet の見出しが横でかすぎ・他文字小さすぎ
-- 🟧 **F-04** 比べるタブの王冠アイコンが見づらい
-- 🟧 **F-05** 各観点の1位表示が見づらい（Decision Matrix / Dimension Focus 全面再考）
-- 🟧 **F-10** 決めた後の「おめでとう」がしょぼい（DecisionCeremony 刷新）
-- 🟧 **F-14** ホームの「おはようございます」+ 下の白枠がスペース無駄
-- 🟧 **F-17** コーチ右上 Plus ボタンが目立たない
-- 🟧 **F-18** コーチ左上の会話履歴アイコンも目立たない・意味伝わらない
-- 🟧 **F-19** チェックリスト設定がわかりにくい
-- 🟧 **F-21** ホーム全体がダサい（Refero で要リサーチ）
-- 🟨 **F-02** 式場カード左下の星・写真枚数インジケータが式場名と被る
-- 🟨 **F-03** 画面切替のドットインジケータ（3点リーダ的）が見づらい
-- 🟨 **B-12** Sheet 見出しサイズ不均衡
-- 🟨 **F-26** 評価スライダーの数字（4.5/5 以外見えない）＋ バー全体のデザイン
+| ID | 課題 | I×E | 対応 Sprint |
+|---|---|---|---|
+| F-23 | AI コーチがテンプレ応答（ペルソナ強化済、実機未検証） | H×S | Sprint 1 実機検証 → Sprint 4 改善 |
+| F-24 | 「ほかの質問」動かない（修正済、実機未検証） | H×S | Sprint 1 実機検証 |
+| F-19 | チェックリスト設定がわかりにくい | H×M | Sprint 3 |
+| F-20 | チェックリストの反映先不明 / 意図通り反映されていない疑い | H×M | Sprint 3 |
+| F-01 | 式場追加 Sheet 見出し巨大・他文字小さい | H×S | Sprint 2 |
+| F-14 | ホーム「おはようございます」+ 下の白枠がスペース無駄 | H×M | Sprint 2 |
+| F-21 | ホーム全体がダサい（Refero 研究が必要） | H×L | Sprint 2 |
+| F-10 | 決めた後のおめでとうがしょぼい | H×M | Sprint 2 |
 
-### 機能追加
-- 🟧 **F-06** 比較の観点軸が 6 だけ。妻要望は 90+（§1-§6）。別画面で選択できるようにする
-- 🟨 **F-07** 比較画面で観点フィルタ・設定
-- 🟨 **F-08** 決めるタブでも同様（フィルタ・設定）
-- 🟨 **F-09** チェック差分タブの SEED データ不足で挙動不明
-- 🟨 **F-12** 決めた候補が一覧でハイライトされない（「決定」バッジはあるが弱い）
-- 🟨 **F-20** チェックリストの反映先が不明瞭・意図通り反映されていない疑い
-- 🟦 **B-06** Zexy URL 追加（403 bot 検知）→ headless browser 導入 or「Zexy 非対応」明示
+### P2 — 高影響・次着手
 
-### 挙動系
-- 🟧 **B-17** Safari 戻るボタンで次の画面が出る（history 破綻）
-- 🟧 **B-18** 「次へ」の挙動が不安定
-- 🟨 **B-11** タブ切替が遅い
-- 🟨 **B-13** 全画面が縦長すぎ・情報密度が低い（Bento や 2 カラムで整理）
-- 🟨 **B-14** 内部画面にアニメーションがほぼ無い（Apple.com 風遷移モーションを検討）
-- 🟨 **Hydration** 警告: `typeof window !== 'undefined'` or `Date.now()` の SSR/CSR 不一致
-- 🟦 Next 16 PPR `Failed to parse postponed state` エラー（/candidates POST）
+| ID | 課題 | I×E | 対応 Sprint |
+|---|---|---|---|
+| F-04 | 比べるタブの王冠アイコン見づらい | H×S | Sprint 2 |
+| F-05 | 各観点の1位表示見づらい | H×M | Sprint 2 |
+| F-17 | コーチ右上 Plus ボタン目立たない | H×S | Sprint 2 |
+| F-18 | コーチ左上の会話履歴アイコン同上 | H×S | Sprint 2 |
+| F-06 | 比較の観点軸 6 固定、拡張 + 別画面制御（WG-04） | H×L | Sprint 3 |
+| F-07 | 比較画面に観点フィルタ（WG-03） | H×M | Sprint 3 |
+| F-02 | 式場カード左下の星・数字が式場名と被る | M×S | Sprint 2 |
+| F-03 | 画面切替ドット見づらい | M×S | Sprint 2 |
+| B-12 | Sheet 見出しサイズ不均衡 | M×S | Sprint 2 |
+| F-26 | 評価スライダー UI（修正済、実機検証待ち） | M×S | Sprint 1 実機検証 |
+| F-27 | Combobox が外タップで閉じる（修正済、実機検証待ち） | M×S | Sprint 1 実機検証 |
 
-### コピー全面素敵化
-- 🟦 **B-22** UI コピー全体を業務ワードから素敵な表現へ（`copy_overhaul_pending.md` メモ）
+### P3 — 中影響
+
+| ID | 課題 | I×E | 対応 Sprint |
+|---|---|---|---|
+| F-08 | 決めるタブにフィルタ・設定 | M×M | Sprint 3 |
+| F-09 | チェック差分 SEED データ不足 | M×M | Sprint 3 |
+| F-12 | 決めた候補のハイライト強化 | M×S | Sprint 2 |
+| B-17 | Safari 戻るボタンで次の画面 | M×M | Sprint 5 |
+| B-18 | 「次へ」挙動不安定 | M×M | Sprint 5 |
+| B-11 | タブ切替が遅い | M×M | Sprint 5（Phase 1 計測次第） |
+
+### P4 — 低影響 / Later
+
+| ID | 課題 | I×E | 対応 Sprint |
+|---|---|---|---|
+| B-13 | 全画面が縦長 / 情報密度低 | M×L | Sprint 2/5 |
+| B-14 | アプリ内アニメ欠如（Apple 風） | L×L | Sprint 5 |
+| B-22 | 全コピー素敵化 | H×L | Sprint 5（辞書確定後） |
+| B-06 | Zexy URL 追加（403 bot 検知） | L×L | Later（headless browser or 法務整理） |
+| — | Hydration mismatch 警告（無害） | L×M | Later |
+| — | Next 16 PPR `Failed to parse postponed state`（/candidates POST） | L×M | Later |
 
 ---
 
-## Recently Closed（直近、次 pass で消してよい）
+## Recently Closed（次 push 時に削除）
 
 - ✅ B-01 候補「うまくいきませんでした」（ceremonyStyles 型修正）
-- ✅ B-02 評価スライド保存失敗（incremental save に変更）
-- ✅ B-19 「ほかの式場と比べる」（B-01 の連鎖）
-- ✅ B-03 FAB 位置（HaloTap の `relative` 強制を緩和）
+- ✅ B-02 評価スライド保存失敗（incremental save）
+- ✅ B-19 「ほかの式場と比べる」
+- ✅ B-03 FAB 位置（HaloTap relative 緩和）
 - ✅ B-07 コーチ Plus ボタン（router.replace + refresh）
-- ✅ B-09 コーチ応答時刻の primary cache 問題（revalidatePath 追加）
-- ✅ F-13 「準備を始める」→ マイページ → /candidates
-- ✅ F-11 決定を取り消せない（cancelDecision 追加）
-- ✅ F-15 コーチ送信ボタン見切れ（min-w-0 + inline calc）
-- ✅ F-16 コーチ AI 応答来ない（stream 0 chunks → fallback 発動）
-- ✅ venue 写真 HTTP 400（Unsplash remotePatterns 再許可）
-- ✅ Decimal 警告（Server Component で Number() 変換）
+- ✅ B-09 コーチ応答キャッシュ（revalidatePath）
+- ✅ F-13 「準備を始める」→ /candidates
+- ✅ F-11 決定取消ボタン追加
+- ✅ F-15 コーチ送信ボタン見切れ（min-w-0）
+- ✅ F-16 コーチ AI 応答来ない（stream 0 chunks fallback）
+- ✅ venue 写真 400（Unsplash remotePatterns）
+- ✅ Decimal 警告（Number 変換）
 
 ## 完了判定ルール
-妻が実機で**該当動線をスムーズに完了できた**時点で Closed に移動、次の bump で削除。
-機能追加系は**本人が「動く」と言った時**に Closed。
+妻が実機で該当動線をスムーズに完了 → Closed。次 push で削除。
