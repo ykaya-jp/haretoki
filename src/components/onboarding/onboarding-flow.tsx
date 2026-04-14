@@ -189,8 +189,35 @@ export function OnboardingFlow() {
     if (step < QUESTIONS.length - 1) {
       setStep(step + 1);
     } else {
+      // On the final step, include the current-step selection in the saved
+      // answers. Previously `handleSkip` saved the stale `answers` state and
+      // silently dropped whatever the user had selected on this step.
+      const q = QUESTIONS[step];
+      const finalAnswers: OnboardingAnswer = { ...answers };
+
+      if (q.id === "style") {
+        if (selectedPills.length > 0) finalAnswers.style = selectedPills;
+      } else if (q.id === "guests") {
+        const count = parseInt(guestCount, 10);
+        if (count > 0) finalAnswers.guestCount = count;
+      } else if (q.id === "area") {
+        if (selectedPills.length > 0) finalAnswers.area = selectedPills;
+      } else if (q.id === "budget") {
+        const budgetMap: Record<string, { min: number; max: number }> = {
+          "200": { min: 0, max: 2000000 },
+          "300": { min: 2000000, max: 3000000 },
+          "400": { min: 3000000, max: 4000000 },
+          "500": { min: 4000000, max: 5000000 },
+          "over500": { min: 5000000, max: 99999999 },
+        };
+        const selected = selectedPills[0];
+        if (selected && budgetMap[selected]) {
+          finalAnswers.budget = budgetMap[selected];
+        }
+      }
+
       startTransition(async () => {
-        await saveOnboardingAnswers(answers);
+        await saveOnboardingAnswers(finalAnswers);
         setIsLoadingRecs(true);
         setShowRecommendations(true);
         try {
@@ -262,7 +289,7 @@ export function OnboardingFlow() {
                   </div>
                   {rec.estimatedPrice && (
                     <p className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
-                      ¥{Math.round(rec.estimatedPrice / 10000)}万円〜
+                      {Math.round(rec.estimatedPrice / 10000)}万円〜
                     </p>
                   )}
                 </div>
@@ -376,6 +403,8 @@ export function OnboardingFlow() {
             <Input
               type="number"
               inputMode="numeric"
+              min="1"
+              max="500"
               value={guestCount}
               onChange={(e) => setGuestCount(e.target.value)}
               placeholder="例: 80"

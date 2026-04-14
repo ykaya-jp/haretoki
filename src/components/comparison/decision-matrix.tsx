@@ -101,9 +101,13 @@ export function DecisionMatrix() {
         </p>
       </div>
 
-      {/* Scrollable table */}
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-        <table className="w-full min-w-[560px]">
+      {/* Scrollable table with right-edge fade to signal horizontal scroll.
+          Note: The "別の式場を検討する / 決め直す" affordance for post-decision
+          state belongs in candidates-view.tsx (where the decision screen is
+          rendered at ~line 307-324), not in this matrix component. */}
+      <div className="relative">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="w-full min-w-[560px]">
           <thead>
             <tr className="border-b border-border">
               <th className="sticky left-0 z-10 bg-card px-3 py-3 text-left text-xs font-medium text-muted-foreground w-[100px]">
@@ -142,13 +146,16 @@ export function DecisionMatrix() {
                   <td
                     key={v.id}
                     className={cn(
-                      "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
+                      "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
                       scoreBackground(v.totalScore, isWinner),
                       scoreColor(v.totalScore, isWinner),
                     )}
                   >
                     {isWinner && (
-                      <Crown className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]" />
+                      <Crown
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]"
+                        aria-label="1位"
+                      />
                     )}
                     {v.totalScore !== null ? v.totalScore.toFixed(1) : "—"}
                   </td>
@@ -168,7 +175,7 @@ export function DecisionMatrix() {
                     <td
                       key={v.id}
                       className={cn(
-                        "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
+                        "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
                         scoreBackground(score, isWinner),
                         scoreColor(score, isWinner),
                       )}
@@ -194,12 +201,16 @@ export function DecisionMatrix() {
                   <td
                     key={v.id}
                     className={cn(
-                      "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
+                      "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
                       isWinner && "bg-[var(--gold-subtle)] text-[var(--gold-warm)] font-medium",
                     )}
+                    aria-label={isWinner ? `${formatYen(cost)} 1位` : undefined}
                   >
                     {isWinner && (
-                      <Crown className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]" />
+                      <Crown
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]"
+                        aria-label="1位"
+                      />
                     )}
                     {formatYen(cost)}
                   </td>
@@ -208,6 +219,12 @@ export function DecisionMatrix() {
             </tr>
           </tbody>
         </table>
+        </div>
+        {/* Right-edge fade to hint horizontal scroll */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-2xl bg-gradient-to-l from-background to-transparent"
+        />
       </div>
 
       {/* Winners summary */}
