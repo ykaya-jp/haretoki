@@ -418,7 +418,13 @@ model VenuePlan {
   includedItems  Json     @default("[]") @map("included_items")
   excludedItems  Json     @default("[]") @map("excluded_items")
   bringInItems   Json     @default("[]") @map("bring_in_items")
-  dressAllowance String?  @map("dress_allowance")
+  // Legacy free-text field. Preserved for backfill; new edits use the
+  // structured columns below + dressAllowanceNote for free-form notes.
+  dressAllowance     String?  @map("dress_allowance")
+  dressAllowanceNote String?  @map("dress_allowance_note")
+  dressBrideCount    Int?     @map("dress_bride_count")
+  dressGroomCount    Int?     @map("dress_groom_count")
+  dressBudgetCapYen  Int?     @map("dress_budget_cap_yen")
   campaigns      Json     @default("[]")
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at")
