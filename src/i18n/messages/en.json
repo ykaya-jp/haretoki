@@ -1,0 +1,38 @@
+{
+  "_comment": "English scaffold. Keys without an obvious translation fall back to Japanese intentionally so the UI stays coherent while translations are being authored one module at a time.",
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "retry": "Retry",
+    "close": "Close",
+    "loading": "Loading...",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "nav": {
+    "home": "Home",
+    "explore": "Explore",
+    "candidates": "候補",
+    "coach": "Coach",
+    "mypage": "マイページ"
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submit": "Log in",
+      "googleSignIn": "Sign in with Google"
+    },
+    "logout": "Log out"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "dataManagement": "Data management",
+    "exportData": "データをダウンロード",
+    "deleteAccount": "アカウントを削除"
+  }
+}

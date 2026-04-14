@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Points the plugin at our App Router request config.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   images: {
@@ -19,18 +23,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-// withSentryConfig injects the Sentry webpack plugin (source-map upload,
-// release tagging) and a proxy for the Sentry API to avoid ad-blockers.
-// Upload is only triggered when SENTRY_AUTH_TOKEN is set — the wrapper is
-// safe to apply unconditionally. silent:true + telemetry:false keep dev
-// builds quiet and private.
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  org: process.env.SENTRY_ORG || "haretoki",
-  project: process.env.SENTRY_PROJECT || "haretoki-web",
-  telemetry: false,
-  widenClientFileUpload: false,
-  // Serves the Sentry ingest endpoint through our own origin to dodge
-  // ad-blockers that strip third-party beacon requests.
-  tunnelRoute: "/monitoring",
-});
+// Wrap order matters per next-intl docs: withNextIntl must be the OUTERMOST
+// wrapper. withSentryConfig adds source-map upload + tunnel, safe to apply
+// unconditionally (it no-ops when SENTRY_AUTH_TOKEN is unset).
+export default withNextIntl(
+  withSentryConfig(nextConfig, {
+    silent: true,
+    org: process.env.SENTRY_ORG || "haretoki",
+    project: process.env.SENTRY_PROJECT || "haretoki-web",
+    telemetry: false,
+    widenClientFileUpload: false,
+    // Serves the Sentry ingest endpoint through our own origin to dodge
+    // ad-blockers that strip third-party beacon requests.
+    tunnelRoute: "/monitoring",
+  }),
+);
