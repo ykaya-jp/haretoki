@@ -10,15 +10,16 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import { DecisionMatrix } from "@/components/comparison/decision-matrix";
 import { DimensionFocus } from "@/components/comparison/dimension-focus";
+import { ChecklistComparison } from "@/components/comparison/checklist-comparison";
 import { PriorityWeights } from "@/components/comparison/priority-weights";
 import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { DecisionCeremony } from "@/components/decision/decision-ceremony";
-import { Heart, BarChart3, Trophy, PartyPopper } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper, ClipboardCheck } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 
-type Tab = "shortlist" | "matrix" | "focus" | "decision";
+type Tab = "shortlist" | "matrix" | "focus" | "checklist" | "decision";
 
 interface FavoriteVenue {
   venue: {
@@ -81,6 +82,12 @@ export function CandidatesView({
       label: "観点別",
       disabled: !canCompare,
       disabledHint: "候補を2件以上追加すると使えます",
+    },
+    {
+      id: "checklist" as const,
+      label: "チェック差分",
+      disabled: !canCompare,
+      disabledHint: "候補を2件以上追加するとチェック差分を比較できます",
     },
     {
       id: "decision" as const,
@@ -272,6 +279,30 @@ export function CandidatesView({
                 icon={BarChart3}
                 title="観点別の比較には2件必要です"
                 description="お気に入りに2件以上追加すると、雰囲気や料理などの観点ごとに比べられます。"
+                action={{ label: "式場を探す", href: "/explore" }}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {tab === "checklist" && (
+          <motion.div
+            key="checklist"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {canCompare ? (
+              <ChecklistComparison
+                venueIds={favorites.map((f) => f.venue.id)}
+                venueNames={favorites.map((f) => f.venue.name)}
+              />
+            ) : (
+              <EmptyState
+                icon={ClipboardCheck}
+                title="チェック差分の比較には2件必要です"
+                description="候補を2件以上追加するとチェック差分を比較できます。"
                 action={{ label: "式場を探す", href: "/explore" }}
               />
             )}

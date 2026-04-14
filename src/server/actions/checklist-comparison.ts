@@ -4,16 +4,19 @@ import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 
 export interface ChecklistComparisonData {
+  venueNames: string[];
   categories: Array<{
     category: string;
     label: string;
     items: Array<{
       item: string;
+      difference: boolean;
       venues: Array<{
         venueId: string;
         venueName: string;
         status: string;
         memo: string | null;
+        hasPhotos: boolean;
       }>;
     }>;
   }>;
@@ -42,7 +45,10 @@ export async function getChecklistComparison(
   });
 
   // Build category → item → venue status map
-  const categoryMap = new Map<string, Map<string, Map<string, { status: string; memo: string | null }>>>();
+  const categoryMap = new Map<
+    string,
+    Map<string, Map<string, { status: string; memo: string | null; hasPhotos: boolean }>>
+  >();
 
   for (const venue of venues) {
     const visit = venue.visits[0];
@@ -56,6 +62,7 @@ export async function getChecklistComparison(
       itemMap.get(item.item)!.set(venue.id, {
         status: item.status,
         memo: item.memo,
+        hasPhotos: (item.photoUrls?.length ?? 0) > 0,
       });
     }
   }
@@ -82,16 +89,20 @@ export async function getChecklistComparison(
     .map(([category, itemMap]) => ({
       category,
       label: CATEGORY_LABELS[category] ?? category,
-      items: [...itemMap.entries()].map(([item, venueStatuses]) => ({
-        item,
-        venues: venueIds.map(id => ({
+      items: [...itemMap.entries()].map(([item, venueStatuses]) => {
+        const rows = venueIds.map(id => ({
           venueId: id,
           venueName: venueMap.get(id) ?? "",
           status: venueStatuses.get(id)?.status ?? "unchecked",
           memo: venueStatuses.get(id)?.memo ?? null,
-        })),
-      })),
+          hasPhotos: venueStatuses.get(id)?.hasPhotos ?? false,
+        }));
+        const statuses = new Set(rows.map(r => r.status));
+        const difference = statuses.size > 1;
+        return { item, difference, venues: rows };
+      }),
     }));
 
-  return { categories };
+  const venueNames = venueIds.map(id => venueMap.get(id) ?? "");
+  return { venueNames, categories };
 }
