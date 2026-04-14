@@ -57,6 +57,7 @@ export function CandidatesView({
   const [showCeremony, setShowCeremony] = useState(false);
   const [ceremonyVenueName, setCeremonyVenueName] = useState("");
   const [decision, setDecision] = useState(initialDecision ?? null);
+  const [isDeciding, setIsDeciding] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -90,21 +91,39 @@ export function CandidatesView({
   ];
 
   const handleDecide = async (venueId: string) => {
+    if (isDeciding) return; // sync guard against double-submit
     const venue = venueOptions.find((v) => v.id === venueId);
     if (!venue) return;
 
-    const result = await makeDecision({
-      selectedVenueId: venueId,
-    });
-
-    if ("error" in result) {
-      toast.error("記録できませんでした");
-      return;
+    // Guard against re-deciding when a decision already exists. The DB upsert
+    // would silently overwrite, which is surprising — require an explicit
+    // confirmation.
+    if (decision) {
+      const ok =
+        typeof window !== "undefined" &&
+        window.confirm(
+          `すでに「${decision.venueName}」に決まっています。「${venue.name}」に変更しますか？`,
+        );
+      if (!ok) return;
     }
 
-    setCeremonyVenueName(venue.name);
-    setShowCeremony(true);
-    setTab("decision");
+    setIsDeciding(true);
+    try {
+      const result = await makeDecision({
+        selectedVenueId: venueId,
+      });
+
+      if ("error" in result) {
+        toast.error("記録できませんでした");
+        return;
+      }
+
+      setCeremonyVenueName(venue.name);
+      setShowCeremony(true);
+      setTab("decision");
+    } finally {
+      setIsDeciding(false);
+    }
   };
 
   const handleCeremonyComplete = async (_tags: string[], _text: string) => {
@@ -178,7 +197,16 @@ export function CandidatesView({
                       topStrengths: [],
                       latestEstimate: null,
                     }))}
-                    onComplete={() => { setShowSwipe(false); router.refresh(); }}
+                    onComplete={(_kept, compareIds) => {
+                      setShowSwipe(false);
+                      router.refresh();
+                      // If the user up-swiped 2+ venues, jump straight to the
+                      // compare board — otherwise just re-render the shortlist
+                      // with left-swiped venues now removed.
+                      if (compareIds.length >= 2 && canCompare) {
+                        setTab("matrix");
+                      }
+                    }}
                   />
                 )}
 

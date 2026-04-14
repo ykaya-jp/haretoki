@@ -24,50 +24,61 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (phase === "celebration") {
-      // Move to summary after 2 seconds (set up immediately so cleanup works even
-      // if the dynamic import of canvas-confetti resolves after unmount).
-      const timer = setTimeout(() => setPhase("summary"), 2000);
+    if (phase !== "celebration") return;
 
-      // Fire confetti via dynamic import so the ~15KB canvas-confetti bundle is
-      // NOT pulled into the initial JS payload. This screen is only reached once
-      // per project, so the latency of a dynamic import is acceptable.
-      const prefersReduced = window
-        .matchMedia("(prefers-reduced-motion: reduce)")
-        .matches;
-      if (!prefersReduced) {
-        let cancelled = false;
-        void import("canvas-confetti").then((mod) => {
-          if (cancelled) return;
-          mod.default({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ["#1E3A5F", "#C9A84C", "#FFFFFF"],
-          });
+    // Move to summary after 2 seconds.
+    const timer = setTimeout(() => setPhase("summary"), 2000);
+
+    // Fire confetti via dynamic import so the ~15KB canvas-confetti bundle is
+    // NOT pulled into the initial JS payload. The `cancelled` flag guards
+    // against confetti firing after unmount (the import resolves async).
+    let cancelled = false;
+    const prefersReduced = window
+      .matchMedia("(prefers-reduced-motion: reduce)")
+      .matches;
+    if (!prefersReduced) {
+      void import("canvas-confetti").then((mod) => {
+        if (cancelled) return;
+        mod.default({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#1E3A5F", "#C9A84C", "#FFFFFF"],
         });
-        return () => {
-          cancelled = true;
-          clearTimeout(timer);
-        };
-      }
-
-      return () => clearTimeout(timer);
+      });
     }
+
+    // Single effect-level cleanup — always runs on unmount / phase change,
+    // regardless of whether the confetti branch was taken.
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [phase]);
 
-  const handleSaveReason = async () => {
+  const handleSaveReason = async (
+    tags: string[] = selectedTags,
+    text: string = reasonText,
+  ) => {
+    if (saving) return;
     setSaving(true);
-    await onRecordReason(selectedTags, reasonText);
-    setSaving(false);
+    try {
+      await onRecordReason(tags, text);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSkipAll = () => {
+    if (saving) return;
+    void handleSaveReason([], "");
   };
 
   if (phase === "celebration") {
+    const greeting = userName ? `おめでとう、${userName}さん！` : "おめでとうございます！";
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-        <h1 className="text-fluid-xl">
-          おめでとう、{userName}さん！
-        </h1>
+        <h1 className="text-fluid-xl">{greeting}</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           {venueName}に決まりました
         </p>
@@ -94,16 +105,18 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
         <button
           type="button"
           onClick={() => setPhase("reason")}
-          className="rounded-lg bg-primary px-6 py-3 text-primary-foreground"
+          disabled={saving}
+          className="min-h-11 rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
         >
           決めた理由を残す
         </button>
         <button
           type="button"
-          onClick={handleSaveReason}
-          className="text-sm text-muted-foreground underline"
+          onClick={handleSkipAll}
+          disabled={saving}
+          className="min-h-11 text-sm text-muted-foreground underline disabled:opacity-50"
         >
-          スキップ
+          {saving ? "記録しています..." : "スキップ"}
         </button>
       </div>
     );
@@ -143,16 +156,17 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
       <div className="flex justify-center gap-3">
         <button
           type="button"
-          onClick={handleSaveReason}
+          onClick={() => handleSaveReason()}
           disabled={saving}
-          className="rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
         >
           {saving ? "記録しています..." : "この想いを残す"}
         </button>
         <button
           type="button"
-          onClick={() => onRecordReason([], "")}
-          className="text-sm text-muted-foreground underline"
+          onClick={handleSkipAll}
+          disabled={saving}
+          className="min-h-11 text-sm text-muted-foreground underline disabled:opacity-50"
         >
           スキップ
         </button>

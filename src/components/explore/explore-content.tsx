@@ -19,6 +19,10 @@ type VenueWithRelations = Venue & {
 interface ExploreContentProps {
   venues: VenueWithRelations[];
   favoriteIds: string[];
+  // The server page already resolved the query + onboarding-derived filters
+  // (from URL search params or project.conditions). Pass them in so the
+  // filter-sheet merges ON TOP of them instead of silently clobbering them.
+  baseFilters?: VenueFilters;
 }
 
 const STATUS_FILTERS = [
@@ -29,7 +33,11 @@ const STATUS_FILTERS = [
   { id: "selected", label: "お気に入り" },
 ] as const;
 
-export function ExploreContent({ venues: initialVenues, favoriteIds }: ExploreContentProps) {
+export function ExploreContent({
+  venues: initialVenues,
+  favoriteIds,
+  baseFilters,
+}: ExploreContentProps) {
   const [venues, setVenues] = useState(initialVenues);
   const [activeFilter, setActiveFilter] = useState("all");
   const [advancedFilters, setAdvancedFilters] = useState<VenueFilters>({});
@@ -51,13 +59,21 @@ export function ExploreContent({ venues: initialVenues, favoriteIds }: ExploreCo
     setActiveFilter(id === activeFilter ? "all" : id);
   };
 
-  const handleFilterApply = useCallback((filters: VenueFilters) => {
-    setAdvancedFilters(filters);
-    startTransition(async () => {
-      const result = await getVenues(filters);
-      setVenues(result as VenueWithRelations[]);
-    });
-  }, []);
+  const handleFilterApply = useCallback(
+    (filters: VenueFilters) => {
+      setAdvancedFilters(filters);
+      // Merge sheet filters ON TOP of the server-resolved base (search
+      // query + onboarding conditions). Sheet keys override base keys so the
+      // user can intentionally loosen a personalization constraint, but they
+      // never silently lose their search query.
+      const merged: VenueFilters = { ...(baseFilters ?? {}), ...filters };
+      startTransition(async () => {
+        const result = await getVenues(merged);
+        setVenues(result as VenueWithRelations[]);
+      });
+    },
+    [baseFilters],
+  );
 
   const filteredVenues = useMemo(() => {
     if (activeFilter === "all") return venues;

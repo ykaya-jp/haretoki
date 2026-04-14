@@ -1,6 +1,7 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleFavorite } from "@/server/actions/favorites";
@@ -13,43 +14,59 @@ interface HeartButtonProps {
 }
 
 export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
-  const [optimisticFavorite, setOptimisticFavorite] = useOptimistic(initialFavorite);
-  const [, startTransition] = useTransition();
+  // NOTE: useOptimistic requires an active Server Action transition to
+  // auto-revert. We perform the mutation via a plain async call wrapped in
+  // try/catch, so we need manual revert semantics — hence useState.
+  const [favorite, setFavorite] = useState(initialFavorite);
+  const inFlightRef = useRef(false);
+  const router = useRouter();
 
-  const handleToggle = () => {
-    startTransition(async () => {
-      const newState = !optimisticFavorite;
-      setOptimisticFavorite(newState);
+  // Keep in sync if the parent re-renders with a different value (e.g. after
+  // `router.refresh()` re-hydrates from the server).
+  useEffect(() => {
+    setFavorite(initialFavorite);
+  }, [initialFavorite]);
 
-      try {
-        await toggleFavorite(venueId);
-        toast.success(newState ? "お気に入りに追加しました" : "お気に入りから外しました", {
-          duration: 2000,
-          action:
-            newState === false
-              ? { label: "戻す", onClick: handleToggle }
-              : undefined,
-        });
-      } catch {
-        toast.error("保存できませんでした", {
-          action: { label: "もう一度", onClick: handleToggle },
-        });
-      }
-    });
+  const handleToggle = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    const previous = favorite;
+    const next = !previous;
+    setFavorite(next);
+
+    try {
+      await toggleFavorite(venueId);
+      toast.success(next ? "お気に入りに追加しました" : "お気に入りから外しました", {
+        duration: 2000,
+        action: !next
+          ? { label: "戻す", onClick: () => void handleToggle() }
+          : undefined,
+      });
+      // Refresh the server tree so any parent-owned favorite snapshot
+      // (Explore/Candidates lists) reflects the change.
+      router.refresh();
+    } catch {
+      setFavorite(previous); // revert optimistic state on failure
+      toast.error("保存できませんでした", {
+        action: { label: "もう一度", onClick: () => void handleToggle() },
+      });
+    } finally {
+      inFlightRef.current = false;
+    }
   };
 
   return (
     <motion.button
       type="button"
       onClick={handleToggle}
-      aria-pressed={optimisticFavorite}
-      aria-label={optimisticFavorite ? "お気に入りから外す" : "お気に入りに追加"}
+      aria-pressed={favorite}
+      aria-label={favorite ? "お気に入りから外す" : "お気に入りに追加"}
       className="flex h-12 w-12 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-colors hover:bg-card active:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
       whileTap={{ scale: 1.15 }}
       transition={{ type: "spring", stiffness: 200, damping: 12 }}
     >
       <motion.div
-        key={optimisticFavorite ? "filled" : "empty"}
+        key={favorite ? "filled" : "empty"}
         initial={{ scale: 0.3 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 12 }}
@@ -57,7 +74,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
         <Heart
           className={cn(
             "h-5 w-5 transition-colors duration-200",
-            optimisticFavorite
+            favorite
               ? "fill-primary text-primary"
               : "fill-none text-primary/70"
           )}

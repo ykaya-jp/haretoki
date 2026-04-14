@@ -140,7 +140,11 @@ export default async function ExplorePage({
           />
         )
       ) : (
-        <ExploreContent venues={venues} favoriteIds={favoriteIds} />
+        <ExploreContent
+          venues={venues}
+          favoriteIds={favoriteIds}
+          baseFilters={hasAnyFilter ? venueFilters : undefined}
+        />
       )}
     </div>
   );

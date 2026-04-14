@@ -31,8 +31,15 @@ export function SwipeCompare({ venues, onComplete }: SwipeCompareProps) {
   const handleSwipe = async (direction: "left" | "right" | "up") => {
     const venue = venues[currentIndex];
 
+    // Build the next-state locally so onComplete sees the final swipe too;
+    // reading `kept` / `compareIds` directly after setState would return
+    // stale closure values on the last venue.
+    let nextKept = kept;
+    let nextCompareIds = compareIds;
+
     if (direction === "right") {
-      setKept(prev => [...prev, venue.id]);
+      nextKept = [...kept, venue.id];
+      setKept(nextKept);
     } else if (direction === "left") {
       // Remove from favorites
       try {
@@ -41,12 +48,13 @@ export function SwipeCompare({ venues, onComplete }: SwipeCompareProps) {
         toast.error("うまくいきませんでした");
       }
     } else if (direction === "up") {
-      setCompareIds(prev => [...prev, venue.id]);
+      nextCompareIds = [...compareIds, venue.id];
+      setCompareIds(nextCompareIds);
     }
 
     const nextIndex = currentIndex + 1;
     if (nextIndex >= venues.length) {
-      onComplete(kept, compareIds);
+      onComplete(nextKept, nextCompareIds);
     } else {
       setCurrentIndex(nextIndex);
     }

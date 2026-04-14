@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { getVenue } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
@@ -18,6 +16,7 @@ import { PartnerComparisonSummary } from "@/components/ratings/partner-compariso
 import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
+import { VenueDetailBackLink } from "@/components/venues/back-link";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default async function VenueDetailPage({
@@ -49,14 +48,9 @@ export default async function VenueDetailPage({
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Back link */}
-      <Link
-        href="/explore"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground -ml-1 active:opacity-70"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        戻る
-      </Link>
+      {/* Back link — uses router.back() to preserve filter/scroll state on
+          the referrer page (Explore, Candidates, Home all link here). */}
+      <VenueDetailBackLink />
 
       {/* Photo Gallery — above the fold */}
       <VenuePhotoGallery
