@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck } from "lucide-react";
+import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 const STATS = [
@@ -20,6 +20,24 @@ const STATS = [
     value: "2.8件",
     description: "しか見学していない。比較は足りていますか",
     source: "リクルート ブライダル総研「結婚トレンド調査 2024」",
+  },
+];
+
+const HERO_BENEFITS = [
+  {
+    icon: Link2,
+    title: "URLを貼るだけで登録",
+    subtext: "AIが式場情報を読み取ります",
+  },
+  {
+    icon: BarChart3,
+    title: "6軸×AIで比較",
+    subtext: "雰囲気・料理・コスパまで並べて見れる",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "見学リストで迷わない",
+    subtext: "当日見落としを防ぐチェックリスト",
   },
 ];
 
@@ -131,8 +149,37 @@ export function LandingPage() {
             ここで、晴れにできます。
           </motion.p>
 
-          <motion.div
+          <motion.ul
             custom={3}
+            variants={fadeUp}
+            className="mx-auto w-full max-w-xl space-y-3 rounded-2xl border border-[var(--gold-warm)]/15 bg-[var(--gold-subtle)]/30 p-5 text-left backdrop-blur-sm md:grid md:grid-cols-3 md:gap-4 md:space-y-0"
+          >
+            {HERO_BENEFITS.map((benefit) => {
+              const Icon = benefit.icon;
+              return (
+                <li
+                  key={benefit.title}
+                  className="flex items-start gap-3 md:flex-col md:items-center md:gap-2 md:text-center"
+                >
+                  <Icon
+                    className="h-5 w-5 shrink-0 text-[var(--gold-warm)] mt-0.5 md:mt-0"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-snug text-foreground">
+                      {benefit.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {benefit.subtext}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </motion.ul>
+
+          <motion.div
+            custom={4}
             variants={fadeUp}
             className="flex flex-col items-center gap-5 pt-2 sm:flex-row sm:justify-center"
           >
@@ -152,7 +199,7 @@ export function LandingPage() {
           </motion.div>
 
           <motion.p
-            custom={4}
+            custom={5}
             variants={fadeUp}
             className="pt-2 text-sm tracking-wide text-muted-foreground/50"
           >
