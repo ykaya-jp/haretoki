@@ -6,11 +6,12 @@ export default function CandidatesLoading() {
       {/* Header */}
       <Skeleton className="h-6 w-16" />
 
-      {/* Segmented control (3 buttons) */}
+      {/* Segmented control (4 buttons: shortlist/matrix/focus/decision) */}
       <div className="flex gap-1 rounded-2xl bg-muted/60 p-1.5">
-        <Skeleton className="h-10 flex-1 rounded-xl" />
-        <Skeleton className="h-10 flex-1 rounded-xl" />
-        <Skeleton className="h-10 flex-1 rounded-xl" />
+        <Skeleton className="h-11 flex-1 rounded-xl" />
+        <Skeleton className="h-11 flex-1 rounded-xl" />
+        <Skeleton className="h-11 flex-1 rounded-xl" />
+        <Skeleton className="h-11 flex-1 rounded-xl" />
       </div>
 
       {/* Filter pills */}

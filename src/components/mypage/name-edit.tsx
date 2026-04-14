@@ -69,7 +69,7 @@ export function NameEdit({ currentName }: NameEditProps) {
       <button
         type="button"
         onClick={() => setIsEditing(true)}
-        className="group flex w-full items-center justify-between gap-3 rounded-lg text-left transition-colors active:scale-[0.99]"
+        className="group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg text-left transition-colors active:scale-[0.99]"
         aria-label="お名前を編集する"
       >
         <span className="font-medium">

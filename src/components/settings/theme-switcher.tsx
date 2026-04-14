@@ -30,7 +30,7 @@ export function ThemeSwitcher() {
             onClick={() => setTheme(id)}
             aria-pressed={isActive}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+              "flex min-h-11 items-center gap-1.5 rounded-full px-4 py-2.5 text-sm transition-colors",
               isActive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
             )}
           >

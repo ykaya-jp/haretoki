@@ -105,7 +105,6 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
                 {onDecide && (
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => onDecide(venue.id)}
                     className="mt-2 w-full"
                   >
@@ -120,13 +119,13 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-sm font-light tracking-wide">カテゴリ別スコア</h3>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-foreground">
                 差分のみ表示
                 <input
                   type="checkbox"
                   checked={diffOnly}
                   onChange={(e) => setDiffOnly(e.target.checked)}
-                  className="rounded"
+                  className="h-4 w-4 rounded"
                 />
               </label>
             </div>
