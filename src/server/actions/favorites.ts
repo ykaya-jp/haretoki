@@ -91,8 +91,8 @@ async function fetchFavorites(
     include: {
       venue: {
         include: {
+          // Include all sources so computeCompositeScore can weight them
           scores: {
-            where: { source: "user_rating" },
             select: { dimension: true, score: true, source: true },
           },
         },

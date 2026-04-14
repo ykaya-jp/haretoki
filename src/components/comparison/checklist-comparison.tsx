@@ -5,7 +5,8 @@ import {
   getChecklistComparison,
   type ChecklistComparisonData,
 } from "@/server/actions/checklist-comparison";
-import { Check, X, Minus, Loader2, ChevronDown, Camera } from "lucide-react";
+import { Check, X, Minus, Loader2, ChevronDown } from "lucide-react";
+import { PhotoThumbnails } from "@/components/ui/photo-lightbox";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -202,18 +203,23 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                                     key={v.venueId}
                                     className={cn(
                                       VENUE_COL_W,
-                                      "shrink-0 flex items-center justify-center gap-0.5 rounded py-1",
+                                      "shrink-0 flex flex-col items-center gap-1 rounded py-1",
                                       v.status === "yes" && "bg-green-50",
                                       v.status === "no" && "bg-destructive/10",
                                     )}
                                     title={v.memo ?? undefined}
                                   >
                                     <StatusIcon status={v.status} />
-                                    {v.hasPhotos && (
-                                      <Camera
-                                        className="h-3 w-3 text-muted-foreground/60"
-                                        aria-label="写真あり"
+                                    {v.photoUrls.length > 0 ? (
+                                      <PhotoThumbnails
+                                        photoUrls={v.photoUrls}
+                                        maxShow={3}
+                                        className="justify-center"
                                       />
+                                    ) : (
+                                      !v.hasPhotos && (
+                                        <span className="text-[10px] text-muted-foreground/40">—</span>
+                                      )
                                     )}
                                   </div>
                                 ))}

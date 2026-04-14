@@ -9,6 +9,7 @@ import type { VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
+import { computeCompositeScore } from "@/lib/venue-score";
 import {
   extractMetadata,
   hasUsefulMetadata,
@@ -105,10 +106,9 @@ export async function getVenues(filters?: VenueFilters) {
   // Post-query filter for overall score (requires aggregation)
   if (filters?.minScore !== undefined) {
     filtered = filtered.filter((venue) => {
-      const userScores = venue.scores.filter((s) => s.source === "user_rating");
-      if (userScores.length === 0) return false;
-      const avg = userScores.reduce((acc, s) => acc + Number(s.score), 0) / userScores.length;
-      return avg >= (filters.minScore ?? 0);
+      const composite = computeCompositeScore(venue.scores);
+      if (composite === null) return false;
+      return composite >= (filters.minScore ?? 0);
     });
   }
 
@@ -124,11 +124,11 @@ export async function getVenues(filters?: VenueFilters) {
     });
   }
 
-  // Post-query sort for score (requires aggregation)
+  // Post-query sort for score (requires aggregation) — uses composite multi-source score
   if (filters?.sortBy === "score_desc") {
     return filtered.sort((a, b) => {
-      const avgA = calcAvgScore(a.scores);
-      const avgB = calcAvgScore(b.scores);
+      const avgA = computeCompositeScore(a.scores);
+      const avgB = computeCompositeScore(b.scores);
       return (avgB ?? 0) - (avgA ?? 0);
     });
   }
@@ -163,12 +163,6 @@ function calcDimScore(
 ): number | null {
   const s = scores.find((s) => s.source === "user_rating" && s.dimension === dimension);
   return s != null ? Number(s.score) : null;
-}
-
-function calcAvgScore(scores: Array<{ source: string; score: unknown }>): number | null {
-  const userScores = scores.filter((s) => s.source === "user_rating");
-  if (userScores.length === 0) return null;
-  return userScores.reduce((acc, s) => acc + Number(s.score), 0) / userScores.length;
 }
 
 export async function getVenue(id: string) {

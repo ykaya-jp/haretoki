@@ -243,6 +243,7 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
           }))}
           reviewMeanFinal={reviewMeanFinal}
           reviewSampleCount={reviewEstimateAgg?.sampleCount ?? undefined}
+          reviewStdDevYen={reviewEstimateAgg?.standardDeviation ?? undefined}
         />
       )}
     </>

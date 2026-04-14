@@ -3,6 +3,7 @@ import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
+import { computeCompositeScore } from "@/lib/venue-score";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 
 type VenueWithScores = Venue & {
@@ -15,15 +16,8 @@ interface VenueCardProps {
   isFavorite?: boolean;
 }
 
-function calcAverageScore(scores: VenueScore[]): number | null {
-  const userScores = scores.filter((s) => s.source === "user_rating");
-  if (userScores.length === 0) return null;
-  const sum = userScores.reduce((acc, s) => acc + Number(s.score), 0);
-  return sum / userScores.length;
-}
-
 export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
-  const avgScore = calcAverageScore(venue.scores);
+  const avgScore = computeCompositeScore(venue.scores);
   const hasCost = venue.costMin || venue.costMax;
 
   // V1 Visual: hotel-brochure feel — 3:2 photo, larger serif name,

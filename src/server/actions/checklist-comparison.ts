@@ -17,6 +17,8 @@ export interface ChecklistComparisonData {
         status: string;
         memo: string | null;
         hasPhotos: boolean;
+        /** Up to 3 photo URLs for thumbnail display. */
+        photoUrls: string[];
       }>;
     }>;
   }>;
@@ -47,7 +49,7 @@ export async function getChecklistComparison(
   // Build category → item → venue status map
   const categoryMap = new Map<
     string,
-    Map<string, Map<string, { status: string; memo: string | null; hasPhotos: boolean }>>
+    Map<string, Map<string, { status: string; memo: string | null; hasPhotos: boolean; photoUrls: string[] }>>
   >();
 
   for (const venue of venues) {
@@ -59,10 +61,12 @@ export async function getChecklistComparison(
       if (!categoryMap.has(cat)) categoryMap.set(cat, new Map());
       const itemMap = categoryMap.get(cat)!;
       if (!itemMap.has(item.item)) itemMap.set(item.item, new Map());
+      const urls = item.photoUrls ?? [];
       itemMap.get(item.item)!.set(venue.id, {
         status: item.status,
         memo: item.memo,
-        hasPhotos: (item.photoUrls?.length ?? 0) > 0,
+        hasPhotos: urls.length > 0,
+        photoUrls: urls.slice(0, 3),
       });
     }
   }
@@ -96,6 +100,7 @@ export async function getChecklistComparison(
           status: venueStatuses.get(id)?.status ?? "unchecked",
           memo: venueStatuses.get(id)?.memo ?? null,
           hasPhotos: venueStatuses.get(id)?.hasPhotos ?? false,
+          photoUrls: venueStatuses.get(id)?.photoUrls ?? [],
         }));
         const statuses = new Set(rows.map(r => r.status));
         const difference = statuses.size > 1;

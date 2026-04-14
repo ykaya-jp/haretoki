@@ -228,11 +228,13 @@ export async function getVenueReviews(venueId: string) {
 /**
  * Fetch the venue-level aggregated review-based estimate-increase
  * stats for a single venue (populated by recomputeVenueReviewEstimate).
+ * Also computes standardDeviation of deltaYen across reviews (n>=3 required).
  */
 export async function getVenueReviewEstimateAggregate(venueId: string): Promise<{
   deltaYen: number | null;
   deltaPct: number | null;
   sampleCount: number | null;
+  standardDeviation: number | null;
 } | null> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
@@ -246,10 +248,32 @@ export async function getVenueReviewEstimateAggregate(venueId: string): Promise<
     },
   });
   if (!venue) return null;
+
+  // Compute sample standard deviation from individual review deltaYen values
+  let standardDeviation: number | null = null;
+  const sampleCount = venue.reviewEstimateSampleCount;
+  if (sampleCount != null && sampleCount >= 3) {
+    const reviews = await prisma.review.findMany({
+      where: { venueId, estimateIncrease: { not: undefined } },
+      select: { estimateIncrease: true },
+    });
+    const { parseEstimateIncrease: parse } = await import("@/server/actions/review-schema");
+    const yenValues = reviews
+      .map((r) => parse(r.estimateIncrease)?.deltaYen)
+      .filter((v): v is number => typeof v === "number");
+    if (yenValues.length >= 3) {
+      const mean = yenValues.reduce((a, b) => a + b, 0) / yenValues.length;
+      const variance =
+        yenValues.reduce((a, v) => a + (v - mean) ** 2, 0) / (yenValues.length - 1);
+      standardDeviation = Math.round(Math.sqrt(variance));
+    }
+  }
+
   return {
     deltaYen: venue.reviewEstimateDeltaYen,
     deltaPct: venue.reviewEstimateDeltaPct ? Number(venue.reviewEstimateDeltaPct) : null,
-    sampleCount: venue.reviewEstimateSampleCount,
+    sampleCount,
+    standardDeviation,
   };
 }
 
