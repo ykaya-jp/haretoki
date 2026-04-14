@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho, Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { MotionProvider } from "@/components/providers/motion-provider";
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -38,20 +41,35 @@ const shipporiMincho = Shippori_Mincho({
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://haretoki.vercel.app";
+
+const DEFAULT_TITLE = "Haretoki — 式場選びを、もっと納得のいくものに";
+const DEFAULT_DESCRIPTION =
+  "結婚式場の比較・評価・最終決定をAIが支援。見積もりの落とし穴を先回りで教え、ふたりの好みを見える化する中立ツール。";
+
 export const metadata: Metadata = {
-  title: "Haretoki — ふたりの式場選びパートナー",
-  description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
-  manifest: "/manifest.json",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: "%s · Haretoki",
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: ["結婚式場", "比較", "見積もり", "チェックリスト", "ブライダル", "Haretoki"],
+  manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "Haretoki — ふたりの式場選びパートナー",
-    description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+    locale: "ja_JP",
+    url: APP_URL,
+    siteName: "Haretoki",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [{ url: "/og/default.png", width: 1200, height: 630, alt: "Haretoki" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Haretoki — ふたりの式場選びパートナー",
-    description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
-    images: ["/og-image.png"],
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: ["/og/default.png"],
   },
   icons: {
     icon: "/icons/logo.png",
@@ -86,8 +104,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MotionProvider>{children}</MotionProvider>
+          <PostHogProvider>
+            <MotionProvider>{children}</MotionProvider>
+          </PostHogProvider>
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

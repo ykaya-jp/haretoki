@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
 import { getFavorites } from "@/server/actions/favorites";
@@ -38,6 +39,11 @@ function toNumber(v: string | undefined): number | undefined {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
+
+export const metadata: Metadata = {
+  title: "式場をさがす",
+  description: "候補の式場を一覧で比較。URLから追加、写真や見積もりをまとめて確認できます。",
+};
 
 export default async function ExplorePage({
   searchParams,

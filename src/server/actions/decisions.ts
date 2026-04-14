@@ -9,6 +9,7 @@ import {
   requireOwner,
   requireVenueAccess,
 } from "@/server/auth";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -46,6 +47,13 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   revalidatePath("/candidates");
   revalidatePath("/home");
   revalidatePath("/explore");
+
+  await captureServerEvent(user.id, "decision_made", {
+    projectId,
+    venueId: validation.data.selectedVenueId,
+    hasRationale: Boolean(validation.data.rationale),
+  });
+
   return { decision };
 }
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getAIInsights } from "@/server/actions/insights";
 import { getCoachHistory } from "@/server/actions/coach";
 import { AIInsightCard } from "@/components/ai/insight-card";
@@ -6,6 +7,11 @@ import { ChatHistory } from "@/components/coach/chat-history";
 import { CoachQuickStart } from "@/components/coach/coach-quick-start";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "AIコーチ",
+  description: "見積もりの落とし穴や次の一手を、AIコーチが先回りで教えてくれます。",
+};
 
 export default async function CoachPage() {
   const [insights, history] = await Promise.all([

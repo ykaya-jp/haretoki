@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireOwner, requireProjectMembership } from "@/server/auth";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 const inviteSchema = z.object({
   email: z
@@ -61,6 +62,12 @@ export async function invitePartner(email: string) {
   });
 
   revalidatePath("/home");
+
+  await captureServerEvent(user.id, "partner_invited", {
+    projectId,
+    membershipId: membership.id,
+  });
+
   return { success: true as const, membershipId: membership.id };
 }
 
