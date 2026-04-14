@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -11,11 +11,29 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  // useSearchParams() requires a Suspense boundary for static generation.
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthPending, setOauthPending] = useState(false);
+
+  // Callback redirects here with ?error=auth on OAuth failure.
+  useEffect(() => {
+    if (searchParams.get("error") === "auth") {
+      setError("ログインに失敗しました。もう一度お試しください");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,15 +179,28 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               className="w-full"
+              disabled={oauthPending || loading}
               onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signInWithOAuth({
-                  provider: "google",
-                  options: { redirectTo: `${window.location.origin}/callback` },
-                });
+                setOauthPending(true);
+                try {
+                  const supabase = createClient();
+                  await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo: `${window.location.origin}/callback` },
+                  });
+                } catch {
+                  setOauthPending(false);
+                }
               }}
             >
-              Googleでログイン
+              {oauthPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Googleに移動中...
+                </>
+              ) : (
+                "Googleでログイン"
+              )}
             </Button>
           </form>
 

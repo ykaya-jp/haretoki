@@ -13,6 +13,15 @@ interface NameEditProps {
 export function NameEdit({ currentName }: NameEditProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(currentName ?? "");
+  // Track the last prop we synced from, so we can re-hydrate `value`
+  // when the parent re-renders with a new name (e.g. after router.refresh()
+  // following a successful update). Setting state during render is the
+  // idiomatic way to sync derived state with a changing prop in React.
+  const [lastSyncedName, setLastSyncedName] = useState(currentName);
+  if (currentName !== lastSyncedName) {
+    setLastSyncedName(currentName);
+    setValue(currentName ?? "");
+  }
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -82,6 +91,7 @@ export function NameEdit({ currentName }: NameEditProps) {
         maxLength={50}
         disabled={isPending}
         placeholder="お名前を入力"
+        aria-label="お名前"
         className="h-11 flex-1 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
       />
       <button

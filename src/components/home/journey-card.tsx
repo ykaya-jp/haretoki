@@ -82,7 +82,7 @@ export function JourneyCard(props: JourneyCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
       className="rounded-2xl bg-card border border-border p-6 shadow-[var(--shadow-card)]"

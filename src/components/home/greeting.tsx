@@ -1,11 +1,34 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
+
 interface GreetingProps {
   userName: string;
   weddingDate?: Date;
 }
 
+// Empty subscribe: hour doesn't change often enough to warrant re-subscribing.
+// The snapshot is re-read on every render, which is fine — the value is cheap.
+const subscribe = () => () => {};
+const getHourSnapshot = () => new Date().getHours();
+// Server snapshot: UTC hour is wrong for the user; return a neutral greeting key.
+// -1 is treated as "こんにちは" below, avoiding a hydration mismatch because
+// the client's initial render also uses getServerSnapshot until hydrated.
+const getServerSnapshot = () => -1;
+
 export function Greeting({ userName, weddingDate }: GreetingProps) {
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "おはようございます" : hour < 18 ? "こんにちは" : "こんばんは";
+  // Compute greeting on the client so we use the user's local timezone.
+  // If we computed on the server, Vercel's UTC clock would show "こんばんは"
+  // at 10am JST.
+  const hour = useSyncExternalStore(subscribe, getHourSnapshot, getServerSnapshot);
+  const greeting =
+    hour < 0
+      ? "こんにちは"
+      : hour < 12
+        ? "おはようございます"
+        : hour < 18
+          ? "こんにちは"
+          : "こんばんは";
 
   const now = new Date();
   const daysUntilWedding = weddingDate

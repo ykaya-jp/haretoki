@@ -16,8 +16,7 @@ export default async function HomePage() {
     redirect("/accept-invite");
   }
 
-  const homeData = await getHomeData();
-  const insights = await getAIInsights();
+  const [homeData, insights] = await Promise.all([getHomeData(), getAIInsights()]);
   const topInsight = insights[0];
 
   return (

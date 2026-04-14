@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { scheduleVisit, completeVisit, addVisitNote } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,17 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   const router = useRouter();
   const geo = useGeolocation();
 
-  const activeVisit = visits.find(v => v.status === "scheduled" || v.status === "completed");
+  // Only a *scheduled* visit should hide the "schedule new" button. Completed
+  // visits should not block the user from booking another visit.
+  const scheduledVisit = visits.find((v) => v.status === "scheduled");
+
+  // Request geolocation on mount so it's ready when the user saves a note.
+  // Previously `handleAddNote` called requestLocation() then read `geo.latitude`
+  // synchronously, which was always null because getCurrentPosition is async.
+  useEffect(() => {
+    geo.requestLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSchedule = () => {
     if (!scheduleDate) return;
@@ -79,7 +89,6 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   const handleAddNote = (visitId: string) => {
     if (!noteText.trim()) return;
     startTransition(async () => {
-      geo.requestLocation();
       const result = await addVisitNote(visitId, {
         content: noteText,
         locationLat: geo.latitude ?? undefined,
@@ -102,7 +111,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base">見学のきろく</h2>
-        {!activeVisit && (
+        {!scheduledVisit && (
           <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} className="gap-1">
             <Calendar className="h-4 w-4" />
             見学の予定を入れる

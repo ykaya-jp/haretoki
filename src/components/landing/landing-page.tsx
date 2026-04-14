@@ -366,12 +366,12 @@ export function LandingPage() {
             <Link href="/signup" className="transition-colors duration-200 hover:text-foreground">
               新規登録
             </Link>
-            <Link href="#" className="transition-colors duration-200 hover:text-foreground">
-              利用規約
-            </Link>
-            <Link href="#" className="transition-colors duration-200 hover:text-foreground">
-              プライバシーポリシー
-            </Link>
+            <span className="cursor-not-allowed text-muted-foreground opacity-60">
+              利用規約（準備中）
+            </span>
+            <span className="cursor-not-allowed text-muted-foreground opacity-60">
+              プライバシーポリシー（準備中）
+            </span>
           </div>
           <div className="mt-12 h-px w-full bg-border/40" />
           <p className="mt-8 text-xs text-muted-foreground/40">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Star } from "lucide-react";
+import { Star, Building2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface RecentVenue {
   id: string;
@@ -12,7 +13,16 @@ interface RecentVenue {
 }
 
 export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
-  if (venues.length === 0) return null;
+  if (venues.length === 0) {
+    return (
+      <EmptyState
+        icon={Building2}
+        title="まだ最近見た式場はありません"
+        description="気になる式場を見てみましょう"
+        action={{ label: "探してみる", href: "/explore" }}
+      />
+    );
+  }
 
   const calcAvg = (scores: RecentVenue["scores"]) => {
     if (scores.length === 0) return null;

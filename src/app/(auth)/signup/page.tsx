@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthPending, setOauthPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -202,15 +203,28 @@ export default function SignupPage() {
               type="button"
               variant="outline"
               className="w-full"
+              disabled={oauthPending || loading}
               onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signInWithOAuth({
-                  provider: "google",
-                  options: { redirectTo: `${window.location.origin}/callback` },
-                });
+                setOauthPending(true);
+                try {
+                  const supabase = createClient();
+                  await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo: `${window.location.origin}/callback` },
+                  });
+                } catch {
+                  setOauthPending(false);
+                }
               }}
             >
-              Googleで登録
+              {oauthPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Googleに移動中...
+                </>
+              ) : (
+                "Googleで登録"
+              )}
             </Button>
           </form>
 
