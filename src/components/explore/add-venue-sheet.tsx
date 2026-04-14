@@ -113,6 +113,10 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
         setTab("manual");
       } else if (result.extracted) {
         setExtracted(result.extracted);
+        if (result.warning) {
+          // OGP-only extraction path (SPA sites like Zexy). Tell the user to review.
+          toast.info(result.warning);
+        }
       }
     } catch {
       toast.error("追加できませんでした");
