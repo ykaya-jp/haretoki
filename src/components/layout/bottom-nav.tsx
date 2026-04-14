@@ -73,7 +73,7 @@ export function BottomNav({ badges }: BottomNavProps) {
         {activeIndex >= 0 && (
           <div
             aria-hidden
-            className="pointer-events-none absolute top-0 h-0.5 rounded-full bg-primary transition-[left,width] duration-200 ease-out"
+            className="pointer-events-none absolute top-0 h-0.5 rounded-full bg-primary transition-[left,width] duration-300 ease-out"
             style={{
               left: `${indicatorLeftPct}%`,
               width: `${indicatorWidthPct}%`,
