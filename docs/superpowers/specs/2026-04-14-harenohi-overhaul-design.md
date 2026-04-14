@@ -1,4 +1,4 @@
-# Harenohi 全面刷新 設計書
+# Haretoki 全面刷新 設計書
 
 > 2026-04-14 作成
 > 範囲: UI/UXリデザイン + セキュリティ修正 + 実ユーザー要件 + バックエンド修正
@@ -143,7 +143,7 @@ export async function requireVenueAccess(
 太陽モチーフのSVG:
 - 中央に円（直径20px）、8本の放射状光線（2px幅、16px長）
 - ゴールド (#C9A44C)
-- ロゴタイプ: 「Harenohi」Noto Serif JP weight 300, tracking 0.15em
+- ロゴタイプ: 「Haretoki」Noto Serif JP weight 300, tracking 0.15em
 - ファビコン: 太陽マークのみ (SVG → PNG 16/32/192/512)
 - 配置: `public/icons/`
 

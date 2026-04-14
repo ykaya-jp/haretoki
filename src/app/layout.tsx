@@ -20,17 +20,17 @@ const notoSerifJP = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "Harenohi — ふたりの式場選びパートナー",
+  title: "Haretoki — ふたりの式場選びパートナー",
   description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
   manifest: "/manifest.json",
   openGraph: {
-    title: "Harenohi — ふたりの式場選びパートナー",
+    title: "Haretoki — ふたりの式場選びパートナー",
     description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Harenohi — ふたりの式場選びパートナー",
+    title: "Haretoki — ふたりの式場選びパートナー",
     description: "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
     images: ["/og-image.png"],
   },

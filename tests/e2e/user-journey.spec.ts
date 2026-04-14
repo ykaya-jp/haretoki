@@ -11,7 +11,7 @@ test.describe("花嫁のユースケース — 認証不要", () => {
     await page.goto("/");
 
     // Hero
-    await expect(page.locator("text=Harenohi").first()).toBeVisible();
+    await expect(page.locator("text=Haretoki").first()).toBeVisible();
     await expect(page.locator("text=その直感").first()).toBeVisible();
 
     // Stats section
@@ -33,7 +33,7 @@ test.describe("花嫁のユースケース — 認証不要", () => {
     await expect(page.locator('input[id="email"]')).toBeVisible();
 
     // Logo click (find visible one among multiple) returns to landing
-    const logos = page.locator('a[href="/"]').filter({ hasText: "Harenohi" });
+    const logos = page.locator('a[href="/"]').filter({ hasText: "Haretoki" });
     const logoCount = await logos.count();
     let clicked = false;
     for (let i = 0; i < logoCount; i++) {
@@ -56,7 +56,7 @@ test.describe("花嫁のユースケース — 認証不要", () => {
     await expect(page.locator('input[id="email"]')).toBeVisible();
 
     // Logo click (find visible one among multiple) returns to landing
-    const logos = page.locator('a[href="/"]').filter({ hasText: "Harenohi" });
+    const logos = page.locator('a[href="/"]').filter({ hasText: "Haretoki" });
     const logoCount = await logos.count();
     let clicked = false;
     for (let i = 0; i < logoCount; i++) {
@@ -134,7 +134,7 @@ test.describe("花嫁のユースケース — 認証不要", () => {
     const ogTitle = await page.locator('meta[property="og:title"]').getAttribute("content");
     const ogImage = await page.locator('meta[property="og:image"]').getAttribute("content");
 
-    expect(ogTitle).toContain("Harenohi");
+    expect(ogTitle).toContain("Haretoki");
     expect(ogImage).toContain("og-image");
   });
 

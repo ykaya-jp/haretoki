@@ -56,7 +56,7 @@ export default async function SettingsPage() {
           </div>
         ) : (
           <PartnerInvite
-            inviteLink={`${process.env.APP_URL ?? "https://harenohi.vercel.app"}/accept-invite?project=${projectId}`}
+            inviteLink={`${process.env.APP_URL ?? "https://haretoki.vercel.app"}/accept-invite?project=${projectId}`}
             partnerStatus={partner ? "invited" : "not_invited"}
           />
         )}

@@ -1,4 +1,4 @@
-# Harenohi Lessons Learned
+# Haretoki Lessons Learned
 
 開発中に遭遇した問題と解決策の詳細記録。CLAUDE.md にはルール化された要点のみ記載し、ここに経緯と詳細を残す。
 
@@ -51,7 +51,7 @@
 
 ---
 
-## 2026-04-14: Harenohi UI/UX 全面刷新から判明した問題群
+## 2026-04-14: Haretoki UI/UX 全面刷新から判明した問題群
 
 ### デザインシステム
 

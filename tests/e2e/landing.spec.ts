@@ -4,8 +4,8 @@ test.describe("Landing Page", () => {
   test("renders hero section with brand identity", async ({ page }) => {
     await page.goto("/");
 
-    // Harenohi logo text
-    const logos = page.locator("text=Harenohi");
+    // Haretoki logo text
+    const logos = page.locator("text=Haretoki");
     const count = await logos.count();
     expect(count).toBeGreaterThan(0);
     let logoVisible = false;

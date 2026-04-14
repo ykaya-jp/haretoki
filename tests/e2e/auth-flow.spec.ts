@@ -8,8 +8,8 @@ test.describe("Auth Pages — Design Quality", () => {
     // Brand panel should be visible on desktop
     await expect(page.locator("text=おかえりなさい")).toBeVisible();
 
-    // Harenohi branding
-    await expect(page.locator("text=Harenohi").first()).toBeVisible();
+    // Haretoki branding
+    await expect(page.locator("text=Haretoki").first()).toBeVisible();
   });
 
   test("login page hides brand panel on mobile", async ({ page }) => {

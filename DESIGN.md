@@ -1,7 +1,7 @@
-# Harenohi Design System v3 — "Morning Light"
+# Haretoki Design System v3 — "Morning Light"
 
 > Single Source of Truth for all design decisions.
-> v3: Full rebrand from VenueLens Navy theme to Harenohi "Morning Light" warm palette.
+> v3: Full rebrand from VenueLens Navy theme to Haretoki "Morning Light" warm palette.
 > カラー、タイポ、モーション、画像アセットの全仕様。実装はこのドキュメントに準拠する。
 
 ---
@@ -10,7 +10,7 @@
 
 **「二人で自然に、迷わず、後悔なく式場を選べるプロダクト」**
 
-Harenohi (晴れの日) is not a listing site. It is a premium decision companion that guides couples through venue selection with AI-powered insights, transparent estimates, and collaborative tools. The brand metaphor is a journey from cloudy uncertainty to sunny confidence.
+Haretoki (晴れ時) is not a listing site. It is a premium decision companion that guides couples through venue selection with AI-powered insights, transparent estimates, and collaborative tools. The brand metaphor is a journey from cloudy uncertainty to sunny confidence.
 
 ### Core Insights (Research-backed)
 
@@ -27,7 +27,7 @@ Harenohi (晴れの日) is not a listing site. It is a premium decision companio
 
 ### Competitive Position
 
-Harenohi is **not** a media/advertising platform (unlike Zexy, Hanayume). It is a **neutral decision tool** — no venue pays for placement. The design must convey this independence through data transparency and AI attribution.
+Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is a **neutral decision tool** — no venue pays for placement. The design must convey this independence through data transparency and AI attribution.
 
 ---
 

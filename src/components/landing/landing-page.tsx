@@ -99,13 +99,13 @@ export function LandingPage() {
           >
             <Image
               src="/icons/logo.png"
-              alt="Harenohi"
+              alt="Haretoki"
               width={160}
               height={160}
               className="h-36 w-36 sm:h-40 sm:w-40"
             />
             <p className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl">
-              Harenohi
+              Haretoki
             </p>
           </motion.div>
 
@@ -354,7 +354,7 @@ export function LandingPage() {
       <footer className="bg-[var(--muted)] px-6 py-20">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
-            Harenohi
+            Haretoki
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             曇りのち、晴れの日へ
@@ -375,7 +375,7 @@ export function LandingPage() {
           </div>
           <div className="mt-12 h-px w-full bg-border/40" />
           <p className="mt-8 text-xs text-muted-foreground/40">
-            © 2026 Harenohi
+            © 2026 Haretoki
           </p>
         </div>
       </footer>

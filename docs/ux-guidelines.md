@@ -1,4 +1,4 @@
-# Harenohi UX Guidelines
+# Haretoki UX Guidelines
 
 > リサーチエージェント + 実ユーザーテスト（2026-04-14）のフィードバックを統合。実装時に必ず参照すること。
 

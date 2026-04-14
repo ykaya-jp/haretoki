@@ -14,7 +14,7 @@ test.describe("シナリオ1: はじめての来訪者", () => {
     await page.goto("/");
 
     // 1. ブランドとキャッチコピーを認識
-    await expect(page.locator("text=Harenohi").first()).toBeVisible();
+    await expect(page.locator("text=Haretoki").first()).toBeVisible();
     await expect(page.locator("text=その直感").first()).toBeVisible();
 
     // 2. スクロールして統計を確認
@@ -128,12 +128,12 @@ test.describe("シナリオ4: 認証保護された領域", () => {
 });
 
 test.describe("シナリオ5: 情報の一貫性", () => {
-  test("ブランド名はHarenohiで統一", async ({ page }) => {
+  test("ブランド名はHaretokiで統一", async ({ page }) => {
     await page.goto("/");
     // Old brand "VenueLens" should NOT appear anywhere
     const bodyText = await page.locator("body").innerText();
     expect(bodyText).not.toContain("VenueLens");
-    expect(bodyText).toContain("Harenohi");
+    expect(bodyText).toContain("Haretoki");
   });
 
   test("OGPメタタグが正しく設定", async ({ page }) => {
@@ -149,7 +149,7 @@ test.describe("シナリオ5: 情報の一貫性", () => {
       .locator('meta[name="description"]')
       .getAttribute("content");
 
-    expect(ogTitle).toContain("Harenohi");
+    expect(ogTitle).toContain("Haretoki");
     expect(ogImage).toBeTruthy();
     expect(description).toBeTruthy();
   });
@@ -184,7 +184,7 @@ test.describe("シナリオ6: Phase 1-3 実装範囲の網羅確認", () => {
 
   test("Phase 1B: ロゴ画像がランディングに表示", async ({ page }) => {
     await page.goto("/");
-    const logoImg = page.locator('img[alt="Harenohi"]').first();
+    const logoImg = page.locator('img[alt="Haretoki"]').first();
     await expect(logoImg).toBeVisible();
   });
 
@@ -223,7 +223,7 @@ test.describe("シナリオ6: Phase 1-3 実装範囲の網羅確認", () => {
     // Framer-motion should be loaded
     const html = await page.content();
     // React hydrates motion components; at minimum, we can verify the page rendered
-    expect(html).toContain("Harenohi");
+    expect(html).toContain("Haretoki");
   });
 });
 

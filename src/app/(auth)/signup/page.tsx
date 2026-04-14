@@ -72,7 +72,7 @@ export default function SignupPage() {
         <div className="relative z-10 flex items-center gap-3">
           <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
           <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
-            Harenohi
+            Haretoki
           </Link>
         </div>
         <div className="relative z-10 max-w-lg space-y-8">
@@ -94,12 +94,12 @@ export default function SignupPage() {
               <span className="font-medium text-[var(--gold-warm)]">+100万円</span>
               上がっています。
               <br />
-              Harenohiは、その「想定外」を事前に教えます。
+              Haretokiは、その「想定外」を事前に教えます。
             </p>
           </div>
         </div>
         <p className="relative z-10 text-xs text-muted-foreground/50">
-          © 2026 Harenohi
+          © 2026 Haretoki
         </p>
       </div>
 
@@ -109,7 +109,7 @@ export default function SignupPage() {
           {/* Mobile header */}
           <div className="text-center lg:hidden">
             <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
-              Harenohi
+              Haretoki
             </Link>
             <h2 className="mt-4 font-serif text-2xl font-light tracking-[0.06em]">
               式場探し、はじめましょう

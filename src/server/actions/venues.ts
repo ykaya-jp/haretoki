@@ -319,7 +319,7 @@ export async function addVenueFromUrl(url: string): Promise<{
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Harenohi/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; Haretoki/1.0)",
         Accept: "text/html",
       },
       signal: AbortSignal.timeout(15000),
