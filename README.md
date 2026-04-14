@@ -1,4 +1,4 @@
-# VenueLens
+# Harenohi (晴れの日)
 
 二人で自然に、迷わず、後悔なく結婚式場を選べるWebアプリ。
 AIコーチが好みを理解し、見積もりの落とし穴を先回りで教え、パートナーとの意見のすり合わせを支援する。
@@ -42,8 +42,8 @@ AIコーチが好みを理解し、見積もりの落とし穴を先回りで教
 ### インストール
 
 ```bash
-git clone https://github.com/<your-username>/venuelens.git
-cd venuelens
+git clone https://github.com/<your-username>/harenohi.git
+cd harenohi
 npm install
 cp .env.example .env.local
 # .env.local に接続情報を記入
