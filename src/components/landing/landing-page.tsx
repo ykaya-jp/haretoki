@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { DemoSequence } from "./demo-sequence";
 
 const STATS = [
   {
@@ -296,7 +297,7 @@ export function LandingPage() {
 
       {/* ─── How It Works ─── */}
       <section className="border-y border-border/30 bg-[var(--muted)] px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -308,26 +309,41 @@ export function LandingPage() {
               はじめかた
             </h2>
           </motion.div>
-          <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
-            {[
-              { step: "01", title: "式場を登録する", desc: "URLを貼るだけ。情報はAIが読み取ります。" },
-              { step: "02", title: "見学して記録する", desc: "リストに沿って確認。印象をその場で残せます。" },
-              { step: "03", title: "並べて、決める", desc: "データと気持ち、両方を見て選べます。" },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                custom={i}
-                variants={staggerIn}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
-                className="text-center"
-              >
-                <p className="text-3xl font-light text-[var(--gold-warm)] sm:text-4xl">{item.step}</p>
-                <h3 className="mt-4 text-base font-medium tracking-wide">{item.title}</h3>
-                <p className="mt-2 text-sm leading-[1.8] text-muted-foreground">{item.desc}</p>
-              </motion.div>
-            ))}
+
+          <div className="flex flex-col items-center gap-16 md:flex-row md:items-center md:justify-between md:gap-12">
+            {/* Steps — left column on md+ */}
+            <ol className="flex w-full flex-col gap-10 md:max-w-sm md:flex-1">
+              {[
+                { step: "01", title: "式場を登録する", desc: "URLを貼るだけ。情報はAIが読み取ります。" },
+                { step: "02", title: "見学して記録する", desc: "リストに沿って確認。印象をその場で残せます。" },
+                { step: "03", title: "並べて、決める", desc: "データと気持ち、両方を見て選べます。" },
+              ].map((item, i) => (
+                <motion.li
+                  key={item.step}
+                  custom={i}
+                  variants={staggerIn}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-50px" }}
+                  className="text-center md:text-left"
+                >
+                  <p className="text-3xl font-light text-[var(--gold-warm)] sm:text-4xl">{item.step}</p>
+                  <h3 className="mt-4 text-base font-medium tracking-wide">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-[1.8] text-muted-foreground">{item.desc}</p>
+                </motion.li>
+              ))}
+            </ol>
+
+            {/* Animated phone mockup — right column on md+ */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full md:flex-1"
+            >
+              <DemoSequence />
+            </motion.div>
           </div>
         </div>
       </section>
