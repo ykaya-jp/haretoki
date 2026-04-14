@@ -1,4 +1,5 @@
-import { getVenues, type VenueFilters } from "@/server/actions/venues";
+import { getVenues } from "@/server/actions/venues";
+import type { VenueFilters } from "@/server/actions/venue-filters";
 import { getFavorites } from "@/server/actions/favorites";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";

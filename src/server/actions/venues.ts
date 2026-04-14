@@ -8,6 +8,7 @@ import type { VenueInput } from "@/server/actions/venue-schema";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
+import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
 
 // --- Server actions ---
 
@@ -40,79 +41,12 @@ export async function createVenue(input: VenueInput) {
   return { success: true as const, venue };
 }
 
-export interface VenueFilters {
-  status?: string;
-  minScore?: number;
-  dimensionMinScore?: { dimension: string; score: number };
-  costMin?: number;
-  costMax?: number;
-  dressBringIn?: string;
-  dressBringInFeeMax?: number;
-  paymentMethod?: string;
-  sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
-  query?: string;
-  // Onboarding-derived personalization filters
-  styles?: string[];
-  areas?: string[];
-  guestCount?: number;
-  budgetMax?: number;
-}
-
 export async function getVenues(filters?: VenueFilters) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Build where clause
-  const where: Record<string, unknown> = { projectId };
-
-  if (filters?.status) {
-    where.status = filters.status;
-  }
-  if (filters?.costMin !== undefined) {
-    where.costMin = { gte: filters.costMin };
-  }
-  if (filters?.costMax !== undefined) {
-    where.costMax = { lte: filters.costMax };
-  }
-  if (filters?.dressBringIn) {
-    where.dressBringIn = filters.dressBringIn;
-  }
-  if (filters?.dressBringInFeeMax !== undefined) {
-    where.dressBringInFee = { lte: filters.dressBringInFeeMax };
-  }
-  if (filters?.paymentMethod) {
-    where.paymentMethods = { has: filters.paymentMethod };
-  }
-  if (filters?.query && filters.query.trim().length > 0) {
-    const q = filters.query.trim();
-    where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { location: { contains: q, mode: "insensitive" } },
-    ];
-  }
-  // Onboarding-derived filters: ceremony styles match-any
-  if (filters?.styles && filters.styles.length > 0) {
-    where.ceremonyStyles = { hasSome: filters.styles };
-  }
-  // Guest count fits inside capacity range (allow null endpoints)
-  if (filters?.guestCount !== undefined) {
-    const count = filters.guestCount;
-    where.AND = [
-      ...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
-      { OR: [{ capacityMin: null }, { capacityMin: { lte: count } }] },
-      { OR: [{ capacityMax: null }, { capacityMax: { gte: count } }] },
-    ];
-  }
-  // Area: match any of the provided areas against location substring
-  if (filters?.areas && filters.areas.length > 0) {
-    const areaConds = filters.areas.map((a) => ({
-      location: { contains: a, mode: "insensitive" as const },
-    }));
-    where.AND = [
-      ...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
-      { OR: areaConds },
-    ];
-  }
+  // Build where clause (pure helper — see buildVenueWhere for semantics)
+  const where = buildVenueWhere(projectId, filters);
 
   // Build orderBy
   let orderBy: Record<string, string> = { createdAt: "desc" };
