@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { SettingsForm } from "@/components/settings/settings-form";
@@ -6,11 +7,27 @@ import { NameEdit } from "@/components/mypage/name-edit";
 import { Settings, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+/**
+ * Resolve the app's public origin for share URLs.
+ * Prefers Vercel-provided headers, falls back to the request's host so
+ * preview / local environments generate correct links instead of leaking
+ * into production.
+ */
+async function getAppOrigin(): Promise<string> {
+  const h = await headers();
+  const forwardedHost = h.get("x-forwarded-host") ?? h.get("host");
+  const forwardedProto = h.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  // Last-resort fallback (should never hit in practice since Next always
+  // provides host on a request).
+  return process.env.APP_URL ?? "http://localhost:3000";
+}
+
 export default async function MyPage() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  const [members, project] = await Promise.all([
+  const [members, project, appOrigin] = await Promise.all([
     prisma.projectMember.findMany({
       where: { projectId },
       include: { user: { select: { name: true, email: true } } },
@@ -19,6 +36,7 @@ export default async function MyPage() {
       where: { id: projectId },
       select: { conditions: true },
     }),
+    getAppOrigin(),
   ]);
 
   const hasPartner = members.some((m) => m.role === "partner" && m.acceptedAt);
@@ -74,7 +92,7 @@ export default async function MyPage() {
           </div>
         ) : (
           <PartnerInvite
-            inviteLink={`${process.env.APP_URL ?? "https://haretoki.vercel.app"}/accept-invite?project=${projectId}`}
+            inviteLink={`${appOrigin}/accept-invite`}
             partnerStatus={partner ? "invited" : "not_invited"}
           />
         )}

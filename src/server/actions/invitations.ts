@@ -142,10 +142,16 @@ export async function getInvitationStatus() {
  */
 export async function getPendingInvitation() {
   const user = await requireUser();
+  if (!user.email) return null;
+
+  // Lowercase match — invitePartner stores emails lowercased, but the auth
+  // provider's `user.email` can come back mixed-case depending on signup
+  // method. Without this normalization a legitimate invitee could be rejected.
+  const normalizedEmail = user.email.toLowerCase();
 
   const pending = await prisma.projectMember.findFirst({
     where: {
-      user: { email: user.email! },
+      user: { email: normalizedEmail },
       acceptedAt: null,
       role: "partner",
     },

@@ -232,9 +232,9 @@ export function OnboardingFlow() {
     return (
       <div className="mx-auto max-w-lg space-y-6 py-4">
         {/* AI recommendations header */}
-        <div className="border-l-[3px] border-l-[hsl(var(--gold))] bg-[hsl(var(--gold-subtle))] rounded-r-lg p-4 space-y-1">
+        <div className="rounded-r-lg border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-4 space-y-1">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Sparkles className="h-4 w-4 text-[hsl(var(--gold))]" />
+            <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
             <span>あなたへのおすすめ</span>
           </div>
           {isLoadingRecs ? (
@@ -257,7 +257,7 @@ export function OnboardingFlow() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium text-[hsl(var(--venue-name))]">{rec.name}</p>
+                    <p className="font-serif font-medium text-foreground">{rec.name}</p>
                     <p className="text-xs text-muted-foreground">{rec.location}</p>
                   </div>
                   {rec.estimatedPrice && (

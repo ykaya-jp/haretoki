@@ -1,11 +1,21 @@
+import { redirect } from "next/navigation";
 import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
+import { getPendingInvitation } from "@/server/actions/invitations";
 import { Greeting } from "@/components/home/greeting";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { JourneyCard } from "@/components/home/journey-card";
 import { RecentVenues } from "@/components/home/recent-venues";
 
 export default async function HomePage() {
+  // If the logged-in user has a pending partner invitation, take them to the
+  // accept screen before showing home. This is how a brand-new user who
+  // signed up from a shared invite link gets routed into the right project.
+  const pendingInvitation = await getPendingInvitation();
+  if (pendingInvitation) {
+    redirect("/accept-invite");
+  }
+
   const homeData = await getHomeData();
   const insights = await getAIInsights();
   const topInsight = insights[0];

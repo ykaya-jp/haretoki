@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle, Copy, Check } from "lucide-react";
+import { useState, useTransition } from "react";
+import { MessageCircle, Copy, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { invitePartner } from "@/server/actions/invitations";
 
 interface PartnerInviteProps {
   inviteLink: string;
@@ -11,10 +12,10 @@ interface PartnerInviteProps {
 
 export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps) {
   const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const handleCopy = async () => {
-    // navigator.clipboard.writeText can throw if the document isn't focused,
-    // if we're on http (non-secure context), or if permissions are denied.
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -45,10 +46,26 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
   };
 
   const handleLineShare = () => {
+    // noopener,noreferrer prevents tabnabbing via window.opener.
     window.open(
       `https://line.me/R/share?text=${encodeURIComponent(`一緒に式場を選びませんか？\n${inviteLink}`)}`,
-      "_blank"
+      "_blank",
+      "noopener,noreferrer",
     );
+  };
+
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || isPending) return;
+    startTransition(async () => {
+      const result = await invitePartner(email.trim());
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("招待を作成しました。リンクをパートナーに共有してください");
+      setEmail("");
+    });
   };
 
   if (partnerStatus === "joined") {
@@ -69,53 +86,65 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
             </div>
             <div>
               <p className="text-sm font-medium">パートナーを招待</p>
-              <p className="text-xs text-muted-foreground">おふたりで式場を選べます</p>
+              <p className="text-xs text-muted-foreground">
+                パートナーのメールアドレスで紐付けます。パートナーは同じメールでアカウント登録すると、リンクから参加できます。
+              </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <form onSubmit={handleInviteSubmit} className="space-y-2">
+            <label htmlFor="partner-email" className="sr-only">
+              パートナーのメールアドレス
+            </label>
+            <input
+              id="partner-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="partner@example.com"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              disabled={isPending}
+            />
             <button
-              type="button"
-              onClick={handleLineShare}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white active:scale-95"
+              type="submit"
+              disabled={isPending || !email.trim()}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground transition-colors disabled:opacity-50"
             >
-              <MessageCircle className="h-4 w-4" />
-              LINEで招待
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "招待を作成"
+              )}
             </button>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm active:scale-95"
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "コピー済" : "コピー"}
-            </button>
-          </div>
+          </form>
         </>
       ) : (
         <>
           <div className="text-center space-y-1">
             <p className="text-sm">
-              {partnerStatus === "invited" && "招待を送りました"}
+              {partnerStatus === "invited" && "招待を作成しました"}
               {partnerStatus === "viewed" && "パートナーがリンクを見てくれました"}
               {partnerStatus === "reacted" && "パートナーが反応してくれました"}
             </p>
             <p className="text-xs text-muted-foreground">
-              届いていないときは、もう一度送れます
+              同じメールアドレスで登録してもらい、このリンクから参加してもらってください。
             </p>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={handleLineShare}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 active:scale-95"
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 active:scale-95"
             >
               <MessageCircle className="h-4 w-4" />
-              もう一度LINEで送る
+              LINEで送る
             </button>
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm transition-all duration-200 active:scale-95"
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm transition-all duration-200 active:scale-95"
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "コピー済" : "リンクをコピー"}
