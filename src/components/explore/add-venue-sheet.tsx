@@ -150,12 +150,17 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
     // Revoke old previews
     for (const old of photoPreviews) URL.revokeObjectURL(old);
     setPhotoPreviews(previews);
+    // Invalidate any prior upload cache so retry uploads ALL current files.
+    // (Previous logic skipped re-upload once uploadedPhotoUrls was non-empty,
+    //  silently dropping files added after a failed submit.)
+    setUploadedPhotoUrls([]);
   };
 
   const removePhoto = (index: number) => {
     URL.revokeObjectURL(photoPreviews[index]);
     setPhotoFiles(prev => prev.filter((_, i) => i !== index));
     setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
+    setUploadedPhotoUrls([]);
   };
 
   const handleManualSubmit = async () => {
@@ -173,6 +178,9 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
         if (uploadResult.success && uploadResult.urls) {
           photoUrls = uploadResult.urls;
           setUploadedPhotoUrls(uploadResult.urls);
+          if ((uploadResult.droppedCount ?? 0) > 0) {
+            toast.info(`${uploadResult.droppedCount}件はサイズ/形式が合わず追加できませんでした`);
+          }
         }
       }
 

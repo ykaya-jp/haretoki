@@ -102,10 +102,30 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "すでに承諾済みです" };
   }
 
-  await prisma.projectMember.update({
-    where: { id: invitationId },
+  // Already-joined guard: if this user already belongs to another project,
+  // don't silently move them. They must be re-invited by the owner so the
+  // transfer is explicit on both sides.
+  const existingMembership = await prisma.projectMember.findFirst({
+    where: { userId: user.id, acceptedAt: { not: null } },
+    select: { projectId: true },
+  });
+  if (existingMembership && existingMembership.projectId !== membership.projectId) {
+    return {
+      success: false as const,
+      error:
+        "すでに別のプロジェクトに参加しています。パートナーと同じプロジェクトに合流するには、オーナーに再招待を依頼してください。",
+    };
+  }
+
+  // Atomic conditional update: only flip acceptedAt if it's still null.
+  // Prevents a race where two rapid accepts both pass the SELECT-then-UPDATE gate.
+  const res = await prisma.projectMember.updateMany({
+    where: { id: invitationId, acceptedAt: null },
     data: { acceptedAt: new Date() },
   });
+  if (res.count !== 1) {
+    return { success: false as const, error: "すでに承諾済みか、招待が無効です" };
+  }
 
   revalidatePath("/home");
   return { success: true as const };

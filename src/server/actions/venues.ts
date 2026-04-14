@@ -240,7 +240,7 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
 export async function uploadVenuePhotos(
   venueIdOrFormData: string | FormData,
   maybeFormData?: FormData,
-): Promise<{ success: boolean; urls?: string[]; error?: string }> {
+): Promise<{ success: boolean; urls?: string[]; droppedCount?: number; error?: string }> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
@@ -274,9 +274,16 @@ export async function uploadVenuePhotos(
   const { uploadVenuePhoto } = await import("@/lib/supabase/storage");
 
   const urls: string[] = [];
+  let droppedCount = 0;
   for (const file of files) {
-    if (!file.type.startsWith("image/")) continue;
-    if (file.size > 10 * 1024 * 1024) continue; // 10MB limit per file
+    if (!file.type.startsWith("image/")) {
+      droppedCount++;
+      continue;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      droppedCount++;
+      continue; // 10MB limit per file
+    }
     const buffer = Buffer.from(await file.arrayBuffer());
     const url = await uploadVenuePhoto(buffer, file.name, projectId, venueId ?? "temp");
     urls.push(url);
@@ -291,7 +298,7 @@ export async function uploadVenuePhotos(
     revalidatePath(`/venues/${venueForUpload.id}`);
   }
 
-  return { success: true, urls };
+  return { success: true, urls, droppedCount };
 }
 
 // --- URL venue extraction (R1 only Claude API usage) ---

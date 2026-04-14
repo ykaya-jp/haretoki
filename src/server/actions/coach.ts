@@ -204,15 +204,9 @@ async function matchFAQ(message: string, projectId: string): Promise<CoachRespon
     // Swallow DB errors — UI still gets a response from the return value
   }
 
-  // Still save to AiAnalysis for backward compat (R1 pattern)
-  // Note: We don't await this to avoid blocking the response
-  prisma.aiAnalysis.create({
-    data: {
-      projectId,
-      type: "coach_chat",
-      output: JSON.stringify({ question: message, answer: response.answer }),
-    },
-  }).catch(() => {}); // fire and forget
+  // Note: previously also dual-wrote to AiAnalysis "for backward compat".
+  // Removed — that orphaned data across two tables with no reader benefit.
+  // CoachMessage is the canonical store.
 
   revalidatePath("/coach");
   return response;
@@ -222,35 +216,19 @@ export async function getCoachHistory() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // R2: Read from CoachMessage table
+  // CoachMessage is the canonical store. The AiAnalysis fallback read was
+  // removed together with the dual-write in matchFAQ — keeping only one
+  // reader/writer avoids orphaned history split across tables.
   const messages = await prisma.coachMessage.findMany({
     where: { projectId },
     orderBy: { createdAt: "asc" },
     take: 50,
   });
 
-  if (messages.length > 0) {
-    // R2 format: individual messages
-    return messages.map((m) => ({
-      id: m.id,
-      role: m.role as "user" | "assistant",
-      content: m.content,
-      createdAt: m.createdAt,
-    }));
-  }
-
-  // Fallback: Read from AiAnalysis (R1 format)
-  const history = await prisma.aiAnalysis.findMany({
-    where: { projectId, type: "coach_chat" },
-    orderBy: { createdAt: "asc" },
-    take: 50,
-  });
-
-  return history.flatMap((h) => {
-    const parsed = JSON.parse(h.output) as { question?: string; answer?: string };
-    const items: Array<{ id: string; role: "user" | "assistant"; content: string; createdAt: Date }> = [];
-    if (parsed.question) items.push({ id: `${h.id}-q`, role: "user", content: parsed.question, createdAt: h.createdAt });
-    if (parsed.answer) items.push({ id: `${h.id}-a`, role: "assistant", content: parsed.answer, createdAt: h.createdAt });
-    return items;
-  });
+  return messages.map((m) => ({
+    id: m.id,
+    role: m.role as "user" | "assistant",
+    content: m.content,
+    createdAt: m.createdAt,
+  }));
 }

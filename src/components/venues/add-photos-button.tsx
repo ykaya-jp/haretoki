@@ -26,7 +26,13 @@ export function AddPhotosButton({ venueId }: { venueId: string }) {
       files.forEach((f) => formData.append("photos", f));
       const result = await uploadVenuePhotos(venueId, formData);
       if (result.success) {
-        toast.success(`${files.length}枚の写真を追加しました`);
+        const added = result.urls?.length ?? 0;
+        if (added > 0) {
+          toast.success(`${added}枚の写真を追加しました`);
+        }
+        if ((result.droppedCount ?? 0) > 0) {
+          toast.info(`${result.droppedCount}件はサイズ/形式が合わず追加できませんでした`);
+        }
         router.refresh();
       } else {
         toast.error(result.error ?? "アップロードできませんでした");
