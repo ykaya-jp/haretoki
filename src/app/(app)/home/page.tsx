@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
@@ -6,6 +7,11 @@ import { Greeting } from "@/components/home/greeting";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { JourneyCard } from "@/components/home/journey-card";
 import { RecentVenues } from "@/components/home/recent-venues";
+
+export const metadata: Metadata = {
+  title: "ホーム",
+  description: "おふたりの式場選びの進捗と、次にとるべきステップを一目で確認。",
+};
 
 export default async function HomePage() {
   // If the logged-in user has a pending partner invitation, take them to the

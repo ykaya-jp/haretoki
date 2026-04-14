@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
@@ -22,6 +23,11 @@ async function getAppOrigin(): Promise<string> {
   // provides host on a request).
   return process.env.APP_URL ?? "http://localhost:3000";
 }
+
+export const metadata: Metadata = {
+  title: "マイページ",
+  description: "プロフィール・パートナー招待・アプリ設定を管理します。",
+};
 
 export default async function MyPage() {
   const user = await requireUser();

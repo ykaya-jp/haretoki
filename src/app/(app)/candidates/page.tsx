@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { getFavorites } from "@/server/actions/favorites";
 import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
 import { getHomeData } from "@/server/actions/home";
 import { CandidatesView } from "@/components/candidates/candidates-view";
+
+export const metadata: Metadata = {
+  title: "候補",
+  description: "お気に入りの式場を比較し、最終決定まで並べて検討できます。",
+};
 
 export default async function CandidatesPage() {
   const [favorites, venues, decision, homeData] = await Promise.all([

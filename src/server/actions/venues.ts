@@ -14,6 +14,7 @@ import {
   hasUsefulMetadata,
   buildMetadataPrompt,
 } from "@/server/actions/url-metadata";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 // --- Server actions ---
 
@@ -42,6 +43,12 @@ export async function createVenue(input: VenueInput) {
 
   revalidatePath("/explore");
   revalidatePath("/home");
+
+  await captureServerEvent(user.id, "venue_added", {
+    venueId: venue.id,
+    projectId,
+    source: "manual",
+  });
 
   return { success: true as const, venue };
 }

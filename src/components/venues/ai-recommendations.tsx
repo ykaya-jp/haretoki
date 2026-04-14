@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 
 const CACHE_KEY = "ai-recs-v1";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -232,6 +233,11 @@ export function AIRecommendations({
   };
 
   const handleAdd = (rec: VenueRecommendation) => {
+    track("ai_recommendation_clicked", {
+      venueName: rec.name,
+      location: rec.location,
+      hasEstimate: rec.estimatedPrice !== null && rec.estimatedPrice !== undefined,
+    });
     setAddingId(rec.name);
     startTransition(async () => {
       try {

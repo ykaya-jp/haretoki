@@ -12,6 +12,7 @@ import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/ac
 import { createVenue } from "@/server/actions/venues";
 import { Loader2, Sparkles, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 
 interface VenueRecommendation {
   name: string;
@@ -170,6 +171,13 @@ export function OnboardingFlow() {
       // Save then fetch AI recommendations
       startTransition(async () => {
         await saveOnboardingAnswers(finalAnswers);
+        track("onboarding_completed", {
+          skipped: false,
+          hasStyle: Boolean(finalAnswers.style?.length),
+          hasGuestCount: Boolean(finalAnswers.guestCount),
+          hasArea: Boolean(finalAnswers.area?.length),
+          hasBudget: Boolean(finalAnswers.budget),
+        });
         setIsLoadingRecs(true);
         setShowRecommendations(true);
         try {
@@ -226,6 +234,13 @@ export function OnboardingFlow() {
 
       startTransition(async () => {
         await saveOnboardingAnswers(finalAnswers);
+        track("onboarding_completed", {
+          skipped: true,
+          hasStyle: Boolean(finalAnswers.style?.length),
+          hasGuestCount: Boolean(finalAnswers.guestCount),
+          hasArea: Boolean(finalAnswers.area?.length),
+          hasBudget: Boolean(finalAnswers.budget),
+        });
         setIsLoadingRecs(true);
         setShowRecommendations(true);
         try {
