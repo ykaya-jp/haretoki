@@ -13,7 +13,7 @@ import { DimensionFocus } from "@/components/comparison/dimension-focus";
 import { PriorityWeights } from "@/components/comparison/priority-weights";
 import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { DecisionCeremony } from "@/components/decision/decision-ceremony";
-import { Heart, BarChart3, Trophy } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
@@ -312,7 +312,7 @@ export function CandidatesView({
                 className="space-y-5 rounded-2xl bg-card p-8 text-center shadow-[var(--shadow-card)]"
               >
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
-                  <span className="text-3xl">{"\u{1F389}"}</span>
+                  <PartyPopper className="h-9 w-9 text-[var(--gold-warm)]" aria-hidden />
                 </div>
                 <h3 className="font-serif text-xl font-light tracking-wide">{decision.venueName}</h3>
                 <p className="text-sm text-muted-foreground">に決まりました</p>

@@ -128,6 +128,9 @@ export async function acceptInvitation(invitationId: string) {
   }
 
   revalidatePath("/home");
+  // Partner status is also surfaced on /mypage; refresh that route's cache
+  // so the user sees the accepted state without a manual reload.
+  revalidatePath("/mypage");
   return { success: true as const };
 }
 

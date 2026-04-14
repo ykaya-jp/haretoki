@@ -92,7 +92,7 @@ export default function SignupPage() {
             <p className="text-sm font-medium text-[var(--gold-warm)]">知っていましたか？</p>
             <p className="text-sm leading-[1.8] text-foreground/80">
               80%のカップルが初期見積もりより平均
-              <span className="font-medium text-[var(--gold-warm)]">+100万円</span>
+              <span className="font-medium text-[var(--gold-warm)]">+84〜110万円</span>
               上がっています。
               <br />
               Haretokiは、その「想定外」を事前に教えます。
@@ -145,6 +145,7 @@ export default function SignupPage() {
                 onChange={(e) => setName(e.target.value)}
                 required
                 autoComplete="name"
+                maxLength={50}
               />
             </div>
 

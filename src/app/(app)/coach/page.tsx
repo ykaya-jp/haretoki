@@ -1,8 +1,8 @@
 import { getAIInsights } from "@/server/actions/insights";
 import { getCoachHistory } from "@/server/actions/coach";
 import { AIInsightCard } from "@/components/ai/insight-card";
-import { ChatBubble } from "@/components/coach/chat-bubble";
 import { ChatBar } from "@/components/coach/chat-bar";
+import { ChatHistory } from "@/components/coach/chat-history";
 import { CoachQuickStart } from "@/components/coach/coach-quick-start";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
@@ -55,11 +55,7 @@ export default async function CoachPage() {
                 <span className="text-xs text-muted-foreground">これまでの会話</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
-              <div className="space-y-3">
-                {history.map((msg) => (
-                  <ChatBubble key={msg.id} role={msg.role} content={msg.content} />
-                ))}
-              </div>
+              <ChatHistory messages={history} />
             </>
           )}
         </div>

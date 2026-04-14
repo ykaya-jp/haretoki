@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Medal } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -14,6 +14,7 @@ export function DimensionFocus() {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDim, setSelectedDim] = useState<string>("atmosphere");
+  const prefersReduced = useReducedMotion();
 
   useEffect(() => {
     getMatrixData().then(setData).finally(() => setLoading(false));
@@ -57,9 +58,9 @@ export function DimensionFocus() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={prefersReduced ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, ease: LUXURY_EASE }}
+      transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
       className="space-y-6"
     >
       <div className="space-y-1">
@@ -94,10 +95,10 @@ export function DimensionFocus() {
       <AnimatePresence mode="wait">
         <motion.div
           key={selectedDim}
-          initial={{ opacity: 0, y: 16 }}
+          initial={prefersReduced ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.6, ease: LUXURY_EASE }}
+          exit={prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ duration: prefersReduced ? 0 : 0.6, ease: LUXURY_EASE }}
           className="space-y-3"
         >
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -109,8 +110,12 @@ export function DimensionFocus() {
             return (
               <motion.div
                 key={v.id}
-                layout
-                transition={{ type: "spring", stiffness: 140, damping: 22 }}
+                layout={prefersReduced ? false : true}
+                transition={
+                  prefersReduced
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 140, damping: 22 }
+                }
                 className={cn(
                   "flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200",
                   isTop
@@ -118,8 +123,16 @@ export function DimensionFocus() {
                     : "border-border bg-card",
                 )}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-lg">
-                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-sm font-medium tabular-nums">
+                  {i === 0 ? (
+                    <Medal className="h-4 w-4 text-[var(--gold-warm)]" aria-label="1位" />
+                  ) : i === 1 ? (
+                    <Medal className="h-4 w-4 text-muted-foreground" aria-label="2位" />
+                  ) : i === 2 ? (
+                    <Medal className="h-4 w-4 text-amber-700/70" aria-label="3位" />
+                  ) : (
+                    i + 1
+                  )}
                 </div>
                 {v.photoUrl ? (
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
