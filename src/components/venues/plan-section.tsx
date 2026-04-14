@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Check, X, DollarSign, ShirtIcon, PartyPopper } from "lucide-react";
+import { ChevronDown, Check, X, DollarSign, ShirtIcon, PartyPopper, Pencil } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { PlanEditorSheet } from "@/components/venues/plan-editor-sheet";
 
 // Luxury easing: smooth deceleration (Aesop/Apple-inspired)
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
@@ -20,33 +21,67 @@ interface VenuePlan {
   excludedItems: string[];
   bringInItems: Array<{ item: string; fee?: number }>;
   dressAllowance: string | null;
+  dressAllowanceNote: string | null;
+  dressBrideCount: number | null;
+  dressGroomCount: number | null;
+  dressBudgetCapYen: number | null;
   campaigns: Array<{ name: string; discount?: string }>;
   notes: string | null;
 }
 
 interface PlanSectionProps {
+  venueId: string;
   plans: VenuePlan[];
 }
 
-export function PlanSection({ plans }: PlanSectionProps) {
+/**
+ * Format the structured dress fields for read-only display.
+ * Falls back through: structured > free-text note > legacy `dressAllowance` > null.
+ */
+function formatDressSummary(plan: VenuePlan): {
+  primary: string | null;
+  note: string | null;
+} {
+  const parts: string[] = [];
+  if (plan.dressBrideCount != null) parts.push(`新婦${plan.dressBrideCount}着`);
+  if (plan.dressGroomCount != null) parts.push(`新郎${plan.dressGroomCount}着`);
+  let primary: string | null = parts.length > 0 ? parts.join(" + ") : null;
+  if (plan.dressBudgetCapYen != null) {
+    const man = Math.round(plan.dressBudgetCapYen / 10000);
+    const cap = `¥${man}万まで`;
+    primary = primary ? `${primary} / ${cap}` : cap;
+  }
+  const note =
+    plan.dressAllowanceNote ?? (primary ? null : plan.dressAllowance);
+  return { primary, note };
+}
+
+export function PlanSection({ venueId, plans }: PlanSectionProps) {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(
     plans.length === 1 ? plans[0].id : null
   );
 
-  if (plans.length === 0) return null;
-
   return (
     <section className="space-y-4">
-      <h2 className="text-base">プランの詳細</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base">プランの詳細</h2>
+        <PlanEditorSheet venueId={venueId} />
+      </div>
+      {plans.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          プランはまだ登録されていません
+        </p>
+      )}
       {plans.map((plan) => {
         const isExpanded = expandedPlan === plan.id;
         return (
           <div key={plan.id} className="rounded-xl bg-card shadow-[var(--shadow-card)] overflow-hidden">
             {/* Plan header */}
-            <button
+            <div className="relative">
+              <button
               type="button"
               onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-200 active:bg-muted/50"
+              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 pr-14 text-left transition-colors duration-200 active:bg-muted/50"
             >
               <div className="flex-1 min-w-0">
                 <p className="font-serif text-base font-normal truncate">{plan.name}</p>
@@ -70,6 +105,40 @@ export function PlanSection({ plans }: PlanSectionProps) {
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </motion.div>
             </button>
+              {/* Edit affordance — overlaid so the whole row stays a single
+                  large tap target for expand/collapse, but the pencil sits
+                  apart from it for editing. 44px tap. */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <PlanEditorSheet
+                  venueId={venueId}
+                  initialPlan={{
+                    id: plan.id,
+                    name: plan.name,
+                    basePrice: plan.basePrice,
+                    guestCountMin: plan.guestCountMin,
+                    guestCountMax: plan.guestCountMax,
+                    includedItems: plan.includedItems,
+                    excludedItems: plan.excludedItems,
+                    bringInItems: plan.bringInItems,
+                    dressBrideCount: plan.dressBrideCount,
+                    dressGroomCount: plan.dressGroomCount,
+                    dressBudgetCapYen: plan.dressBudgetCapYen,
+                    dressAllowanceNote: plan.dressAllowanceNote,
+                    campaigns: plan.campaigns,
+                    notes: plan.notes,
+                  }}
+                  trigger={
+                    <button
+                      type="button"
+                      aria-label={`${plan.name} を編集`}
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-muted"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  }
+                />
+              </div>
+            </div>
 
             {/* Plan details */}
             <AnimatePresence initial={false}>
@@ -140,16 +209,25 @@ export function PlanSection({ plans }: PlanSectionProps) {
                       </div>
                     )}
 
-                    {/* Dress allowance */}
-                    {plan.dressAllowance && (
-                      <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
-                        <ShirtIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground">衣裳のご予算目安</p>
-                          <p className="text-sm">{plan.dressAllowance}</p>
+                    {/* Dress (structured > note > legacy free-text) */}
+                    {(() => {
+                      const { primary, note } = formatDressSummary(plan);
+                      if (!primary && !note) return null;
+                      return (
+                        <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
+                          <ShirtIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground">衣裳のご予算目安</p>
+                            {primary && (
+                              <p className="text-sm tabular-nums">{primary}</p>
+                            )}
+                            {note && (
+                              <p className="text-sm text-muted-foreground">{note}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Campaigns */}
                     {plan.campaigns.length > 0 && (

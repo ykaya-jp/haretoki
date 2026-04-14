@@ -228,6 +228,7 @@ async function PlansContent({ venueId }: { venueId: string }) {
   const plans = await getVenuePlans(venueId);
   return (
     <PlanSection
+      venueId={venueId}
       plans={plans.map((p) => ({
         id: p.id,
         name: p.name,
@@ -239,6 +240,10 @@ async function PlansContent({ venueId }: { venueId: string }) {
         bringInItems:
           (p.bringInItems as Array<{ item: string; fee?: number }>) ?? [],
         dressAllowance: p.dressAllowance,
+        dressAllowanceNote: p.dressAllowanceNote,
+        dressBrideCount: p.dressBrideCount,
+        dressGroomCount: p.dressGroomCount,
+        dressBudgetCapYen: p.dressBudgetCapYen,
         campaigns:
           (p.campaigns as Array<{ name: string; discount?: string }>) ?? [],
         notes: p.notes,

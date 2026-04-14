@@ -1,9 +1,9 @@
 "use server";
 
-import { z } from "zod";
-import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/server/db";
 import { requireUser, requireVenueAccess } from "@/server/auth";
+import { planInputSchema, type PlanInput } from "@/server/actions/plan-schema";
 
 export async function getVenuePlans(venueId: string) {
   const user = await requireUser();
@@ -15,49 +15,66 @@ export async function getVenuePlans(venueId: string) {
   });
 }
 
-const planSchema = z.object({
-  name: z.string().min(1, "プラン名を入力してください"),
-  basePrice: z.coerce.number().int().nonnegative().optional(),
-  guestCountMin: z.coerce.number().int().nonnegative().optional(),
-  guestCountMax: z.coerce.number().int().nonnegative().optional(),
-  includedItems: z.array(z.string()).default([]),
-  excludedItems: z.array(z.string()).default([]),
-  bringInItems: z.array(z.object({
-    item: z.string(),
-    fee: z.coerce.number().int().nonnegative().optional(),
-  })).default([]),
-  dressAllowance: z.string().optional(),
-  campaigns: z.array(z.string()).default([]),
-  notes: z.string().optional(),
-});
-
-export async function createVenuePlan(
+/**
+ * Create or update a VenuePlan in a single Server Action.
+ *
+ * - If `input.id` is supplied AND belongs to a plan under `venueId`, updates it.
+ * - Otherwise creates a new plan attached to `venueId`.
+ *
+ * Always re-checks venue ownership via the project membership chain.
+ */
+export async function upsertVenuePlan(
   venueId: string,
-  input: z.input<typeof planSchema>,
+  input: PlanInput,
 ) {
   const user = await requireUser();
   await requireVenueAccess(user.id, venueId);
 
-  const parsed = planSchema.safeParse(input);
+  const parsed = planInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false as const, error: parsed.error.flatten().fieldErrors };
+    return {
+      success: false as const,
+      error: parsed.error.flatten().fieldErrors,
+    };
   }
 
-  const plan = await prisma.venuePlan.create({
-    data: {
-      venueId,
-      name: parsed.data.name,
-      basePrice: parsed.data.basePrice ?? null,
-      guestCountMin: parsed.data.guestCountMin ?? null,
-      guestCountMax: parsed.data.guestCountMax ?? null,
-      includedItems: parsed.data.includedItems,
-      excludedItems: parsed.data.excludedItems,
-      bringInItems: parsed.data.bringInItems,
-      dressAllowance: parsed.data.dressAllowance ?? null,
-      campaigns: parsed.data.campaigns,
-      notes: parsed.data.notes ?? null,
-    },
-  });
+  const data = parsed.data;
+  const writeData = {
+    name: data.name,
+    basePrice: data.basePrice ?? null,
+    guestCountMin: data.guestCountMin ?? null,
+    guestCountMax: data.guestCountMax ?? null,
+    includedItems: data.includedItems,
+    excludedItems: data.excludedItems,
+    bringInItems: data.bringInItems,
+    dressBrideCount: data.dressBrideCount ?? null,
+    dressGroomCount: data.dressGroomCount ?? null,
+    dressBudgetCapYen: data.dressBudgetCapYen ?? null,
+    dressAllowanceNote: data.dressAllowanceNote ?? null,
+    campaigns: data.campaigns,
+    notes: data.notes ?? null,
+  };
+
+  let plan;
+  if (data.id) {
+    // Verify the plan actually belongs to this venue before updating —
+    // protects against a hand-crafted id pointing at someone else's plan.
+    const existing = await prisma.venuePlan.findUnique({
+      where: { id: data.id },
+      select: { venueId: true },
+    });
+    if (!existing || existing.venueId !== venueId) {
+      return { success: false as const, error: { id: ["プランが見つかりません"] } };
+    }
+    plan = await prisma.venuePlan.update({
+      where: { id: data.id },
+      data: writeData,
+    });
+  } else {
+    plan = await prisma.venuePlan.create({
+      data: { ...writeData, venueId },
+    });
+  }
 
   revalidatePath(`/venues/${venueId}`);
   return { success: true as const, plan };
@@ -70,11 +87,11 @@ export async function deleteVenuePlan(planId: string) {
     where: { id: planId },
     include: { venue: { select: { projectId: true, id: true } } },
   });
-  if (!plan) return { success: false };
+  if (!plan) return { success: false as const };
 
   await requireVenueAccess(user.id, plan.venue.id);
 
   await prisma.venuePlan.delete({ where: { id: planId } });
   revalidatePath(`/venues/${plan.venue.id}`);
-  return { success: true };
+  return { success: true as const };
 }
