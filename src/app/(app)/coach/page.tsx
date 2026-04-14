@@ -17,7 +17,12 @@ export default async function CoachPage() {
 
   return (
     <div className="pb-20">
-      <h2 className="mb-5 font-serif text-xl font-light tracking-wide">AIコーチ</h2>
+      <div className="mb-5">
+        <h2 className="font-serif text-xl font-light tracking-wide">AIコーチ</h2>
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+          迷ったら、AIに聞ける相談相手
+        </p>
+      </div>
 
       {!hasContent ? (
         <div className="space-y-8">

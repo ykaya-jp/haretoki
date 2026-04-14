@@ -22,7 +22,12 @@ export default async function HomePage() {
   return (
     <div className="space-y-12">
       {/* Greeting */}
-      <Greeting userName={homeData.userName} />
+      <div>
+        <Greeting userName={homeData.userName} />
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+          今日のおふたりの式場選び
+        </p>
+      </div>
 
       {/* Journey Card — the hero of home */}
       <JourneyCard

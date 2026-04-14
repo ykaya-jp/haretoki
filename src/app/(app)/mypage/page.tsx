@@ -56,7 +56,12 @@ export default async function MyPage() {
 
   return (
     <div className="space-y-12">
-      <h2 className="font-serif text-2xl font-light">マイページ</h2>
+      <div>
+        <h2 className="font-serif text-2xl font-light">マイページ</h2>
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+          プロフィール・パートナー・設定をまとめて管理
+        </p>
+      </div>
 
       {/* Profile */}
       <section className="space-y-4">

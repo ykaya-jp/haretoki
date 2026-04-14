@@ -109,9 +109,14 @@ export default async function ExplorePage({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2>式場をさがす</h2>
-        <AddVenueSheet defaultOpen={params.addVenue === "1"} />
+      <div>
+        <div className="flex items-center justify-between">
+          <h2>式場をさがす</h2>
+          <AddVenueSheet defaultOpen={params.addVenue === "1"} />
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+          URL貼付 or 検索で、気になる式場を集める場所
+        </p>
       </div>
 
       {/* Search bar */}
