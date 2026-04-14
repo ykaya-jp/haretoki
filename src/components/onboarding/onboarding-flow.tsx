@@ -297,19 +297,29 @@ export function OnboardingFlow() {
           </div>
         )}
 
-        {/* Skip link */}
-        <div className="flex justify-center pt-2">
+        {/* Primary CTA: proceed to home. The cookie is already set by
+            saveOnboardingAnswers() above, so we can navigate directly. */}
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <Button
+            size="default"
+            className="w-full max-w-sm"
+            onClick={() => {
+              router.push("/home");
+              router.refresh();
+            }}
+          >
+            ホームへ進む
+          </Button>
           <button
             type="button"
             onClick={async () => {
-              // Save empty conditions to set the onboarding cookie
               await saveOnboardingAnswers({});
               router.push("/home");
               router.refresh();
             }}
-            className="text-sm text-muted-foreground underline"
+            className="text-xs text-muted-foreground underline"
           >
-            あとで見る
+            条件を保存せず始める
           </button>
         </div>
       </div>

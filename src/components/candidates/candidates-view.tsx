@@ -64,11 +64,14 @@ export function CandidatesView({
     getFavorites(filter).then(setFavorites);
   }, [filter]);
 
+  const canCompare = favorites.length >= 2;
+  const canDecide = favorites.length >= 1;
+
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
-    { id: "matrix" as const, label: "比べる", disabled: false },
-    { id: "focus" as const, label: "観点別", disabled: false },
-    { id: "decision" as const, label: "決める", disabled: false },
+    { id: "matrix" as const, label: "比べる", disabled: !canCompare },
+    { id: "focus" as const, label: "観点別", disabled: !canCompare },
+    { id: "decision" as const, label: "決める", disabled: !canDecide },
   ];
 
   const handleDecide = async (venueId: string) => {
@@ -187,7 +190,20 @@ export function CandidatesView({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
-            <DecisionMatrix />
+            {canCompare ? (
+              <DecisionMatrix />
+            ) : (
+              <EmptyState
+                icon={BarChart3}
+                title="候補を2件以上集めると比較できます"
+                description={
+                  favorites.length === 0
+                    ? "まず気になる式場を2つ以上お気に入りに追加してください。"
+                    : "あと1件以上お気に入りに追加すると、比較ボードが使えます。"
+                }
+                action={{ label: "式場を探す", href: "/explore" }}
+              />
+            )}
           </motion.div>
         )}
 
@@ -199,7 +215,16 @@ export function CandidatesView({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
-            <DimensionFocus />
+            {canCompare ? (
+              <DimensionFocus />
+            ) : (
+              <EmptyState
+                icon={BarChart3}
+                title="観点別の比較には2件必要です"
+                description="お気に入りに2件以上追加すると、雰囲気や料理などの観点ごとに比べられます。"
+                action={{ label: "式場を探す", href: "/explore" }}
+              />
+            )}
           </motion.div>
         )}
 
@@ -211,7 +236,14 @@ export function CandidatesView({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
-            {showCeremony ? (
+            {!canDecide ? (
+              <EmptyState
+                icon={Trophy}
+                title="まずは式場を1件お気に入りしてください"
+                description="お気に入りした式場から、最終決定を行えます。"
+                action={{ label: "式場を探す", href: "/explore" }}
+              />
+            ) : showCeremony ? (
               <DecisionCeremony
                 venueName={ceremonyVenueName}
                 userName={userName ?? ""}

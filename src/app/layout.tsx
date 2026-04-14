@@ -6,10 +6,15 @@ import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-geist'});
 
+// Japanese glyphs are served lazily via unicode-range partitions (there is no
+// "japanese" Google Fonts subset). On slow networks or platforms without
+// system Japanese fonts, the swap fallback may render tofu (□) for headings,
+// so we provide an explicit Japanese-capable system-font fallback chain.
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
   variable: "--font-noto-sans-jp",
   display: "swap",
+  fallback: ["Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "sans-serif"],
 });
 
 const notoSerifJP = Noto_Serif_JP({
@@ -17,6 +22,7 @@ const notoSerifJP = Noto_Serif_JP({
   weight: ["300", "400", "500"],
   variable: "--font-noto-serif-jp",
   display: "swap",
+  fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
 
 export const metadata: Metadata = {

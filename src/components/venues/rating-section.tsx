@@ -102,8 +102,25 @@ export function RatingSection({
                   role="radio"
                   aria-checked={value === n}
                   aria-label={`${n}点`}
+                  tabIndex={value === n || (value === 0 && n === 1) ? 0 : -1}
                   onClick={() => handleRate(dim, n)}
-                  className="transition-transform active:scale-90"
+                  onKeyDown={(e) => {
+                    // Arrow keys / Home / End navigate within the radio group
+                    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      handleRate(dim, Math.min(5, (value || 0) + 1 || n + 1));
+                    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                      handleRate(dim, Math.max(1, (value || n) - 1));
+                    } else if (e.key === "Home") {
+                      e.preventDefault();
+                      handleRate(dim, 1);
+                    } else if (e.key === "End") {
+                      e.preventDefault();
+                      handleRate(dim, 5);
+                    }
+                  }}
+                  className="rounded transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
                 >
                   <Star
                     className={cn(

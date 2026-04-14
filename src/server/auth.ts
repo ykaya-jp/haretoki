@@ -16,7 +16,9 @@ export async function requireProjectMembership(userId: string) {
     where: { userId, acceptedAt: { not: null } },
     select: { projectId: true, role: true },
   });
-  if (!membership) redirect("/home");
+  // No project yet — send them through onboarding instead of looping back
+  // to /home (which would re-enter this function and infinite-redirect).
+  if (!membership) redirect("/onboarding");
   return membership;
 }
 

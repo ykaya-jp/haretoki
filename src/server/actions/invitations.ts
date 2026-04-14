@@ -84,6 +84,20 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "この招待はあなた宛ではありません" };
   }
 
+  // Supabase Auth marks user_metadata.email_verified after the confirmation
+  // email is clicked. We require that before accepting — this is the gate
+  // that prevents someone from creating an account with another person's
+  // email and claiming their invitation.
+  const emailConfirmed =
+    (user.email_confirmed_at ?? null) !== null ||
+    user.user_metadata?.email_verified === true;
+  if (!emailConfirmed) {
+    return {
+      success: false as const,
+      error: "メールアドレスの確認が必要です。受信メールの確認リンクをタップしてください。",
+    };
+  }
+
   if (membership.acceptedAt) {
     return { success: false as const, error: "すでに承諾済みです" };
   }

@@ -13,10 +13,35 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    toast.success("招待リンクをコピーしました");
-    setTimeout(() => setCopied(false), 2000);
+    // navigator.clipboard.writeText can throw if the document isn't focused,
+    // if we're on http (non-secure context), or if permissions are denied.
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      toast.success("招待リンクをコピーしました");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Legacy fallback: select a temporary textarea and execCommand('copy').
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = inviteLink;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (ok) {
+          setCopied(true);
+          toast.success("招待リンクをコピーしました");
+          setTimeout(() => setCopied(false), 2000);
+          return;
+        }
+      } catch {
+        // fall through
+      }
+      toast.error("コピーできませんでした。リンクを長押しで選択してください");
+    }
   };
 
   const handleLineShare = () => {
