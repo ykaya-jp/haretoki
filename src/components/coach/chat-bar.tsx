@@ -177,7 +177,7 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
           <ChatBubble role="assistant" content={inFlight.assistantText} />
         </div>
       )}
-      <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+      <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 border-t border-border bg-card/95 py-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] backdrop-blur-sm">
         {hasPrefill && (
           <div className="mx-auto mb-2 flex max-w-5xl items-center gap-1.5 text-[11px] text-[var(--gold-warm)]">
             <Sparkles aria-hidden="true" className="h-3 w-3" strokeWidth={1.5} />
