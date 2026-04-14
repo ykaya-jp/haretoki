@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 // Root-level fallback that replaces <html>/<body>. Since Next re-mounts the
 // entire document tree here, we cannot rely on the theme class injected by
@@ -31,6 +32,9 @@ export default function GlobalError({
   );
 
   useEffect(() => {
+    // Report to Sentry (no-op when DSN unset) AND keep console.error so local
+    // dev still surfaces the full stack trace in the browser devtools.
+    Sentry.captureException(error);
     console.error(error);
   }, [error]);
 

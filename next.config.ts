@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   images: {
@@ -18,4 +19,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withSentryConfig injects the Sentry webpack plugin (source-map upload,
+// release tagging) and a proxy for the Sentry API to avoid ad-blockers.
+// Upload is only triggered when SENTRY_AUTH_TOKEN is set — the wrapper is
+// safe to apply unconditionally. silent:true + telemetry:false keep dev
+// builds quiet and private.
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  org: process.env.SENTRY_ORG || "haretoki",
+  project: process.env.SENTRY_PROJECT || "haretoki-web",
+  telemetry: false,
+  widenClientFileUpload: false,
+  // Serves the Sentry ingest endpoint through our own origin to dodge
+  // ad-blockers that strip third-party beacon requests.
+  tunnelRoute: "/monitoring",
+});
