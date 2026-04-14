@@ -234,7 +234,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
                 <div key={note.id} className="rounded-lg bg-muted/50 p-3 text-sm">
                   <p>{note.content}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{new Date(note.createdAt).toLocaleString("ja-JP")}</span>
+                    <span className="tabular-nums">{new Date(note.createdAt).toLocaleString("ja-JP")}</span>
                     {note.locationLat && <><MapPin className="h-3 w-3" /> GPS</>}
                   </div>
                   {note.media.length > 0 && (

@@ -64,7 +64,7 @@ export function EstimateSection({
           {/* Total prominently at top */}
           <div className="flex items-baseline justify-between">
             <div>
-              <span className="text-2xl font-bold tabular-nums">
+              <span className="text-2xl font-light tabular-nums">
                 {formatYen(latest.total)}
               </span>
               <span className="ml-2 text-sm text-muted-foreground">
@@ -84,7 +84,7 @@ export function EstimateSection({
                 <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   最終予測額
                 </span>
-                <span className="text-lg font-bold tabular-nums text-amber-800 dark:text-amber-200">
+                <span className="text-lg font-medium tabular-nums text-amber-800 dark:text-amber-200">
                   {formatYen(latest.predictedFinal)}
                 </span>
               </div>

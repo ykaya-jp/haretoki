@@ -47,7 +47,7 @@ export function PartnerComparisonSummary({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">二人の評価比較</h3>
         {ratedDimensions.length > 0 && (
-          <span className="text-xs text-muted-foreground">一致度 {agreementPct}%</span>
+          <span className="text-xs text-muted-foreground">一致度 <span className="tabular-nums">{agreementPct}%</span></span>
         )}
       </div>
 
