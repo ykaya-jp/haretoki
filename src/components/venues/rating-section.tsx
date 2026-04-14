@@ -169,9 +169,16 @@ export function RatingSection({
   );
 
   const handleRate = (dimension: string, score: number) => {
+    // Update local state with the merged map (so the UI reflects all current
+    // sliders). Only send the *changed* dimension to the server though:
+    // initialRatings comes from VenueScore averages stored as Decimal(2,1),
+    // which can land on non-0.5 increments like 3.6 — and the zod schema
+    // enforces multipleOf(0.5). Re-sending those legacy averages would fail
+    // validation and surface as the generic '保存できませんでした' toast even
+    // though the user's own click was a valid 0.5 step.
     const newRatings = { ...ratings, [dimension]: score };
     setRatings(newRatings);
-    debouncedSave(newRatings);
+    debouncedSave({ [dimension]: score });
   };
 
   return (
