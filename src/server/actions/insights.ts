@@ -243,9 +243,9 @@ async function findPartnerGaps(
     for (const visit of venue.visits) {
       for (const rating of visit.ratings) {
         if (rating.userId === userId) {
-          userRatings[rating.dimension] = rating.score;
+          userRatings[rating.dimension] = Number(rating.score);
         } else if (rating.userId === partnerId) {
-          partnerRatings[rating.dimension] = rating.score;
+          partnerRatings[rating.dimension] = Number(rating.score);
         }
       }
     }

@@ -46,7 +46,7 @@ export async function generateRatingComparison(
   const ratingsByUser: Record<string, Record<string, number>> = {};
   for (const r of visitRatings) {
     if (!ratingsByUser[r.userId]) ratingsByUser[r.userId] = {};
-    ratingsByUser[r.userId][r.dimension] = r.score;
+    ratingsByUser[r.userId][r.dimension] = Number(r.score);
   }
 
   const userIds = Object.keys(ratingsByUser);

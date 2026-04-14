@@ -52,11 +52,12 @@ export async function saveRatings(
       select: { dimension: true, score: true },
     });
 
-    // 3) Group by dimension & compute averages
+    // 3) Group by dimension & compute averages. Prisma returns Decimal
+    // columns as Decimal.js objects; coerce to number before arithmetic.
     const dimensionScores = new Map<ScoreDimension, number[]>();
     for (const r of allRatings) {
       const existing = dimensionScores.get(r.dimension) ?? [];
-      existing.push(r.score);
+      existing.push(Number(r.score));
       dimensionScores.set(r.dimension, existing);
     }
 
@@ -154,7 +155,7 @@ export async function getPartnerRatings(venueId: string) {
     for (const r of allRatings) {
       if (r.userId === userId) {
         // If multiple ratings per dimension, use latest (last in array)
-        map[r.dimension] = r.score;
+        map[r.dimension] = Number(r.score);
       }
     }
     return map;
