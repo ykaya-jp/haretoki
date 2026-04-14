@@ -17,6 +17,13 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
         <HeartButton venueId={venueId} initialFavorite={isFavorite} />
         <ShareButton venueName={venueName} />
         <Link
+          href={`/venues/${venueId}/checklist`}
+          prefetch={true}
+          className="flex min-h-[44px] items-center justify-center rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-transform active:scale-95 active:bg-muted"
+        >
+          チェック
+        </Link>
+        <Link
           href="/candidates"
           prefetch={true}
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform active:scale-95"

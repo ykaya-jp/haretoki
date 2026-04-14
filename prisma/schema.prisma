@@ -161,6 +161,7 @@ model Project {
   partnerReactions PartnerReaction[]
   coachMessages    CoachMessage[]
   coachSessions    CoachSession[]
+  checklists       ProjectChecklist[]
 
   @@map("projects")
 }
@@ -220,6 +221,7 @@ model Venue {
   partnerReactions PartnerReaction[]
   reviews          Review[]
   plans            VenuePlan[]
+  checklistAnswers VenueChecklistAnswer[]
 
   @@index([projectId])
   @@index([projectId, status])
@@ -515,6 +517,39 @@ model NotificationPreference {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+model ProjectChecklist {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id") @db.Uuid
+  itemId    String   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  answers VenueChecklistAnswer[]
+
+  @@unique([projectId, itemId])
+  @@index([projectId])
+  @@map("project_checklists")
+}
+
+model VenueChecklistAnswer {
+  id                 String   @id @default(cuid())
+  projectChecklistId String   @map("project_checklist_id")
+  venueId            String   @map("venue_id") @db.Uuid
+  status             String?
+  memo               String?
+  numberValue        Decimal? @map("number_value") @db.Decimal(12, 2)
+  photoUrls          String[] @default([]) @map("photo_urls")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  projectChecklist ProjectChecklist @relation(fields: [projectChecklistId], references: [id], onDelete: Cascade)
+  venue            Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([projectChecklistId, venueId])
+  @@index([projectChecklistId])
+  @@index([venueId])
+  @@map("venue_checklist_answers")
 }
 
 model Notification {
