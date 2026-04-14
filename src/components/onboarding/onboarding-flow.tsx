@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { PillOptions } from "@/components/ui/pill-options";
 import { ChatBubble } from "@/components/coach/chat-bubble";
 import { Button } from "@/components/ui/button";
@@ -78,8 +80,14 @@ const QUESTIONS = [
 ];
 
 export function OnboardingFlow() {
-  const [step, setStep] = useState(0);
+  // step === -1 renders the intro/preview screen. Once the user taps
+  // 「はじめる」 we advance to 0 and the existing question flow takes over.
+  // If `answers` is non-empty on mount (a rehydrated/resumed session), skip
+  // the intro so we don't re-gate a user who is mid-flow.
   const [answers, setAnswers] = useState<OnboardingAnswer>({});
+  const [step, setStep] = useState(() =>
+    Object.keys(answers).length > 0 ? 0 : -1,
+  );
   const [selectedPills, setSelectedPills] = useState<string[]>([]);
   const [guestCount, setGuestCount] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
@@ -352,6 +360,62 @@ export function OnboardingFlow() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (step === -1) {
+    const introSteps = [
+      "好みを3問お伺いします",
+      "AIがおふたりに合う式場をご提案",
+      "気に入ったら評価・比較・決定まで、このアプリで",
+    ];
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center gap-10 px-4 py-10 text-center"
+      >
+        <div className="space-y-5">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+            Haretoki
+          </p>
+          <h1 className="font-serif text-2xl font-light leading-snug text-foreground">
+            式場選びを、3ステップで。
+          </h1>
+        </div>
+
+        <ol className="w-full space-y-4 text-left">
+          {introSteps.map((text, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[var(--gold-subtle)] text-xs font-medium tabular-nums text-[var(--gold-warm)]"
+              >
+                {i + 1}
+              </span>
+              <span className="pt-0.5 text-sm font-medium leading-relaxed text-foreground/80">
+                {text}
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex w-full flex-col items-center gap-4">
+          <Button
+            onClick={() => setStep(0)}
+            className="h-11 min-h-11 w-full rounded-full"
+          >
+            はじめる
+          </Button>
+          <Link
+            href="/explore?addVenue=1"
+            className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
+          >
+            スキップして式場を追加
+          </Link>
+        </div>
+      </motion.div>
     );
   }
 
