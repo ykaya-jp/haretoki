@@ -62,6 +62,17 @@ docs/            # 仕様書・設計ドキュメント
 - IMPORTANT: テストが通らない状態でコミットしない
 - UI変更はモバイルビューポート（375px幅）で必ず確認する
 
+## Ship Cycle（一区切りごとの標準フロー）
+IMPORTANT: 機能実装・バッチ修正など「一区切り」が完了したら、必ず以下を**最後まで**実行する。中途半端な状態（ローカルコミットのみ、未デプロイ、worktree残置）で止めない。
+
+1. **E2Eテスト** — `npx playwright test --project="Mobile Chrome"`。通らないまま先に進まない
+2. **developブランチへマージ** — worktree作業時は develop にマージする
+3. **push** — `git push origin develop`
+4. **本番デプロイ** — `vercel:deploy` スキル経由（`prod` 引数）で実行。raw `vercel --prod` CLI ではなくスキルを使う
+5. **worktree掃除** — worktreeを使った場合は `git worktree remove` + ブランチ削除まで完了させる
+
+並列タスクがあるときは tmux ペイン分割 + git worktree + AgentTeams で並列実行する（逐次しない）。共通基盤は先に単独で整えてから並列に入る。
+
 ## Architecture Decisions
 - Server Components をデフォルトとし、インタラクションが必要なコンポーネントだけ "use client" をつける
 - データ取得は Server Actions または Route Handlers 経由。クライアントから直接 Supabase を叩かない（RLS は補助的な安全装置として使う）
