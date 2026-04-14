@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Loader2, ImagePlus, X, ChevronRight } from "lucide-react";
 import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
-import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 
 interface ExtractedVenueData {
@@ -187,17 +187,17 @@ export function AddVenueSheet({
 
     if (successCount > 0) {
       if (failCount === 0) {
-        toast.success(`${successCount}件の式場を追加しました`);
+        showToast("success", `${successCount}件の式場を追加しました`);
       } else {
-        toast.success(`${successCount}件追加、${failCount}件失敗`);
+        showToast("success", `${successCount}件追加、${failCount}件失敗`);
       }
       router.refresh();
     } else if (failCount > 0) {
-      toast.error("URLから読み取れませんでした");
+      showToast("error", "URLから読み取れませんでした");
     }
 
     if (skipped.length > 0) {
-      toast.info(`11件目以降 ${skipped.length} 件はスキップされました`);
+      showToast("info", `11件目以降 ${skipped.length} 件はスキップされました`);
     }
   };
 
@@ -232,7 +232,7 @@ export function AddVenueSheet({
           photoUrls = uploadResult.urls;
           setUploadedPhotoUrls(uploadResult.urls);
           if ((uploadResult.droppedCount ?? 0) > 0) {
-            toast.info(`${uploadResult.droppedCount}件はサイズ/形式が合わず追加できませんでした`);
+            showToast("info", `${uploadResult.droppedCount}件はサイズ/形式が合わず追加できませんでした`);
           }
         }
       }
@@ -244,15 +244,15 @@ export function AddVenueSheet({
       });
 
       if (result.success) {
-        toast.success("式場を追加しました");
+        showToast("success", "式場を追加しました");
         setOpen(false);
         resetForm();
         router.refresh();
       } else {
-        toast.error("追加できませんでした");
+        showToast("error", "追加できませんでした");
       }
     } catch {
-      toast.error("追加できませんでした");
+      showToast("error", "追加できませんでした");
     } finally {
       setManualLoading(false);
     }
