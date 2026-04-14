@@ -30,6 +30,11 @@ const SORT_OPTIONS = [
   { value: "cost_asc", label: "費用が安い順" },
   { value: "cost_desc", label: "費用が高い順" },
   { value: "review_delta_asc", label: "見積もり上昇率の低い順" },
+  { value: "score_cuisine_desc", label: "料理の評価順" },
+  { value: "score_hospitality_desc", label: "サービスの評価順" },
+  { value: "score_atmosphere_desc", label: "雰囲気の評価順" },
+  { value: "score_cost_desc", label: "コスパの評価順" },
+  { value: "score_access_desc", label: "設備の評価順" },
 ] as const;
 
 const REVIEW_DELTA_PCT_DEFAULT = 30;

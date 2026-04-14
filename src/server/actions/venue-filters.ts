@@ -50,7 +50,12 @@ export interface VenueFilters {
     | "cost_asc"
     | "cost_desc"
     | "created_desc"
-    | "review_delta_asc";
+    | "review_delta_asc"
+    | "score_cuisine_desc"
+    | "score_hospitality_desc"
+    | "score_atmosphere_desc"
+    | "score_cost_desc"
+    | "score_access_desc";
   query?: string;
   // Onboarding-derived personalization filters
   styles?: string[];

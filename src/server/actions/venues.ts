@@ -133,7 +133,36 @@ export async function getVenues(filters?: VenueFilters) {
     });
   }
 
+  // Per-category score sorts — null scores sink to bottom (nulls last)
+  const CATEGORY_SORT_MAP: Record<string, string> = {
+    score_cuisine_desc: "cuisine",
+    score_hospitality_desc: "hospitality",
+    score_atmosphere_desc: "atmosphere",
+    score_cost_desc: "cost",
+    score_access_desc: "access",
+  };
+  if (filters?.sortBy && filters.sortBy in CATEGORY_SORT_MAP) {
+    const dim = CATEGORY_SORT_MAP[filters.sortBy];
+    return filtered.sort((a, b) => {
+      const scoreA = calcDimScore(a.scores, dim);
+      const scoreB = calcDimScore(b.scores, dim);
+      if (scoreA === null && scoreB === null) return 0;
+      if (scoreA === null) return 1;
+      if (scoreB === null) return -1;
+      return scoreB - scoreA;
+    });
+  }
+
   return filtered;
+}
+
+/** Returns the user_rating score for a specific dimension, or null if not rated. */
+function calcDimScore(
+  scores: Array<{ source: string; dimension: string; score: unknown }>,
+  dimension: string,
+): number | null {
+  const s = scores.find((s) => s.source === "user_rating" && s.dimension === dimension);
+  return s != null ? Number(s.score) : null;
 }
 
 function calcAvgScore(scores: Array<{ source: string; score: unknown }>): number | null {
