@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 
 export default function LoginPage() {
   // useSearchParams() requires a Suspense boundary for static generation.
@@ -88,6 +89,10 @@ function LoginPageInner() {
           </Link>
         </div>
         <div className="relative z-10 max-w-lg">
+          {/* Seasonal decoration — rotates monthly. Top-right of heading. */}
+          <div className="mb-4 flex justify-end">
+            <SeasonalMotif size="md" className="opacity-60" />
+          </div>
           <h1 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-light leading-snug tracking-[0.06em] text-foreground">
             おかえりなさい
           </h1>

@@ -8,6 +8,7 @@ import JourneySteps, {
   type JourneyStep,
 } from "@/components/home/journey-steps";
 import { cn } from "@/lib/utils";
+import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 
 interface JourneyCardProps {
   totalVenues: number;
@@ -217,7 +218,13 @@ export function JourneyCard(props: JourneyCardProps) {
             次の一歩
           </h3>
         </div>
-        <p className="mb-4 text-sm leading-relaxed text-foreground">{nba.body}</p>
+        <div className="mb-4 flex items-start gap-3">
+          <p className="text-sm leading-relaxed text-foreground flex-1">{nba.body}</p>
+          {nba.stage === "decided" && (
+            // Celebrate the post-decision state with a seasonal bloom.
+            <SeasonalMotif size="md" className="mt-0.5 shrink-0 opacity-70" />
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {nba.actions.map((action, idx) => {
             const ActionIcon = action.icon;

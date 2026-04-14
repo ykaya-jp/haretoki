@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ChevronRight } from "lucide-react";
+import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -77,6 +78,10 @@ export default function SignupPage() {
           </Link>
         </div>
         <div className="relative z-10 max-w-lg space-y-8">
+          {/* Seasonal decoration — rotates monthly. */}
+          <div className="flex justify-end">
+            <SeasonalMotif size="md" className="opacity-60" />
+          </div>
           <h1 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-light leading-snug tracking-[0.06em] text-foreground">
             式場探し、
             <br />
