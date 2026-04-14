@@ -201,6 +201,17 @@ export function LandingPage() {
             </Link>
           </motion.div>
 
+          <motion.div custom={5} variants={fadeUp} className="pt-1">
+            {/* Subtle secondary CTA — lets visitors try the app without signing up */}
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground underline decoration-[var(--gold-warm)]/40 decoration-dotted underline-offset-[6px] transition-colors duration-200 hover:text-foreground hover:decoration-[var(--gold-warm)]"
+            >
+              まずは体験してみる
+              <ChevronRight className="h-3.5 w-3.5 text-[var(--gold-warm)]" aria-hidden="true" />
+            </Link>
+          </motion.div>
+
           <motion.p
             custom={5}
             variants={fadeUp}
@@ -347,6 +358,23 @@ export function LandingPage() {
               <DemoSequence />
             </motion.div>
           </div>
+
+          {/* Secondary CTA — try the app without signing up */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-16 flex justify-center"
+          >
+            <Link
+              href="/demo"
+              className="group inline-flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--gold-warm)]/30 bg-card px-8 py-3 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-[var(--gold-warm)]/60 hover:shadow-md active:scale-95"
+            >
+              実際に触ってみる
+              <ChevronRight className="h-4 w-4 text-[var(--gold-warm)] transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
+            </Link>
+          </motion.div>
         </div>
       </section>
 

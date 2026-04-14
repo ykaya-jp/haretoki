@@ -55,3 +55,33 @@
 - `npx vitest run` — 64/64 passing.
 - `npm run build` — success. Heavy deps isolated into on-demand chunks: recharts 314KB (was in initial bundle), canvas-confetti 10KB, embla 20KB. Estimated initial-bundle reduction on /venues/[id]: ~120KB raw (~40–50KB gzipped).
 
+
+---
+
+# Demo — Unauthenticated /demo walkthrough (feat/demo)
+
+## Tasks
+
+- [x] Middleware: add `/demo` to public paths
+- [x] Demo data provider + `useDemoData()` hook
+- [x] Demo layout with top banner, demo bottom nav, `data-demo` marker
+- [x] /demo, /demo/venues, /demo/venues/[id], /demo/candidates, /demo/coach pages
+- [x] DemoVenueCard with local-state heart
+- [x] Landing: 「まずは体験してみる」 + 「実際に触ってみる」 CTAs
+- [x] Verify: lint 0 errors, vitest 128/128, build success
+- [x] Commit on feat/demo (no push)
+
+## Review
+
+- Public paths `/demo` added in `src/middleware.ts` (excludedPaths) + `src/lib/supabase/middleware.ts` (publicPaths). Unauth visitors hit `/demo/*` without redirect.
+- Provider has 3 venues (aoyama-grace, kamakura-hana, yokohama-bay), 2 initial favorites, 1 visit with checklist, 1 estimate, 4-turn coach transcript, 2 insights. Pure React state — no DB, no server actions.
+- Layout mirrors (app)/layout.tsx skeleton, wraps in DemoDataProvider, renders sticky gold-subtle banner with「はじめる」CTA, mounts DemoBodyMarker (sets body.dataset.demo=1 in effect with cleanup).
+- Pages: home uses real JourneyCard pre-filled; venue detail renders photo/rating/heart/chips/estimate/visit/reviews; candidates has 一覧/比較 tabs with 6-row comparison table; coach shows 4-turn chat + disabled input with tooltip "体験モードではチャットは送れません、登録後にお使いください".
+- Interactive: heart toggle on DemoVenueCard updates provider's Set<string>; /demo/candidates reflects changes live.
+- Landing: subtle gold-dotted "まずは体験してみる" underline-link below hero signup/login; pill "実際に触ってみる" CTA centered after How-It-Works mockup.
+
+## Verification
+
+- `npm run lint` — 0 errors, 5 pre-existing warnings.
+- `npx vitest run` — 128/128 passing.
+- `npm run build` — success. `/demo`, `/demo/venues`, `/demo/candidates`, `/demo/coach` are static (○); `/demo/venues/[id]` is dynamic (ƒ).
