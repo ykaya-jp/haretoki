@@ -23,7 +23,7 @@ const notoSansJP = Noto_Sans_JP({
 
 const notoSerifJP = Noto_Serif_JP({
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["400"],
   variable: "--font-noto-serif-jp",
   display: "swap",
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
@@ -38,6 +38,7 @@ const shipporiMincho = Shippori_Mincho({
   weight: ["400", "500", "600"],
   variable: "--font-shippori-mincho",
   display: "swap",
+  preload: false,
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
 
