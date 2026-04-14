@@ -19,7 +19,8 @@ const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 // Fixed column widths so header and rows align perfectly on 375px.
 const LABEL_COL_W = "w-[132px]";
-const VENUE_COL_W = "w-[72px]";
+// 96px fits two 56px thumbs (maxShow=2) with gap without overflow
+const VENUE_COL_W = "w-[96px]";
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "yes") return <Check className="h-4 w-4 text-green-600" aria-label="◯" />;
@@ -213,7 +214,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                                     {v.photoUrls.length > 0 ? (
                                       <PhotoThumbnails
                                         photoUrls={v.photoUrls}
-                                        maxShow={3}
+                                        maxShow={2}
                                         className="justify-center"
                                       />
                                     ) : (
