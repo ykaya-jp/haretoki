@@ -166,9 +166,15 @@ jobs:
         if: steps.check.outputs.has_tests == 'true'
         run: npm run test:e2e
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Existing E2E specs cover unauthenticated flows only (landing,
+          # signup form validation, pages that redirect to /login). They do
+          # not need a real Supabase connection, so prefer GitHub secrets
+          # when provided but fall back to the same placeholder pattern the
+          # `build` job uses — this keeps CI green without requiring the
+          # repository to carry production credentials.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
 
       - name: Upload test report
         if: steps.check.outputs.has_tests == 'true' && always()
