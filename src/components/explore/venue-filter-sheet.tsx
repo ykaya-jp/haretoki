@@ -28,7 +28,11 @@ const SORT_OPTIONS = [
   { value: "score_desc", label: "評価が高い順" },
   { value: "cost_asc", label: "費用が安い順" },
   { value: "cost_desc", label: "費用が高い順" },
+  { value: "review_delta_asc", label: "見積もり上昇率の低い順" },
 ] as const;
+
+const REVIEW_DELTA_PCT_DEFAULT = 30;
+const REVIEW_SAMPLE_COUNT_THRESHOLD = 3;
 
 const DRESS_OPTIONS = [
   { value: "allowed", label: "可" },
@@ -350,6 +354,82 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
                 要相談を含む
               </button>
             </div>
+          </div>
+
+          {/* Review-derived estimate-increase cap */}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">見積もり上昇率</Label>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                レビューから推定された、初期見積もりからの上昇率
+              </p>
+              <p className="text-[11px] leading-relaxed text-[var(--gold-warm)]">
+                妻が特に重視したい項目です
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.reviewEstimateDeltaPctMax !== undefined}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    reviewEstimateDeltaPctMax: e.target.checked
+                      ? REVIEW_DELTA_PCT_DEFAULT
+                      : undefined,
+                  }))
+                }
+                className="h-4 w-4 accent-primary"
+                aria-label="上昇率の上限でしぼる"
+              />
+              <span>
+                {draft.reviewEstimateDeltaPctMax !== undefined
+                  ? `${draft.reviewEstimateDeltaPctMax}%以下の式場だけ表示`
+                  : "上昇率の上限でしぼる"}
+              </span>
+            </label>
+
+            {draft.reviewEstimateDeltaPctMax !== undefined && (
+              <>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[draft.reviewEstimateDeltaPctMax]}
+                  onValueChange={(value) => {
+                    const [v] = value as readonly number[];
+                    setDraft((d) => ({
+                      ...d,
+                      reviewEstimateDeltaPctMax: v,
+                    }));
+                  }}
+                  aria-label="見積もり上昇率の上限"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </>
+            )}
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.reviewEstimateMinSampleCount !== undefined}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    reviewEstimateMinSampleCount: e.target.checked
+                      ? REVIEW_SAMPLE_COUNT_THRESHOLD
+                      : undefined,
+                  }))
+                }
+                className="h-4 w-4 accent-primary"
+                aria-label="サンプル数で絞り込む"
+              />
+              <span>n=3 以上の式場のみ</span>
+            </label>
           </div>
 
           {/* Payment methods */}

@@ -36,6 +36,15 @@ export default async function VenueDetailPage({
 
   if (!venue) notFound();
 
+  // Review-derived estimate aggregate — used by both the waterfall overlay
+  // (above the fold) and the ReviewSection. Fetched once and passed down to
+  // avoid double-fetching.
+  const reviewEstimateAgg = await getVenueReviewEstimateAggregate(venue.id);
+  const reviewMeanFinal =
+    reviewEstimateAgg?.deltaYen != null && venue.estimates.length > 0
+      ? venue.estimates[0].total + reviewEstimateAgg.deltaYen
+      : undefined;
+
   const isFavorite = favorites.some((f) => f.venue.id === venue.id);
 
   // Extract user ratings into Record<dimension, score>
@@ -126,6 +135,8 @@ export default async function VenueDetailPage({
             amount: item.amount,
             predictedUpgrade: item.predictedUpgrade ?? 0,
           }))}
+          reviewMeanFinal={reviewMeanFinal}
+          reviewSampleCount={reviewEstimateAgg?.sampleCount ?? undefined}
         />
       )}
 
@@ -138,7 +149,7 @@ export default async function VenueDetailPage({
           This lets the server flush the HTML for the above-the-fold content
           before these queries finish, cutting perceived TTFB significantly. */}
       <Suspense fallback={<ReviewsSkeleton />}>
-        <ReviewsContent venueId={venue.id} />
+        <ReviewsContent venueId={venue.id} venueAgg={reviewEstimateAgg} />
       </Suspense>
 
       <Suspense fallback={<PlansSkeleton />}>
@@ -205,11 +216,14 @@ async function RatingWithPartner({
   );
 }
 
-async function ReviewsContent({ venueId }: { venueId: string }) {
-  const [reviews, venueAgg] = await Promise.all([
-    getVenueReviews(venueId),
-    getVenueReviewEstimateAggregate(venueId),
-  ]);
+async function ReviewsContent({
+  venueId,
+  venueAgg,
+}: {
+  venueId: string;
+  venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
+}) {
+  const reviews = await getVenueReviews(venueId);
   return (
     <ReviewSection
       venueId={venueId}

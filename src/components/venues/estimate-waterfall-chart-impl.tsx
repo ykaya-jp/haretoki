@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
   LabelList,
+  ReferenceLine,
 } from "recharts";
 import { formatYen } from "@/lib/utils";
 import { useSyncExternalStore } from "react";
@@ -139,10 +140,16 @@ export function EstimateWaterfallChart({
   initialTotal,
   predictedFinal,
   items,
+  reviewMeanFinal,
+  reviewSampleCount,
 }: {
   initialTotal: number;
   predictedFinal: number;
   items: EstimateItem[];
+  /** Review-derived aggregate final amount (initialTotal + avg deltaYen). */
+  reviewMeanFinal?: number;
+  /** Sample count behind the review aggregate. Threshold for meaningful display is 3. */
+  reviewSampleCount?: number;
 }) {
   const isMobile = useSyncExternalStore(
     subscribeToMediaQuery,
@@ -195,6 +202,25 @@ export function EstimateWaterfallChart({
               tickLine={false}
               width={isMobile ? 50 : 60}
             />
+            {/* Review-derived average final — overlay when we have >= 3 samples */}
+            {reviewMeanFinal != null &&
+              reviewSampleCount != null &&
+              reviewSampleCount >= 3 && (
+                <ReferenceLine
+                  y={reviewMeanFinal}
+                  stroke="var(--gold-warm)"
+                  strokeDasharray="5 4"
+                  strokeWidth={1.5}
+                  ifOverflow="extendDomain"
+                  label={{
+                    value: `レビュー平均 ${Math.round(reviewMeanFinal / 10000)}万円 (n=${reviewSampleCount})`,
+                    position: "insideTopRight",
+                    fill: "var(--gold-warm)",
+                    fontSize: isMobile ? 10 : 11,
+                    fontWeight: 400,
+                  }}
+                />
+              )}
             {/* Invisible spacer bar */}
             <Bar dataKey="invisible" stackId="waterfall" fill="transparent" />
             {/* Visible value bar */}
