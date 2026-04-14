@@ -85,3 +85,77 @@
 - `npm run lint` — 0 errors, 5 pre-existing warnings.
 - `npx vitest run` — 128/128 passing.
 - `npm run build` — success. `/demo`, `/demo/venues`, `/demo/candidates`, `/demo/coach` are static (○); `/demo/venues/[id]` is dynamic (ƒ).
+
+
+---
+
+# Phase 1 — 体感速度の底上げ（remediation-master-plan.md §3）
+
+> 目的: タップ→画面表示の待ち時間を半減。モバイル実機でタブ切替 < 500ms、/home LCP < 1.8s、ホーム→候補の"空白"を体感で消す。
+
+## 進め方
+
+`docs/myreview/remediation-master-plan.md §7` のブランチ戦略に従い、**git worktree + 並列実装**。共通基盤変更（`src/server/auth.ts` の cache 化など）は先に単独で入れてから並列フェーズに入る。
+
+### ブランチ構成
+
+| ブランチ | スコープ | タスク |
+|---|---|---|
+| `perf/layout-parallelize` | layout の直列await解消、authのReact.cache化 | P1-1, P1-2 |
+| `perf/route-split` | /home・/candidates の軽量化、/venues/[id] の分割ストリーム | P1-3, P1-4 |
+| `perf/bundle-optim` | optimizePackageImports、Shippori/Noto Serif 絞り、画像 sizes/priority | P1-7 |
+| `perf/next16-features` | `"use cache"` + cacheTag、PPR、View Transitions | P1-6 |
+
+P1-5（bottom-nav の motion 除去 + 全タブ prefetch）は **Phase 11/Bundle H で既に実装済み**（`tasks/todo.md` の Phase 11 §2 参照）。→ スキップ
+
+## Tasks
+
+### Wave 0 — 共通基盤（単独実装、develop 直）
+
+- [ ] 0-1. `src/server/auth.ts` の `requireUser` / `requireProjectMembership` を `React.cache()` でラップ（P1-2）
+  - 同一リクエスト内の Supabase auth 往復を 1 回に集約
+  - `"use server"` ディレクティブとの両立を確認（cache内でサーバーサイド処理OK）
+
+### Wave 1 — 4ブランチ並列（worktree + AgentTeams）
+
+#### perf/layout-parallelize (P1-1)
+- [ ] `src/app/(app)/layout.tsx`: `getOrCreateProject` と `getBottomNavBadgeCounts` を `Promise.all`
+- [ ] badgeCounts を `<Suspense>` で包み nav を先に flush
+- [ ] 期待効果: 全ページで -150〜300ms
+
+#### perf/route-split (P1-3, P1-4)
+- [ ] `/home`: `getPendingInvitation` を `Promise.all` に統合
+- [ ] `/candidates`: `getHomeData` 依存を削除し `getCurrentUserName()` に分離。`getVenues` を id/name のみの軽量版に置換（比較用途）
+- [ ] `/venues/[id]`: `getVenue` を `getVenueHeader` / `getVenueEstimates` / `getVenueVisits` に分割し page.tsx で独立 Suspense 化（Phase 11 の Suspense 分割と重ねず、hero を即 flush する方針へ再構成）
+- [ ] 期待効果: LCP -400〜800ms
+
+#### perf/bundle-optim (P1-7)
+- [ ] `next.config.ts` に `experimental.optimizePackageImports: ["lucide-react", "framer-motion"]`
+- [ ] `recharts` / `EstimateWaterfallChart` の `dynamic({ ssr: false })` は実装済みか確認、漏れあれば追加
+- [ ] フォント最適化: Shippori Mincho `preload: false`、Noto Serif JP weight を 400 のみに絞る
+- [ ] 画像: Supabase ホスト限定 `remotePatterns`、`sizes` 明示、LCP 候補に `priority`
+
+#### perf/next16-features (P1-6)
+- [ ] 読み取り系 Server Action（`getHomeData`, `getAIInsights`, `getFavorites`, `getBottomNavBadgeCounts`）に `"use cache"` + `cacheTag("project:{id}")` 導入
+- [ ] 書き込み系（`toggleFavorite`, `saveEstimate`, 他）で `revalidateTag("project:{id}")` を呼ぶ
+- [ ] `experimental_ppr = true` を `/home`, `/explore` で有効化
+- [ ] View Transitions experimental を有効化
+
+### Wave 2 — 統合 & 計測
+
+- [ ] 各ブランチを develop にマージ（競合解消）
+- [ ] Playwright E2E でスモーク（`/home → 候補`, `/venues/:id`, `/mypage`, `/coach`）
+- [ ] Lighthouse モバイル計測: 初回 /home LCP < 1.8s、タブ切替 < 500ms
+- [ ] Ship Cycle: develop push → vercel prod → worktree 掃除
+
+## 方針確認ポイント（ユーザー承認待ち）
+
+1. **4ブランチ並列 worktree + AgentTeams** で進める。共通基盤（Wave 0）は先に単独で入れる
+2. **P1-5 (bottom-nav) はスキップ**（Phase 11 で実装済み）
+3. **Next.js 16 の `"use cache"` / PPR / View Transitions** を本番導入する（experimental だが §3 で指定）
+4. 完了判定: モバイル実機でタブ切替 < 500ms、/home LCP < 1.8s
+
+## Review
+
+（実装完了後に記載）
+

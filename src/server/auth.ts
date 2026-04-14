@@ -1,17 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
-export async function requireUser() {
+export const requireUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   return user;
-}
+});
 
-export async function requireProjectMembership(userId: string) {
+export const requireProjectMembership = cache(async (userId: string) => {
   const membership = await prisma.projectMember.findFirst({
     where: { userId, acceptedAt: { not: null } },
     select: { projectId: true, role: true },
@@ -20,7 +21,7 @@ export async function requireProjectMembership(userId: string) {
   // to /home (which would re-enter this function and infinite-redirect).
   if (!membership) redirect("/onboarding");
   return membership;
-}
+});
 
 export async function requireOwner(userId: string) {
   const membership = await prisma.projectMember.findFirst({
