@@ -9,6 +9,11 @@ import type { VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
+import {
+  extractMetadata,
+  hasUsefulMetadata,
+  buildMetadataPrompt,
+} from "@/server/actions/url-metadata";
 
 // --- Server actions ---
 
@@ -287,7 +292,15 @@ Guidelines:
 - For capacity, look for "着席" followed by number
 - For ceremony styles, map to the enum values above
 - photoUrls: prefer large venue/ceremony photos, skip thumbnails and icons
-- confidence: "high" if major fields found, "medium" if some missing, "low" if minimal data`;
+- confidence: "high" if major fields found, "medium" if some missing, "low" if minimal data
+
+Note: The input may include OGP (og:title / og:description / og:image), Twitter Cards,
+and JSON-LD (Schema.org Venue / LocalBusiness / Organization / Event) blocks in
+addition to (or instead of) the main body text. Many Japanese wedding sites (e.g. Zexy)
+are SPAs that leave the visible body empty server-side but populate these structured
+fields for SEO. Treat OGP/JSON-LD as primary sources when they are present — the
+"name", "address", "image", "telephone", "geo" fields from JSON-LD and the og:title /
+og:description values are usually the most reliable signals.`;
 
 /**
  * Strip optional ```json ... ``` markdown fences that Claude sometimes wraps JSON in,
@@ -301,6 +314,7 @@ function extractJson(s: string): string {
 
 export async function addVenueFromUrl(url: string): Promise<{
   extracted?: ExtractedVenueData;
+  warning?: string;
   error?: string;
 }> {
   const user = await requireUser();
@@ -341,7 +355,13 @@ export async function addVenueFromUrl(url: string): Promise<{
 
     const html = await response.text();
 
-    // Strip scripts, styles, and tags
+    // Extract structured metadata (OGP / JSON-LD / Twitter / <title>) BEFORE the
+    // body-stripping empty-check. SPA sites like Zexy leave the rendered body near-empty
+    // but still populate these SEO signals — they often contain the venue name,
+    // description, hero image, and even Schema.org Venue/LocalBusiness blobs.
+    const metadata = extractMetadata(html);
+
+    // Strip scripts, styles, and tags for the fallback body excerpt.
     const textContent = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -349,10 +369,14 @@ export async function addVenueFromUrl(url: string): Promise<{
       .replace(/\s+/g, " ")
       .trim();
 
-    // JS-rendered pages (SPA) strip down to almost nothing. Surface this as a
-    // specific error so the UI can hint that the page needs JavaScript.
-    if (textContent.length < 500) {
-      console.error("addVenueFromUrl empty HTML:", {
+    const bodyIsShort = textContent.length < 500;
+    const metadataIsUseful = hasUsefulMetadata(metadata);
+    const usingMetadataPath = bodyIsShort || metadataIsUseful;
+
+    // Only abort when BOTH the rendered body is empty AND no structured metadata
+    // exists. Pre-fix, short body alone aborted — which made every Zexy URL fail.
+    if (bodyIsShort && !metadataIsUseful) {
+      console.error("addVenueFromUrl empty HTML and no metadata:", {
         url,
         textLength: textContent.length,
       });
@@ -362,10 +386,13 @@ export async function addVenueFromUrl(url: string): Promise<{
       };
     }
 
-    const claudeResponse = await askClaude(
-      URL_EXTRACTION_SYSTEM_PROMPT,
-      `以下はURL ${url} から取得したウェブページの内容です。結婚式場の情報を構造化データとして抽出してください:\n\n${textContent.slice(0, 30000)}`
-    );
+    // Build the prompt payload. When metadata is available (always, for modern SPAs)
+    // prefer the structured blob; fall back to raw body text when we have a full page.
+    const prompt = usingMetadataPath
+      ? buildMetadataPrompt(url, metadata, textContent)
+      : `以下はURL ${url} から取得したウェブページの内容です。結婚式場の情報を構造化データとして抽出してください:\n\n${textContent.slice(0, 30000)}`;
+
+    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt);
 
     if (!claudeResponse) {
       return { error: "AI解析に失敗しました。手動で入力してください。" };
@@ -397,7 +424,14 @@ export async function addVenueFromUrl(url: string): Promise<{
       };
     }
 
-    return { extracted: validated.data };
+    // When the rendered body was empty, we only saw OGP/JSON-LD. Surface a warning
+    // so the UI can nudge the user to verify or complete missing fields manually.
+    const warning =
+      bodyIsShort && metadataIsUseful
+        ? "部分的な情報のみ読み取れました。手動で補完してください。"
+        : undefined;
+
+    return { extracted: validated.data, warning };
   } catch (error) {
     const isAbort =
       error instanceof Error &&
