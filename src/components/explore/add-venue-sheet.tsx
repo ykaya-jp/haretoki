@@ -107,9 +107,9 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
     try {
       const result = await addVenueFromUrl(url);
       if (result.error) {
-        toast.info(
-          "URLから取得できませんでした。手入力に切り替えました",
-        );
+        // Prefer the server-provided specific cause (HTTP status, timeout,
+        // JS-required page, etc.) so the user knows what actually went wrong.
+        toast.info(result.error || "URLから取得できませんでした。手入力に切り替えました");
         setTab("manual");
       } else if (result.extracted) {
         setExtracted(result.extracted);
