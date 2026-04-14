@@ -8,6 +8,7 @@ import { addChecklistPhoto } from "@/server/actions/visits";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { CHECKLIST_TEMPLATES } from "@/lib/checklist-templates";
 
 interface ChecklistItem {
@@ -92,8 +93,11 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
 
   const handleMemoSave = (itemId: string) => {
     const memo = memoValues[itemId] ?? "";
+    const item = items.find(i => i.id === itemId);
+    // Dirty check: skip DB write when the textarea blurred without changes.
+    // Normalize null↔"" so an untouched empty memo doesn't round-trip.
+    if ((item?.memo ?? "") === memo) return;
     startTransition(async () => {
-      const item = items.find(i => i.id === itemId);
       await updateChecklistItemStatus(itemId, (item?.status ?? "unchecked") as "unchecked" | "yes" | "no", memo);
       router.refresh();
     });
@@ -255,7 +259,7 @@ function PhotoUploadButton({ itemId }: { itemId: string }) {
       await addChecklistPhoto(itemId, formData);
       router.refresh();
     } catch {
-      // silent
+      toast.error("写真を追加できませんでした");
     } finally {
       setUploading(false);
     }
