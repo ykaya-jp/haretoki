@@ -104,9 +104,9 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
         </div>
       )}
 
-      {/* Trust signal */}
+      {/* Feature description */}
       <p className="text-xs leading-relaxed text-muted-foreground">
-        80%のカップルが初期見積もりより平均+100万円上がっています。事前に把握しておきましょう。
+        見積もりの差分を、項目ごとに把握できます。アップグレードになりやすい箇所を事前に確認しておきましょう。
       </p>
     </div>
   );
