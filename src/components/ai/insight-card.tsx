@@ -37,11 +37,11 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
           <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[var(--gold-warm)]" strokeWidth={1.5} />
         </div>
-        <h3 className="text-xs font-medium tracking-[0.04em] uppercase text-[var(--gold-warm)]">
+        <h3 className="text-eyebrow text-[var(--gold-warm)]">
           {title}
         </h3>
       </div>
-      <p className="mb-4 text-sm leading-relaxed text-foreground">{body}</p>
+      <p className="mb-4 text-body text-foreground">{body}</p>
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {actions.map((action) => (

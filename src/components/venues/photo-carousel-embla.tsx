@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 interface PhotoCarouselEmblaProps {
   photos: string[];
   alt: string;
-  aspectRatio: "4/3" | "16/9";
+  aspectRatio: "4/3" | "16/9" | "3/2";
 }
 
 // Multi-photo carousel. Split out from photo-carousel.tsx so that the
@@ -70,7 +70,11 @@ export function PhotoCarouselEmbla({
               key={index}
               className={cn(
                 "relative min-w-0 flex-[0_0_100%]",
-                aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video",
+                aspectRatio === "4/3"
+                  ? "aspect-[4/3]"
+                  : aspectRatio === "3/2"
+                    ? "aspect-[3/2]"
+                    : "aspect-video",
               )}
               aria-label={`写真 ${index + 1}/${photos.length}`}
             >

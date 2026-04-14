@@ -111,10 +111,10 @@ export default async function ExplorePage({
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
-          <h2>式場をさがす</h2>
+          <h2 className="text-h1 font-serif font-extralight">式場をさがす</h2>
           <AddVenueSheet defaultOpen={params.addVenue === "1"} />
         </div>
-        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-1 text-meta text-muted-foreground">
           URL貼付 or 検索で、気になる式場を集める場所
         </p>
       </div>

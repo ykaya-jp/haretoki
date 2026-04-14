@@ -17,8 +17,8 @@ export default async function CandidatesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-serif text-xl font-light tracking-wide">候補</h2>
-        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+        <h2 className="text-h1 font-serif font-extralight">候補</h2>
+        <p className="mt-1 text-meta text-muted-foreground">
           お気に入りを並べて、ふたりで比べる
         </p>
       </div>

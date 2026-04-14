@@ -172,13 +172,13 @@ export function JourneyCard(props: JourneyCardProps) {
         shouldReduceMotion ? { duration: 0 } : { duration: 0.9, ease: [0.16, 1, 0.3, 1] }
       }
       aria-labelledby="journey-heading"
-      className="rounded-2xl bg-card border border-border p-6 shadow-[var(--shadow-card)]"
+      className="rounded-[var(--r-lg)] bg-[var(--bg-card-elevated)] border border-border/60 p-6 shadow-[var(--shadow-elevated)]"
     >
       {/* Heading */}
       <header className="mb-5 flex items-center justify-between gap-3">
         <h2
           id="journey-heading"
-          className="font-serif text-xl font-light tracking-[0.03em] sm:text-2xl"
+          className="text-h1 font-serif font-extralight"
         >
           おふたりの式場さがし
         </h2>
