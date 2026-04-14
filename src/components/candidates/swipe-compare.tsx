@@ -102,9 +102,9 @@ export function SwipeCompare({ venues, onComplete }: SwipeCompareProps) {
         <button
           type="button"
           onClick={() => handleSwipe("left")}
-          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-red-200 transition-transform active:scale-90"
+          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-destructive/20 transition-transform active:scale-90"
         >
-          <X className="h-6 w-6 text-red-500" />
+          <X className="h-6 w-6 text-destructive" />
         </button>
         <button
           type="button"

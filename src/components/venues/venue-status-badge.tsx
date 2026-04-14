@@ -22,7 +22,7 @@ const STATUS_CONFIG: Record<VenueStatus, { label: string; className: string }> =
     },
     rejected: {
       label: "見送り",
-      className: "bg-red-50/90 text-red-800",
+      className: "bg-destructive/10 text-destructive",
     },
   };
 

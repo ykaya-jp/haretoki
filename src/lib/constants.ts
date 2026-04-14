@@ -56,5 +56,5 @@ export function getScoreColorHex(score: number): string {
 export function getScoreBgClass(score: number): string {
   if (score >= 4.0) return "bg-green-500/10";
   if (score >= 3.0) return "bg-amber-500/10";
-  return "bg-red-500/10";
+  return "bg-destructive/10";
 }

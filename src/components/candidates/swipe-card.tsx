@@ -46,8 +46,8 @@ export function SwipeCard({ venue, onSwipe, isTop }: SwipeCardProps) {
       <motion.div style={{ opacity: rightOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-green-500/20">
         <Heart className="h-16 w-16 text-green-500" />
       </motion.div>
-      <motion.div style={{ opacity: leftOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-red-500/20">
-        <X className="h-16 w-16 text-red-500" />
+      <motion.div style={{ opacity: leftOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-destructive/20">
+        <X className="h-16 w-16 text-destructive" />
       </motion.div>
 
       <PhotoCarousel photos={venue.photoUrls} alt={venue.name} aspectRatio="4/3" />
