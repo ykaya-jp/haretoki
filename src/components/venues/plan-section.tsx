@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Check, X, DollarSign, ShirtIcon, PartyPopper, Pencil } from "lucide-react";
+import { ChevronDown, Check, X, ShirtIcon, PartyPopper, Pencil } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlanEditorSheet } from "@/components/venues/plan-editor-sheet";
@@ -187,25 +187,40 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                       </div>
                     )}
 
-                    {/* Bring-in items */}
+                    {/* Bring-in items — 3-column table: 品目 / 可否 / 料金 */}
                     {plan.bringInItems.length > 0 && (
                       <div>
-                        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-600">
-                          <DollarSign className="h-3.5 w-3.5" />
+                        <p className="mb-2 text-xs font-medium text-amber-600">
                           お持ち込みできるもの
                         </p>
-                        <ul className="space-y-1">
-                          {plan.bringInItems.map((bi, i) => (
-                            <li key={i} className="flex items-center justify-between text-sm">
+                        {/* Header row */}
+                        <div className="grid grid-cols-[1fr_48px_88px] border-b border-border pb-1 text-xs text-muted-foreground">
+                          <span>品目</span>
+                          <span className="text-center">可否</span>
+                          <span className="text-right">持込料</span>
+                        </div>
+                        {plan.bringInItems.map((bi, i) => {
+                          const allowed = (bi as { item: string; fee?: number; allowed?: boolean }).allowed !== false;
+                          const fee = bi.fee;
+                          return (
+                            <div
+                              key={i}
+                              className="grid grid-cols-[1fr_48px_88px] border-t border-border py-2 text-sm"
+                            >
                               <span>{bi.item}</span>
-                              {bi.fee != null && (
-                                <span className="tabular-nums text-xs text-muted-foreground">
-                                  持込料 {formatYen(bi.fee)}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
+                              <span className="text-center">
+                                {allowed ? (
+                                  <Check className="mx-auto h-3.5 w-3.5 text-green-500" />
+                                ) : (
+                                  <X className="mx-auto h-3.5 w-3.5 text-destructive/70" />
+                                )}
+                              </span>
+                              <span className="tabular-nums text-right text-xs text-muted-foreground">
+                                {fee != null ? formatYen(fee) : "—"}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
