@@ -7,7 +7,7 @@ import { VenueCard } from "@/components/venues/venue-card";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
-import type { VenueFilters } from "@/server/actions/venues";
+import type { VenueFilters } from "@/server/actions/venue-filters";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 
 type VenueWithRelations = Venue & {

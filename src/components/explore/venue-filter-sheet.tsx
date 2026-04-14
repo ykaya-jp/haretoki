@@ -13,9 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { VenueFilters } from "@/server/actions/venues";
+import type { VenueFilters } from "@/server/actions/venue-filters";
 
 interface VenueFilterSheetProps {
   filters: VenueFilters;
@@ -49,11 +50,14 @@ const DIMENSION_OPTIONS = [
   { value: "access", label: "設備" },
 ] as const;
 
-const DRESS_FEE_OPTIONS = [
-  { value: 0, label: "無料のみ" },
-  { value: 50000, label: "5万円以下" },
-  { value: 100000, label: "10万円以下" },
-] as const;
+const DRESS_FEE_RANGE_MIN = 0;
+const DRESS_FEE_RANGE_MAX = 300_000;
+const DRESS_FEE_STEP = 10_000;
+
+function formatDressFee(value: number): string {
+  if (value === 0) return "無料";
+  return `${(value / 10_000).toLocaleString("ja-JP")}万円`;
+}
 
 export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
   const [open, setOpen] = useState(false);
@@ -270,30 +274,81 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
             </div>
           </div>
 
-          {/* Dress bring-in fee */}
+          {/* Dress bring-in fee — dual-handle range slider */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">ドレス持ち込み料</Label>
-            <div className="flex flex-wrap gap-2">
-              {DRESS_FEE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() =>
-                    setDraft((d) => ({
-                      ...d,
-                      dressBringInFeeMax: d.dressBringInFeeMax === opt.value ? undefined : opt.value,
-                    }))
-                  }
-                  className={cn(
-                    "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
-                    draft.dressBringInFeeMax === opt.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-foreground"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">ドレス持ち込み料</Label>
+              {!draft.dressBringInFeeFreeOnly && (
+                <span className="text-sm tabular-nums text-[var(--gold-warm)]">
+                  {formatDressFee(draft.dressBringInFeeMin ?? DRESS_FEE_RANGE_MIN)}
+                  {" 〜 "}
+                  {formatDressFee(draft.dressBringInFeeMax ?? DRESS_FEE_RANGE_MAX)}
+                </span>
+              )}
+            </div>
+            <Slider
+              min={DRESS_FEE_RANGE_MIN}
+              max={DRESS_FEE_RANGE_MAX}
+              step={DRESS_FEE_STEP}
+              value={[
+                draft.dressBringInFeeMin ?? DRESS_FEE_RANGE_MIN,
+                draft.dressBringInFeeMax ?? DRESS_FEE_RANGE_MAX,
+              ]}
+              disabled={draft.dressBringInFeeFreeOnly}
+              onValueChange={(value) => {
+                const [min, max] = value as readonly number[];
+                setDraft((d) => ({
+                  ...d,
+                  dressBringInFeeMin: min === DRESS_FEE_RANGE_MIN ? undefined : min,
+                  dressBringInFeeMax: max === DRESS_FEE_RANGE_MAX ? undefined : max,
+                }));
+              }}
+              aria-label="ドレス持ち込み料の範囲"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+              <span>{formatDressFee(DRESS_FEE_RANGE_MIN)}</span>
+              <span>{formatDressFee(DRESS_FEE_RANGE_MAX)}</span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    dressBringInFeeFreeOnly: d.dressBringInFeeFreeOnly ? undefined : true,
+                    // When flipping to "free only", clear the numeric range so UX is clean.
+                    ...(d.dressBringInFeeFreeOnly
+                      ? {}
+                      : { dressBringInFeeMin: undefined, dressBringInFeeMax: undefined }),
+                  }))
+                }
+                className={cn(
+                  "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
+                  draft.dressBringInFeeFreeOnly
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground"
+                )}
+              >
+                無料のみ
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    dressBringInIncludeNegotiable: d.dressBringInIncludeNegotiable ? undefined : true,
+                  }))
+                }
+                className={cn(
+                  "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
+                  draft.dressBringInIncludeNegotiable
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-foreground"
+                )}
+              >
+                要相談を含む
+              </button>
             </div>
           </div>
 
