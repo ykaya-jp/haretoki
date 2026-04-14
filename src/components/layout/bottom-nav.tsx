@@ -67,7 +67,7 @@ export function BottomNav({ badges }: BottomNavProps) {
     <nav
       role="navigation"
       aria-label="メインナビゲーション"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20 bg-card/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
     >
       <div className="relative flex h-14 items-center justify-around">
         {activeIndex >= 0 && (
@@ -84,12 +84,18 @@ export function BottomNav({ badges }: BottomNavProps) {
           const isActive = matchesHref(activeHref, item.href);
           const Icon = item.icon;
           const badgeCount = item.badgeKey ? badges?.[item.badgeKey] : undefined;
+          // Prefetch only the top-3 high-frequency tabs. Less-visited tabs
+          // (/coach, /mypage) are fetched on tap to save bandwidth + memory.
+          const shouldPrefetch =
+            item.href === "/home" ||
+            item.href === "/explore" ||
+            item.href === "/candidates";
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              prefetch
+              prefetch={shouldPrefetch ? undefined : false}
               aria-current={isActive ? "page" : undefined}
               onClick={(e) => {
                 if (

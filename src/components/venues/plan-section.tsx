@@ -103,14 +103,14 @@ export function PlanSection({ plans }: PlanSectionProps) {
                     {/* Excluded items */}
                     {plan.excludedItems.length > 0 && (
                       <div>
-                        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-red-500">
+                        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-destructive">
                           <X className="h-3.5 w-3.5" />
                           別途必要なもの
                         </p>
                         <ul className="space-y-1">
                           {plan.excludedItems.map((item, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                              <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400" />
+                              <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive/70" />
                               <span>{item}</span>
                             </li>
                           ))}

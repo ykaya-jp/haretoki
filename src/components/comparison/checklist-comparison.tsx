@@ -15,7 +15,7 @@ const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "yes") return <Check className="h-4 w-4 text-green-600" />;
-  if (status === "no") return <X className="h-4 w-4 text-red-500" />;
+  if (status === "no") return <X className="h-4 w-4 text-destructive" />;
   return <Minus className="h-3.5 w-3.5 text-muted-foreground/40" />;
 }
 
@@ -120,7 +120,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                             className={cn(
                               "min-w-[80px] flex-1 flex items-center justify-center",
                               v.status === "yes" && "bg-green-50",
-                              v.status === "no" && "bg-red-50",
+                              v.status === "no" && "bg-destructive/10",
                             )}
                             title={v.memo ?? undefined}
                           >

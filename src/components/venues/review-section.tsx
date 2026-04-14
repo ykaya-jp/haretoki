@@ -89,7 +89,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
               className={cn(
                 "flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-200 active:scale-[0.98]",
                 showNegativeFirst
-                  ? "border-red-200 bg-red-50 text-red-700"
+                  ? "border-destructive/20 bg-destructive/10 text-destructive"
                   : "border-border bg-card text-muted-foreground"
               )}
             >
@@ -162,7 +162,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
                   <span className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
                     key === "negative_points" || key === "estimate_increase"
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-destructive/15 text-destructive"
                       : "bg-muted text-muted-foreground"
                   )}>
                     {CATEGORY_LABELS[key] ?? key}
