@@ -43,7 +43,90 @@
 
 ---
 
+## Atmospheric Layers v4.1
 
+> Added Phase 3 (2026-04-14). Layered on top of Morning Light v3 palette — never replaces existing tokens.
+
+### Overview
+
+The "Atmospheric Layers" system adds translucent gradient color planes, frosted-glass surfaces, and gold hairlines that evoke the light quality of a clear morning. Every layer sits at 4-8% opacity maximum — air, not paint.
+
+### New Color Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--gradient-dawn` | radial-gradient, cream→rose-subtle (5%) | Section backgrounds; most delicate, use sparingly |
+| `--gradient-noon` | linear 45°, rose-subtle→gold-subtle (5-6%) | Card interiors; mid-day energy |
+| `--gradient-dusk` | linear 180°, gold-subtle→cream (4-5%) | **Home Hero card background** — warmth before rest |
+| `--hairline-gold` | 0.5px solid gold-warm/35% | Section separators in venue detail; Sheet internal dividers |
+| `--glass-surface` | rgba(255,255,255,0.60) | Reference value for frosted glass surfaces |
+| `--inner-glow` | inset 0 1px 0 rgba(255,255,255,0.60) | Hero card top edge — soft emboss |
+
+#### Dark mode equivalents
+Dawn → Ink Blue tint (oklch hue 270), Noon → Wine Rose (hue 350), Dusk → Amber (hue 70). All at equivalent low opacity.
+
+### Material Layer Rules
+
+#### Frosted Glass (backdrop-blur-xl)
+Apply to surfaces that float above page content:
+- BottomNav: `bg-white/60 backdrop-blur-xl border-white/40`
+- Sheet (bottom/side): same `bg-white/60 backdrop-blur-2xl` + `border-white/40`
+- Sticky segmented nav headers: `bg-white/60 backdrop-blur-xl`
+
+Rules:
+- Never apply to inline cards (they do not float above content)
+- Dark mode: swap `bg-white/60` for `bg-black/60`, `border-white/40` for `border-white/10`
+- Do not stack two frosted glass layers (avoid double blur)
+
+#### Inner Glow
+Use `var(--inner-glow)` only on prominent Hero cards (Home HeroNba). Creates an embossed top edge that lifts the card visually.
+
+#### Gold Hairline
+Use `border-[var(--hairline-gold)]` for:
+- Section separators inside venue detail sheets (e.g., between Estimate and Notes)
+- Horizontal rule between Sheet header and Sheet body
+- `h-px w-16 bg-gradient-to-r from-[var(--gold-warm)]/60` decorative accent under venue name
+
+Do **not** use for structural borders (use `border-border` there).
+
+### Halo Tap
+
+The `<HaloTap>` component (`src/components/ui/halo-tap.tsx`) wraps any CTA and fires a gold ring ripple on touch/click. Duration: 250ms, easing: cubic-bezier(0.16, 1, 0.3, 1).
+
+**Apply to:**
+- Home Hero NBA primary CTA
+- Explore Add-Venue FAB
+- DecisionCeremony primary CTAs
+
+**Rules:**
+- `aria-hidden` + `pointer-events-none` on the ring element — purely decorative
+- Compatible with `active:scale-[0.98]` on child buttons
+- Respects `prefers-reduced-motion` via global CSS animation kill
+
+### Typography Contrast — Display Numerals
+
+Three-size scale only. No middle-ground sizes allowed between levels.
+
+| Scale | Spec | Usage |
+|-------|------|-------|
+| **Display** | `font-serif font-extralight text-5xl tabular-nums tracking-tight` | "晴れの日まで 127日" counter; single hero numerals |
+| **Section numeric** | `font-serif font-extralight text-3xl tabular-nums tracking-tight` | Estimate summary amounts (¥350万), progress % |
+| **Inline numeric** | `tabular-nums` (inherits body size) | Lists, table cells, minor counts |
+
+Units (「日」「万」「名」) use `text-[11px]` sans-serif muted, vertically baseline-aligned with the number.
+
+### Motion — Luxury Ease
+
+Standard easing: `cubic-bezier(0.16, 1, 0.3, 1)` — exported as `LUXURY_EASE` from `src/lib/motion-variants.ts`.
+
+| Context | Duration | Notes |
+|---------|----------|-------|
+| Hero section entry | 600ms | Down from 900ms for snappier feel |
+| Secondary sections | 400ms | 50ms stagger between items |
+| Tap feedback (Halo ring) | 250ms | Fast, not lingering |
+| General micro-interactions | 150-200ms | Unchanged from v4 |
+
+---
 
 ## Product Vision
 

@@ -43,25 +43,39 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
         <h3 className="text-sm font-medium text-[var(--gold-warm)]">見積もりX線</h3>
       </div>
 
-      {/* Summary */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">初期見積もり</span>
-          <span className="tabular-nums">&yen;{totalEstimate.toLocaleString()}</span>
+      {/* Summary — display-scale numerals for main amounts */}
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-xs text-muted-foreground">初期見積もり</span>
+          <span className="flex items-baseline gap-0.5">
+            <span className="text-[11px] text-muted-foreground">¥</span>
+            <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
+              {(totalEstimate / 10000).toFixed(0)}
+            </span>
+            <span className="text-[11px] text-muted-foreground">万</span>
+          </span>
         </div>
         {predictedFinal && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">予測最終額</span>
-            <span className="tabular-nums font-medium text-foreground">
-              &yen;{predictedFinal.toLocaleString()}
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-xs text-muted-foreground">予測最終額</span>
+            <span className="flex items-baseline gap-0.5">
+              <span className="text-[11px] text-muted-foreground">¥</span>
+              <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
+                {(predictedFinal / 10000).toFixed(0)}
+              </span>
+              <span className="text-[11px] text-muted-foreground">万</span>
             </span>
           </div>
         )}
         {difference > 0 && (
-          <div className="flex justify-between text-sm">
-            <span className="text-amber-600">予測上昇額</span>
-            <span className="tabular-nums font-medium text-amber-600">
-              +&yen;{difference.toLocaleString()}
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-xs text-amber-600">予測上昇額</span>
+            <span className="flex items-baseline gap-0.5 text-amber-600">
+              <span className="text-[11px]">+¥</span>
+              <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight">
+                {(difference / 10000).toFixed(0)}
+              </span>
+              <span className="text-[11px]">万</span>
             </span>
           </div>
         )}

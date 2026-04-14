@@ -67,7 +67,7 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
   return (
     <nav
       aria-label="セクション切り替え"
-      className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm"
+      className="sticky top-0 z-20 border-b border-white/40 bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-black/60"
     >
       <div className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
         <div className="flex gap-2 py-2" role="tablist">
