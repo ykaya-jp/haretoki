@@ -10,23 +10,34 @@ export const metadata: Metadata = {
   description: "お気に入りの式場を比較し、最終決定まで並べて検討できます。",
 };
 
-export default async function CandidatesPage() {
+interface CandidatesPageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function CandidatesPage({ searchParams }: CandidatesPageProps) {
   // getCurrentUserName replaces the heavyweight getHomeData — only userName is needed here.
-  const [favorites, venues, decision, userName] = await Promise.all([
+  const [favorites, venues, decision, userName, params] = await Promise.all([
     getFavorites("mine"),
     getVenues(),
     getDecision(),
     getCurrentUserName(),
+    searchParams,
   ]);
 
   const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
 
+  // ?view=recent: surface a note that "最近見た" is in the list below.
+  // Full "recently viewed" sub-tab is deferred to Tier 2.
+  const isRecentView = params.view === "recent";
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-h1 font-serif font-extralight">候補</h2>
+        <h2 className="text-h1 font-serif font-extralight">
+          {isRecentView ? "最近見た式場" : "候補"}
+        </h2>
         <p className="mt-1 text-meta text-muted-foreground">
-          お気に入りを並べて、ふたりで比べる
+          {isRecentView ? "先日ご覧になった式場の一覧です" : "集めて、比べて、決める"}
         </p>
       </div>
       <CandidatesView
