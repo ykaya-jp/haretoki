@@ -355,6 +355,16 @@ Guidelines:
 - photoUrls: prefer large venue/ceremony photos, skip thumbnails and icons
 - confidence: "high" if major fields found, "medium" if some missing, "low" if minimal data`;
 
+/**
+ * Strip optional ```json ... ``` markdown fences that Claude sometimes wraps JSON in,
+ * even when explicitly instructed not to. Falls through to the original string when
+ * no fence is detected.
+ */
+function extractJson(s: string): string {
+  const match = s.match(/```(?:json)?\s*([\s\S]*?)```/);
+  return match ? match[1].trim() : s.trim();
+}
+
 export async function addVenueFromUrl(url: string): Promise<{
   extracted?: ExtractedVenueData;
   error?: string;
@@ -373,16 +383,26 @@ export async function addVenueFromUrl(url: string): Promise<{
   }
 
   try {
+    // Use a realistic modern Chrome UA — upstream venue sites (especially Zexy)
+    // serve a bot-challenge / 403 page to the generic "Haretoki/1.0" UA.
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Haretoki/1.0)",
-        Accept: "text/html",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        DNT: "1",
+        Referer: "https://zexy.net/",
       },
       signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
-      return { error: "ページを取得できませんでした。URLを確認するか、手動で入力してください。" };
+      console.error("addVenueFromUrl non-2xx:", { url, status: response.status });
+      return {
+        error: `ページにアクセスできませんでした (HTTP ${response.status})。URLを確認するか、手動で入力してください。`,
+      };
     }
 
     const html = await response.text();
@@ -395,6 +415,19 @@ export async function addVenueFromUrl(url: string): Promise<{
       .replace(/\s+/g, " ")
       .trim();
 
+    // JS-rendered pages (SPA) strip down to almost nothing. Surface this as a
+    // specific error so the UI can hint that the page needs JavaScript.
+    if (textContent.length < 500) {
+      console.error("addVenueFromUrl empty HTML:", {
+        url,
+        textLength: textContent.length,
+      });
+      return {
+        error:
+          "ページの内容が読み取れませんでした（JavaScript必須の可能性があります）。手動で入力してください。",
+      };
+    }
+
     const claudeResponse = await askClaude(
       URL_EXTRACTION_SYSTEM_PROMPT,
       `以下はURL ${url} から取得したウェブページの内容です。結婚式場の情報を構造化データとして抽出してください:\n\n${textContent.slice(0, 30000)}`
@@ -404,9 +437,46 @@ export async function addVenueFromUrl(url: string): Promise<{
       return { error: "AI解析に失敗しました。手動で入力してください。" };
     }
 
-    const extracted = JSON.parse(claudeResponse) as ExtractedVenueData;
-    return { extracted };
-  } catch {
+    // Claude occasionally wraps JSON in markdown fences despite the system prompt.
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(extractJson(claudeResponse));
+    } catch (parseErr) {
+      console.error("addVenueFromUrl JSON parse failed:", {
+        url,
+        error: parseErr instanceof Error ? parseErr.message : parseErr,
+        snippet: claudeResponse.slice(0, 200),
+      });
+      return {
+        error: "ページ内容を構造化できませんでした。手動で入力してください。",
+      };
+    }
+
+    const validated = extractedVenueSchema.safeParse(parsedJson);
+    if (!validated.success) {
+      console.error("addVenueFromUrl schema validation failed:", {
+        url,
+        issues: validated.error.issues,
+      });
+      return {
+        error: "ページ内容を構造化できませんでした。手動で入力してください。",
+      };
+    }
+
+    return { extracted: validated.data };
+  } catch (error) {
+    const isAbort =
+      error instanceof Error &&
+      (error.name === "AbortError" || error.name === "TimeoutError");
+    console.error("addVenueFromUrl failed:", {
+      url,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : error,
+    });
+    if (isAbort) {
+      return {
+        error: "読み込みに時間がかかりすぎました。手動で入力するか、URLを再確認してください。",
+      };
+    }
     return { error: "式場情報の取得に失敗しました。手動で入力してください。" };
   }
 }
