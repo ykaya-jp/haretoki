@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getFavorites } from "@/server/actions/favorites";
 import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
-import { getHomeData } from "@/server/actions/home";
+import { getCurrentUserName } from "@/server/actions/home";
 import { CandidatesView } from "@/components/candidates/candidates-view";
 
 export const metadata: Metadata = {
@@ -11,11 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function CandidatesPage() {
-  const [favorites, venues, decision, homeData] = await Promise.all([
+  // getCurrentUserName replaces the heavyweight getHomeData — only userName is needed here.
+  const [favorites, venues, decision, userName] = await Promise.all([
     getFavorites("mine"),
     getVenues(),
     getDecision(),
-    getHomeData(),
+    getCurrentUserName(),
   ]);
 
   const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
@@ -36,7 +37,7 @@ export default async function CandidatesPage() {
             ? { venueName: decision.venue.name, rationale: decision.rationale }
             : null
         }
-        userName={homeData.userName}
+        userName={userName}
       />
     </div>
   );
