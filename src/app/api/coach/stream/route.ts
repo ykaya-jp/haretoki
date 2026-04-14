@@ -9,9 +9,9 @@ import {
 } from "@/lib/anthropic";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
 
-
 const BodySchema = z.object({
   message: z.string().min(1).max(500),
+  sessionId: z.string().optional(),
 });
 
 // --- In-memory sliding-window rate limit (per user) ---
@@ -68,6 +68,40 @@ async function loadUserContext(projectId: string): Promise<UserContext> {
   };
 }
 
+/** Generates a session title from the first user message (up to 20 chars). */
+function generateSessionTitle(firstMessage: string): string {
+  const trimmed = firstMessage.trim();
+  return trimmed.length > 20 ? trimmed.slice(0, 20) + "…" : trimmed;
+}
+
+/** Ensures a session exists, returning its id. Creates one if absent. */
+async function ensureSession(
+  projectId: string,
+  sessionId: string | undefined,
+  firstMessage: string,
+): Promise<string> {
+  if (sessionId) {
+    const existing = await prisma.coachSession.findFirst({
+      where: { id: sessionId, projectId },
+      select: { id: true, title: true },
+    });
+    if (existing) {
+      if (!existing.title) {
+        await prisma.coachSession.update({
+          where: { id: sessionId },
+          data: { title: generateSessionTitle(firstMessage) },
+        });
+      }
+      return sessionId;
+    }
+  }
+  const session = await prisma.coachSession.create({
+    data: { projectId, title: generateSessionTitle(firstMessage) },
+    select: { id: true },
+  });
+  return session.id;
+}
+
 export async function POST(request: NextRequest) {
   if (!isClaudeAvailable()) {
     return NextResponse.json(
@@ -90,7 +124,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  const { message } = parsed.data;
+  const { message, sessionId: requestedSessionId } = parsed.data;
 
   const user = await requireUser();
 
@@ -106,29 +140,25 @@ export async function POST(request: NextRequest) {
 
   const { projectId } = await requireProjectMembership(user.id);
 
+  const resolvedSessionId = await ensureSession(projectId, requestedSessionId, message);
+
   const context = await loadUserContext(projectId);
 
-  // Load last 20 messages (excluding the one we're about to save) for context.
+  // Load last 20 messages from this session for Claude context
   const history = await prisma.coachMessage.findMany({
-    where: { projectId },
+    where: { sessionId: resolvedSessionId },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
   const historyAsc = history.reverse();
 
   // Persist the user message BEFORE the stream starts so it's visible in
-  // history if the client reconnects mid-stream. We also capture the new row's
-  // id so we can roll it back if streamClaude() throws before any bytes are
-  // emitted (otherwise the client's fallback to sendCoachMessage would create
-  // a duplicate user turn).
+  // history if the client reconnects mid-stream.
   const userMessageRow = await prisma.coachMessage.create({
-    data: { projectId, role: "user", content: message },
+    data: { projectId, sessionId: resolvedSessionId, role: "user", content: message },
     select: { id: true },
   });
 
-  // Build Claude messages array: prior history + new user message.
-  // stripPII is applied to EVERY message (not just the new one) so emails/
-  // phones captured in earlier turns never leak to Anthropic on replay.
   const claudeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
     ...historyAsc.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -145,8 +175,6 @@ export async function POST(request: NextRequest) {
       maxTokens: 2048,
     });
   } catch (error) {
-    // Stream never started — roll back the user message so the client's
-    // fallback (sendCoachMessage) can re-persist without duplicating.
     await prisma.coachMessage
       .delete({ where: { id: userMessageRow.id } })
       .catch(() => {});
@@ -154,19 +182,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: errMsg }, { status: 502 });
   }
 
+  const isNewSession = !requestedSessionId || requestedSessionId !== resolvedSessionId;
+
   const encoder = new TextEncoder();
   const sse = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // If a new session was created, send its id as the first frame
+      if (isNewSession) {
+        const sessionFrame = JSON.stringify({ sessionId: resolvedSessionId });
+        controller.enqueue(encoder.encode(`data: ${sessionFrame}\n\n`));
+      }
+
       let assembled = "";
       const reader = textStream.getReader();
       try {
-        // Stream chunks as SSE `data:` events.
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
           if (!value) continue;
           assembled += value;
-          // Escape newlines so SSE framing isn't broken — client decodes JSON.
           const payload = JSON.stringify({ text: value });
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
         }
@@ -180,21 +214,24 @@ export async function POST(request: NextRequest) {
         );
       } finally {
         controller.close();
-        // Persist assistant response (fire-and-forget; don't block stream close).
-        // stripPII applied so Claude-echoed PII isn't persisted.
         if (assembled.trim().length > 0) {
           prisma.coachMessage
             .create({
               data: {
                 projectId,
+                sessionId: resolvedSessionId,
                 role: "assistant",
                 content: stripPII(assembled),
                 metadata: { model: "claude-sonnet-4-6" },
               },
             })
-            .catch(() => {
-              // best-effort persistence; client will see content either way
-            });
+            .then(() =>
+              prisma.coachSession.update({
+                where: { id: resolvedSessionId },
+                data: { updatedAt: new Date() },
+              }),
+            )
+            .catch(() => {});
         }
       }
     },
