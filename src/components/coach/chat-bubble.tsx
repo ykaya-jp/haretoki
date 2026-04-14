@@ -56,6 +56,16 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
             ? "rounded-br-sm bg-primary text-primary-foreground"
             : "rounded-bl-sm border border-[var(--gold-warm)]/10 bg-[var(--gold-subtle)] text-foreground"
         )}
+        // Announce streaming chunks to screen readers, but only on the
+        // assistant's text container — NOT the whole bubble — so the
+        // typing-dots → text swap doesn't get re-announced.
+        {...(role === "assistant" && !showTyping
+          ? {
+              role: "status" as const,
+              "aria-live": "polite" as const,
+              "aria-atomic": "false" as const,
+            }
+          : {})}
       >
         {showTyping ? <TypingDots /> : content}
       </div>
