@@ -210,7 +210,17 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
         estimates={estimates.map((e) => ({
           ...e,
           predictedFinal: e.predictedFinal,
-          items: e.items.map((item) => ({ ...item })),
+          // Coerce Prisma Decimal objects to plain numbers so the payload
+          // can cross the Server → Client Component boundary without the
+          // 'Only plain objects can be passed' warning.
+          items: e.items.map((item) => ({
+            ...item,
+            amount: Number(item.amount),
+            upgradeProbability:
+              item.upgradeProbability != null
+                ? Number(item.upgradeProbability)
+                : null,
+          })),
         }))}
       />
 
