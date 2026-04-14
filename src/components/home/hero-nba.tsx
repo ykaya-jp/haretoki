@@ -32,8 +32,11 @@ function getHeroContent(props: HeroNbaProps): HeroContent {
     return {
       stage: "decided",
       weatherIcon: Sun,
-      body: "ここから、当日の準備へ",
-      primaryCta: { label: "準備を始める", href: "/mypage" },
+      body: "決めた式場を、大切に準備していきましょう",
+      // Route to candidates' 決める tab (already selected in
+      // /candidates page) so the user lands on the summary of the
+      // decided venue, not an unrelated mypage screen.
+      primaryCta: { label: "決めた式場を見る", href: "/candidates" },
     };
   }
 

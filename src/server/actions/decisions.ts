@@ -81,3 +81,48 @@ export async function getDecision() {
     include: { venue: true },
   });
 }
+
+/**
+ * Cancel an existing decision — deletes the Decision row and reverts the
+ * venue's status from `selected` back to `shortlisted` so it still appears
+ * in the candidate list. Only the project owner can cancel.
+ */
+export async function cancelDecision() {
+  const user = await requireUser();
+  const { projectId } = await requireOwner(user.id);
+
+  const existing = await prisma.decision.findUnique({
+    where: { projectId },
+    select: { selectedVenueId: true },
+  });
+  if (!existing) return { cancelled: false as const };
+
+  try {
+    await prisma.$transaction([
+      prisma.decision.delete({ where: { projectId } }),
+      prisma.venue.update({
+        where: { id: existing.selectedVenueId },
+        data: { status: "shortlisted" },
+      }),
+    ]);
+  } catch (err) {
+    captureError(err, {
+      action: "cancelDecision",
+      projectId,
+      venueId: existing.selectedVenueId,
+    });
+    throw err;
+  }
+
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath("/candidates");
+  revalidatePath("/home");
+  revalidatePath("/explore");
+
+  await captureServerEvent(user.id, "decision_cancelled", {
+    projectId,
+    venueId: existing.selectedVenueId,
+  });
+
+  return { cancelled: true as const };
+}

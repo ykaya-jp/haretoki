@@ -16,7 +16,7 @@ import { SwipeCompare } from "@/components/candidates/swipe-compare";
 import { DecisionCeremony } from "@/components/decision/decision-ceremony";
 import { Heart, BarChart3, Trophy, PartyPopper, ClipboardCheck } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
-import { makeDecision } from "@/server/actions/decisions";
+import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 
 type Tab = "shortlist" | "matrix" | "focus" | "checklist" | "decision";
@@ -352,6 +352,28 @@ export function CandidatesView({
                     決めた理由: {decision.rationale}
                   </p>
                 )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (
+                      typeof window !== "undefined" &&
+                      !window.confirm("「" + decision.venueName + "」の決定を取り消しますか？候補に戻ります。")
+                    ) {
+                      return;
+                    }
+                    const res = await cancelDecision();
+                    if (res.cancelled) {
+                      setDecision(null);
+                      toast.success("決定を取り消しました");
+                      router.refresh();
+                    } else {
+                      toast.error("取り消せませんでした");
+                    }
+                  }}
+                  className="mx-auto inline-flex min-h-11 items-center justify-center rounded-full border border-border px-5 text-xs text-muted-foreground transition-colors active:bg-muted"
+                >
+                  この決定を取り消す
+                </button>
               </motion.div>
             ) : (
               <PriorityWeights onDecide={handleDecide} />
