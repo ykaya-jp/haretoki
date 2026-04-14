@@ -352,7 +352,7 @@ model VisitRating {
   visitId   String         @map("visit_id") @db.Uuid
   userId    String         @map("user_id") @db.Uuid
   dimension ScoreDimension
-  score     Int
+  score     Decimal        @db.Decimal(2, 1)
   comment   String?
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime       @updatedAt @map("updated_at")
