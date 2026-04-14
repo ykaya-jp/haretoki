@@ -21,7 +21,16 @@ import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { VenueDetailBackLink } from "@/components/venues/back-link";
+import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const VENUE_SECTIONS = [
+  { id: "overview", label: "概要" },
+  { id: "estimate", label: "見積" },
+  { id: "visit", label: "見学" },
+  { id: "review", label: "口コミ" },
+  { id: "ai", label: "AI解析" },
+] as const;
 
 export default async function VenueDetailPage({
   params,
@@ -75,44 +84,60 @@ export default async function VenueDetailPage({
         status={venue.status}
       />
 
-      <div
-        aria-hidden="true"
-        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
-      />
+      {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
+      <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
 
-      {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
-      <Suspense fallback={<RatingSkeleton />}>
-        <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
-      </Suspense>
-
-      {/* Estimate sections — fetched in this Suspense child, streams independently */}
-      <Suspense fallback={<EstimatesSkeleton />}>
-        <EstimatesContent venueId={venue.id} />
-      </Suspense>
-
-      <div
-        aria-hidden="true"
-        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
-      />
-
-      {/* Below-the-fold sections — each streams independently via Suspense.
-          This lets the server flush the HTML for the above-the-fold content
-          before these queries finish, cutting perceived TTFB significantly. */}
-      <Suspense fallback={<ReviewsSkeleton />}>
-        <ReviewsContent venueId={venue.id} />
-      </Suspense>
-
-      <Suspense fallback={<PlansSkeleton />}>
-        <PlansContent venueId={venue.id} />
-      </Suspense>
-
-      <Suspense fallback={<VisitsSkeleton />}>
-        <VisitsContent
-          venueId={venue.id}
-          venueName={venue.name}
-          projectId={venue.projectId}
+      {/* ===== Overview section ===== */}
+      <section id="overview" className="space-y-4">
+        <div
+          aria-hidden="true"
+          className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
         />
-      </Suspense>
+
+        {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
+        <Suspense fallback={<RatingSkeleton />}>
+          <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
+        </Suspense>
+      </section>
+
+      {/* ===== Estimate section ===== */}
+      <section id="estimate" className="space-y-4">
+        {/* Estimate sections — fetched in this Suspense child, streams independently */}
+        <Suspense fallback={<EstimatesSkeleton />}>
+          <EstimatesContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+      />
+
+      {/* ===== Visit section ===== */}
+      <section id="visit" className="space-y-4">
+        {/* Below-the-fold sections — each streams independently via Suspense. */}
+        <Suspense fallback={<VisitsSkeleton />}>
+          <VisitsContent
+            venueId={venue.id}
+            venueName={venue.name}
+            projectId={venue.projectId}
+          />
+        </Suspense>
+      </section>
+
+      {/* ===== Review section ===== */}
+      <section id="review" className="space-y-4">
+        <Suspense fallback={<ReviewsSkeleton />}>
+          <ReviewsContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      {/* ===== AI analysis section ===== */}
+      <section id="ai" className="space-y-4">
+        <Suspense fallback={<PlansSkeleton />}>
+          <PlansContent venueId={venue.id} />
+        </Suspense>
+      </section>
 
       {/* Action Bar */}
       <VenueActionBar

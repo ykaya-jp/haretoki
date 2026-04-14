@@ -1,20 +1,117 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Star, Check } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS, DIMENSION_HELP } from "@/lib/constants";
 import { saveDirectRatings } from "@/server/actions/ratings";
 
-const EMOTION_LABELS: Record<number, string> = {
-  1: "期待はずれ",
-  2: "いまいち",
-  3: "普通",
-  4: "良い",
-  5: "感動!",
-};
+const HALF_STEPS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5] as const;
+
+function scoreToLabel(score: number): string {
+  if (score >= 4.5) return "感動!";
+  if (score >= 4.0) return "良い";
+  if (score >= 3.0) return "普通";
+  if (score >= 2.0) return "いまいち";
+  return "期待はずれ";
+}
+
+interface RatingBarProps {
+  value: number;
+  onChange: (score: number) => void;
+  label: string;
+}
+
+/** Horizontal tap/drag rating bar with 0.5-step snapping. */
+function RatingBar({ value, onChange, label }: RatingBarProps) {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  function getScoreFromX(clientX: number): number {
+    const rect = barRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const raw = ratio * 5;
+    // Snap to nearest 0.5
+    return Math.round(raw * 2) / 2 || 0.5;
+  }
+
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    onChange(getScoreFromX(e.clientX));
+  }
+
+  function handleTouch(e: React.TouchEvent<HTMLDivElement>) {
+    if (e.touches[0]) {
+      onChange(getScoreFromX(e.touches[0].clientX));
+    }
+  }
+
+  const fillPct = (value / 5) * 100;
+
+  return (
+    <div
+      ref={barRef}
+      role="slider"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={5}
+      aria-valuenow={value}
+      aria-valuetext={value > 0 ? `${value}点 ${scoreToLabel(value)}` : "未評価"}
+      tabIndex={0}
+      onClick={handleClick}
+      onTouchStart={handleTouch}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+          e.preventDefault();
+          onChange(Math.min(5, (value || 0) + 0.5));
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+          e.preventDefault();
+          onChange(Math.max(0.5, (value || 0.5) - 0.5));
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          onChange(0.5);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          onChange(5);
+        }
+      }}
+      className="relative h-11 cursor-pointer rounded-lg bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2 active:opacity-80"
+    >
+      {/* Fill */}
+      <div
+        className="absolute inset-y-0 left-0 rounded-lg bg-[var(--gold-warm)] transition-[width] duration-100"
+        style={{ width: `${fillPct}%` }}
+        aria-hidden
+      />
+      {/* Tick marks at each 0.5 step */}
+      {HALF_STEPS.map((step) => (
+        <div
+          key={step}
+          aria-hidden
+          className={cn(
+            "absolute top-1/2 h-3 w-px -translate-y-1/2",
+            step <= value ? "bg-background/40" : "bg-border",
+          )}
+          style={{ left: `${(step / 5) * 100}%` }}
+        />
+      ))}
+      {/* Score label overlaid on the right */}
+      <span
+        aria-hidden
+        className="absolute inset-0 flex items-center justify-end pr-3 text-sm tabular-nums"
+      >
+        {value > 0 ? (
+          <span className={cn("font-medium", value >= fillPct / 20 ? "text-background" : "text-foreground")}>
+            {value % 1 === 0 ? `${value}.0` : value}
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-xs">タップして評価</span>
+        )}
+      </span>
+    </div>
+  );
+}
 
 interface RatingSectionProps {
   venueId: string;
@@ -44,10 +141,16 @@ export function RatingSection({
           if (!result.success) {
             setSaving(false);
             const detail =
-              typeof result.error === "object" && result.error && "formErrors" in result.error
+              typeof result.error === "object" &&
+              result.error &&
+              "formErrors" in result.error
                 ? (result.error.formErrors?.[0] ?? null)
                 : null;
-            toast.error(detail ? `保存できませんでした: ${detail}。もう一度お試しください` : "保存できませんでした。もう一度お試しください");
+            toast.error(
+              detail
+                ? `保存できませんでした: ${detail}。もう一度お試しください`
+                : "保存できませんでした。もう一度お試しください",
+            );
             return;
           }
           setSaving(false);
@@ -100,82 +203,38 @@ export function RatingSection({
           </motion.span>
         ) : null}
       </AnimatePresence>
+
       {TIER1_DIMENSIONS.map((dim) => {
         const value = ratings[dim] ?? 0;
         const partnerValue = partnerRatings?.[dim];
         return (
-          <div key={dim} className="space-y-1">
+          <div key={dim} className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{DIMENSION_LABELS[dim]}</span>
+              <span className="text-sm">{DIMENSION_LABELS[dim]}</span>
               {value > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {EMOTION_LABELS[value]}
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {scoreToLabel(value)}
                 </span>
               )}
             </div>
             <p className="text-xs text-muted-foreground">{DIMENSION_HELP[dim]}</p>
-            <div
-              role="radiogroup"
-              aria-label={`${DIMENSION_LABELS[dim]}の評価`}
-              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
-            >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  role="radio"
-                  aria-checked={value === n}
-                  aria-label={`${n}点`}
-                  tabIndex={value === n || (value === 0 && n === 1) ? 0 : -1}
-                  onClick={() => handleRate(dim, n)}
-                  onKeyDown={(e) => {
-                    // Arrow keys / Home / End navigate within the radio group.
-                    // Base the new value on `n` (the focused star index), not
-                    // on the currently-selected `value` — otherwise keyboard
-                    // navigation desyncs from which star actually has focus.
-                    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-                      e.preventDefault();
-                      handleRate(dim, Math.min(5, n + 1));
-                    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-                      e.preventDefault();
-                      handleRate(dim, Math.max(1, n - 1));
-                    } else if (e.key === "Home") {
-                      e.preventDefault();
-                      handleRate(dim, 1);
-                    } else if (e.key === "End") {
-                      e.preventDefault();
-                      handleRate(dim, 5);
-                    }
-                  }}
-                  className="shrink-0 snap-start rounded transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
-                >
-                  <Star
-                    className={cn(
-                      "h-[48px] w-[48px]",
-                      n <= value
-                        ? "fill-[var(--gold-warm)] text-[var(--gold-warm)]"
-                        : "fill-none stroke-[var(--muted-foreground)] text-muted-foreground",
-                    )}
-                  />
-                </button>
-              ))}
-            </div>
+            <RatingBar
+              value={value}
+              onChange={(score) => handleRate(dim, score)}
+              label={DIMENSION_LABELS[dim]}
+            />
             {partnerValue !== undefined && partnerValue > 0 && (
-              <div className="flex items-center gap-1 pl-1">
+              <div className="flex items-center gap-2 pl-1">
                 <span className="text-xs text-muted-foreground">パートナー:</span>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Star
-                      key={n}
-                      className={cn(
-                        "h-4 w-4",
-                        n <= partnerValue
-                          ? "fill-secondary text-secondary"
-                          : "text-border",
-                      )}
-                    />
-                  ))}
+                <div className="relative h-2 flex-1 rounded-full bg-muted">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-secondary"
+                    style={{ width: `${(partnerValue / 5) * 100}%` }}
+                  />
                 </div>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {partnerValue % 1 === 0 ? `${partnerValue}.0` : partnerValue}
+                </span>
               </div>
             )}
           </div>

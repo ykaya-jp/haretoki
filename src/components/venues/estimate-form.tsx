@@ -7,20 +7,22 @@ import { Label } from "@/components/ui/label";
 import { createEstimate } from "@/server/actions/estimates";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { EstimateItemCombobox } from "@/components/venues/estimate-item-combobox";
+import type { EstimateCategory } from "@/lib/estimate-presets";
 
-const CATEGORY_OPTIONS = [
+const CATEGORY_OPTIONS: { value: EstimateCategory; label: string }[] = [
   { value: "venue_fee", label: "会場費" },
   { value: "cuisine", label: "料理・飲物" },
-  { value: "attire", label: "衣裳" },
+  { value: "attire", label: "衣裳・ビューティー" },
   { value: "photo_video", label: "写真・映像" },
-  { value: "flowers", label: "装花" },
+  { value: "flowers", label: "装花・装飾" },
   { value: "performance", label: "演出" },
   { value: "av_equipment", label: "音響・照明" },
   { value: "other", label: "その他" },
-] as const;
+];
 
 type LineItem = {
-  category: (typeof CATEGORY_OPTIONS)[number]["value"];
+  category: EstimateCategory;
   itemName: string;
   amount: string;
 };
@@ -175,12 +177,17 @@ export function EstimateForm({
                       </option>
                     ))}
                   </select>
-                  <Input
-                    placeholder="項目名"
+                  <EstimateItemCombobox
                     value={item.itemName}
-                    onChange={(e) =>
-                      updateItem(index, "itemName", e.target.value)
-                    }
+                    onChange={(name, category) => {
+                      setItems((prev) =>
+                        prev.map((it, i) =>
+                          i === index
+                            ? { ...it, itemName: name, category }
+                            : it,
+                        ),
+                      );
+                    }}
                   />
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
