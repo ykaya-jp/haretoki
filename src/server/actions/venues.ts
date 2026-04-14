@@ -51,6 +51,11 @@ export interface VenueFilters {
   paymentMethod?: string;
   sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
   query?: string;
+  // Onboarding-derived personalization filters
+  styles?: string[];
+  areas?: string[];
+  guestCount?: number;
+  budgetMax?: number;
 }
 
 export async function getVenues(filters?: VenueFilters) {
@@ -85,6 +90,29 @@ export async function getVenues(filters?: VenueFilters) {
       { location: { contains: q, mode: "insensitive" } },
     ];
   }
+  // Onboarding-derived filters: ceremony styles match-any
+  if (filters?.styles && filters.styles.length > 0) {
+    where.ceremonyStyles = { hasSome: filters.styles };
+  }
+  // Guest count fits inside capacity range (allow null endpoints)
+  if (filters?.guestCount !== undefined) {
+    const count = filters.guestCount;
+    where.AND = [
+      ...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
+      { OR: [{ capacityMin: null }, { capacityMin: { lte: count } }] },
+      { OR: [{ capacityMax: null }, { capacityMax: { gte: count } }] },
+    ];
+  }
+  // Area: match any of the provided areas against location substring
+  if (filters?.areas && filters.areas.length > 0) {
+    const areaConds = filters.areas.map((a) => ({
+      location: { contains: a, mode: "insensitive" as const },
+    }));
+    where.AND = [
+      ...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
+      { OR: areaConds },
+    ];
+  }
 
   // Build orderBy
   let orderBy: Record<string, string> = { createdAt: "desc" };
@@ -108,6 +136,19 @@ export async function getVenues(filters?: VenueFilters) {
   });
 
   let filtered = venues;
+
+  // Post-query filter: latest estimate total <= budgetMax (if estimate exists)
+  // Venues without estimates are kept (don't exclude — conditions are hints, not hard gates)
+  if (filters?.budgetMax !== undefined) {
+    const cap = filters.budgetMax;
+    filtered = filtered.filter((venue) => {
+      const latest = venue.estimates?.[0];
+      if (!latest) return true;
+      const total = latest.items.reduce((acc, it) => acc + Number(it.amount ?? 0), 0);
+      if (total === 0) return true;
+      return total <= cap;
+    });
+  }
 
   // Post-query filter for overall score (requires aggregation)
   if (filters?.minScore !== undefined) {

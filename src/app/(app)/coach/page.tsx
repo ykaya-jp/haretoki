@@ -3,6 +3,7 @@ import { getCoachHistory } from "@/server/actions/coach";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { ChatBubble } from "@/components/coach/chat-bubble";
 import { ChatBar } from "@/components/coach/chat-bar";
+import { CoachQuickStart } from "@/components/coach/coach-quick-start";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 
@@ -19,12 +20,20 @@ export default async function CoachPage() {
       <h2 className="mb-5 font-serif text-xl font-light tracking-wide">AIコーチ</h2>
 
       {!hasContent ? (
-        <EmptyState
-          icon={Search}
-          title="式場を追加すると、AIコーチが寄り添います"
-          description="気になる式場を追加すると、おふたりに合ったアドバイスや比較をお届けします。"
-          action={{ label: "式場を見てみる", href: "/explore" }}
-        />
+        <div className="space-y-8">
+          {/* Zero-state rescue: quick-start prompts so users can talk to the coach
+              even before adding any venue */}
+          <CoachQuickStart />
+
+          <div className="opacity-70">
+            <EmptyState
+              icon={Search}
+              title="式場を追加すると、さらに寄り添います"
+              description="気になる式場を追加すると、おふたりに合ったアドバイスや比較をお届けします。"
+              action={{ label: "式場を見てみる", href: "/explore" }}
+            />
+          </div>
+        </div>
       ) : (
         <div className="space-y-5">
           {/* Insight cards */}

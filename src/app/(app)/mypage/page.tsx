@@ -2,6 +2,7 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { PartnerInvite } from "@/components/partner/partner-invite";
+import { NameEdit } from "@/components/mypage/name-edit";
 import { Settings, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +31,10 @@ export default async function MyPage() {
     budget?: { min: number; max: number };
   };
 
-  const ownerName = user.user_metadata?.name as string | undefined;
+  const ownerName =
+    (user.user_metadata?.name as string | undefined) ??
+    (user.user_metadata?.full_name as string | undefined) ??
+    null;
 
   return (
     <div className="space-y-8">
@@ -44,7 +48,9 @@ export default async function MyPage() {
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] space-y-3">
           <div>
             <p className="text-xs text-muted-foreground">お名前</p>
-            <p className="mt-1 font-medium">{ownerName ?? "(未設定)"}</p>
+            <div className="mt-1">
+              <NameEdit currentName={ownerName} />
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">メールアドレス</p>

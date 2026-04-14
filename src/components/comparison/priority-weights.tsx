@@ -137,7 +137,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
             layout
             transition={{ type: "spring", stiffness: 140, damping: 22 }}
             className={cn(
-              "flex items-center gap-3 rounded-2xl border p-4 transition-all duration-[400ms]",
+              "flex items-center gap-3 rounded-2xl border p-4 transition-all duration-200",
               i === 0 ? "border-[var(--gold-warm)] bg-[var(--gold-subtle)]" : "border-border bg-card",
             )}
           >
@@ -159,7 +159,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
               <button
                 type="button"
                 onClick={() => onDecide(v.id)}
-                className="inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-all duration-[400ms] active:scale-95"
+                className="inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-all duration-200 active:scale-95"
               >
                 <Trophy className="h-3.5 w-3.5" />
                 決める

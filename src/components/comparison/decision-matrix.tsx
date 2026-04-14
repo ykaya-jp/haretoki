@@ -59,7 +59,7 @@ export function DecisionMatrix() {
         </p>
         <Link
           href="/explore"
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-[400ms]"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-200"
         >
           式場を見てみる
         </Link>
@@ -75,7 +75,7 @@ export function DecisionMatrix() {
         </p>
         <Link
           href="/explore"
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-[400ms]"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-200"
         >
           他の式場も見てみる
         </Link>

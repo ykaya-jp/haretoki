@@ -262,7 +262,7 @@ function PhotoUploadButton({ itemId }: { itemId: string }) {
   };
 
   return (
-    <label className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground cursor-pointer transition-colors duration-[400ms] hover:bg-muted active:scale-95">
+    <label className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground cursor-pointer transition-colors duration-200 hover:bg-muted active:scale-95">
       {uploading ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (

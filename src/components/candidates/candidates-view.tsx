@@ -113,7 +113,7 @@ export function CandidatesView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           >
             <FavoriteFilter active={filter} onChange={setFilter} />
 
@@ -121,7 +121,7 @@ export function CandidatesView({
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.15, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.1, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                 className="mt-4"
               >
                 <EmptyState
@@ -167,7 +167,7 @@ export function CandidatesView({
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
-                      transition={{ delay: index * 0.12, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{ delay: index * 0.06, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <VenueCard
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,7 +188,7 @@ export function CandidatesView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
               <DecisionMatrix />
@@ -213,7 +213,7 @@ export function CandidatesView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
               <DimensionFocus />
@@ -234,7 +234,7 @@ export function CandidatesView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           >
             {!canDecide ? (
               <EmptyState
@@ -258,7 +258,7 @@ export function CandidatesView({
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-5 rounded-2xl bg-card p-8 text-center shadow-[var(--shadow-card)]"
               >
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--gold-subtle)]">

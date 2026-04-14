@@ -9,12 +9,39 @@ interface ChatBubbleProps {
   content: string;
 }
 
+function TypingDots() {
+  // Pulsing 3-dot indicator: each dot cycles opacity with a staggered delay.
+  const dots = [0, 1, 2];
+  return (
+    <div
+      aria-label="入力中"
+      className="flex items-center gap-1 py-0.5"
+    >
+      {dots.map((i) => (
+        <motion.span
+          key={i}
+          className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--gold-warm)]"
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{
+            duration: 0.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.15,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ChatBubble({ role, content }: ChatBubbleProps) {
+  const showTyping = role === "assistant" && content.length === 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: role === "user" ? 16 : -16, y: 8 }}
       animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       className={cn("flex gap-2.5", role === "user" ? "justify-end" : "justify-start")}
     >
       {role === "assistant" && (
@@ -24,13 +51,13 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
       )}
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
           role === "user"
             ? "rounded-br-sm bg-primary text-primary-foreground"
             : "rounded-bl-sm border border-[var(--gold-warm)]/10 bg-[var(--gold-subtle)] text-foreground"
         )}
       >
-        {content}
+        {showTyping ? <TypingDots /> : content}
       </div>
     </motion.div>
   );

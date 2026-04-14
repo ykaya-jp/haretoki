@@ -130,7 +130,7 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
           projectId,
           role: "assistant",
           content: response,
-          metadata: { model: "claude-sonnet-4-20250514" },
+          metadata: { model: "claude-sonnet-4-6" },
         },
       });
 

@@ -17,17 +17,17 @@ const FILTERS: { id: FavoriteFilter; label: string }[] = [
 
 export function FavoriteFilter({ active, onChange }: FavoriteFilterProps) {
   return (
-    <div className="flex gap-2">
+    <div className="inline-flex gap-1 rounded-full bg-muted p-1">
       {FILTERS.map((f) => (
         <button
           key={f.id}
           type="button"
           onClick={() => onChange(f.id)}
           className={cn(
-            "rounded-full border px-3 py-1 text-sm transition-all duration-[400ms] active:scale-[0.97]",
+            "rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200 active:scale-[0.97]",
             active === f.id
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-card text-muted-foreground"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           {f.label}

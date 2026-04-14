@@ -27,8 +27,8 @@ export function EmptyState({ icon: Icon, title, description, imageUrl, action }:
           className="h-32 w-32 object-contain opacity-80"
         />
       ) : (
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
-          <Icon className="h-7 w-7 text-[var(--gold-warm)]" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <Icon className="h-7 w-7 text-muted-foreground" />
         </div>
       )}
       <div className="max-w-[300px] space-y-2">

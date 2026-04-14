@@ -85,14 +85,14 @@ export function JourneyCard(props: JourneyCardProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-2xl bg-gradient-to-br from-card via-card to-[var(--gold-subtle)] p-6 shadow-[var(--shadow-card)]"
+      className="rounded-2xl bg-card border border-border p-6 shadow-[var(--shadow-card)]"
     >
       <div className="flex items-center gap-3 mb-3">
         <motion.div
           key={state.stage}
           animate={shouldReduceMotion ? undefined : { scale: [1, 1.12, 1] }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--gold-subtle)]"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
         >
           <Icon className={`h-8 w-8 ${state.iconColor}`} />
         </motion.div>

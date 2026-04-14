@@ -17,6 +17,42 @@ interface Recommendation {
   strengths: string[];
 }
 
+interface CachedPayload {
+  recommendations: Recommendation[];
+  advice: string | null;
+  savedAt: number;
+}
+
+const CACHE_KEY = "ai-recs-v1";
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function readCache(): CachedPayload | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedPayload;
+    if (!parsed.savedAt || Date.now() - parsed.savedAt > CACHE_TTL_MS) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(payload: Omit<CachedPayload, "savedAt">) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ ...payload, savedAt: Date.now() }),
+    );
+  } catch {
+    // Storage quota / privacy mode — non-fatal.
+  }
+}
+
 export function AIRecommendations() {
   const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,22 +61,39 @@ export function AIRecommendations() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (options?: { ignoreCache?: boolean }) => {
+    if (!options?.ignoreCache) {
+      const cached = readCache();
+      if (cached) {
+        setRecommendations(cached.recommendations);
+        setAdvice(cached.advice);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const result = await getOnboardingRecommendations();
       if (result) {
         setRecommendations(result.recommendations);
         setAdvice(result.advice);
+        writeCache({ recommendations: result.recommendations, advice: result.advice });
       }
     } catch {
-      // API key not available or error — fail silently
+      // API key not available or error — don't pollute cache.
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Hydrate synchronously from cache when available to skip the Claude call.
+    const cached = readCache();
+    if (cached) {
+      setRecommendations(cached.recommendations);
+      setAdvice(cached.advice);
+      return;
+    }
     fetchRecommendations();
   }, []);
 
@@ -91,7 +144,7 @@ export function AIRecommendations() {
         </div>
         <button
           type="button"
-          onClick={fetchRecommendations}
+          onClick={() => fetchRecommendations({ ignoreCache: true })}
           className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <RefreshCw className="h-3 w-3" />

@@ -138,14 +138,14 @@ export function LandingPage() {
           >
             <Link
               href="/signup"
-              className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-[400ms] hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
+              className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-200 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
             >
               無料ではじめる
-              <ChevronRight className="h-4 w-4 transition-transform duration-[400ms] group-hover:translate-x-1" />
+              <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex min-h-[56px] items-center gap-2 rounded-full border border-border px-12 py-4 text-base text-muted-foreground transition-all duration-[400ms] hover:border-foreground/30 hover:text-foreground active:scale-95"
+              className="inline-flex min-h-[56px] items-center gap-2 rounded-full border border-border px-12 py-4 text-base text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground active:scale-95"
             >
               ログイン
             </Link>
@@ -229,7 +229,7 @@ export function LandingPage() {
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true, margin: "-50px" }}
-                  className="rounded-2xl border border-border/60 bg-card p-8 shadow-[var(--shadow-card)] transition-all duration-[400ms] ease-out hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98] sm:p-10"
+                  className="rounded-2xl border border-border/60 bg-card p-8 shadow-[var(--shadow-card)] transition-all duration-200 ease-out hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 active:scale-[0.98] sm:p-10"
                 >
                   <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--gold-subtle)]">
                     <Icon className="h-7 w-7 text-[var(--gold-warm)]" />
@@ -316,10 +316,10 @@ export function LandingPage() {
           </p>
           <Link
             href="/signup"
-            className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-[400ms] hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
+            className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-200 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
           >
             式場探しをはじめる
-            <ChevronRight className="h-4 w-4 transition-transform duration-[400ms] group-hover:translate-x-1" />
+            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
         </motion.div>
       </section>
@@ -360,16 +360,16 @@ export function LandingPage() {
             曇りのち、晴れの日へ
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
-            <Link href="/login" className="transition-colors duration-[400ms] hover:text-foreground">
+            <Link href="/login" className="transition-colors duration-200 hover:text-foreground">
               ログイン
             </Link>
-            <Link href="/signup" className="transition-colors duration-[400ms] hover:text-foreground">
+            <Link href="/signup" className="transition-colors duration-200 hover:text-foreground">
               新規登録
             </Link>
-            <Link href="#" className="transition-colors duration-[400ms] hover:text-foreground">
+            <Link href="#" className="transition-colors duration-200 hover:text-foreground">
               利用規約
             </Link>
-            <Link href="#" className="transition-colors duration-[400ms] hover:text-foreground">
+            <Link href="#" className="transition-colors duration-200 hover:text-foreground">
               プライバシーポリシー
             </Link>
           </div>

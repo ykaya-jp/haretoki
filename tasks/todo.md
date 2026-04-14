@@ -1,136 +1,27 @@
-# Phase 1B: デザインシステム刷新 + UX体験改善 + モーション完全実装
+# Phase 10 P1 Bundle A — Performance & Motion
 
-## 目標
-1. カラーパレットを Morning Light (Cream/Rose/Gold) に全面変更
-2. framer-motion アニメーションを全画面・全インタラクションに実装
-3. 全てのボタン・UIの意味を視覚的に明確にする
-4. ユーザー報告の機能的問題を全て修正
-5. ページ遷移の体感速度改善
-6. 全タッチターゲットを44px以上に統一
+## Tasks
 
----
+- [x] 1a. /api/coach/stream route (SSE) with auth + history + persistence
+- [x] 1b. ChatBar streaming + optimistic UI (SSE reader, fallback to server action)
+- [x] 1c. ChatBubble typing indicator (3 pulsing gold dots)
+- [x] 2. AIRecommendations sessionStorage cache (1h TTL)
+- [x] 3. BottomNav optimistic active (useTransition + pending href, render-derived)
+- [x] 4. Motion duration normalization (chat-bubble 0.22, candidates 0.28/0.3, duration-[400ms] → duration-200 × 12 files)
+- [x] Model ID update: anthropic.ts + coach.ts → claude-sonnet-4-6
+- [x] lint (0 errors, 4 pre-existing warnings) / vitest (64/64) / build (success)
 
-## A. 機能修正（壊れているもの）
+## Review
 
-- [ ] A1. ログアウト修正
-  - LogoutButton: redirect()の代わりにwindow.location.hrefで/loginに遷移
-  - src/components/settings/logout-button.tsx
+- **Stream route** (`src/app/api/coach/stream/route.ts`): zod validation (1–500 chars), auth, loadUserContext, last-20 history piped into Claude messages array, SSE frames `data: {"text":"..."}\n\n` + `data: [DONE]` sentinel, persists assistant response on stream close. Returns 503 if `ANTHROPIC_API_KEY` missing.
+- **ChatBar**: optimistic in-flight pair (user + empty assistant bubble) rendered above the fixed bar while SSE stream drains; chunk appender updates assistant content; `router.refresh()` + 80ms hold folds optimistic state back into persisted history. Aborts honored; errors fall back to `sendCoachMessage` Server Action.
+- **ChatBubble**: assistant content === "" → framer-motion typing indicator (3 dots, 0.6s staggered opacity loop). Duration 0.9 → 0.22.
+- **AIRecommendations**: `sessionStorage` key `ai-recs-v1` with 1h TTL; initial mount hydrates from cache and skips fetch; manual `更新` button passes `ignoreCache: true` and re-writes cache. Errors do not pollute cache.
+- **BottomNav**: `useTransition` + `pendingHref` state; onClick sets pendingHref + starts transition; `activeHref` derived purely in render (no setState-in-effect) — pendingHref honored only while `isPending && !matchesHref(pathname, pendingHref)`, otherwise pathname wins. Self-correcting.
+- **Motion**: candidates-view 0.9/0.8/0.7 → 0.28/0.3; chat-bubble 0.9 → 0.22; `duration-[400ms]` → `duration-200` across 12 files (partner-invite, visit-checklist, segmented-control, favorite-filter, decision-matrix, dimension-focus, checklist-comparison, priority-weights, add-photos-button, landing-page, login, signup). Luxury ease `[0.16, 1, 0.3, 1]` preserved.
 
-- [ ] A2. 手動式場追加に写真アップロード機能
-  - AddVenueSheetの手動タブにSupabase Storage写真アップロード追加
-  - src/components/explore/add-venue-sheet.tsx
+## Verification
 
-- [ ] A3. loading.tsx を新レイアウトに合わせて全ページ更新
-  - home/loading.tsx: QuickActions→JourneyCard スケルトンに
-  - 全8ファイルを確認・更新
-
----
-
-## B. タッチターゲット + アフォーダンス修正
-
-- [ ] B1. チャット送信ボタン: h-9 w-9 → h-11 w-11 + aria-label追加
-  - src/components/coach/chat-bar.tsx
-
-- [ ] B2. 写真カルーセルのドットインジケーター: h-1.5 w-1.5 → h-2 w-2 + hover効果
-  - src/components/venues/photo-carousel.tsx
-
-- [ ] B3. 写真カルーセルに前/次ボタン追加（スワイプだけだと気づかない）
-  - src/components/venues/photo-carousel.tsx
-
-- [ ] B4. HeartButton: 成功トースト追加 + タップ時scale bounce animation
-  - 「候補に追加しました」/「候補から外しました」トースト
-  - src/components/venues/heart-button.tsx
-
-- [ ] B5. ホーム設定アイコンにテキストラベル「設定」を追加
-  - src/app/(app)/home/page.tsx
-
-- [ ] B6. 星評価にfieldset/legend追加（何を評価しているか明確に）
-  - src/components/ratings/dimension-ratings.tsx
-
-- [ ] B7. 見積もりフォーム: 成功トースト + フィールド別エラーメッセージ
-  - src/components/venues/estimate-form.tsx
-
-- [ ] B8. 全空ステートのコピーを温かく書き直す
-  - explore: 「式場の下見は、ここから始まります」
-  - candidates: 「いいね！と感じた式場を集めましょう」
-  - coach: 既存OK
-  - venue detail写真: 「写真なし」→「写真を追加しますか？」
-  - venue detail口コミ: 空ステート追加
-  - venue detail見学: 空ステート追加
-
----
-
-## C. デザインシステム刷新
-
-- [ ] C1. globals.css のCSS変数を Morning Light パレットに全面書き換え
-  - 背景: oklch(0.97 0.01 80) #FBF7F1
-  - 文字: oklch(0.22 0.02 50) #2A2320
-  - Primary: oklch(0.62 0.12 45) #C4816E (Rose)
-  - Accent: oklch(0.70 0.13 80) #C9A44C (Gold)
-  - Border: oklch(0.91 0.02 70) #E8E0D6
-
-- [ ] C2. DESIGN.md を新パレットに全面更新
-
-- [ ] C3. ランディングページ: Navy→Cream背景 + 太陽光グラデーション
-  - src/components/landing/landing-page.tsx
-
-- [ ] C4. 認証画面(login/signup): Navy→Cream+Rose
-  - src/app/(auth)/login/page.tsx
-  - src/app/(auth)/signup/page.tsx
-
-- [ ] C5. カード角丸統一: 全てrounded-2xlに
-  - JourneyCard: rounded-xl → rounded-2xl
-  - AIInsightCard: rounded-lg → rounded-2xl
-
-- [ ] C6. Venue Headerにfont-serif追加
-
-- [ ] C7. インラインbuttonをButtonコンポーネントに統一
-  - candidates-view.tsx
-  - decision-ceremony.tsx
-
----
-
-## D. モーション・アニメーション（全画面）
-
-### D1. ランディングページ
-- [ ] Stats セクション: whileInView スタガードフェードイン
-- [ ] Feature カード: whileInView スタガードフェードイン + active:scale-95
-- [ ] AI Coach プレビュー: whileInView フェードイン
-
-### D2. Explore画面
-- [ ] 式場カードリスト: AnimatePresence + スタガードフェードイン (delay 0.05s)
-- [ ] フィルタチップ: hover:bg-muted + active:scale-95
-
-### D3. Candidates画面
-- [ ] お気に入りリスト: AnimatePresence + layoutId + スタガード
-- [ ] SegmentedControl: layoutIdでsliding indicator
-- [ ] SwipeCard: 入場/退場アニメーション (spring physics)
-
-### D4. Coach画面
-- [ ] チャットバブル: 入場アニメーション (左/右からスライド + フェード)
-- [ ] インサイトカード: フェードイン
-
-### D5. VenueDetail画面
-- [ ] セクション: whileInView フェードイン
-- [ ] 見積もり折りたたみ: AnimatePresence + height transition
-- [ ] 写真カルーセル: 入場フェード
-
-### D6. BottomNav
-- [ ] アクティブタブ: 微scale + 色遷移 150ms
-- [ ] バッジ: 入場 scale bounce
-
-### D7. グローバル
-- [ ] prefers-reduced-motion: 全アニメーション無効化を確認
-- [ ] transition duration統一: fast=150ms, base=300ms, slow=500ms
-
----
-
-## E. 検証
-
-- [ ] E1. TypeScript型チェック (npx tsc --noEmit)
-- [ ] E2. ESLint (npm run lint)
-- [ ] E3. ユニットテスト (npm test)
-- [ ] E4. E2Eテスト (npx playwright test)
-- [ ] E5. プロダクションビルド (npm run build)
-- [ ] E6. セルフレビュー (code-reviewer)
-- [ ] E7. スマホで全画面動作確認
+- `npm run lint` — 0 errors, 4 warnings (all pre-existing unused imports).
+- `npx vitest run` — 64/64 passing (added `useRouter` mock to bottom-nav test).
+- `npm run build` — successful; `/api/coach/stream` listed as dynamic route.

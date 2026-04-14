@@ -65,7 +65,7 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
-          <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
+          <Link href="/" className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
             Haretoki
           </Link>
         </div>
@@ -89,7 +89,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-10">
           {/* Mobile logo */}
           <div className="text-center lg:hidden">
-            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-[400ms] hover:opacity-70">
+            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
               Haretoki
             </Link>
             <h2 className="mt-4 font-serif text-2xl font-light tracking-[0.06em]">ログイン</h2>

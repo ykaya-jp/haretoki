@@ -88,7 +88,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
             <button
               type="button"
               onClick={() => toggleCat(cat.category)}
-              className="flex w-full min-h-[48px] items-center justify-between bg-muted/30 px-4 py-3 text-left transition-colors duration-[400ms] active:bg-muted"
+              className="flex w-full min-h-[48px] items-center justify-between bg-muted/30 px-4 py-3 text-left transition-colors duration-200 active:bg-muted"
             >
               <span className="text-sm font-medium">{cat.label}</span>
               <motion.div

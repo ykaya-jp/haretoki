@@ -108,6 +108,9 @@ export async function getHomeData(): Promise<HomeData> {
       percentage,
       upcomingVisits,
     },
-    userName: user.user_metadata?.name ?? user.email?.split("@")[0] ?? "ゲスト",
+    userName:
+      (user.user_metadata?.name as string | undefined) ??
+      (user.user_metadata?.full_name as string | undefined) ??
+      "おふたり",
   };
 }

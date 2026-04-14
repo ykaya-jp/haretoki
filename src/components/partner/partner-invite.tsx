@@ -107,7 +107,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
             <button
               type="button"
               onClick={handleLineShare}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white transition-all duration-[400ms] active:scale-95"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 active:scale-95"
             >
               <MessageCircle className="h-4 w-4" />
               もう一度LINEで送る
@@ -115,7 +115,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm transition-all duration-[400ms] active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm transition-all duration-200 active:scale-95"
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "コピー済" : "リンクをコピー"}

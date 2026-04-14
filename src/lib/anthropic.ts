@@ -27,7 +27,7 @@ export async function askClaude(options: {
 }): Promise<string> {
   const claude = getAnthropicClient();
   const response = await claude.messages.create({
-    model: options.model ?? "claude-sonnet-4-20250514",
+    model: options.model ?? "claude-sonnet-4-6",
     max_tokens: options.maxTokens ?? 4096,
     system: options.system,
     messages: [{ role: "user", content: options.userMessage }],
@@ -46,7 +46,7 @@ export async function streamClaude(options: {
 }): Promise<ReadableStream<string>> {
   const claude = getAnthropicClient();
   const stream = await claude.messages.stream({
-    model: options.model ?? "claude-sonnet-4-20250514",
+    model: options.model ?? "claude-sonnet-4-6",
     max_tokens: options.maxTokens ?? 2048,
     system: options.system,
     messages: options.messages,

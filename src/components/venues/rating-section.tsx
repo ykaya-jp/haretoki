@@ -93,7 +93,7 @@ export function RatingSection({
             <div
               role="radiogroup"
               aria-label={`${DIMENSION_LABELS[dim]}の評価`}
-              className="flex gap-2"
+              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
             >
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -120,14 +120,14 @@ export function RatingSection({
                       handleRate(dim, 5);
                     }
                   }}
-                  className="rounded transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
+                  className="shrink-0 snap-start rounded transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
                 >
                   <Star
                     className={cn(
                       "h-[48px] w-[48px]",
                       n <= value
                         ? "fill-[var(--gold-warm)] text-[var(--gold-warm)]"
-                        : "text-border",
+                        : "fill-none stroke-[var(--muted-foreground)] text-muted-foreground",
                     )}
                   />
                 </button>

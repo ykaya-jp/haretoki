@@ -79,7 +79,7 @@ export function DimensionFocus() {
             type="button"
             onClick={() => setSelectedDim(dim.id)}
             className={cn(
-              "min-h-[44px] rounded-full border px-5 text-sm transition-all duration-[400ms]",
+              "min-h-[44px] rounded-full border px-5 text-sm transition-all duration-200",
               selectedDim === dim.id
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card text-foreground active:scale-95",
@@ -112,7 +112,7 @@ export function DimensionFocus() {
                 layout
                 transition={{ type: "spring", stiffness: 140, damping: 22 }}
                 className={cn(
-                  "flex items-center gap-4 rounded-2xl border p-4 transition-all duration-[400ms]",
+                  "flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200",
                   isTop
                     ? "border-[var(--gold-warm)] bg-[var(--gold-subtle)]"
                     : "border-border bg-card",

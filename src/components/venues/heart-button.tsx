@@ -38,8 +38,9 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
     <motion.button
       type="button"
       onClick={handleToggle}
+      aria-pressed={optimisticFavorite}
       aria-label={optimisticFavorite ? "お気に入りから外す" : "お気に入りに追加"}
-      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-colors hover:bg-white active:bg-white/60"
+      className="flex h-12 w-12 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-colors hover:bg-card active:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
       whileTap={{ scale: 1.15 }}
       transition={{ type: "spring", stiffness: 200, damping: 12 }}
     >
@@ -52,7 +53,9 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
         <Heart
           className={cn(
             "h-5 w-5 transition-colors duration-200",
-            optimisticFavorite ? "fill-[#FF385C] text-[#FF385C]" : "text-gray-600"
+            optimisticFavorite
+              ? "fill-primary text-primary"
+              : "fill-none text-primary/70"
           )}
         />
       </motion.div>
