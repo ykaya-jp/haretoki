@@ -1,6 +1,7 @@
 "use server";
 
 import { cache } from "react";
+import { cacheTag } from "next/cache";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 
@@ -18,17 +19,13 @@ export interface AIInsight {
 }
 
 /**
- * Rule-based AI insights. No Claude API in Release 1.
- * Returns up to 5 insights sorted by priority.
- *
- * Wrapped in `React.cache()` so that when home → coach pages both call this
- * within the same SSR request (e.g. via a shared layout render path), the
- * expensive Prisma fan-out only runs once. Cross-request memoization is out
- * of scope for this bundle (it would require `unstable_cache`).
+ * Cached inner loader. Keyed on (projectId, userId).
+ * "use cache" provides cross-request durable caching; revalidated via
+ * revalidateTag("project:<id>") on mutations.
  */
-async function getAIInsightsImpl(): Promise<AIInsight[]> {
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
+async function fetchAIInsights(projectId: string, userId: string): Promise<AIInsight[]> {
+  "use cache";
+  cacheTag(`project:${projectId}`);
 
   const insights: AIInsight[] = [];
 
@@ -41,7 +38,7 @@ async function getAIInsightsImpl(): Promise<AIInsight[]> {
         visits: { select: { id: true, status: true, scheduledAt: true } },
       },
     }),
-    prisma.venueFavorite.count({ where: { userId: user.id, venue: { projectId } } }),
+    prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
     prisma.estimate.findMany({
       where: { projectId },
       include: { items: true, venue: { select: { name: true } } },
@@ -153,7 +150,7 @@ async function getAIInsightsImpl(): Promise<AIInsight[]> {
   }
 
   // 7. Partner Gap Finder: dimensions where user & partner disagree
-  const partnerGaps = await findPartnerGaps(user.id, projectId);
+  const partnerGaps = await findPartnerGaps(userId, projectId);
   for (const gap of partnerGaps.slice(0, 2)) {
     insights.push({
       id: `partner-gap-${gap.venueId}-${gap.dimension}`,
@@ -170,6 +167,20 @@ async function getAIInsightsImpl(): Promise<AIInsight[]> {
   return insights
     .sort((a, b) => a.priority - b.priority)
     .slice(0, 5);
+}
+
+/**
+ * Rule-based AI insights. No Claude API in Release 1.
+ * Returns up to 5 insights sorted by priority.
+ *
+ * Per-request memoization via React.cache() dedupes calls from home + coach
+ * layouts in one SSR pass. "use cache" on fetchAIInsights provides the
+ * durable cross-request caching layer.
+ */
+async function getAIInsightsImpl(): Promise<AIInsight[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  return fetchAIInsights(projectId, user.id);
 }
 
 // Per-request memoization: dedupes calls from home + coach layouts in one SSR

@@ -1,5 +1,6 @@
 "use server";
 
+import { cacheTag } from "next/cache";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 
@@ -31,7 +32,7 @@ interface HomeData {
 }
 
 /**
- * Home screen data in a single Server Action call.
+ * Cached inner loader. Keyed on (projectId, userId, userName).
  * Progress % logic:
  * - Venue added: 20% (1+ venues)
  * - Visit completed: 20% (1+ visited)
@@ -39,9 +40,13 @@ interface HomeData {
  * - Favorites selected: 20% (2+ favorites)
  * - Decision made: 20% (Decision exists)
  */
-export async function getHomeData(): Promise<HomeData> {
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
+async function fetchHomeData(
+  projectId: string,
+  userId: string,
+  userName: string,
+): Promise<HomeData> {
+  "use cache";
+  cacheTag(`project:${projectId}`);
 
   const project = await prisma.project.findUniqueOrThrow({
     where: { id: projectId },
@@ -61,7 +66,7 @@ export async function getHomeData(): Promise<HomeData> {
       take: 10,
     }),
     prisma.estimate.count({ where: { projectId } }),
-    prisma.venueFavorite.count({ where: { userId: user.id, venue: { projectId } } }),
+    prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
     prisma.decision.findUnique({ where: { projectId } }),
     prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
     prisma.visit.count({ where: { venue: { projectId }, status: "scheduled" } }),
@@ -108,9 +113,17 @@ export async function getHomeData(): Promise<HomeData> {
       percentage,
       upcomingVisits,
     },
-    userName:
-      (user.user_metadata?.name as string | undefined) ??
-      (user.user_metadata?.full_name as string | undefined) ??
-      "おふたり",
+    userName,
   };
+}
+
+/** Home screen data in a single Server Action call. */
+export async function getHomeData(): Promise<HomeData> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  const userName =
+    (user.user_metadata?.name as string | undefined) ??
+    (user.user_metadata?.full_name as string | undefined) ??
+    "おふたり";
+  return fetchHomeData(projectId, user.id, userName);
 }

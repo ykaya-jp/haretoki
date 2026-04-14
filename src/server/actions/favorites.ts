@@ -1,12 +1,16 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 
 export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boolean }> {
   const user = await requireUser();
   await requireVenueAccess(user.id, venueId);
+
+  // Resolve projectId for tag invalidation
+  const { projectId } = await requireProjectMembership(user.id);
 
   const existing = await prisma.venueFavorite.findUnique({
     where: { venueId_userId: { venueId, userId: user.id } },
@@ -16,6 +20,7 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
     await prisma.venueFavorite.delete({
       where: { id: existing.id },
     });
+    revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath("/explore");
     revalidatePath("/candidates");
     revalidatePath("/home");
@@ -26,6 +31,7 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
     data: { venueId, userId: user.id },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/candidates");
   revalidatePath("/home");
@@ -46,9 +52,14 @@ interface FavoriteVenue {
   favoritedBy: string[];
 }
 
-export async function getFavorites(filter: FavoriteFilter = "mine"): Promise<FavoriteVenue[]> {
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
+/** Cached inner loader. Keyed on (projectId, userId, filter). */
+async function fetchFavorites(
+  projectId: string,
+  userId: string,
+  filter: FavoriteFilter,
+): Promise<FavoriteVenue[]> {
+  "use cache";
+  cacheTag(`project:${projectId}`);
 
   // Get all project members
   const members = await prisma.projectMember.findMany({
@@ -57,12 +68,12 @@ export async function getFavorites(filter: FavoriteFilter = "mine"): Promise<Fav
   });
 
   const memberIds = members.map((m) => m.userId);
-  const partnerId = memberIds.find((id) => id !== user.id);
+  const partnerId = memberIds.find((id) => id !== userId);
 
   let userFilter: string[];
   switch (filter) {
     case "mine":
-      userFilter = [user.id];
+      userFilter = [userId];
       break;
     case "partner":
       userFilter = partnerId ? [partnerId] : [];
@@ -124,4 +135,10 @@ export async function getFavorites(filter: FavoriteFilter = "mine"): Promise<Fav
   }
 
   return Array.from(venueMap.values());
+}
+
+export async function getFavorites(filter: FavoriteFilter = "mine"): Promise<FavoriteVenue[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  return fetchFavorites(projectId, user.id, filter);
 }
