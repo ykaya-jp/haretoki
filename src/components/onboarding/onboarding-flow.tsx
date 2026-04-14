@@ -365,7 +365,7 @@ export function OnboardingFlow() {
 
   if (step === -1) {
     const introSteps = [
-      "好みを3問お伺いします",
+      "好みを4問お伺いします",
       "AIがおふたりに合う式場をご提案",
       "気に入ったら評価・比較・決定まで、このアプリで",
     ];
