@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
@@ -231,7 +232,18 @@ export async function POST(request: NextRequest) {
                 data: { updatedAt: new Date() },
               }),
             )
+            .then(() => {
+              // Invalidate the Server Component cache so the client's
+              // router.refresh() after the stream picks up the persisted
+              // messages (prevents the 'typing bubble vanishes without a
+              // reply' symptom).
+              revalidatePath("/coach");
+            })
             .catch(() => {});
+        } else {
+          // Claude returned nothing — still refresh so the user message
+          // persisted at the start of the stream is visible in history.
+          revalidatePath("/coach");
         }
       }
     },

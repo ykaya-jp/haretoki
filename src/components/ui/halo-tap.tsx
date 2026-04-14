@@ -52,11 +52,19 @@ export function HaloTap({ children, className, style }: HaloTapProps) {
     [triggerRipple],
   );
 
+  // Detect whether the consumer already provides a positioning class
+  // (fixed / absolute / sticky). If yes, don't force `relative`, otherwise
+  // the two position classes collide and `relative` wins — which breaks
+  // fixed FABs. Inline-style fallback guarantees the absolute ring still
+  // has a containing block when nothing is given.
+  const hasPositioning =
+    !!className &&
+    /(^|\s)(fixed|absolute|sticky|relative)(\s|$)/.test(className);
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${className ?? ""}`}
-      style={style}
+      className={`overflow-hidden ${className ?? ""}`}
+      style={hasPositioning ? style : { position: "relative", ...style }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
