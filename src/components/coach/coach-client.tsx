@@ -47,7 +47,14 @@ export function CoachClient({
 
   const handleNewChat = () => {
     setSessionId(undefined);
-    router.push("/coach");
+    setActiveTab("chat");
+    // Force a full refresh even when already on /coach so currentSession
+    // prop resets to null and the QuickStart view comes back into view.
+    router.replace("/coach", { scroll: true });
+    router.refresh();
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const messages = currentSession?.messages ?? [];
