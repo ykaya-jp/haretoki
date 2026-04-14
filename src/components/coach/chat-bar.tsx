@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Sparkles } from "lucide-react";
 import { sendCoachMessage } from "@/server/actions/coach";
 import { ChatBubble } from "@/components/coach/chat-bubble";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface InFlight {
   userText: string;
@@ -63,16 +63,42 @@ export function ChatBar() {
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [inFlight, setInFlight] = useState<InFlight | null>(null);
+  // Shows a subtle "送信するだけ" hint when a use-case card just pre-filled the
+  // input. Cleared on first keystroke, send, or after a short window.
+  const [hasPrefill, setHasPrefill] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   // Synchronous guard: React state updates are queued, so `busy` can be stale
   // between back-to-back Enter presses. A ref flips immediately.
   const sendingRef = useRef<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const promptParam = searchParams.get("prompt");
 
   // Abort any in-flight SSE stream on unmount to stop burning Anthropic tokens
   // after the user navigates away.
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Conversation-starter hand-off: when a CoachQuickStart use-case card
+  // navigates to /coach?prompt=..., pre-fill the input, focus it, and scrub
+  // the query param so refreshes don't re-populate a stale prompt.
+  useEffect(() => {
+    if (!promptParam) return;
+    setMessage(promptParam);
+    setHasPrefill(true);
+    // Defer focus to next tick so the input is mounted and keyboard opens.
+    const t = window.setTimeout(() => {
+      inputRef.current?.focus();
+      const el = inputRef.current;
+      if (el) {
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    }, 0);
+    router.replace(pathname, { scroll: false });
+    return () => window.clearTimeout(t);
+  }, [promptParam, pathname, router]);
 
   const busy = isPending || inFlight !== null;
 
@@ -82,6 +108,7 @@ export function ChatBar() {
     sendingRef.current = true;
     const msg = message.trim();
     setMessage("");
+    setHasPrefill(false);
     // Keep keyboard up + caret in the input so the user can chain messages
     // without re-focusing manually (especially important on mobile).
     inputRef.current?.focus();
@@ -152,12 +179,21 @@ export function ChatBar() {
         </div>
       )}
       <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        {hasPrefill && (
+          <div className="mx-auto mb-2 flex max-w-5xl items-center gap-1.5 text-[11px] text-[var(--gold-warm)]">
+            <Sparkles aria-hidden="true" className="h-3 w-3" strokeWidth={1.5} />
+            <span>質問が入っています。編集するか、そのまま送信できます。</span>
+          </div>
+        )}
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <input
             ref={inputRef}
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              if (hasPrefill) setHasPrefill(false);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="なんでも気軽に聞いてください"
             aria-label="コーチへのメッセージ"
