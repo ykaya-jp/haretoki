@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireOwner, requireProjectMembership } from "@/server/auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 import { sendEmail, isEmailAvailable } from "@/lib/email/send";
@@ -113,6 +113,7 @@ export async function invitePartner(email: string) {
     }
   }
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/home");
 
   await captureServerEvent(user.id, "partner_invited", {
@@ -191,6 +192,7 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "すでに承諾済みか、招待が無効です" };
   }
 
+  revalidateTag(`project:${membership.projectId}`, { expire: 0 });
   revalidatePath("/home");
   // Partner status is also surfaced on /mypage; refresh that route's cache
   // so the user sees the accepted state without a manual reload.

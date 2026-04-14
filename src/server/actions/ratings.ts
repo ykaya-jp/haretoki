@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { ratingSchema } from "@/server/actions/rating-schema";
 import type { RatingInput } from "@/server/actions/rating-schema";
@@ -20,7 +20,7 @@ export async function saveRatings(
   }
 
   const user = await requireUser();
-  await requireVenueAccess(user.id, venueId);
+  const { projectId } = await requireVenueAccess(user.id, venueId);
 
   // Run upserts + aggregation + venueScore upserts inside a single transaction so
   // concurrent edits (owner + partner at the same time) can't read a stale set of
@@ -86,6 +86,7 @@ export async function saveRatings(
     }
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${venueId}`);
 
   return { success: true as const };

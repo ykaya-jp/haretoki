@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVisitAccess } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 import { getAllChecklistItems } from "@/lib/checklist-templates";
@@ -46,6 +46,7 @@ export async function scheduleVisit(
   // Trigger async AI checklist generation
   generateVisitChecklist(visit.id).catch(console.error);
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${venueId}`);
   revalidatePath("/home");
   revalidatePath("/explore");
@@ -54,7 +55,7 @@ export async function scheduleVisit(
 
 export async function completeVisit(visitId: string): Promise<{ success: boolean }> {
   const user = await requireUser();
-  await requireVisitAccess(user.id, visitId);
+  const { projectId } = await requireVisitAccess(user.id, visitId);
 
   const visit = await prisma.visit.update({
     where: { id: visitId },
@@ -67,6 +68,7 @@ export async function completeVisit(visitId: string): Promise<{ success: boolean
     data: { status: "visited" },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${visit.venueId}`);
   revalidatePath("/home");
   return { success: true };

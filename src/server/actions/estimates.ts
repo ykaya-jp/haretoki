@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
 
@@ -65,6 +65,7 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
     include: { items: true },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${validation.data.venueId}`);
   revalidatePath("/candidates");
   return { estimate };
@@ -286,6 +287,7 @@ export async function saveAnalyzedEstimate(input: {
     include: { items: true },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${input.venueId}`);
   revalidatePath("/candidates");
   return { estimate };

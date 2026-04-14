@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/server/db";
 import { requireUser, requireVenueAccess } from "@/server/auth";
 import { planInputSchema, type PlanInput } from "@/server/actions/plan-schema";
@@ -28,7 +28,7 @@ export async function upsertVenuePlan(
   input: PlanInput,
 ) {
   const user = await requireUser();
-  await requireVenueAccess(user.id, venueId);
+  const { projectId } = await requireVenueAccess(user.id, venueId);
 
   const parsed = planInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -76,6 +76,7 @@ export async function upsertVenuePlan(
     });
   }
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${venueId}`);
   return { success: true as const, plan };
 }
@@ -92,6 +93,7 @@ export async function deleteVenuePlan(planId: string) {
   await requireVenueAccess(user.id, plan.venue.id);
 
   await prisma.venuePlan.delete({ where: { id: planId } });
+  revalidateTag(`project:${plan.venue.projectId}`, { expire: 0 });
   revalidatePath(`/venues/${plan.venue.id}`);
   return { success: true as const };
 }
