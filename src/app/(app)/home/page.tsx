@@ -30,22 +30,26 @@ export default async function HomePage() {
     // hero, then tighter 40px between secondary surfaces. Replaces the
     // mechanical space-y-12 stamp.
     <div className="space-y-16">
-      {/* Greeting */}
-      <div>
-        <Greeting userName={homeData.userName} />
-        <p className="mt-1 text-meta text-muted-foreground">
-          今日のおふたりの式場選び
-        </p>
-      </div>
+      {/* Home hero — Greeting + JourneyCard sit under a soft sunlight glow.
+          Scope limited to this wrapper (not the whole page). */}
+      <div className="hero-sunlight-sm space-y-16 -mx-6 px-6 pb-2">
+        {/* Greeting */}
+        <div>
+          <Greeting userName={homeData.userName} />
+          <p className="mt-1 text-meta text-muted-foreground">
+            今日のおふたりの式場選び
+          </p>
+        </div>
 
-      {/* Journey Card — the hero of home */}
-      <JourneyCard
-        totalVenues={homeData.progress.totalVenues}
-        visitedVenues={homeData.progress.visitedVenues}
-        favoriteCount={homeData.progress.favoriteCount}
-        hasDecision={homeData.progress.hasDecision}
-        upcomingVisits={homeData.progress.upcomingVisits}
-      />
+        {/* Journey Card — the hero of home */}
+        <JourneyCard
+          totalVenues={homeData.progress.totalVenues}
+          visitedVenues={homeData.progress.visitedVenues}
+          favoriteCount={homeData.progress.favoriteCount}
+          hasDecision={homeData.progress.hasDecision}
+          upcomingVisits={homeData.progress.upcomingVisits}
+        />
+      </div>
 
       {/* Secondary surfaces — tighter rhythm */}
       <div className="space-y-10">

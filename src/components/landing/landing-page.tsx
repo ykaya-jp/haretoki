@@ -88,7 +88,7 @@ export function LandingPage() {
   return (
     <div className="min-h-dvh bg-background">
       {/* ─── Hero ─── */}
-      <section className="relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+      <section className="hero-sunlight relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         {/* Background chapel image with warm overlay */}
         <div className="pointer-events-none absolute inset-0">
           <VenueImage

@@ -615,6 +615,61 @@ const springLuxury = { type: "spring", stiffness: 200, damping: 20 };
 
 **Sizing**: Match text visual weight. 20px for nav, 24px for actions, 16px for inline.
 
+### 7. V3 Brand Motifs (Visual V3)
+
+V3 introduces three CSS/SVG-only brand flourishes grounded in the 晴れ時 metaphor (曇り → 晴れ間 → 晴れ). No external photos or videos required.
+
+#### Seasonal Motifs
+
+Four tiny gold-hairline SVGs rotate automatically by current month via `<SeasonalMotif />` (`src/components/ui/seasonal-motif.tsx`):
+
+| Months | Motif | Meaning |
+|--------|-------|---------|
+| Jan–Mar | 梅 (plum) | Early-year hope |
+| Apr–Jun | 桜 (cherry) | Beginnings |
+| Jul–Sep | 紫陽花 (hydrangea) | Quiet summer |
+| Oct–Dec | 紅葉 (maple) | Warm close |
+
+**Usage rules**:
+- Decorative only (`aria-hidden` by default). Pass `ariaLabel` only if the motif is the sole carrier of meaning.
+- Default opacity 0.5. Never full-opacity — the motif is an accent, not a focal element.
+- `size="sm"` (16px) for inline flourishes (EmptyState constellation, chip).
+- `size="md"` (32px) for hero moments (auth brand panel, post-decision celebration).
+- Color inherits from `currentColor` / `text-[var(--gold-warm)]`. Do not recolor to primary.
+- Use 1 motif per region. Two or more feels ornamental.
+
+**Where applied (canonical)**: `/login` & `/signup` brand panels, `JourneyCard` decision state, `EmptyState`.
+
+#### Sunlight Layer
+
+Warm radial glow that reinforces the "morning light" brand. Token: `--hero-sunlight` in `globals.css` (light + dark variants). Helpers: `.hero-sunlight` (full) and `.hero-sunlight-sm` (60% opacity).
+
+**Scope rules — strict**:
+- LP hero section (`landing-page.tsx`) only.
+- Home hero wrapper (`Greeting` + `JourneyCard`) only.
+- Never apply to `<body>`, app layout shell, or any secondary section.
+- Never stack with other radial overlays.
+- Disabled automatically under `prefers-contrast: more`.
+- Dark mode uses a cooler, dimmer warm tone (`oklch(0.3 0.02 85 / 0.3)`).
+
+Implemented as a `::before` pseudo-element so the glow sits behind content without mutating layout. Container must be `position: relative; isolation: isolate` (the helper classes set this).
+
+#### Journey Dot Transitions
+
+Contract for `JourneySteps` (`src/components/home/journey-steps.tsx`):
+
+| Trigger | Animation | Duration |
+|---------|-----------|----------|
+| Step transitions `upcoming/current → completed` | Scale-up 1 → 1.15 → 1 spring + opacity pulse + expanding gold halo ring | 600ms |
+| Step is `current` (steady) | Soft scale pulse 1 → 1.06 → 1 | 800ms |
+| `prefers-reduced-motion: reduce` | Instant color change only — no scale, no halo | 0ms |
+
+Spring config: `stiffness: 180, damping: 14`. The halo uses `ring-2 ring-[var(--gold-warm)]` and fades while expanding to 1.8×. Detection is diff-based (previous-status ref), so the celebration fires exactly once per real transition.
+
+#### Photo Caption Overlay
+
+`PhotoCarouselEmbla` (2+ photos only) shows a small bottom-left caption band on the active slide: venue name + `N/M` counter in gold-warm, on `white/85 + backdrop-blur`. Fades in over 500ms. `pointer-events: none` to keep Embla's touch handling untouched.
+
 ---
 
 ## AI Features Architecture

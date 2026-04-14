@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { GoldSparkle } from "@/components/ui/gold-sparkle";
+import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 import { VenueImage } from "@/components/ui/venue-image";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +64,8 @@ export function EmptyState({
         <h3 className="text-h3 font-serif font-extralight">{title}</h3>
         <p className="text-body text-muted-foreground">{description}</p>
       </div>
-      {/* Decorative three-dot constellation — evocative, not noisy */}
+      {/* Decorative three-dot constellation — evocative, not noisy.
+          A small seasonal motif sits alongside as a subtle brand flourish. */}
       <div
         aria-hidden="true"
         className="flex items-center justify-center gap-2 opacity-70"
@@ -71,6 +73,7 @@ export function EmptyState({
         <GoldSparkle className="h-2 w-2" />
         <GoldSparkle className="h-2.5 w-2.5" />
         <GoldSparkle className="h-2 w-2" />
+        <SeasonalMotif size="sm" className="ml-1 opacity-60" />
       </div>
       {action && (
         <Link

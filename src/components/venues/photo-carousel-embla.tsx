@@ -120,6 +120,20 @@ export function PhotoCarouselEmbla({
           <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
         </button>
       )}
+      {/* Caption band — venue name + slide counter on the active slide only.
+          Additive overlay: does not intercept touch (pointer-events: none).
+          Rendered only when 2+ photos so it doesn't clutter single-photo cards. */}
+      {photos.length >= 2 && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-3 left-3 flex max-w-[70%] items-center gap-2 rounded-full border border-white/40 bg-white/85 px-3 py-1.5 text-[11px] tracking-[0.04em] text-[var(--gold-warm)] shadow-[0_1px_4px_rgba(0,0,0,0.08)] backdrop-blur-sm animate-in fade-in duration-500"
+        >
+          <span className="truncate font-medium text-foreground/80">{alt}</span>
+          <span className="tabular-nums text-[var(--gold-warm)]">
+            {selectedIndex + 1}/{photos.length}
+          </span>
+        </div>
+      )}
       {/* Dot indicators — visual dot is 6-8px, tap target is 44x44px */}
       <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2">
         {photos.map((_, index) => (

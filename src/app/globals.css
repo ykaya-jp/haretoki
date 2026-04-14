@@ -135,6 +135,15 @@
   --gold-light: oklch(0.80 0.10 80);
   --gold-subtle: oklch(0.70 0.13 80 / 0.10);
 
+  /* V3 Visual: sunlight layer — warm glow reserved for LP + Home hero.
+     Applied as a ::before pseudo-element on scoped containers only.
+     See DESIGN.md → "Sunlight Layer" for scope rules. */
+  --hero-sunlight: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    oklch(0.95 0.05 85 / 0.5) 0%,
+    oklch(0.97 0.02 85 / 0) 60%
+  );
+
   /* Elevated surface — on top of card */
   --card-elevated: oklch(0.995 0.003 80);
 
@@ -230,6 +239,13 @@
   --gold-warm: oklch(0.72 0.14 80);
   --gold-light: oklch(0.82 0.12 80);
   --gold-subtle: oklch(0.72 0.14 80 / 0.15);
+
+  /* V3 Visual: dark-mode sunlight — cooler, dimmer warm glow */
+  --hero-sunlight: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    oklch(0.3 0.02 85 / 0.3) 0%,
+    oklch(0.3 0.02 85 / 0) 60%
+  );
 
   /* ── V1 Visual: Dark-mode surface & shadow tiers ── */
   --bg-card: oklch(0.23 0.012 50);
@@ -403,6 +419,47 @@
   .photo-tone,
   .photo-tone-hero {
     filter: none;
+  }
+}
+
+/* ═══ V3 Visual: Sunlight Layer ═══
+   Scope rule: only on the LP hero and the Home hero area (Greeting +
+   JourneyCard). Never on body/layout. Applied via ::before so it sits
+   behind content without affecting flow. The container must be
+   `position: relative` and `isolate` for stacking safety. */
+@layer components {
+  .hero-sunlight,
+  .hero-sunlight-sm {
+    position: relative;
+    isolation: isolate;
+  }
+  .hero-sunlight::before,
+  .hero-sunlight-sm::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--hero-sunlight);
+  }
+  /* Smaller variant for the Home hero — reduced opacity so it hints
+     rather than dominates. */
+  .hero-sunlight-sm::before {
+    opacity: 0.6;
+  }
+  /* Ensure direct children sit above the glow. */
+  .hero-sunlight > *,
+  .hero-sunlight-sm > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* High-contrast users: disable the decorative warm glow. */
+@media (prefers-contrast: more) {
+  .hero-sunlight::before,
+  .hero-sunlight-sm::before {
+    display: none;
   }
 }
 
