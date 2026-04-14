@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_JP, Noto_Serif_JP, Geist } from "next/font/google";
+import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho, Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import "./globals.css";
@@ -22,6 +22,18 @@ const notoSerifJP = Noto_Serif_JP({
   subsets: ["latin"],
   weight: ["300", "400", "500"],
   variable: "--font-noto-serif-jp",
+  display: "swap",
+  fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
+});
+
+// Shippori Mincho — trial display serif used ONLY for hero copy, greeting h1,
+// and venue-name h1 (24px+). Noto Serif JP remains the body serif. Latin
+// subset only; Japanese glyphs are served lazily via unicode-range partitions
+// like the other Noto families.
+const shipporiMincho = Shippori_Mincho({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-shippori-mincho",
   display: "swap",
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
@@ -66,7 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, "font-sans", geist.variable)}>
+    <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans", geist.variable)}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         <ThemeProvider
           attribute="class"

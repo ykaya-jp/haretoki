@@ -24,7 +24,7 @@ export function VenueHeader({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <h1 className="font-serif text-fluid-lg font-light tracking-[0.03em]">{name}</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-fluid-lg font-extralight tracking-[-0.01em]">{name}</h1>
         <VenueStatusBadge status={status} />
       </div>
       {/* Subtle gold hairline under venue name — Morning Light detail. */}

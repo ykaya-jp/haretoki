@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { GoldSparkle } from "@/components/ui/gold-sparkle";
+import { VenueImage } from "@/components/ui/venue-image";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -33,7 +33,7 @@ export function EmptyState({
         <div
           className="relative aspect-[3/2] w-full max-w-xs overflow-hidden rounded-[var(--r-lg)] shadow-[var(--shadow-card)]"
         >
-          <Image
+          <VenueImage
             src={imageUrl}
             alt={imageAlt ?? ""}
             fill
