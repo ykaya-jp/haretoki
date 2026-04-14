@@ -2,20 +2,34 @@
 
 import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
-import { requireUser, requireProjectMembership } from "@/server/auth";
+import { requireUser } from "@/server/auth";
 
 /**
  * Check if onboarding is complete and set cookie if conditions exist.
  * Called from onboarding page to handle existing users.
+ *
+ * For new users without a project yet, returns { completed: false }
+ * so they see the onboarding flow. getOrCreateProject() will be called
+ * when they save their first answers.
  */
 export async function checkAndSetOnboardingCookie(): Promise<{
   completed: boolean;
 }> {
   const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
+
+  // Find project membership directly (don't redirect on missing — new users are OK)
+  const membership = await prisma.projectMember.findFirst({
+    where: { userId: user.id, acceptedAt: { not: null } },
+    select: { projectId: true },
+  });
+
+  if (!membership) {
+    // New user without project → needs onboarding
+    return { completed: false };
+  }
 
   const project = await prisma.project.findUnique({
-    where: { id: projectId },
+    where: { id: membership.projectId },
     select: { conditions: true },
   });
 

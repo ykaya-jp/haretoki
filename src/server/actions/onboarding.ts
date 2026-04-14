@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
+import { getOrCreateProject } from "@/server/actions/projects";
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
 
@@ -23,8 +24,10 @@ type OnboardingAnswers = z.infer<typeof onboardingSchema>;
 export async function saveOnboardingAnswers(
   answers: OnboardingAnswers
 ): Promise<{ success: boolean }> {
-  const user = await requireUser();
-  const { projectId } = await requireProjectMembership(user.id);
+  await requireUser();
+  // Ensure project exists (creates one for new users)
+  const project = await getOrCreateProject();
+  const projectId = project.id;
 
   const parsed = onboardingSchema.safeParse(answers);
   if (!parsed.success) {
