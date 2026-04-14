@@ -431,17 +431,31 @@ function LoadingState() {
 
 function UnavailableState() {
   return (
-    <p className="text-sm leading-relaxed text-muted-foreground">
-      AI推薦は現在利用できません。設定が整い次第、自動的に表示されます。
-    </p>
+    <div className="space-y-2">
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        今日のAIおすすめは準備中です。先日ご覧になった式場をどうぞ →{" "}
+        <a
+          href="/candidates?view=recent"
+          className="underline underline-offset-4 text-foreground"
+        >
+          最近見た式場
+        </a>
+      </p>
+    </div>
   );
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm leading-relaxed text-foreground">
-        いま少し混雑しています。少し後でまたお試しください。
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        今日のAIおすすめは準備中です。先日ご覧になった式場をどうぞ →{" "}
+        <a
+          href="/candidates?view=recent"
+          className="underline underline-offset-4 text-foreground"
+        >
+          最近見た式場
+        </a>
       </p>
       <Button
         type="button"

@@ -26,10 +26,25 @@ interface ExtractedVenueData {
 
 interface AddVenueSheetProps {
   defaultOpen?: boolean;
+  /** Controlled open state. When provided, the internal state is ignored. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) {
-  const [open, setOpen] = useState(defaultOpen);
+export function AddVenueSheet({
+  defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: AddVenueSheetProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (controlledOnOpenChange) {
+      controlledOnOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
   const [tab, setTab] = useState<"manual" | "url" | "bulk">("manual");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +57,7 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
   const [bulkUrls, setBulkUrls] = useState("");
   const [bulkResults, setBulkResults] = useState<Array<{ url: string; success: boolean; venueName?: string; error?: string }> | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [urlParseError, setUrlParseError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -104,16 +120,12 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
   const handleUrlSubmit = async () => {
     if (!url.trim()) return;
     setLoading(true);
+    setUrlParseError(null);
     try {
       const result = await addVenueFromUrl(url);
       if (result.error) {
-        // Prefer the server-provided specific cause (HTTP status, timeout,
-        // JS-required page, etc.) so the user knows what actually went wrong.
-        toast.info(result.error || "URLから取得できませんでした。手入力に切り替えました", {
-          duration: 3500,
-        });
-        setUrl("");
-        setTab("manual");
+        // Show inline prompt instead of auto-switching tabs.
+        setUrlParseError(result.error || "URLから取得できませんでした");
       } else if (result.extracted) {
         setExtracted(result.extracted);
         if (result.warning) {
@@ -122,7 +134,7 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
         }
       }
     } catch {
-      toast.error("追加できませんでした");
+      setUrlParseError("追加できませんでした");
     } finally {
       setLoading(false);
     }
@@ -220,15 +232,18 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
     for (const preview of photoPreviews) URL.revokeObjectURL(preview);
     setPhotoPreviews([]);
     setUploadedPhotoUrls([]);
+    setUrlParseError(null);
     setTab("manual");
   };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button size="sm" className="gap-1" />}>
-        <Plus className="h-4 w-4" />
-        追加
-      </SheetTrigger>
+      {controlledOpen === undefined && (
+        <SheetTrigger render={<Button size="sm" className="gap-1" />}>
+          <Plus className="h-4 w-4" />
+          追加
+        </SheetTrigger>
+      )}
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader>
           <SheetTitle>新しい式場を追加</SheetTitle>
@@ -258,7 +273,10 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
                     <Input
                       id="venue-url"
                       value={url}
-                      onChange={(e) => setUrl(e.target.value)}
+                      onChange={(e) => {
+                        setUrl(e.target.value);
+                        if (urlParseError) setUrlParseError(null);
+                      }}
                       placeholder="https://..."
                       type="url"
                     />
@@ -269,6 +287,21 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
                   <p className="text-xs text-muted-foreground">
                     ゼクシィ・ハナユメ・Wedding Park等に対応
                   </p>
+                  {urlParseError && (
+                    <p className="text-xs text-muted-foreground">
+                      自動で読めませんでした。{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUrlParseError(null);
+                          setTab("manual");
+                        }}
+                        className="font-medium text-foreground underline underline-offset-4"
+                      >
+                        手動で入力する →
+                      </button>
+                    </p>
+                  )}
                 </div>
               </form>
             ) : (
