@@ -91,7 +91,7 @@ export default async function VenueDetailPage({
       <section id="overview" className="space-y-4">
         <div
           aria-hidden="true"
-          className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+          className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
         />
 
         {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
@@ -110,7 +110,7 @@ export default async function VenueDetailPage({
 
       <div
         aria-hidden="true"
-        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
       />
 
       {/* ===== Visit section ===== */}

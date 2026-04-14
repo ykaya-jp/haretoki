@@ -147,6 +147,36 @@
   /* Elevated surface — on top of card */
   --card-elevated: oklch(0.995 0.003 80);
 
+  /* ── Atmospheric Layers v4.1 ─────────────────────────────────
+     Three gradient tokens layered like morning light passing
+     through a window: dawn (cream→rose), noon (rose→gold),
+     dusk (gold→cream for Home Hero background).
+     Opacity range 4-6% — air, not paint.                       */
+  --gradient-dawn: radial-gradient(
+    ellipse 80% 50% at 20% 0%,
+    oklch(0.88 0.06 10 / 0.05) 0%,
+    oklch(0.97 0.01 80 / 0) 70%
+  );
+  --gradient-noon: linear-gradient(
+    45deg,
+    oklch(0.88 0.06 10 / 0.06) 0%,
+    oklch(0.82 0.10 75 / 0.05) 100%
+  );
+  --gradient-dusk: linear-gradient(
+    180deg,
+    oklch(0.82 0.10 75 / 0.05) 0%,
+    oklch(0.97 0.01 80 / 0.04) 100%
+  );
+
+  /* gold hairline — 0.5px accent for section separators */
+  --hairline-gold: 0.5px solid oklch(0.70 0.13 80 / 0.35);
+
+  /* frosted glass surface token */
+  --glass-surface: rgba(255, 255, 255, 0.60);
+
+  /* inner glow — soft emboss on Hero cards */
+  --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.60);
+
   /* ── V1 Visual: Typography 7-tier (luxury hotel scale) ── */
   --type-display: 2.25rem;    /* 36px — reserved for hero-level */
   --type-h1: 1.75rem;         /* 28px */
@@ -254,6 +284,26 @@
   --shadow-hairline: 0 0 0 0.5px oklch(0.98 0 0 / 0.08);
   --shadow-elevated: 0 2px 6px oklch(0 0 0 / 0.35), 0 12px 28px oklch(0 0 0 / 0.45);
   --shadow-hero: 0 4px 16px oklch(0 0 0 / 0.40), 0 24px 48px oklch(0 0 0 / 0.55);
+
+  /* Atmospheric Layers v4.1 — dark mode: Ink Blue / Wine Rose / Amber tones */
+  --gradient-dawn: radial-gradient(
+    ellipse 80% 50% at 20% 0%,
+    oklch(0.35 0.06 270 / 0.06) 0%,
+    oklch(0.18 0.015 50 / 0) 70%
+  );
+  --gradient-noon: linear-gradient(
+    45deg,
+    oklch(0.38 0.08 350 / 0.06) 0%,
+    oklch(0.42 0.09 70 / 0.05) 100%
+  );
+  --gradient-dusk: linear-gradient(
+    180deg,
+    oklch(0.42 0.09 70 / 0.05) 0%,
+    oklch(0.18 0.015 50 / 0.04) 100%
+  );
+  --hairline-gold: 0.5px solid oklch(0.72 0.14 80 / 0.25);
+  --glass-surface: rgba(30, 25, 20, 0.60);
+  --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -461,6 +511,24 @@
   .hero-sunlight-sm::before {
     display: none;
   }
+}
+
+/* ═══ Halo Tap animation ═══ */
+@keyframes halo-tap-ring {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.7;
+  }
+  100% {
+    width: 120px;
+    height: 120px;
+    opacity: 0;
+  }
+}
+
+.halo-animate {
+  animation: halo-tap-ring 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

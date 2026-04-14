@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Cloud, CloudSun, Sun } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JourneyRing } from "@/components/home/journey-ring";
+import { HaloTap } from "@/components/ui/halo-tap";
 import { cn } from "@/lib/utils";
 
 interface HeroNbaProps {
@@ -80,7 +81,11 @@ export function HeroNba(props: HeroNbaProps) {
   return (
     <section
       aria-label="今日のおすすめアクション"
-      className="rounded-xl bg-card p-6 shadow-soft shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+      className="rounded-xl p-6 shadow-[var(--shadow-card)] shadow-[var(--inner-glow)]"
+      style={{
+        background: `var(--gradient-dusk), var(--bg-card, oklch(0.99 0.005 80))`,
+        boxShadow: `var(--inner-glow), var(--shadow-card)`,
+      }}
     >
       {/* Top row: weather icon (left) + journey ring (right) */}
       <div className="mb-4 flex items-start justify-between">
@@ -99,12 +104,14 @@ export function HeroNba(props: HeroNbaProps) {
 
       {/* CTAs */}
       <div className="flex flex-col gap-3">
-        <Link
-          href={content.primaryCta.href}
-          className={cn(buttonVariants({ variant: "default", size: "default" }), "w-full justify-center")}
-        >
-          {content.primaryCta.label}
-        </Link>
+        <HaloTap className="w-full rounded-lg">
+          <Link
+            href={content.primaryCta.href}
+            className={cn(buttonVariants({ variant: "default", size: "default" }), "w-full justify-center")}
+          >
+            {content.primaryCta.label}
+          </Link>
+        </HaloTap>
         {content.secondaryCta && (
           <Link
             href={content.secondaryCta.href}
