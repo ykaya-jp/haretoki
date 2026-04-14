@@ -1,5 +1,10 @@
 "use client";
 
+// TODO: this component is orphaned as of P1-C; candidates-view uses
+// matrix/focus/weights directly. Kept around in case the side-by-side
+// 2-venue board is brought back, but the import in candidates-view.tsx is
+// currently unused. Remove (or re-wire) before next major refactor.
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getComparisonData } from "@/server/actions/comparison";

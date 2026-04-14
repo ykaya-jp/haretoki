@@ -12,7 +12,7 @@ const STATS = [
     source: "リクルート ブライダル総研「結婚トレンド調査 2024」",
   },
   {
-    value: "平均+110万円",
+    value: "+84〜110万円",
     description: "最初の見積もりから、ここまで上がる",
     source: "ゼクシィ「結婚費用の相場 2024」",
   },
@@ -104,7 +104,7 @@ export function LandingPage() {
               height={160}
               className="h-36 w-36 sm:h-40 sm:w-40"
             />
-            <p className="text-2xl font-medium uppercase tracking-[0.35em] text-[var(--gold-warm)] sm:text-3xl">
+            <p className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] sm:text-3xl">
               Haretoki
             </p>
           </motion.div>

@@ -339,12 +339,14 @@ export function OnboardingFlow() {
           </Button>
           <button
             type="button"
-            onClick={async () => {
-              await saveOnboardingAnswers({});
+            onClick={() => {
+              // Don't call saveOnboardingAnswers({}) — that would silently
+              // wipe any conditions already saved by the question flow above.
+              // Just navigate; the cookie was set when answers were saved.
               router.push("/home");
               router.refresh();
             }}
-            className="text-xs text-muted-foreground underline"
+            className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
           >
             条件を保存せず始める
           </button>
@@ -419,7 +421,7 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={handleSkip}
-              className="text-sm text-muted-foreground underline"
+              className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline"
             >
               スキップ
             </button>

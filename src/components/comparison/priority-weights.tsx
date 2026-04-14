@@ -3,10 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2, Trophy, Medal } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -22,6 +22,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [weights, setWeights] = useState<Record<string, number>>({});
+  const prefersReduced = useReducedMotion();
 
   useEffect(() => {
     getMatrixData().then((d) => {
@@ -87,9 +88,9 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={prefersReduced ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, ease: LUXURY_EASE }}
+      transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
       className="space-y-6"
     >
       <div className="space-y-1">
@@ -134,15 +135,27 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
         {ranked.map((v, i) => (
           <motion.div
             key={v.id}
-            layout
-            transition={{ type: "spring", stiffness: 140, damping: 22 }}
+            layout={prefersReduced ? false : true}
+            transition={
+              prefersReduced
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 140, damping: 22 }
+            }
             className={cn(
               "flex items-center gap-3 rounded-2xl border p-4 transition-all duration-200",
               i === 0 ? "border-[var(--gold-warm)] bg-[var(--gold-subtle)]" : "border-border bg-card",
             )}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-sm font-medium tabular-nums">
-              {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+              {i === 0 ? (
+                <Medal className="h-4 w-4 text-[var(--gold-warm)]" aria-label="1位" />
+              ) : i === 1 ? (
+                <Medal className="h-4 w-4 text-muted-foreground" aria-label="2位" />
+              ) : i === 2 ? (
+                <Medal className="h-4 w-4 text-amber-700/70" aria-label="3位" />
+              ) : (
+                i + 1
+              )}
             </div>
             {v.photoUrl && (
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">

@@ -70,11 +70,11 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
 
       {/* Venue name headers (sticky) */}
       <div className="flex gap-2 overflow-x-auto">
-        <div className="min-w-[140px] shrink-0" />
+        <div className="min-w-[120px] shrink-0" />
         {venueNames.map((name, i) => (
           <div
             key={venueIds[i]}
-            className="min-w-[80px] flex-1 text-center text-xs font-medium text-muted-foreground truncate"
+            className="min-w-[72px] flex-1 text-center text-xs font-medium text-muted-foreground truncate"
           >
             {name}
           </div>
@@ -111,14 +111,14 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                   <div className="divide-y divide-border">
                     {cat.items.map((item) => (
                       <div key={item.item} className="flex items-center gap-2 px-4 py-2">
-                        <span className="min-w-[140px] shrink-0 text-xs leading-snug text-foreground/80">
+                        <span className="min-w-[120px] shrink-0 text-xs leading-snug text-foreground/80">
                           {item.item}
                         </span>
                         {item.venues.map((v) => (
                           <div
                             key={v.venueId}
                             className={cn(
-                              "min-w-[80px] flex-1 flex items-center justify-center",
+                              "min-w-[72px] flex-1 flex items-center justify-center",
                               v.status === "yes" && "bg-green-50",
                               v.status === "no" && "bg-destructive/10",
                             )}

@@ -12,6 +12,7 @@ import {
 } from "@/components/venues/venue-personalized-chips";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
+import Link from "next/link";
 
 type ExploreSearchParams = {
   q?: string;
@@ -124,12 +125,23 @@ export default async function ExplorePage({
       {/* Venue list with filters */}
       {venues.length === 0 ? (
         query ? (
-          <EmptyState
-            icon={Search}
-            title="該当する式場がありません"
-            description={`「${query}」に一致する式場は見つかりませんでした。キーワードを変えてお試しください。`}
-            action={{ href: "/explore", label: "検索をクリア" }}
-          />
+          <div className="flex flex-col items-center gap-3">
+            <EmptyState
+              icon={Search}
+              title="該当する式場がありません"
+              description={`「${query}」に一致する式場は見つかりませんでした。キーワードを変えてお試しください。`}
+              action={{ href: "/explore", label: "検索をクリア" }}
+            />
+            {/* Secondary CTA: let the user add a brand-new venue from URL when
+                their search returned nothing. Reuses the AddVenueSheet auto-open
+                pattern (?addVenue=1) already wired up in the header. */}
+            <Link
+              href="/explore?addVenue=1"
+              className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4"
+            >
+              URLから式場を追加
+            </Link>
+          </div>
         ) : (
           <EmptyState
             icon={Search}

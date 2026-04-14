@@ -126,12 +126,20 @@ export async function withRetry<T>(
       return await fn();
     } catch (error) {
       if (attempt === maxRetries) throw error;
-      // Only retry on rate limit or connection timeout
-      const isRetryable =
-        error instanceof Error &&
-        (error.message.includes("rate_limit") ||
+      // Prefer instance check on the SDK's APIError class, which carries a
+      // stable HTTP status. 429 = rate-limited, 503 = service unavailable,
+      // 529 = overloaded (Anthropic-specific). Fall back to message string
+      // matching for non-SDK errors (e.g. fetch-level timeouts).
+      let isRetryable = false;
+      if (error instanceof Anthropic.APIError) {
+        const status = error.status;
+        isRetryable = status === 429 || status === 503 || status === 529;
+      } else if (error instanceof Error) {
+        isRetryable =
+          error.message.includes("rate_limit") ||
           error.message.includes("timeout") ||
-          error.message.includes("overloaded"));
+          error.message.includes("overloaded");
+      }
       if (!isRetryable) throw error;
       await new Promise((r) => setTimeout(r, baseDelay * 2 ** attempt));
     }

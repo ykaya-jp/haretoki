@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Loader2, Crown } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -36,6 +36,7 @@ function scoreBackground(score: number | null, isWinner: boolean): string {
 export function DecisionMatrix() {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
+  const prefersReduced = useReducedMotion();
 
   useEffect(() => {
     getMatrixData()
@@ -87,9 +88,9 @@ export function DecisionMatrix() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={prefersReduced ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, ease: LUXURY_EASE }}
+      transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
       className="space-y-4"
     >
       <div className="space-y-1">

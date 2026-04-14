@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Loader2 } from "lucide-react";
 import { sendCoachMessage } from "@/server/actions/coach";
@@ -20,13 +20,23 @@ export function CoachQuickStart() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  // Synchronous guard: isPending only flips after React commits, so two
+  // same-frame taps (or a fast double-tap on touch) can both pass the
+  // `if (isPending) return` check and fire the action twice. A ref flips
+  // immediately and is reset in the transition callback below.
+  const sendingRef = useRef(false);
 
   const send = (prompt: string, idx: number) => {
-    if (isPending) return;
+    if (isPending || sendingRef.current) return;
+    sendingRef.current = true;
     setActiveIdx(idx);
     startTransition(async () => {
-      await sendCoachMessage(prompt);
-      router.refresh();
+      try {
+        await sendCoachMessage(prompt);
+        router.refresh();
+      } finally {
+        sendingRef.current = false;
+      }
     });
   };
 

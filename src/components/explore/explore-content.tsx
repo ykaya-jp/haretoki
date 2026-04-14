@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback, useTransition } from "react";
 import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueFilterSheet } from "@/components/explore/venue-filter-sheet";
 import { VenueCard } from "@/components/venues/venue-card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
@@ -96,11 +95,28 @@ export function ExploreContent({
       )}
 
       {!isPending && filteredVenues.length === 0 ? (
-        <EmptyState
-          icon={Search}
-          title="条件に合う式場が見つかりません"
-          description="条件を変えてみると、新しい出会いがあるかもしれません"
-        />
+        <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <Search className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <div className="max-w-[300px] space-y-2">
+            <h3 className="font-serif text-base font-light tracking-wide">
+              条件に合う式場が見つかりません
+            </h3>
+            <p className="text-sm leading-[1.8] text-muted-foreground">
+              条件を変えてみると、新しい出会いがあるかもしれません
+            </p>
+          </div>
+          {activeFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("all")}
+              className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
+            >
+              すべての状態を表示
+            </button>
+          )}
+        </div>
       ) : (
         !isPending && (
           <div className="space-y-4">

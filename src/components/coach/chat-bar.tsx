@@ -67,6 +67,7 @@ export function ChatBar() {
   // Synchronous guard: React state updates are queued, so `busy` can be stale
   // between back-to-back Enter presses. A ref flips immediately.
   const sendingRef = useRef<boolean>(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   // Abort any in-flight SSE stream on unmount to stop burning Anthropic tokens
@@ -81,6 +82,9 @@ export function ChatBar() {
     sendingRef.current = true;
     const msg = message.trim();
     setMessage("");
+    // Keep keyboard up + caret in the input so the user can chain messages
+    // without re-focusing manually (especially important on mobile).
+    inputRef.current?.focus();
 
     // Optimistic: show user bubble + empty assistant bubble (typing indicator).
     setInFlight({ userText: msg, assistantText: "", streaming: true });
@@ -122,7 +126,10 @@ export function ChatBar() {
           setTimeout(() => setInFlight(null), 80);
         });
       } catch {
+        // Both streaming AND non-streaming fallback failed — restore the
+        // user's message so they don't have to retype it.
         setInFlight(null);
+        setMessage(msg);
       }
     } finally {
       sendingRef.current = false;
@@ -147,6 +154,7 @@ export function ChatBar() {
       <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <input
+            ref={inputRef}
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
