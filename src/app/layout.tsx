@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho, Geist } from "next/font/google";
+import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -105,7 +106,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <PostHogProvider>
-            <MotionProvider>{children}</MotionProvider>
+            <Suspense>
+              <MotionProvider>{children}</MotionProvider>
+            </Suspense>
           </PostHogProvider>
         </ThemeProvider>
         <Analytics />

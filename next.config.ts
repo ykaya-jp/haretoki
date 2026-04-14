@@ -6,10 +6,16 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
+  cacheComponents: true,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
     ],
+  },
+  experimental: {
+    // React View Transitions API (P1-6)
+    viewTransition: true,
   },
   async redirects() {
     return [
