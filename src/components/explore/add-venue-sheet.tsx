@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Loader2, ImagePlus, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Loader2, ImagePlus, X, ChevronRight } from "lucide-react";
 import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,16 @@ interface ExtractedVenueData {
   features: string[];
   photoUrls: string[];
   confidence: "high" | "medium" | "low";
+}
+
+/** Per-URL processing state for skeleton fill animation */
+interface UrlProcessState {
+  url: string;
+  status: "pending" | "loading" | "success" | "error";
+  extracted?: ExtractedVenueData;
+  error?: string;
+  /** Which fields have resolved so far — used for progressive fill */
+  filledFields: ("name" | "location" | "access" | "photo")[];
 }
 
 interface AddVenueSheetProps {
@@ -45,116 +56,148 @@ export function AddVenueSheet({
       setInternalOpen(value);
     }
   };
-  const [tab, setTab] = useState<"manual" | "url" | "bulk">("manual");
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [extracted, setExtracted] = useState<ExtractedVenueData | null>(null);
+
+  // URL textarea
+  const [urlInput, setUrlInput] = useState("");
+  const [urlStates, setUrlStates] = useState<UrlProcessState[]>([]);
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  // Manual form collapse state
+  const [manualOpen, setManualOpen] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualLocation, setManualLocation] = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
-  const [bulkUrls, setBulkUrls] = useState("");
-  const [bulkResults, setBulkResults] = useState<Array<{ url: string; success: boolean; venueName?: string; error?: string }> | null>(null);
-  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
-  const [urlParseError, setUrlParseError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const handleBulkSubmit = async () => {
-    const allUrls = bulkUrls
+  /** Parse the textarea into trimmed, non-empty URL strings */
+  const parseUrls = (raw: string): string[] =>
+    raw
       .split("\n")
       .map((u) => u.trim())
       .filter((u) => u.length > 0);
-    if (allUrls.length === 0) return;
 
-    const MAX = 10;
-    const processing = allUrls.slice(0, MAX);
-    const skipped = allUrls.slice(MAX);
-
-    setLoading(true);
-    setBulkResults([]);
-    setBulkProgress({ done: 0, total: processing.length });
-
-    // Sequential calls so the UI can reflect progress per URL.
-    // (Server Actions can't stream; a bounded concurrency=3 path also exists on the server
-    //  for programmatic callers, but here we favour visible feedback over throughput.)
-    const accumulated: Array<{ url: string; success: boolean; venueName?: string; error?: string }> = [];
-    try {
-      for (let i = 0; i < processing.length; i++) {
-        const singleUrl = processing[i];
-        try {
-          const extractResult = await addVenueFromUrl(singleUrl);
-          if (extractResult.error || !extractResult.extracted) {
-            accumulated.push({ url: singleUrl, success: false, error: extractResult.error ?? "読み取りに失敗" });
-          } else {
-            const confirmResult = await confirmVenueFromUrl(extractResult.extracted, singleUrl);
-            if (!confirmResult.success) {
-              accumulated.push({ url: singleUrl, success: false, error: "登録に失敗" });
-            } else {
-              accumulated.push({ url: singleUrl, success: true, venueName: extractResult.extracted.name });
-            }
-          }
-        } catch {
-          accumulated.push({ url: singleUrl, success: false, error: "予期しないエラー" });
-        }
-        setBulkResults([...accumulated]);
-        setBulkProgress({ done: i + 1, total: processing.length });
-      }
-
-      const successCount = accumulated.filter((r) => r.success).length;
-      if (successCount > 0) {
-        toast.success(`${successCount}件の式場を追加しました`);
-        router.refresh();
-      }
-      if (skipped.length > 0) {
-        toast.info(`11件目以降 ${skipped.length} 件は取り込みをスキップしました。分けて追加してください`);
-      }
-    } catch {
-      toast.error("一括取り込みに失敗しました");
-    } finally {
-      setLoading(false);
-    }
+  /** Simulate progressive field fill with timed reveals */
+  const animateFill = (
+    index: number,
+    fields: ("name" | "location" | "access" | "photo")[],
+    delay = 200
+  ) => {
+    fields.forEach((field, i) => {
+      setTimeout(() => {
+        setUrlStates((prev) =>
+          prev.map((s, si) =>
+            si === index
+              ? { ...s, filledFields: [...s.filledFields, field] }
+              : s
+          )
+        );
+      }, delay * (i + 1));
+    });
   };
 
   const handleUrlSubmit = async () => {
-    if (!url.trim()) return;
-    setLoading(true);
-    setUrlParseError(null);
-    try {
-      const result = await addVenueFromUrl(url);
-      if (result.error) {
-        // Show inline prompt instead of auto-switching tabs.
-        setUrlParseError(result.error || "URLから取得できませんでした");
-      } else if (result.extracted) {
-        setExtracted(result.extracted);
-        if (result.warning) {
-          // OGP-only extraction path (SPA sites like Zexy). Tell the user to review.
-          toast.info(result.warning);
-        }
-      }
-    } catch {
-      setUrlParseError("追加できませんでした");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const urls = parseUrls(urlInput);
+    if (urls.length === 0) return;
 
-  const handleConfirm = async () => {
-    if (!extracted) return;
-    setLoading(true);
-    try {
-      const result = await confirmVenueFromUrl(extracted, url);
-      if (result.success) {
-        toast.success("式場を追加しました");
-        setOpen(false);
-        resetForm();
-        router.refresh();
+    const MAX = 10;
+    const processing = urls.slice(0, MAX);
+    const skipped = urls.slice(MAX);
+
+    // Init skeleton states
+    const initial: UrlProcessState[] = processing.map((url) => ({
+      url,
+      status: "loading",
+      filledFields: [],
+    }));
+    setUrlStates(initial);
+    setUrlLoading(true);
+
+    // Parallel processing with Promise.allSettled
+    const results = await Promise.allSettled(
+      processing.map(async (url, index) => {
+        try {
+          const extractResult = await addVenueFromUrl(url);
+          if (extractResult.error || !extractResult.extracted) {
+            setUrlStates((prev) =>
+              prev.map((s, i) =>
+                i === index
+                  ? { ...s, status: "error", error: extractResult.error ?? "読み取りに失敗" }
+                  : s
+              )
+            );
+            return { index, success: false };
+          }
+
+          const extracted = extractResult.extracted;
+
+          // Animate fields progressively
+          const fieldsToFill: ("name" | "location" | "access" | "photo")[] = ["name"];
+          if (extracted.location) fieldsToFill.push("location");
+          if (extracted.accessInfo) fieldsToFill.push("access");
+          if (extracted.photoUrls.length > 0) fieldsToFill.push("photo");
+
+          setUrlStates((prev) =>
+            prev.map((s, i) =>
+              i === index ? { ...s, extracted, filledFields: [] } : s
+            )
+          );
+          animateFill(index, fieldsToFill);
+
+          // Wait for animation then confirm
+          await new Promise((r) => setTimeout(r, fieldsToFill.length * 200 + 100));
+
+          const confirmResult = await confirmVenueFromUrl(extracted, url);
+          if (!confirmResult.success) {
+            setUrlStates((prev) =>
+              prev.map((s, i) =>
+                i === index ? { ...s, status: "error", error: "登録に失敗" } : s
+              )
+            );
+            return { index, success: false };
+          }
+
+          setUrlStates((prev) =>
+            prev.map((s, i) =>
+              i === index ? { ...s, status: "success" } : s
+            )
+          );
+          return { index, success: true, name: extracted.name };
+        } catch {
+          setUrlStates((prev) =>
+            prev.map((s, i) =>
+              i === index ? { ...s, status: "error", error: "予期しないエラー" } : s
+            )
+          );
+          return { index, success: false };
+        }
+      })
+    );
+
+    setUrlLoading(false);
+
+    const successCount = results.filter(
+      (r) => r.status === "fulfilled" && r.value.success
+    ).length;
+    const failCount = processing.length - successCount;
+
+    if (successCount > 0) {
+      if (failCount === 0) {
+        toast.success(`${successCount}件の式場を追加しました`);
+      } else {
+        toast.success(`${successCount}件追加、${failCount}件失敗`);
       }
-    } catch {
-      toast.error("追加できませんでした");
-    } finally {
-      setLoading(false);
+      router.refresh();
+    } else if (failCount > 0) {
+      toast.error("URLから読み取れませんでした");
+    }
+
+    if (skipped.length > 0) {
+      toast.info(`11件目以降 ${skipped.length} 件はスキップされました`);
     }
   };
 
@@ -163,36 +206,27 @@ export function AddVenueSheet({
     if (files.length === 0) return;
     const newFiles = [...photoFiles, ...files].slice(0, 10);
     setPhotoFiles(newFiles);
-
-    // Generate preview URLs
-    const previews = newFiles.map(f => URL.createObjectURL(f));
-    // Revoke old previews
+    const previews = newFiles.map((f) => URL.createObjectURL(f));
     for (const old of photoPreviews) URL.revokeObjectURL(old);
     setPhotoPreviews(previews);
-    // Invalidate any prior upload cache so retry uploads ALL current files.
-    // (Previous logic skipped re-upload once uploadedPhotoUrls was non-empty,
-    //  silently dropping files added after a failed submit.)
     setUploadedPhotoUrls([]);
   };
 
   const removePhoto = (index: number) => {
     URL.revokeObjectURL(photoPreviews[index]);
-    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
-    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
     setUploadedPhotoUrls([]);
   };
 
   const handleManualSubmit = async () => {
     if (!manualName.trim()) return;
-    setLoading(true);
+    setManualLoading(true);
     try {
-      // Upload photos first if any
       let photoUrls = uploadedPhotoUrls;
       if (photoFiles.length > 0 && uploadedPhotoUrls.length === 0) {
         const formData = new FormData();
-        for (const file of photoFiles) {
-          formData.append("photos", file);
-        }
+        for (const file of photoFiles) formData.append("photos", file);
         const uploadResult = await uploadVenuePhotos(formData);
         if (uploadResult.success && uploadResult.urls) {
           photoUrls = uploadResult.urls;
@@ -208,6 +242,7 @@ export function AddVenueSheet({
         location: manualLocation || undefined,
         photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
       });
+
       if (result.success) {
         toast.success("式場を追加しました");
         setOpen(false);
@@ -219,265 +254,376 @@ export function AddVenueSheet({
     } catch {
       toast.error("追加できませんでした");
     } finally {
-      setLoading(false);
+      setManualLoading(false);
     }
   };
 
   const resetForm = () => {
-    setUrl("");
-    setExtracted(null);
+    setUrlInput("");
+    setUrlStates([]);
+    setUrlLoading(false);
+    setManualOpen(false);
     setManualName("");
     setManualLocation("");
     setPhotoFiles([]);
     for (const preview of photoPreviews) URL.revokeObjectURL(preview);
     setPhotoPreviews([]);
     setUploadedPhotoUrls([]);
-    setUrlParseError(null);
-    setTab("manual");
   };
 
+  const allDone =
+    urlStates.length > 0 &&
+    urlStates.every((s) => s.status === "success" || s.status === "error");
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) resetForm();
+        setOpen(v);
+      }}
+    >
       {controlledOpen === undefined && (
-        <SheetTrigger render={<Button size="sm" className="gap-1" />}>
+        <Button
+          size="sm"
+          className="gap-1"
+          onClick={() => setOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           追加
-        </SheetTrigger>
+        </Button>
       )}
-      <SheetContent side="bottom" className="rounded-t-2xl">
-        <SheetHeader>
-          <SheetTitle>新しい式場を追加</SheetTitle>
-        </SheetHeader>
-        <Tabs
-          value={tab}
-          onValueChange={(v) => setTab(v as "manual" | "url" | "bulk")}
-          className="mt-4"
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto">
+        {/* E-5: Editorial header */}
+        <SheetHeader className="relative overflow-hidden rounded-t-2xl -mx-4 -mt-4 px-6 pt-8 pb-6 mb-2"
+          style={{
+            background:
+              "radial-gradient(ellipse at 60% 0%, oklch(0.97 0.012 85 / 0.6) 0%, oklch(0.96 0.015 10 / 0.15) 60%, transparent 100%), var(--bg-hero, oklch(0.97 0.012 85))",
+          }}
         >
-          <TabsList className="w-full">
-            <TabsTrigger value="manual" className="flex-1">自分で</TabsTrigger>
-            <TabsTrigger value="url" className="flex-1">URL</TabsTrigger>
-            <TabsTrigger value="bulk" className="flex-1">まとめて</TabsTrigger>
-          </TabsList>
+          <SheetTitle className="font-serif text-3xl font-extralight tracking-tight text-foreground leading-snug text-left">
+            新しい式場を、迎える
+          </SheetTitle>
+          <p className="text-xs text-muted-foreground mt-1 text-left">
+            URLを貼るだけで、AIが情報をお持ちします
+          </p>
+        </SheetHeader>
 
-          <TabsContent value="url" className="space-y-4 pt-4">
-            {!extracted ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!loading && url.trim()) handleUrlSubmit();
-                }}
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="venue-url">式場ページのURLを貼り付け</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="venue-url"
-                      value={url}
-                      onChange={(e) => {
-                        setUrl(e.target.value);
-                        if (urlParseError) setUrlParseError(null);
-                      }}
-                      placeholder="https://..."
-                      type="url"
-                    />
-                    <Button type="submit" disabled={loading || !url.trim()}>
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "読み取る"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    ゼクシィ・ハナユメ・Wedding Park等に対応
-                  </p>
-                  {urlParseError && (
-                    <p className="text-xs text-muted-foreground">
-                      自動で読めませんでした。{" "}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUrlParseError(null);
-                          setTab("manual");
-                        }}
-                        className="font-medium text-foreground underline underline-offset-4"
-                      >
-                        手動で入力する →
-                      </button>
-                    </p>
-                  )}
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm font-medium">読み取った情報</p>
-                <div className="rounded-lg border p-4 space-y-2">
-                  <p className="font-serif font-medium">{extracted.name}</p>
-                  {extracted.location && (
-                    <p className="text-sm text-muted-foreground">{extracted.location}</p>
-                  )}
-                  {extracted.accessInfo && (
-                    <p className="text-sm text-muted-foreground">{extracted.accessInfo}</p>
-                  )}
-                  {(extracted.capacityMin || extracted.capacityMax) && (
-                    <p className="text-sm text-muted-foreground">
-                      着席{extracted.capacityMin}〜{extracted.capacityMax}名
-                    </p>
-                  )}
-                  {extracted.ceremonyStyles.length > 0 && (
-                    <div className="flex gap-1">
-                      {extracted.ceremonyStyles.map((s) => (
-                        <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    読み取り精度: {extracted.confidence === "high" ? "高い" : extracted.confidence === "medium" ? "ふつう" : "低い"}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">あとから編集できます</p>
-                <div className="flex gap-2">
-                  <Button onClick={handleConfirm} disabled={loading} className="flex-1">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "この内容で追加"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => { setExtracted(null); setTab("manual"); }}
-                    className="flex-1"
-                  >
-                    修正して追加
-                  </Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="bulk" className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>URLを改行区切りで入力（最大10件）</Label>
-              <textarea
-                value={bulkUrls}
-                onChange={(e) => setBulkUrls(e.target.value)}
-                placeholder="https://www.zexy.net/...&#10;https://www.hanayume.com/...&#10;https://www.weddingpark.net/..."
-                rows={6}
-                className="w-full rounded-lg border border-border bg-card p-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
-              />
-              <p className="text-xs text-muted-foreground">
-                ゼクシィ・ハナユメ・Wedding Park 等のURLを貼り付けてください
-              </p>
-            </div>
+        <div className="space-y-6 pb-8">
+          {/* ── Primary: URL input area ── */}
+          <div className="space-y-3">
+            <textarea
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder={"式場のURLを貼ってください（複数OK、改行で区切り）"}
+              rows={4}
+              disabled={urlLoading}
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[var(--gold-warm)]/40 resize-none leading-relaxed disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              ゼクシィ・ハナユメ・Wedding Park 等のURLに対応
+            </p>
             <Button
-              onClick={handleBulkSubmit}
-              disabled={loading || bulkUrls.trim().length === 0}
-              className="w-full"
+              onClick={handleUrlSubmit}
+              disabled={urlLoading || parseUrls(urlInput).length === 0}
+              className="w-full h-11 bg-[var(--gold-warm)] hover:bg-[var(--gold-warm)]/90 text-white font-normal active:scale-[0.98] transition-transform"
             >
-              {loading ? (
+              {urlLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {bulkProgress
-                    ? `読み取り中 ${bulkProgress.done} / ${bulkProgress.total}`
-                    : "読み取り中..."}
+                  読み込んでいます…
                 </>
               ) : (
-                "まとめて追加"
+                "読み込む"
               )}
             </Button>
-            {bulkResults && (
-              <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
-                <p className="font-medium">取り込み結果</p>
-                {bulkResults.map((r, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <span className={r.success ? "text-green-600" : "text-destructive"}>
-                      {r.success ? "✓" : "✗"}
-                    </span>
-                    <span className="flex-1 truncate">
-                      {r.success ? r.venueName : r.url}
-                    </span>
-                    {!r.success && <span className="text-muted-foreground">{r.error}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+          </div>
 
-          <TabsContent value="manual" className="space-y-4 pt-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!loading && manualName.trim()) handleManualSubmit();
-              }}
-              className="space-y-4"
-            >
-            <div className="space-y-2">
-              <Label htmlFor="venue-name">式場のお名前 *</Label>
-              <Input
-                id="venue-name"
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                placeholder="アニヴェルセル表参道"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="venue-location">エリア</Label>
-              <Input
-                id="venue-location"
-                value={manualLocation}
-                onChange={(e) => setManualLocation(e.target.value)}
-                placeholder="表参道"
-              />
-            </div>
-
-            {/* Photo upload */}
-            <div className="space-y-2">
-              <Label>写真</Label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
-              {photoPreviews.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {photoPreviews.map((src, i) => (
-                    <div key={i} className="relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={src}
-                        alt={`写真 ${i + 1}`}
-                        className="h-16 w-16 rounded-lg object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(i)}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
-                        aria-label="削除"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={photoFiles.length >= 10}
-                className="gap-1"
+          {/* ── E-5: Progressive skeleton fill cards ── */}
+          <AnimatePresence>
+            {urlStates.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="space-y-3"
               >
-                <ImagePlus className="h-4 w-4" />
-                {photoFiles.length > 0 ? `${photoFiles.length}/10枚` : "写真を選ぶ"}
-              </Button>
-            </div>
+                {urlStates.map((state, i) => (
+                  <UrlSkeletonCard key={i} state={state} onManualFallback={() => setManualOpen(true)} />
+                ))}
 
-            <Button type="submit" disabled={loading || !manualName.trim()} className="w-full">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "この式場を追加"}
-            </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+                {allDone && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex justify-center pt-2"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setUrlStates([]);
+                        setUrlInput("");
+                      }}
+                    >
+                      別のURLを追加する
+                    </Button>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Secondary: Collapsible manual form ── */}
+          <div className="border-t border-border/50 pt-4">
+            <button
+              type="button"
+              onClick={() => setManualOpen((v) => !v)}
+              className="flex items-center gap-1 text-sm text-muted-foreground active:text-foreground transition-colors py-1"
+            >
+              URLがない場合は
+              <span className="font-medium text-foreground">手動で入力する</span>
+              <ChevronRight
+                className={`h-4 w-4 text-foreground transition-transform duration-200 ${manualOpen ? "rotate-90" : ""}`}
+              />
+            </button>
+
+            <AnimatePresence initial={false}>
+              {manualOpen && (
+                <motion.div
+                  key="manual-form"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!manualLoading && manualName.trim()) handleManualSubmit();
+                    }}
+                    className="space-y-4 pt-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="venue-name">式場のお名前 *</Label>
+                      <Input
+                        id="venue-name"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        placeholder="アニヴェルセル表参道"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="venue-location">エリア</Label>
+                      <Input
+                        id="venue-location"
+                        value={manualLocation}
+                        onChange={(e) => setManualLocation(e.target.value)}
+                        placeholder="表参道"
+                      />
+                    </div>
+
+                    {/* Photo upload */}
+                    <div className="space-y-2">
+                      <Label>写真</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoSelect}
+                        className="hidden"
+                      />
+                      {photoPreviews.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {photoPreviews.map((src, i) => (
+                            <div key={i} className="relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={src}
+                                alt={`写真 ${i + 1}`}
+                                className="h-16 w-16 rounded-lg object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(i)}
+                                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
+                                aria-label="削除"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={photoFiles.length >= 10}
+                        className="gap-1"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        {photoFiles.length > 0 ? `${photoFiles.length}/10枚` : "写真を選ぶ"}
+                      </Button>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={manualLoading || !manualName.trim()}
+                      className="w-full h-11"
+                    >
+                      {manualLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "手動で追加する"
+                      )}
+                    </Button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── Sub-component: per-URL skeleton card ──────────────────────────────────────
+
+interface UrlSkeletonCardProps {
+  state: UrlProcessState;
+  onManualFallback: () => void;
+}
+
+function UrlSkeletonCard({ state, onManualFallback }: UrlSkeletonCardProps) {
+  const { status, extracted, filledFields, error, url } = state;
+  const isLoading = status === "loading" && !extracted;
+
+  if (status === "error") {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm"
+      >
+        <p className="text-muted-foreground">
+          自動で読めませんでした。{" "}
+          <button
+            type="button"
+            onClick={onManualFallback}
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            手動で入力する →
+          </button>
+        </p>
+        <p className="text-xs text-muted-foreground/60 mt-1 truncate">{url}</p>
+        {error && <p className="text-xs text-destructive/70 mt-0.5">{error}</p>}
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* Photo area skeleton / fill */}
+      <div className="aspect-[4/3] w-full relative bg-muted/40">
+        {isLoading && <Skeleton className="absolute inset-0 rounded-none" />}
+        {extracted && filledFields.includes("photo") && extracted.photoUrls[0] && (
+          <motion.img
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            src={extracted.photoUrls[0]}
+            alt={extracted.name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+        {extracted && !filledFields.includes("photo") && (
+          <Skeleton className="absolute inset-0 rounded-none" />
+        )}
+
+        {/* Success badge */}
+        {status === "success" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-2 right-2 rounded-full bg-green-600/90 text-white text-xs px-2 py-0.5"
+          >
+            追加済み
+          </motion.div>
+        )}
+      </div>
+
+      {/* Text fields */}
+      <div className="p-3 space-y-1.5">
+        {/* Venue name */}
+        <div className="h-5">
+          {isLoading && <Skeleton className="h-4 w-40" />}
+          {extracted && (
+            <AnimatePresence>
+              {filledFields.includes("name") ? (
+                <motion.p
+                  key="name"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-serif text-sm font-normal truncate"
+                >
+                  {extracted.name}
+                </motion.p>
+              ) : (
+                <Skeleton className="h-4 w-40" />
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+
+        {/* Location */}
+        <div className="h-4">
+          {isLoading && <Skeleton className="h-3 w-28" />}
+          {extracted && (
+            <AnimatePresence>
+              {filledFields.includes("location") ? (
+                <motion.p
+                  key="location"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-muted-foreground truncate"
+                >
+                  {extracted.location}
+                </motion.p>
+              ) : (
+                <Skeleton className="h-3 w-28" />
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+
+        {/* Access */}
+        <div className="h-4">
+          {isLoading && <Skeleton className="h-3 w-36" />}
+          {extracted && (
+            <AnimatePresence>
+              {filledFields.includes("access") ? (
+                <motion.p
+                  key="access"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-muted-foreground truncate"
+                >
+                  {extracted.accessInfo}
+                </motion.p>
+              ) : (
+                <Skeleton className="h-3 w-36" />
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
