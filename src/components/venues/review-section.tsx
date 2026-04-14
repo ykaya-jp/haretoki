@@ -243,9 +243,6 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
         </p>
       )}
 
-      {/* Positive/Negative ratio bar — shown only when there are reviews */}
-      <ReviewRatioBar reviews={reviews} />
-
       {/* Venue-level aggregate estimate-increase badge (avg across reviews) */}
       {venueEstimateAggregate &&
         (venueEstimateAggregate.sampleCount ?? 0) > 0 &&
