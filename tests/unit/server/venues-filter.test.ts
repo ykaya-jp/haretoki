@@ -110,6 +110,46 @@ describe("buildVenueWhere — dress bring-in fee", () => {
     expect(where.reviewEstimateSampleCount).toEqual({ gte: 3 });
   });
 
+  it("[payment enum] paymentMethodEnums produces a `hasSome` array clause", () => {
+    const where = buildVenueWhere(PROJECT_ID, {
+      paymentMethodEnums: ["credit_card", "installment"],
+    });
+    expect(where.paymentMethodEnums).toEqual({
+      hasSome: ["credit_card", "installment"],
+    });
+    // Legacy free-text clause is NOT emitted when the enum path is used.
+    expect(where.paymentMethods).toBeUndefined();
+  });
+
+  it("[payment enum] empty paymentMethodEnums array emits no clause", () => {
+    const where = buildVenueWhere(PROJECT_ID, { paymentMethodEnums: [] });
+    expect(where.paymentMethodEnums).toBeUndefined();
+  });
+
+  it("[payment enum] maxInstallmentsMin=3 emits `{ gte: 3 }`", () => {
+    const where = buildVenueWhere(PROJECT_ID, { maxInstallmentsMin: 3 });
+    expect(where.maxInstallments).toEqual({ gte: 3 });
+  });
+
+  it("[payment enum] composes with dressBringIn + costMax independently", () => {
+    const where = buildVenueWhere(PROJECT_ID, {
+      paymentMethodEnums: ["installment"],
+      maxInstallmentsMin: 6,
+      dressBringIn: "allowed",
+      costMax: 4_000_000,
+    });
+    expect(where.paymentMethodEnums).toEqual({ hasSome: ["installment"] });
+    expect(where.maxInstallments).toEqual({ gte: 6 });
+    expect(where.dressBringIn).toBe("allowed");
+    expect(where.costMax).toEqual({ lte: 4_000_000 });
+  });
+
+  it("[payment enum] legacy `paymentMethod` string still emits `has` on free-text column for backward compat", () => {
+    const where = buildVenueWhere(PROJECT_ID, { paymentMethod: "カード" });
+    expect(where.paymentMethods).toEqual({ has: "カード" });
+    expect(where.paymentMethodEnums).toBeUndefined();
+  });
+
   it("'要相談を含む' without a numeric range leaves the clause unconstrained (or OR-widens the status filter)", () => {
     const plain = buildVenueWhere(PROJECT_ID, {
       dressBringInIncludeNegotiable: true,
