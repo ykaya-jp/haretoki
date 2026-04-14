@@ -45,27 +45,36 @@ export async function streamClaude(options: {
   maxTokens?: number;
 }): Promise<ReadableStream<string>> {
   const claude = getAnthropicClient();
-  const stream = await claude.messages.stream({
-    model: options.model ?? "claude-sonnet-4-6",
-    max_tokens: options.maxTokens ?? 2048,
-    system: options.system,
-    messages: options.messages,
-  });
+  // 30s timeout: if upstream hangs, abort the stream so we don't hold the SSE
+  // connection (and the user's tab) open indefinitely.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  const stream = await claude.messages.stream(
+    {
+      model: options.model ?? "claude-sonnet-4-6",
+      max_tokens: options.maxTokens ?? 2048,
+      system: options.system,
+      messages: options.messages,
+    },
+    { signal: controller.signal },
+  );
 
   return new ReadableStream<string>({
-    async start(controller) {
+    async start(streamController) {
       try {
         for await (const event of stream) {
           if (
             event.type === "content_block_delta" &&
             event.delta.type === "text_delta"
           ) {
-            controller.enqueue(event.delta.text);
+            streamController.enqueue(event.delta.text);
           }
         }
-        controller.close();
+        streamController.close();
       } catch (error) {
-        controller.error(error);
+        streamController.error(error);
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
   });

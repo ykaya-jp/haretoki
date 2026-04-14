@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { sendCoachMessage } from "@/server/actions/coach";
 import { ChatBubble } from "@/components/coach/chat-bubble";
@@ -64,12 +64,21 @@ export function ChatBar() {
   const [isPending, startTransition] = useTransition();
   const [inFlight, setInFlight] = useState<InFlight | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Synchronous guard: React state updates are queued, so `busy` can be stale
+  // between back-to-back Enter presses. A ref flips immediately.
+  const sendingRef = useRef<boolean>(false);
   const router = useRouter();
+
+  // Abort any in-flight SSE stream on unmount to stop burning Anthropic tokens
+  // after the user navigates away.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const busy = isPending || inFlight !== null;
 
   const handleSend = async () => {
     if (!message.trim() || busy) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     const msg = message.trim();
     setMessage("");
 
@@ -115,6 +124,8 @@ export function ChatBar() {
       } catch {
         setInFlight(null);
       }
+    } finally {
+      sendingRef.current = false;
     }
   };
 

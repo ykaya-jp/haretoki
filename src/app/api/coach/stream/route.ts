@@ -16,6 +16,29 @@ const BodySchema = z.object({
   message: z.string().min(1).max(500),
 });
 
+// --- In-memory sliding-window rate limit (per user) ---
+// Defense-in-depth, NOT a strong throttle: max 10 requests / 60s per user id.
+// Module-scope Map survives within a single Node process; horizontal scaling
+// would need Redis, but this blocks the common case (one user spamming one
+// pod) without adding infra.
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 10;
+const rateBuckets = new Map<string, number[]>();
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const cutoff = now - RATE_WINDOW_MS;
+  const prev = rateBuckets.get(userId) ?? [];
+  const recent = prev.filter((t) => t > cutoff);
+  if (recent.length >= RATE_MAX) {
+    rateBuckets.set(userId, recent);
+    return false;
+  }
+  recent.push(now);
+  rateBuckets.set(userId, recent);
+  return true;
+}
+
 async function loadUserContext(projectId: string): Promise<UserContext> {
   const [project, venues, favorites, latestEstimate] = await Promise.all([
     prisma.project.findUnique({
@@ -72,6 +95,17 @@ export async function POST(request: NextRequest) {
   const { message } = parsed.data;
 
   const user = await requireUser();
+
+  if (!checkRateLimit(user.id)) {
+    return NextResponse.json(
+      {
+        error:
+          "短時間に多くのリクエストが送られました。少し時間を空けてお試しください。",
+      },
+      { status: 429 },
+    );
+  }
+
   const { projectId } = await requireProjectMembership(user.id);
 
   const context = await loadUserContext(projectId);
