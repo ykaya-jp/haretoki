@@ -40,7 +40,7 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
       {/* Header */}
       <div className="flex items-center gap-2">
         <span className="text-lg">{"\u{1F4A1}"}</span>
-        <h3 className="text-sm font-semibold text-[var(--gold-warm)]">見積もりX線</h3>
+        <h3 className="text-sm font-medium text-[var(--gold-warm)]">見積もりX線</h3>
       </div>
 
       {/* Summary */}

@@ -24,7 +24,7 @@ export function VenueHeader({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <h1 className="text-fluid-lg">{name}</h1>
+        <h1 className="font-serif text-fluid-lg font-light tracking-[0.03em]">{name}</h1>
         <VenueStatusBadge status={status} />
       </div>
       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

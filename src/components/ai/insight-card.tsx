@@ -27,7 +27,6 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
   return (
     <div
       role="article"
-      aria-label={title}
       className={cn(
         "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6",
         config.borderColor
@@ -37,9 +36,9 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
           <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[var(--gold-warm)]" strokeWidth={1.5} />
         </div>
-        <span className="text-xs font-semibold tracking-[0.04em] uppercase text-[var(--gold-warm)]">
+        <h3 className="text-xs font-medium tracking-[0.04em] uppercase text-[var(--gold-warm)]">
           {title}
-        </span>
+        </h3>
       </div>
       <p className="mb-4 text-sm leading-relaxed text-foreground">{body}</p>
       {actions.length > 0 && (

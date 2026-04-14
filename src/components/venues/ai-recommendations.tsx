@@ -102,7 +102,7 @@ export function AIRecommendations() {
       <div className="space-y-3 rounded-xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
-          <span className="text-xs font-semibold text-[var(--gold-warm)]">AIおすすめ式場</span>
+          <span className="text-xs font-medium text-[var(--gold-warm)]">AIおすすめ式場</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />

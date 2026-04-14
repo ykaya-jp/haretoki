@@ -189,12 +189,12 @@ export function EstimatePdfUpload({
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground">総額</label>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">¥</span>
+            <span className="text-lg font-medium">¥</span>
             <Input
               inputMode="numeric"
               value={editTotal}
               onChange={(e) => setEditTotal(e.target.value.replace(/[^0-9]/g, ""))}
-              className="max-w-48 text-lg font-bold tabular-nums"
+              className="max-w-48 text-lg font-medium tabular-nums"
             />
           </div>
         </div>
