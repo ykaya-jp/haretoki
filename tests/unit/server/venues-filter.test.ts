@@ -84,6 +84,32 @@ describe("buildVenueWhere — dress bring-in fee", () => {
     ]);
   });
 
+  it("[boundary] reviewEstimateDeltaPctMax emits lte constraint (null rows excluded)", () => {
+    const where = buildVenueWhere(PROJECT_ID, {
+      reviewEstimateDeltaPctMax: 25,
+    });
+    expect(where.reviewEstimateDeltaPct).toEqual({ lte: 25 });
+    // No explicit sample-count gate when only pct cap is set.
+    expect(where.reviewEstimateSampleCount).toBeUndefined();
+  });
+
+  it("[boundary] reviewEstimateMinSampleCount emits gte constraint independently", () => {
+    const where = buildVenueWhere(PROJECT_ID, {
+      reviewEstimateMinSampleCount: 3,
+    });
+    expect(where.reviewEstimateSampleCount).toEqual({ gte: 3 });
+    expect(where.reviewEstimateDeltaPct).toBeUndefined();
+  });
+
+  it("[boundary] both pct cap + sample-count gate compose independently", () => {
+    const where = buildVenueWhere(PROJECT_ID, {
+      reviewEstimateDeltaPctMax: 20,
+      reviewEstimateMinSampleCount: 3,
+    });
+    expect(where.reviewEstimateDeltaPct).toEqual({ lte: 20 });
+    expect(where.reviewEstimateSampleCount).toEqual({ gte: 3 });
+  });
+
   it("'要相談を含む' without a numeric range leaves the clause unconstrained (or OR-widens the status filter)", () => {
     const plain = buildVenueWhere(PROJECT_ID, {
       dressBringInIncludeNegotiable: true,

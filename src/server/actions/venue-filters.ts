@@ -22,7 +22,23 @@ export interface VenueFilters {
   /** When true, also include venues whose dressBringIn status is "negotiable", regardless of fee. */
   dressBringInIncludeNegotiable?: boolean;
   paymentMethod?: string;
-  sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
+  /**
+   * Cap on review-derived estimate-increase percent (`Venue.reviewEstimateDeltaPct`).
+   * When set, venues with null deltaPct are implicitly excluded (Prisma `lte` semantics).
+   */
+  reviewEstimateDeltaPctMax?: number;
+  /**
+   * Minimum sample count (`Venue.reviewEstimateSampleCount`) required for the
+   * review-delta aggregate to be considered trustworthy. Defaults to unset —
+   * callers typically pass 3 when the UI toggle is on.
+   */
+  reviewEstimateMinSampleCount?: number;
+  sortBy?:
+    | "score_desc"
+    | "cost_asc"
+    | "cost_desc"
+    | "created_desc"
+    | "review_delta_asc";
   query?: string;
   // Onboarding-derived personalization filters
   styles?: string[];
@@ -99,6 +115,19 @@ export function buildVenueWhere(
 
   if (filters?.paymentMethod) {
     where.paymentMethods = { has: filters.paymentMethod };
+  }
+
+  // Review-derived estimate increase constraints.
+  // `lte` on reviewEstimateDeltaPct excludes null rows per Prisma semantics,
+  // which matches intent: venues without aggregated review data are treated as
+  // "unknown" and filtered out once the user opts into this cap.
+  if (filters?.reviewEstimateDeltaPctMax !== undefined) {
+    where.reviewEstimateDeltaPct = { lte: filters.reviewEstimateDeltaPctMax };
+  }
+  if (filters?.reviewEstimateMinSampleCount !== undefined) {
+    where.reviewEstimateSampleCount = {
+      gte: filters.reviewEstimateMinSampleCount,
+    };
   }
   if (filters?.query && filters.query.trim().length > 0) {
     const q = filters.query.trim();

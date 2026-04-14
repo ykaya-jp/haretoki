@@ -1,9 +1,44 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   estimateIncreaseSchema,
   parseEstimateIncrease,
   aggregateEstimateIncrease,
 } from "@/server/actions/review-schema";
+
+// --- Mocks for the server-action integration test below ------------------
+// The server action touches Supabase auth, Prisma, and Next.js cache. We
+// mock all three so we can verify the control-flow (review lookup → update →
+// recompute aggregate → revalidate) without a real DB.
+const mockFindFirst = vi.fn();
+const mockUpdate = vi.fn();
+const mockFindMany = vi.fn();
+const mockVenueUpdate = vi.fn();
+const mockRevalidatePath = vi.fn();
+
+vi.mock("@/server/db", () => ({
+  prisma: {
+    review: {
+      findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      update: (...args: unknown[]) => mockUpdate(...args),
+      findMany: (...args: unknown[]) => mockFindMany(...args),
+    },
+    venue: {
+      update: (...args: unknown[]) => mockVenueUpdate(...args),
+    },
+  },
+}));
+
+vi.mock("@/server/auth", () => ({
+  requireUser: vi.fn(async () => ({ id: "user-1" })),
+  requireProjectMembership: vi.fn(async () => ({
+    projectId: "proj-1",
+    role: "owner",
+  })),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+}));
 
 describe("estimateIncreaseSchema", () => {
   it("accepts an empty object (all fields optional)", () => {
@@ -93,5 +128,75 @@ describe("aggregateEstimateIncrease", () => {
       { deltaPct: 17 },
     ]);
     expect(result.deltaPct).toBe(14); // (10+15+17)/3 = 14
+  });
+});
+
+describe("updateReviewEstimateIncrease (integration with mocked prisma)", () => {
+  beforeEach(() => {
+    mockFindFirst.mockReset();
+    mockUpdate.mockReset();
+    mockFindMany.mockReset();
+    mockVenueUpdate.mockReset();
+    mockRevalidatePath.mockReset();
+  });
+
+  it("persists manual entry, recomputes venue aggregate, and revalidates", async () => {
+    mockFindFirst.mockResolvedValueOnce({ id: "rev-1", venueId: "venue-1" });
+    mockUpdate.mockResolvedValueOnce({ id: "rev-1" });
+    // recompute pulls reviews for the venue; return two payloads so the
+    // aggregate includes the one we just wrote plus a sibling.
+    mockFindMany.mockResolvedValueOnce([
+      { estimateIncrease: { deltaYen: 800000, deltaPct: 25 } },
+      { estimateIncrease: { deltaYen: 400000, deltaPct: 15 } },
+    ]);
+    mockVenueUpdate.mockResolvedValueOnce({ id: "venue-1" });
+
+    const { updateReviewEstimateIncrease } = await import(
+      "@/server/actions/reviews"
+    );
+
+    const result = await updateReviewEstimateIncrease("rev-1", {
+      initial: 3_000_000,
+      final: 3_800_000,
+      deltaYen: 800_000,
+      deltaPct: 26.67,
+      note: "衣裳アップ",
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockFindFirst).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    // Recompute must be called: exactly one findMany + one venue.update.
+    expect(mockFindMany).toHaveBeenCalledTimes(1);
+    expect(mockVenueUpdate).toHaveBeenCalledTimes(1);
+    // Venue aggregate should reflect the two mocked reviews.
+    const venueUpdateArgs = mockVenueUpdate.mock.calls[0][0] as {
+      where: { id: string };
+      data: {
+        reviewEstimateDeltaYen: number | null;
+        reviewEstimateSampleCount: number | null;
+      };
+    };
+    expect(venueUpdateArgs.where.id).toBe("venue-1");
+    expect(venueUpdateArgs.data.reviewEstimateDeltaYen).toBe(600_000);
+    expect(venueUpdateArgs.data.reviewEstimateSampleCount).toBe(2);
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/venues/venue-1");
+  });
+
+  it("returns error without mutating when the review is not found", async () => {
+    mockFindFirst.mockResolvedValueOnce(null);
+
+    const { updateReviewEstimateIncrease } = await import(
+      "@/server/actions/reviews"
+    );
+    const result = await updateReviewEstimateIncrease("missing", {
+      deltaYen: 500_000,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockVenueUpdate).not.toHaveBeenCalled();
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
   });
 });

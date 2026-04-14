@@ -10,8 +10,11 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { ReviewSource } from "@/generated/prisma/client";
+import { ReviewEstimateEditSheet } from "@/components/venues/review-estimate-edit-sheet";
 
 interface EstimateIncrease {
+  initial?: number;
+  final?: number;
   deltaYen?: number;
   deltaPct?: number;
   confidence?: "high" | "medium" | "low";
@@ -213,16 +216,26 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             actions={[{ label: "口コミ元を読む", href: review.sourceUrl }]}
           />
 
-          {showPerReviewBadge && (
-            <div className="flex items-center gap-1.5 text-xs tabular-nums text-[var(--gold-warm)]">
-              <span className="font-medium">見積もり上昇</span>
-              <span>
-                {ei!.deltaYen != null ? formatDeltaYenMan(ei!.deltaYen) : ""}
-                {ei!.deltaYen != null && ei!.deltaPct != null ? " / " : ""}
-                {ei!.deltaPct != null ? formatDeltaPct(ei!.deltaPct) : ""}
-              </span>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {showPerReviewBadge && (
+              <div className="flex items-center gap-1.5 text-xs tabular-nums text-[var(--gold-warm)]">
+                <span className="font-medium">見積もり上昇</span>
+                <span>
+                  {ei!.deltaYen != null ? formatDeltaYenMan(ei!.deltaYen) : ""}
+                  {ei!.deltaYen != null && ei!.deltaPct != null ? " / " : ""}
+                  {ei!.deltaPct != null ? formatDeltaPct(ei!.deltaPct) : ""}
+                </span>
+              </div>
+            )}
+            <ReviewEstimateEditSheet
+              reviewId={review.id}
+              initial={{
+                initialYen: ei?.initial,
+                finalYen: ei?.final,
+                note: ei?.note,
+              }}
+            />
+          </div>
 
           {/* Category summary chips */}
           {review.categorySummary && Object.keys(review.categorySummary).length > 0 && (

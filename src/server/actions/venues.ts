@@ -53,12 +53,16 @@ export async function getVenues(filters?: VenueFilters) {
   // Build where clause (pure helper — see buildVenueWhere for semantics)
   const where = buildVenueWhere(projectId, filters);
 
-  // Build orderBy
-  let orderBy: Record<string, string> = { createdAt: "desc" };
+  // Build orderBy. For review_delta_asc we use Prisma's `{ sort, nulls }`
+  // object form so venues lacking a review-derived aggregate sink to the
+  // bottom rather than being excluded.
+  let orderBy: Record<string, unknown> = { createdAt: "desc" };
   if (filters?.sortBy === "cost_asc") {
     orderBy = { costMin: "asc" };
   } else if (filters?.sortBy === "cost_desc") {
     orderBy = { costMax: "desc" };
+  } else if (filters?.sortBy === "review_delta_asc") {
+    orderBy = { reviewEstimateDeltaPct: { sort: "asc", nulls: "last" } };
   }
 
   const venues = await prisma.venue.findMany({
