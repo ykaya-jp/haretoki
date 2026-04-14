@@ -134,6 +134,39 @@
   /* Elevated surface — on top of card */
   --card-elevated: oklch(0.995 0.003 80);
 
+  /* ── V1 Visual: Typography 7-tier (luxury hotel scale) ── */
+  --type-display: 2.25rem;    /* 36px — reserved for hero-level */
+  --type-h1: 1.75rem;         /* 28px */
+  --type-h2: 1.375rem;        /* 22px */
+  --type-h3: 1.125rem;        /* 18px */
+  --type-body: 0.9375rem;     /* 15px — more breathable than 14 */
+  --type-meta: 0.8125rem;     /* 13px */
+  --type-eyebrow: 0.6875rem;  /* 11px — uppercase tracking */
+
+  --leading-display: 1.15;
+  --leading-heading: 1.35;
+  --leading-body: 1.8;        /* very generous for Japanese */
+  --leading-tight: 1.4;
+
+  --tracking-eyebrow: 0.16em;
+  --tracking-heading: -0.01em;
+
+  /* ── V1 Visual: Surface tiers ── */
+  --bg-card: oklch(0.99 0.005 85);          /* aligns with --card */
+  --bg-card-elevated: oklch(1 0 0);          /* pure white, slightly above cream */
+  --bg-hero: oklch(0.97 0.012 85);           /* warmer cream for heros */
+
+  /* ── V1 Visual: Shadow tiers (4 levels) ── */
+  --shadow-hairline: 0 0 0 0.5px oklch(0.35 0.02 50 / 0.08);
+  --shadow-elevated: 0 2px 6px oklch(0.35 0.02 50 / 0.08), 0 12px 28px oklch(0.35 0.02 50 / 0.08);
+  --shadow-hero: 0 4px 16px oklch(0.35 0.02 50 / 0.10), 0 24px 48px oklch(0.35 0.02 50 / 0.12);
+
+  /* ── V1 Visual: Radius tier scale (orthogonal namespace to avoid
+     overriding Tailwind's --radius-sm/md/lg utilities mapped via @theme) ── */
+  --r-sm: 0.25rem;   /* 4px — chips, tiny badges */
+  --r-md: 0.75rem;   /* 12px — inputs, compact cards */
+  --r-lg: 1.5rem;    /* 24px — hero cards, venue cards */
+
   /* Sidebar (if used) */
   --sidebar: oklch(0.97 0.01 80);
   --sidebar-foreground: oklch(0.22 0.02 50);
@@ -193,6 +226,14 @@
   --gold-warm: oklch(0.72 0.14 80);
   --gold-light: oklch(0.82 0.12 80);
   --gold-subtle: oklch(0.72 0.14 80 / 0.15);
+
+  /* ── V1 Visual: Dark-mode surface & shadow tiers ── */
+  --bg-card: oklch(0.23 0.012 50);
+  --bg-card-elevated: oklch(0.27 0.012 50);
+  --bg-hero: oklch(0.20 0.012 50);
+  --shadow-hairline: 0 0 0 0.5px oklch(0.98 0 0 / 0.08);
+  --shadow-elevated: 0 2px 6px oklch(0 0 0 / 0.35), 0 12px 28px oklch(0 0 0 / 0.45);
+  --shadow-hero: 0 4px 16px oklch(0 0 0 / 0.40), 0 24px 48px oklch(0 0 0 / 0.55);
 }
 
 @layer base {
@@ -231,6 +272,49 @@
   }
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ═══ V1 Visual: Typography utility classes (7-tier scale) ═══ */
+@layer components {
+  .text-display {
+    font-size: var(--type-display);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-heading);
+    font-weight: 300;
+  }
+  .text-h1 {
+    font-size: var(--type-h1);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-heading);
+    font-weight: 300;
+  }
+  .text-h2 {
+    font-size: var(--type-h2);
+    line-height: var(--leading-heading);
+    font-weight: 300;
+  }
+  .text-h3 {
+    font-size: var(--type-h3);
+    line-height: var(--leading-heading);
+    font-weight: 400;
+  }
+  .text-body {
+    font-size: var(--type-body);
+    line-height: var(--leading-body);
+    font-weight: 400;
+  }
+  .text-meta {
+    font-size: var(--type-meta);
+    line-height: var(--leading-tight);
+    font-weight: 400;
+  }
+  .text-eyebrow {
+    font-size: var(--type-eyebrow);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-eyebrow);
+    font-weight: 500;
+    text-transform: uppercase;
   }
 }
 

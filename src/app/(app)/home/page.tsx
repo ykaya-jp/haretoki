@@ -20,11 +20,14 @@ export default async function HomePage() {
   const topInsight = insights[0];
 
   return (
-    <div className="space-y-12">
+    // V1 Visual: asymmetric vertical rhythm — generous 64px gap before the
+    // hero, then tighter 40px between secondary surfaces. Replaces the
+    // mechanical space-y-12 stamp.
+    <div className="space-y-16">
       {/* Greeting */}
       <div>
         <Greeting userName={homeData.userName} />
-        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-1 text-meta text-muted-foreground">
           今日のおふたりの式場選び
         </p>
       </div>
@@ -38,18 +41,21 @@ export default async function HomePage() {
         upcomingVisits={homeData.progress.upcomingVisits}
       />
 
-      {/* AI Insight — if available */}
-      {topInsight && (
-        <AIInsightCard
-          type={topInsight.type}
-          title={topInsight.title}
-          body={topInsight.body}
-          actions={topInsight.actions}
-        />
-      )}
+      {/* Secondary surfaces — tighter rhythm */}
+      <div className="space-y-10">
+        {/* AI Insight — if available */}
+        {topInsight && (
+          <AIInsightCard
+            type={topInsight.type}
+            title={topInsight.title}
+            body={topInsight.body}
+            actions={topInsight.actions}
+          />
+        )}
 
-      {/* Recent venues */}
-      <RecentVenues venues={homeData.recentVenues} />
+        {/* Recent venues */}
+        <RecentVenues venues={homeData.recentVenues} />
+      </div>
     </div>
   );
 }

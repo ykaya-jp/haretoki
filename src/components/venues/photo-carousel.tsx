@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface PhotoCarouselProps {
   photos: string[];
   alt: string;
-  aspectRatio?: "4/3" | "16/9";
+  aspectRatio?: "4/3" | "16/9" | "3/2";
   onAddPhotoClick?: () => void;
 }
 
@@ -40,7 +40,11 @@ export function PhotoCarousel({
       "flex flex-col items-center justify-center gap-3 rounded-2xl",
       "border-2 border-dashed border-border bg-muted/30",
       "transition-all duration-200",
-      aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video",
+      aspectRatio === "4/3"
+        ? "aspect-[4/3]"
+        : aspectRatio === "3/2"
+          ? "aspect-[3/2]"
+          : "aspect-video",
     );
     if (onAddPhotoClick) {
       return (
@@ -79,7 +83,11 @@ export function PhotoCarousel({
       <div
         className={cn(
           "relative overflow-hidden rounded-2xl",
-          aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video",
+          aspectRatio === "4/3"
+            ? "aspect-[4/3]"
+            : aspectRatio === "3/2"
+              ? "aspect-[3/2]"
+              : "aspect-video",
         )}
       >
         <Image
