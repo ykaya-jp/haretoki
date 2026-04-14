@@ -55,7 +55,7 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
   if (venueOptions.length < 2) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        比較するには2件以上の式場を候補に追加してください
+        比べるには2件以上の式場を候補に入れてください
       </p>
     );
   }

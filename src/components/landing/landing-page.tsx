@@ -189,6 +189,7 @@ export function LandingPage() {
           >
             <Link
               href="/signup"
+              prefetch={true}
               className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-200 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
             >
               無料ではじめる
@@ -196,6 +197,7 @@ export function LandingPage() {
             </Link>
             <Link
               href="/login"
+              prefetch={true}
               className="inline-flex min-h-[56px] items-center gap-2 rounded-full border border-border px-12 py-4 text-base text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground active:scale-95"
             >
               ログイン
@@ -206,6 +208,7 @@ export function LandingPage() {
             {/* Subtle secondary CTA — lets visitors try the app without signing up */}
             <Link
               href="/demo"
+              prefetch={true}
               className="inline-flex min-h-[44px] items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground underline decoration-[var(--gold-warm)]/40 decoration-dotted underline-offset-[6px] transition-colors duration-200 hover:text-foreground hover:decoration-[var(--gold-warm)]"
             >
               まずは体験してみる
@@ -370,6 +373,7 @@ export function LandingPage() {
           >
             <Link
               href="/demo"
+              prefetch={true}
               className="group inline-flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--gold-warm)]/30 bg-card px-8 py-3 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-[var(--gold-warm)]/60 hover:shadow-md active:scale-95"
             >
               実際に触ってみる
@@ -410,6 +414,7 @@ export function LandingPage() {
           </p>
           <Link
             href="/signup"
+            prefetch={true}
             className="group inline-flex min-h-[56px] items-center gap-2.5 rounded-full bg-primary px-12 py-4 text-base font-medium text-primary-foreground shadow-[0_4px_24px_rgba(196,129,110,0.3)] transition-all duration-200 hover:shadow-[0_12px_40px_rgba(196,129,110,0.45)] hover:-translate-y-1 active:scale-95"
           >
             式場探しをはじめる
@@ -456,12 +461,14 @@ export function LandingPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
             <Link
               href="/login"
+              prefetch={true}
               className="inline-flex min-h-[44px] items-center px-3 transition-colors duration-200 hover:text-foreground"
             >
               ログイン
             </Link>
             <Link
               href="/signup"
+              prefetch={true}
               className="inline-flex min-h-[44px] items-center px-3 transition-colors duration-200 hover:text-foreground"
             >
               新規登録

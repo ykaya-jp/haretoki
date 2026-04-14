@@ -48,6 +48,7 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
             <Link
               key={action.href}
               href={action.href}
+              prefetch={true}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "default" }),
                 "rounded-full px-4 transition-[transform,background-color] duration-200 active:scale-[0.98] active:bg-[var(--gold-subtle)]/60",

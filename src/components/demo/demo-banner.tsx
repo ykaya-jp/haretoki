@@ -25,6 +25,7 @@ export function DemoBanner() {
         </p>
         <Link
           href="/signup"
+          prefetch={true}
           className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.97] sm:text-sm"
         >
           はじめる

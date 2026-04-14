@@ -60,6 +60,7 @@ export function DecisionMatrix() {
         </p>
         <Link
           href="/explore"
+          prefetch={true}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-200"
         >
           式場を見てみる
@@ -72,10 +73,11 @@ export function DecisionMatrix() {
     return (
       <div className="py-12 text-center space-y-4">
         <p className="text-sm text-muted-foreground">
-          もう1件お気に入りに加えると、比較できます
+          もう1件候補に入れると、比べられます
         </p>
         <Link
           href="/explore"
+          prefetch={true}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-all duration-200"
         >
           他の式場も見てみる
@@ -126,6 +128,7 @@ export function DecisionMatrix() {
                     )}
                     <Link
                       href={`/venues/${v.id}`}
+                      prefetch={true}
                       className="block text-xs font-medium font-serif leading-tight truncate max-w-[100px] hover:underline"
                     >
                       {v.name}

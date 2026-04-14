@@ -87,6 +87,7 @@ export default function DemoCoachPage() {
         <div className="mx-auto max-w-5xl px-5 pb-3 text-center sm:px-8">
           <Link
             href="/signup"
+            prefetch={true}
             className="text-xs text-[var(--gold-warm)] underline-offset-2 hover:underline"
           >
             コーチと実際に話すには、無料ではじめる →

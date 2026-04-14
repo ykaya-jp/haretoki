@@ -233,6 +233,7 @@ export function JourneyCard(props: JourneyCardProps) {
               <Link
                 key={`${action.href}-${action.label}`}
                 href={action.href}
+                prefetch={true}
                 className={cn(
                   "inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.97]",
                   isPrimary

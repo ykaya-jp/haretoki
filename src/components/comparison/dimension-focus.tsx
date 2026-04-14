@@ -32,10 +32,11 @@ export function DimensionFocus() {
     return (
       <div className="py-12 text-center space-y-4">
         <p className="text-sm text-muted-foreground">
-          観点別に比べるにはお気に入りが必要です
+          観点別に比べるには候補が必要です
         </p>
         <Link
           href="/explore"
+          prefetch={true}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
         >
           式場を見てみる
@@ -144,6 +145,7 @@ export function DimensionFocus() {
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/venues/${v.id}`}
+                    prefetch={true}
                     className="block font-serif text-base font-medium truncate hover:underline"
                   >
                     {v.name}

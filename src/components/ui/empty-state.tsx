@@ -79,6 +79,7 @@ export function EmptyState({
       {action && (
         <Link
           href={action.href}
+          prefetch={true}
           className={cn(
             buttonVariants({ variant: "default" }),
             "rounded-full px-6 text-eyebrow shadow-[0_2px_8px_rgba(0,0,0,0.08)]",

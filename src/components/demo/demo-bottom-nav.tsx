@@ -61,6 +61,7 @@ export function DemoBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1",

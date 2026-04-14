@@ -47,7 +47,7 @@ export function RatingSection({
               typeof result.error === "object" && result.error && "formErrors" in result.error
                 ? (result.error.formErrors?.[0] ?? null)
                 : null;
-            toast.error(detail ? `評価を保存できませんでした: ${detail}` : "評価を保存できませんでした");
+            toast.error(detail ? `保存できませんでした: ${detail}。もう一度お試しください` : "保存できませんでした。もう一度お試しください");
             return;
           }
           setSaving(false);
@@ -57,7 +57,7 @@ export function RatingSection({
         } catch (err) {
           setSaving(false);
           console.error("[rating] save failed:", err);
-          toast.error("評価を保存できませんでした。時間をおいて再度お試しください");
+          toast.error("保存できませんでした。もう一度お試しください");
         }
       }, 500);
     },
