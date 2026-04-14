@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 
@@ -19,8 +20,13 @@ export interface AIInsight {
 /**
  * Rule-based AI insights. No Claude API in Release 1.
  * Returns up to 5 insights sorted by priority.
+ *
+ * Wrapped in `React.cache()` so that when home → coach pages both call this
+ * within the same SSR request (e.g. via a shared layout render path), the
+ * expensive Prisma fan-out only runs once. Cross-request memoization is out
+ * of scope for this bundle (it would require `unstable_cache`).
  */
-export async function getAIInsights(): Promise<AIInsight[]> {
+async function getAIInsightsImpl(): Promise<AIInsight[]> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
@@ -164,6 +170,15 @@ export async function getAIInsights(): Promise<AIInsight[]> {
   return insights
     .sort((a, b) => a.priority - b.priority)
     .slice(0, 5);
+}
+
+// Per-request memoization: dedupes calls from home + coach layouts in one SSR
+// pass. `cache()` keys on the function identity + arg list, so a second call
+// in the same request returns the already-resolved promise.
+const cachedGetAIInsights = cache(getAIInsightsImpl);
+
+export async function getAIInsights(): Promise<AIInsight[]> {
+  return cachedGetAIInsights();
 }
 
 interface PartnerGap {

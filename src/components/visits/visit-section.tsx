@@ -90,6 +90,8 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         setNoteText("");
         setShowNoteForm(false);
         router.refresh();
+      } else {
+        toast.error(result.error ?? "メモを保存できませんでした");
       }
     });
   };
@@ -186,11 +188,24 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
                 placeholder="感じたことを自由に書いてください"
                 className="w-full rounded-lg border border-border bg-card p-2 text-sm"
                 rows={3}
+                maxLength={2000}
               />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
                   {geo.latitude ? <><MapPin className="mr-1 inline h-3 w-3" />位置情報を取得済み</> : "位置情報なし"}
                 </span>
+                <span
+                  className={cn(
+                    "text-xs tabular-nums",
+                    noteText.length > 1800
+                      ? "text-destructive"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {noteText.length} / 2000
+                </span>
+              </div>
+              <div className="flex items-center justify-end">
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)}>キャンセル</Button>
                   <Button size="sm" onClick={() => handleAddNote(visit.id)} disabled={isPending || !noteText.trim()}>

@@ -11,7 +11,7 @@ export default async function HomePage() {
   const topInsight = insights[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Greeting */}
       <Greeting userName={homeData.userName} />
 

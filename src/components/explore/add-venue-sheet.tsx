@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Loader2, ImagePlus, X } from "lucide-react";
-import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos, bulkAddVenuesFromUrls } from "@/server/actions/venues";
+import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -24,9 +24,13 @@ interface ExtractedVenueData {
   confidence: "high" | "medium" | "low";
 }
 
-export function AddVenueSheet() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState("url");
+interface AddVenueSheetProps {
+  defaultOpen?: boolean;
+}
+
+export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [tab, setTab] = useState<"manual" | "url" | "bulk">("manual");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedVenueData | null>(null);
@@ -37,24 +41,58 @@ export function AddVenueSheet() {
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [bulkUrls, setBulkUrls] = useState("");
   const [bulkResults, setBulkResults] = useState<Array<{ url: string; success: boolean; venueName?: string; error?: string }> | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const handleBulkSubmit = async () => {
-    const urls = bulkUrls
+    const allUrls = bulkUrls
       .split("\n")
       .map((u) => u.trim())
       .filter((u) => u.length > 0);
-    if (urls.length === 0) return;
+    if (allUrls.length === 0) return;
+
+    const MAX = 10;
+    const processing = allUrls.slice(0, MAX);
+    const skipped = allUrls.slice(MAX);
+
     setLoading(true);
-    setBulkResults(null);
+    setBulkResults([]);
+    setBulkProgress({ done: 0, total: processing.length });
+
+    // Sequential calls so the UI can reflect progress per URL.
+    // (Server Actions can't stream; a bounded concurrency=3 path also exists on the server
+    //  for programmatic callers, but here we favour visible feedback over throughput.)
+    const accumulated: Array<{ url: string; success: boolean; venueName?: string; error?: string }> = [];
     try {
-      const { results } = await bulkAddVenuesFromUrls(urls);
-      setBulkResults(results);
-      const successCount = results.filter((r) => r.success).length;
+      for (let i = 0; i < processing.length; i++) {
+        const singleUrl = processing[i];
+        try {
+          const extractResult = await addVenueFromUrl(singleUrl);
+          if (extractResult.error || !extractResult.extracted) {
+            accumulated.push({ url: singleUrl, success: false, error: extractResult.error ?? "読み取りに失敗" });
+          } else {
+            const confirmResult = await confirmVenueFromUrl(extractResult.extracted, singleUrl);
+            if (!confirmResult.success) {
+              accumulated.push({ url: singleUrl, success: false, error: "登録に失敗" });
+            } else {
+              accumulated.push({ url: singleUrl, success: true, venueName: extractResult.extracted.name });
+            }
+          }
+        } catch {
+          accumulated.push({ url: singleUrl, success: false, error: "予期しないエラー" });
+        }
+        setBulkResults([...accumulated]);
+        setBulkProgress({ done: i + 1, total: processing.length });
+      }
+
+      const successCount = accumulated.filter((r) => r.success).length;
       if (successCount > 0) {
         toast.success(`${successCount}件の式場を追加しました`);
         router.refresh();
+      }
+      if (skipped.length > 0) {
+        toast.info(`11件目以降 ${skipped.length} 件は取り込みをスキップしました。分けて追加してください`);
       }
     } catch {
       toast.error("一括取り込みに失敗しました");
@@ -69,7 +107,9 @@ export function AddVenueSheet() {
     try {
       const result = await addVenueFromUrl(url);
       if (result.error) {
-        toast.error(result.error);
+        toast.info(
+          "URLから取得できませんでした。手入力に切り替えました",
+        );
         setTab("manual");
       } else if (result.extracted) {
         setExtracted(result.extracted);
@@ -165,7 +205,7 @@ export function AddVenueSheet() {
     for (const preview of photoPreviews) URL.revokeObjectURL(preview);
     setPhotoPreviews([]);
     setUploadedPhotoUrls([]);
-    setTab("url");
+    setTab("manual");
   };
 
   return (
@@ -178,11 +218,15 @@ export function AddVenueSheet() {
         <SheetHeader>
           <SheetTitle>新しい式場を追加</SheetTitle>
         </SheetHeader>
-        <Tabs value={tab} onValueChange={setTab} className="mt-4">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as "manual" | "url" | "bulk")}
+          className="mt-4"
+        >
           <TabsList className="w-full">
+            <TabsTrigger value="manual" className="flex-1">自分で</TabsTrigger>
             <TabsTrigger value="url" className="flex-1">URL</TabsTrigger>
             <TabsTrigger value="bulk" className="flex-1">まとめて</TabsTrigger>
-            <TabsTrigger value="manual" className="flex-1">自分で</TabsTrigger>
           </TabsList>
 
           <TabsContent value="url" className="space-y-4 pt-4">
@@ -272,7 +316,12 @@ export function AddVenueSheet() {
               className="w-full"
             >
               {loading ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" />読み取り中...</>
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {bulkProgress
+                    ? `読み取り中 ${bulkProgress.done} / ${bulkProgress.total}`
+                    : "読み取り中..."}
+                </>
               ) : (
                 "まとめて追加"
               )}

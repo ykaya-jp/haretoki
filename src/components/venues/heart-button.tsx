@@ -25,6 +25,10 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
         await toggleFavorite(venueId);
         toast.success(newState ? "お気に入りに追加しました" : "お気に入りから外しました", {
           duration: 2000,
+          action:
+            newState === false
+              ? { label: "戻す", onClick: handleToggle }
+              : undefined,
         });
       } catch {
         toast.error("保存できませんでした", {

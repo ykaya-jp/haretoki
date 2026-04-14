@@ -20,6 +20,7 @@ type ExploreSearchParams = {
   guestCount?: string;
   budgetMax?: string;
   personalized?: string;
+  addVenue?: string;
 };
 
 function toArray(v: string | string[] | undefined): string[] | undefined {
@@ -108,7 +109,7 @@ export default async function ExplorePage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2>式場をさがす</h2>
-        <AddVenueSheet />
+        <AddVenueSheet defaultOpen={params.addVenue === "1"} />
       </div>
 
       {/* Search bar */}
@@ -133,6 +134,7 @@ export default async function ExplorePage({
           <EmptyState
             icon={Search}
             imageUrl="/images/empty-explore.png"
+            imageAlt="式場を探す"
             title="式場さがしは、ここから"
             description="右上の「追加」からURLを貼るだけ。AIが自動で情報を読み取ります。"
           />

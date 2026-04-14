@@ -9,19 +9,22 @@ interface EmptyStateProps {
   title: string;
   description: string;
   imageUrl?: string;
+  /** Alt text for the empty-state illustration. Pass "" only if the
+   *  image is purely decorative and the title conveys the same meaning. */
+  imageAlt?: string;
   action?: {
     label: string;
     href: string;
   };
 }
 
-export function EmptyState({ icon: Icon, title, description, imageUrl, action }: EmptyStateProps) {
+export function EmptyState({ icon: Icon, title, description, imageUrl, imageAlt, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
       {imageUrl ? (
         <Image
           src={imageUrl}
-          alt=""
+          alt={imageAlt ?? ""}
           width={160}
           height={160}
           className="h-32 w-32 object-contain opacity-80"

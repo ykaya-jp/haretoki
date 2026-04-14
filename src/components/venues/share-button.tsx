@@ -29,6 +29,7 @@ export function ShareButton({ venueName, url }: ShareButtonProps) {
         typeof navigator.share === "function"
       ) {
         await navigator.share(shareData);
+        toast.success("共有しました");
         return;
       }
       if (

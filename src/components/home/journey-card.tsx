@@ -94,7 +94,7 @@ export function JourneyCard(props: JourneyCardProps) {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-muted"
         >
-          <Icon className={`h-8 w-8 ${state.iconColor}`} />
+          <Icon className={`h-8 w-8 ${state.iconColor}`} strokeWidth={1.5} />
         </motion.div>
         <h3 className="font-serif text-lg tracking-[0.03em]">{state.message}</h3>
       </div>
@@ -105,7 +105,7 @@ export function JourneyCard(props: JourneyCardProps) {
           className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-out active:scale-[0.97] hover:shadow-md"
         >
           {state.cta.label}
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-4 w-4" strokeWidth={1.5} />
         </Link>
       )}
     </motion.div>

@@ -69,9 +69,24 @@ export function CandidatesView({
 
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
-    { id: "matrix" as const, label: "比べる", disabled: !canCompare },
-    { id: "focus" as const, label: "観点別", disabled: !canCompare },
-    { id: "decision" as const, label: "決める", disabled: !canDecide },
+    {
+      id: "matrix" as const,
+      label: "比べる",
+      disabled: !canCompare,
+      disabledHint: "候補を2件以上追加すると使えます",
+    },
+    {
+      id: "focus" as const,
+      label: "観点別",
+      disabled: !canCompare,
+      disabledHint: "候補を2件以上追加すると使えます",
+    },
+    {
+      id: "decision" as const,
+      label: "決める",
+      disabled: !canDecide,
+      disabledHint: "候補を1件以上追加すると使えます",
+    },
   ];
 
   const handleDecide = async (venueId: string) => {
@@ -115,7 +130,9 @@ export function CandidatesView({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           >
-            <FavoriteFilter active={filter} onChange={setFilter} />
+            {favorites.length > 0 && (
+              <FavoriteFilter active={filter} onChange={setFilter} />
+            )}
 
             {favorites.length === 0 ? (
               <motion.div
@@ -127,9 +144,14 @@ export function CandidatesView({
                 <EmptyState
                   icon={Heart}
                   imageUrl="/images/empty-candidates.png"
+                  imageAlt="候補を集める"
                   title="心に残った式場を集める場所です"
                   description="式場カードの♡をタップすると、ここに表示されます。2件以上で比較もできます。"
-                  action={{ label: "式場を見てみる", href: "/explore" }}
+                  action={
+                    venueOptions.length === 0
+                      ? { label: "最初の式場を追加", href: "/explore?addVenue=1" }
+                      : { label: "式場を見てみる", href: "/explore" }
+                  }
                 />
               </motion.div>
             ) : (

@@ -2,9 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface SegmentedControlProps {
-  segments: { id: string; label: string; disabled?: boolean }[];
+  segments: {
+    id: string;
+    label: string;
+    disabled?: boolean;
+    disabledHint?: string;
+  }[];
   activeId: string;
   onChange: (id: string) => void;
 }
@@ -16,8 +22,16 @@ export function SegmentedControl({ segments, activeId, onChange }: SegmentedCont
         <button
           key={segment.id}
           type="button"
-          onClick={() => !segment.disabled && onChange(segment.id)}
-          disabled={segment.disabled}
+          onClick={() => {
+            if (segment.disabled) {
+              if (segment.disabledHint) {
+                toast.info(segment.disabledHint);
+              }
+              return;
+            }
+            onChange(segment.id);
+          }}
+          aria-disabled={segment.disabled}
           className={cn(
             "relative z-10 flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200",
             activeId === segment.id

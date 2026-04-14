@@ -119,6 +119,13 @@
 
   --radius: 0.75rem;
 
+  /* Spacing rhythm — 3-level vertical cadence.
+     Apply via var(--space-section/heading/item) or the matching Tailwind
+     classes (space-y-8 / space-y-4 / space-y-3) to keep pages breathing. */
+  --space-section: 48px;
+  --space-heading: 16px;
+  --space-item: 12px;
+
   /* Gold accents — for AI features */
   --gold-warm: oklch(0.70 0.13 80);
   --gold-light: oklch(0.80 0.10 80);
@@ -199,22 +206,27 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Japanese-first heading tracking. Full-width CJK glyphs already carry
+     visual whitespace, so the wide Latin letter-spacing (0.1em+) used by
+     typical Western luxury themes causes rivers/gaps. Use tight-to-normal
+     tracking for JP body headings, and let component-level classes apply
+     wider tracking only when content is Latin/uppercase. */
   h1 {
     font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
     font-weight: 300;
-    letter-spacing: 0.15em;
-    line-height: 1.8;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
   }
   h2 {
     font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
     font-weight: 400;
-    letter-spacing: 0.1em;
-    line-height: 1.6;
+    letter-spacing: 0;
+    line-height: 1.5;
   }
   h3, h4, h5, h6 {
     font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
     font-weight: 400;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     line-height: 1.5;
   }
   .tabular-nums {

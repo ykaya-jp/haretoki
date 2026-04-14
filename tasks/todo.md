@@ -25,3 +25,33 @@
 - `npm run lint` — 0 errors, 4 warnings (all pre-existing unused imports).
 - `npx vitest run` — 64/64 passing (added `useRouter` mock to bottom-nav test).
 - `npm run build` — successful; `/api/coach/stream` listed as dynamic route.
+
+---
+
+# Phase 11 P2 Bundle H — Performance & Bundle Optimization
+
+## Tasks
+
+- [x] 1A. recharts lazy load: extract `estimate-waterfall-chart.tsx` → `*-impl.tsx` + dynamic wrapper (ssr:false, skeleton loading)
+- [x] 1B. canvas-confetti lazy load: `await import("canvas-confetti")` inside useEffect in decision-ceremony
+- [x] 1C. embla lazy load: split photo-carousel into static single-photo path + dynamic multi-photo carousel
+- [x] 2. BottomNav layoutId → CSS transform: computed `left`/`width` with `transition-[left,width]`
+- [x] 3. /venues/[id] Suspense streaming: split Estimate/Reviews/Plans/Visits into async child components
+- [x] 4. `getAIInsights` wrap with React `cache()` for same-request memoization
+- [x] Verification: lint 0 errors, tests pass, build success, First Load JS reduced
+
+## Review
+
+- **1A recharts**: `estimate-waterfall-chart.tsx` → tiny `next/dynamic` wrapper (ssr:false, aspect-matched skeleton); real impl moved to `estimate-waterfall-chart-impl.tsx`. recharts now lives in its own ~314KB chunk (`.next/static/chunks/0hfaz.oyru3nr.js`), loaded only when a venue has predictedFinal estimate data.
+- **1B confetti**: `decision-ceremony.tsx` drops the static `import confetti from "canvas-confetti"`; effect now does `await import("canvas-confetti")` after the prefers-reduced-motion gate and uses a `cancelled` flag so late-arriving imports don't fire confetti after unmount. Isolated into its own ~10KB chunk.
+- **1C embla**: `photo-carousel.tsx` became a static shell that handles 0- and 1-photo paths with `<Image>`; 2+ photos render via a `next/dynamic`-loaded `photo-carousel-embla.tsx`. embla-carousel-react (~20KB) no longer pulled in on detail pages with ≤1 photo.
+- **2 BottomNav**: deleted the `layoutId="bottomNavIndicator"` framer-motion FLIP and replaced with a single absolutely-positioned bar inside the nav container. `left` / `width` are computed from `activeIndex` as percentages (1/5 tabs, bar spans the middle half), and `transition-[left,width] duration-200` handles animation on the GPU. Icon-scale + badge motion preserved.
+- **3 Suspense streaming on /venues/[id]**: above-the-fold (`getVenue` + `getFavorites`) stays synchronous; below-the-fold split into 4 Suspense boundaries — `RatingWithPartner` (fetches partner ratings), `ReviewsContent` (fetches reviews), `PlansContent` (fetches plans), `VisitsContent` (reuses embedded payload for symmetry). Skeletons use existing `Skeleton` component sized to approximate final layout.
+- **4 cache()**: `getAIInsights` body extracted to internal `getAIInsightsImpl`; a `cache(getAIInsightsImpl)` memoizes per-request; exported async wrapper preserves `"use server"` contract. home ↔ coach now share one Prisma fan-out.
+
+## Verification
+
+- `npm run lint` — 0 errors (4 pre-existing warnings).
+- `npx vitest run` — 64/64 passing.
+- `npm run build` — success. Heavy deps isolated into on-demand chunks: recharts 314KB (was in initial bundle), canvas-confetti 10KB, embla 20KB. Estimated initial-bundle reduction on /venues/[id]: ~120KB raw (~40–50KB gzipped).
+

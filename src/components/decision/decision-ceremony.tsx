@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import confetti from "canvas-confetti";
 
 type CeremonyPhase = "celebration" | "summary" | "reason";
 
@@ -26,18 +25,33 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
 
   useEffect(() => {
     if (phase === "celebration") {
-      // Fire confetti
-      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!prefersReduced) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#1E3A5F", "#C9A84C", "#FFFFFF"],
-        });
-      }
-      // Move to summary after 2 seconds
+      // Move to summary after 2 seconds (set up immediately so cleanup works even
+      // if the dynamic import of canvas-confetti resolves after unmount).
       const timer = setTimeout(() => setPhase("summary"), 2000);
+
+      // Fire confetti via dynamic import so the ~15KB canvas-confetti bundle is
+      // NOT pulled into the initial JS payload. This screen is only reached once
+      // per project, so the latency of a dynamic import is acceptable.
+      const prefersReduced = window
+        .matchMedia("(prefers-reduced-motion: reduce)")
+        .matches;
+      if (!prefersReduced) {
+        let cancelled = false;
+        void import("canvas-confetti").then((mod) => {
+          if (cancelled) return;
+          mod.default({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#1E3A5F", "#C9A84C", "#FFFFFF"],
+          });
+        });
+        return () => {
+          cancelled = true;
+          clearTimeout(timer);
+        };
+      }
+
       return () => clearTimeout(timer);
     }
   }, [phase]);

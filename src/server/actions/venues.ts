@@ -437,8 +437,34 @@ export async function confirmVenueFromUrl(
 }
 
 /**
+ * Run async tasks with a bounded concurrency limit.
+ * Inline implementation (p-limit isn't a dependency). Preserves input order in results.
+ */
+async function limitedAll<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  const workers = Array(workerCount)
+    .fill(0)
+    .map(async () => {
+      while (cursor < items.length) {
+        const idx = cursor++;
+        results[idx] = await fn(items[idx], idx);
+      }
+    });
+  await Promise.all(workers);
+  return results;
+}
+
+/**
  * Bulk-import multiple venues from a list of URLs.
- * Processes each URL in parallel. Returns per-URL results.
+ * Caps at 10 items; remaining URLs are returned as `skipped` so the UI can
+ * surface a gentle notice instead of silently dropping the whole request.
+ * Uses bounded concurrency (3) to avoid hammering upstream sites + Claude API.
  */
 export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
   results: Array<{
@@ -447,48 +473,42 @@ export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
     venueName?: string;
     error?: string;
   }>;
+  skipped: string[];
 }> {
   const user = await requireUser();
   await requireProjectMembership(user.id);
 
   if (urls.length === 0) {
-    return { results: [] };
-  }
-  if (urls.length > 10) {
-    return {
-      results: urls.map((url) => ({
-        url,
-        success: false,
-        error: "一度に取り込めるのは10件までです",
-      })),
-    };
+    return { results: [], skipped: [] };
   }
 
-  // Extract all URLs in parallel
-  const results = await Promise.all(
-    urls.map(async (url) => {
-      try {
-        const extractResult = await addVenueFromUrl(url);
-        if (extractResult.error || !extractResult.extracted) {
-          return { url, success: false, error: extractResult.error ?? "読み取りに失敗" };
-        }
-        const confirmResult = await confirmVenueFromUrl(extractResult.extracted, url);
-        if (!confirmResult.success) {
-          return { url, success: false, error: "登録に失敗" };
-        }
-        return {
-          url,
-          success: true,
-          venueName: extractResult.extracted.name,
-        };
-      } catch {
-        return { url, success: false, error: "予期しないエラー" };
+  const MAX = 10;
+  const CONCURRENCY = 3;
+  const processing = urls.slice(0, MAX);
+  const skipped = urls.slice(MAX);
+
+  const results = await limitedAll(processing, CONCURRENCY, async (url) => {
+    try {
+      const extractResult = await addVenueFromUrl(url);
+      if (extractResult.error || !extractResult.extracted) {
+        return { url, success: false, error: extractResult.error ?? "読み取りに失敗" };
       }
-    }),
-  );
+      const confirmResult = await confirmVenueFromUrl(extractResult.extracted, url);
+      if (!confirmResult.success) {
+        return { url, success: false, error: "登録に失敗" };
+      }
+      return {
+        url,
+        success: true,
+        venueName: extractResult.extracted.name,
+      };
+    } catch {
+      return { url, success: false, error: "予期しないエラー" };
+    }
+  });
 
   revalidatePath("/explore");
   revalidatePath("/home");
 
-  return { results };
+  return { results, skipped };
 }

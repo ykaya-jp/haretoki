@@ -37,12 +37,12 @@ export default async function MyPage() {
     null;
 
   return (
-    <div className="space-y-8">
-      <h2 className="font-serif text-2xl font-light tracking-wide">マイページ</h2>
+    <div className="space-y-12">
+      <h2 className="font-serif text-2xl font-light">マイページ</h2>
 
       {/* Profile */}
-      <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+      <section className="space-y-4">
+        <h3 className="font-serif text-lg font-light tracking-wide">
           プロフィール
         </h3>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] space-y-3">
@@ -60,8 +60,8 @@ export default async function MyPage() {
       </section>
 
       {/* Partner */}
-      <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+      <section className="space-y-4">
+        <h3 className="font-serif text-lg font-light tracking-wide">
           パートナー
         </h3>
         {hasPartner ? (
@@ -81,8 +81,8 @@ export default async function MyPage() {
       </section>
 
       {/* Conditions */}
-      <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+      <section className="space-y-4">
+        <h3 className="font-serif text-lg font-light tracking-wide">
           おふたりの希望
         </h3>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
@@ -91,8 +91,8 @@ export default async function MyPage() {
       </section>
 
       {/* Link to Settings */}
-      <section className="space-y-3">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+      <section className="space-y-4">
+        <h3 className="font-serif text-lg font-light tracking-wide">
           その他
         </h3>
         <Link

@@ -138,15 +138,23 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
       return { answer: response, suggestedActions: [], matched: true };
     } catch {
       // Fallback to FAQ on Claude API failure
-      return matchFAQ(message, projectId);
+      return await matchFAQ(message, projectId);
     }
   }
 
-  // Fallback: R1 keyword matching
-  return matchFAQ(message, projectId);
+  // Fallback: R1 keyword matching (no Claude API available)
+  // Save user message so history view shows the turn
+  try {
+    await prisma.coachMessage.create({
+      data: { projectId, role: "user", content: message },
+    });
+  } catch {
+    // Swallow — response still returned below
+  }
+  return await matchFAQ(message, projectId);
 }
 
-function matchFAQ(message: string, projectId: string): CoachResponse {
+async function matchFAQ(message: string, projectId: string): Promise<CoachResponse> {
   const normalizedMessage = message.toLowerCase();
   const matchedFaq = FAQ_PATTERNS.find((faq) =>
     faq.keywords.some((keyword) => normalizedMessage.includes(keyword))
@@ -155,6 +163,22 @@ function matchFAQ(message: string, projectId: string): CoachResponse {
   const response: CoachResponse = matchedFaq
     ? { answer: matchedFaq.answer, suggestedActions: matchedFaq.actions, matched: true }
     : FALLBACK_RESPONSE;
+
+  // Persist assistant reply to CoachMessage so UI history shows both user & assistant turns
+  // (Previously only the Claude path wrote to CoachMessage; FAQ fallback left the user
+  //  message orphaned, resulting in a broken conversation view.)
+  try {
+    await prisma.coachMessage.create({
+      data: {
+        projectId,
+        role: "assistant",
+        content: response.answer,
+        metadata: { source: "faq", matched: response.matched },
+      },
+    });
+  } catch {
+    // Swallow DB errors — UI still gets a response from the return value
+  }
 
   // Still save to AiAnalysis for backward compat (R1 pattern)
   // Note: We don't await this to avoid blocking the response

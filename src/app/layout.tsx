@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +51,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Match the PWA status bar / address bar with the app's warm cream surface
+  // in light mode and the deep warm near-black in dark mode. Values come
+  // straight from --background in globals.css (oklch resolved to sRGB).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAF6EE" },
+    { media: "(prefers-color-scheme: dark)", color: "#1F1A14" },
+  ],
 };
 
 export default function RootLayout({
@@ -66,7 +74,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <MotionProvider>{children}</MotionProvider>
         </ThemeProvider>
       </body>
     </html>

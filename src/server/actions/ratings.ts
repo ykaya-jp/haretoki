@@ -22,10 +22,13 @@ export async function saveRatings(
   const user = await requireUser();
   await requireVenueAccess(user.id, venueId);
 
-  // Upsert each dimension rating for this visit
-  const upserts = Object.entries(parsed.data.ratings).map(
-    ([dimension, score]) =>
-      prisma.visitRating.upsert({
+  // Run upserts + aggregation + venueScore upserts inside a single transaction so
+  // concurrent edits (owner + partner at the same time) can't read a stale set of
+  // ratings and compute an outdated average — prevents lost-update race condition.
+  await prisma.$transaction(async (tx) => {
+    // 1) Upsert each dimension rating for this visit
+    for (const [dimension, score] of Object.entries(parsed.data.ratings)) {
+      await tx.visitRating.upsert({
         where: {
           visitId_userId_dimension: {
             visitId,
@@ -40,38 +43,30 @@ export async function saveRatings(
           dimension: dimension as ScoreDimension,
           score,
         },
-      }),
-  );
+      });
+    }
 
-  await prisma.$transaction(upserts);
+    // 2) Re-read all ratings inside the same transaction (consistent snapshot)
+    const allRatings = await tx.visitRating.findMany({
+      where: { visit: { venueId } },
+      select: { dimension: true, score: true },
+    });
 
-  // Aggregate: for each dimension, average all visit ratings for this venue
-  // then upsert into venue_scores with source "user_rating"
-  const allRatings = await prisma.visitRating.findMany({
-    where: {
-      visit: { venueId },
-    },
-    select: {
-      dimension: true,
-      score: true,
-    },
-  });
+    // 3) Group by dimension & compute averages
+    const dimensionScores = new Map<ScoreDimension, number[]>();
+    for (const r of allRatings) {
+      const existing = dimensionScores.get(r.dimension) ?? [];
+      existing.push(r.score);
+      dimensionScores.set(r.dimension, existing);
+    }
 
-  // Group by dimension and compute averages
-  const dimensionScores = new Map<ScoreDimension, number[]>();
-  for (const r of allRatings) {
-    const existing = dimensionScores.get(r.dimension) ?? [];
-    existing.push(r.score);
-    dimensionScores.set(r.dimension, existing);
-  }
-
-  const scoreUpserts = Array.from(dimensionScores.entries()).map(
-    ([dimension, scores]) => {
+    // 4) Upsert venue_scores for each affected dimension
+    for (const [dimension, scores] of dimensionScores.entries()) {
       const avg =
         Math.round(
           (scores.reduce((a, b) => a + b, 0) / scores.length) * 10,
         ) / 10;
-      return prisma.venueScore.upsert({
+      await tx.venueScore.upsert({
         where: {
           venueId_dimension_source: {
             venueId,
@@ -79,10 +74,7 @@ export async function saveRatings(
             source: "user_rating",
           },
         },
-        update: {
-          score: avg,
-          reviewCount: scores.length,
-        },
+        update: { score: avg, reviewCount: scores.length },
         create: {
           venueId,
           dimension,
@@ -91,10 +83,8 @@ export async function saveRatings(
           reviewCount: scores.length,
         },
       });
-    },
-  );
-
-  await prisma.$transaction(scoreUpserts);
+    }
+  });
 
   revalidatePath(`/venues/${venueId}`);
 

@@ -28,6 +28,7 @@ export function RatingSection({
   partnerRatings,
 }: RatingSectionProps) {
   const [ratings, setRatings] = useState<Record<string, number>>(initialRatings);
+  const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,17 +36,22 @@ export function RatingSection({
   const debouncedSave = useCallback(
     (newRatings: Record<string, number>) => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      setSaving(true);
+      setJustSaved(false);
       timerRef.current = setTimeout(async () => {
         try {
           const result = await saveDirectRatings(venueId, { ratings: newRatings });
           if (!result.success) {
+            setSaving(false);
             toast.error("評価の保存に失敗しました");
             return;
           }
+          setSaving(false);
           setJustSaved(true);
           if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
           savedTimerRef.current = setTimeout(() => setJustSaved(false), 1000);
         } catch {
+          setSaving(false);
           toast.error("評価の保存に失敗しました");
         }
       }, 500);
@@ -62,9 +68,22 @@ export function RatingSection({
   return (
     <section className="relative space-y-4">
       <h2 className="text-base">評価</h2>
-      <AnimatePresence>
-        {justSaved && (
+      <AnimatePresence mode="wait">
+        {saving ? (
           <motion.span
+            key="saving"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-0 right-0 text-xs text-muted-foreground flex items-center gap-1"
+            aria-live="polite"
+          >
+            保存中…
+          </motion.span>
+        ) : justSaved ? (
+          <motion.span
+            key="saved"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -74,7 +93,7 @@ export function RatingSection({
           >
             <Check className="h-3 w-3" /> 保存しました
           </motion.span>
-        )}
+        ) : null}
       </AnimatePresence>
       {TIER1_DIMENSIONS.map((dim) => {
         const value = ratings[dim] ?? 0;

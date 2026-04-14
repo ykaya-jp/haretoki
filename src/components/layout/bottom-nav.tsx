@@ -50,13 +50,36 @@ export function BottomNav({ badges }: BottomNavProps) {
     !matchesHref(pathname, pendingHref);
   const activeHref = showPending ? (pendingHref as string) : pathname;
 
+  // Indicator position as a single absolutely-positioned bar whose left/width
+  // animate via CSS transition. Replaces framer-motion layoutId FLIP animation
+  // to avoid layout thrash on tab transitions.
+  const itemCount = NAV_ITEMS.length;
+  const activeIndex = NAV_ITEMS.findIndex((item) =>
+    matchesHref(activeHref, item.href),
+  );
+  const tabWidthPct = 100 / itemCount;
+  // Bar spans middle half of its tab (matches prior left-1/4 / right-1/4).
+  const indicatorWidthPct = tabWidthPct * 0.5;
+  const indicatorLeftPct =
+    activeIndex >= 0 ? tabWidthPct * activeIndex + tabWidthPct * 0.25 : 0;
+
   return (
     <nav
       role="navigation"
       aria-label="メインナビゲーション"
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20 bg-card/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="flex h-14 items-center justify-around">
+      <div className="relative flex h-14 items-center justify-around">
+        {activeIndex >= 0 && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 h-0.5 rounded-full bg-primary transition-[left,width] duration-200 ease-out"
+            style={{
+              left: `${indicatorLeftPct}%`,
+              width: `${indicatorWidthPct}%`,
+            }}
+          />
+        )}
         {NAV_ITEMS.map((item) => {
           const isActive = matchesHref(activeHref, item.href);
           const Icon = item.icon;
@@ -98,7 +121,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   animate={{ scale: isActive ? 1.12 : 1 }}
                   transition={{ type: "spring", stiffness: 120, damping: 20 }}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" strokeWidth={1.75} />
                 </motion.div>
                 {badgeCount != null && badgeCount > 0 && (
                   <motion.span
@@ -112,13 +135,6 @@ export function BottomNav({ badges }: BottomNavProps) {
                 )}
               </div>
               <span className={cn("text-xs whitespace-nowrap transition-colors duration-200", isActive && "font-medium")}>{item.label}</span>
-              {isActive && (
-                <motion.div
-                  layoutId="bottomNavIndicator"
-                  className="absolute -top-px left-1/4 right-1/4 h-0.5 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 120, damping: 22 }}
-                />
-              )}
             </Link>
           );
         })}

@@ -73,7 +73,10 @@ export async function completeVisit(visitId: string): Promise<{ success: boolean
 }
 
 const visitNoteSchema = z.object({
-  content: z.string().min(1).max(2000),
+  content: z
+    .string()
+    .min(1, "メモを入力してください")
+    .max(2000, "メモは2000文字以内で入力してください"),
   tags: z.array(z.string()).max(10).optional(),
   locationLat: z.number().min(-90).max(90).optional(),
   locationLng: z.number().min(-180).max(180).optional(),
@@ -82,12 +85,19 @@ const visitNoteSchema = z.object({
 export async function addVisitNote(
   visitId: string,
   input: z.infer<typeof visitNoteSchema>
-): Promise<{ success: boolean; noteId?: string }> {
+): Promise<{ success: boolean; noteId?: string; error?: string }> {
   const user = await requireUser();
   await requireVisitAccess(user.id, visitId);
 
   const parsed = visitNoteSchema.safeParse(input);
-  if (!parsed.success) return { success: false };
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    const message =
+      fieldErrors.content?.[0] ??
+      fieldErrors.tags?.[0] ??
+      "入力内容を確認してください";
+    return { success: false, error: message };
+  }
 
   const note = await prisma.visitNote.create({
     data: {
