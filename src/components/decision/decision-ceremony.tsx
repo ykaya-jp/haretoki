@@ -136,7 +136,7 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
                 prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
               )
             }
-            className={`rounded-full border px-4 py-2 text-sm transition-colors active:scale-95 ${
+            className={`inline-flex min-h-11 items-center justify-center rounded-full border px-4 py-2.5 text-sm transition-colors active:scale-95 ${
               selectedTags.includes(tag)
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card"

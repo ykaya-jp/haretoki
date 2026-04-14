@@ -8,11 +8,11 @@ export default async function SettingsPage() {
   await requireUser();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-[env(safe-area-inset-bottom)]">
       <Link
         href="/mypage"
         prefetch
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-opacity duration-200 hover:opacity-70 -ml-1"
+        className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm text-muted-foreground transition-opacity duration-200 hover:opacity-70"
       >
         <ChevronLeft className="h-4 w-4" />
         マイページ
