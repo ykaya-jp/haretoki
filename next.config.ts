@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       // Supabase Storage — venue photos, avatars, PDFs
       { protocol: "https", hostname: "*.supabase.co" },
+      // Seed / demo venue photos hosted on Unsplash. Kept narrow to the
+      // single host so we don't regress to a wildcard that allows open
+      // image-proxy abuse.
+      { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
   experimental: {
