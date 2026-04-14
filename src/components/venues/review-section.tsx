@@ -11,6 +11,13 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { ReviewSource } from "@/generated/prisma/client";
 
+interface EstimateIncrease {
+  deltaYen?: number;
+  deltaPct?: number;
+  confidence?: "high" | "medium" | "low";
+  note?: string;
+}
+
 interface Review {
   id: string;
   source: string;
@@ -20,11 +27,33 @@ interface Review {
   rating: number | null;
   categorySummary: Record<string, string> | null;
   isNegative: boolean;
+  estimateIncrease?: EstimateIncrease | null;
+}
+
+interface VenueEstimateAggregate {
+  deltaYen: number | null;
+  deltaPct: number | null;
+  sampleCount: number | null;
 }
 
 interface ReviewSectionProps {
   venueId: string;
   reviews: Review[];
+  venueEstimateAggregate?: VenueEstimateAggregate | null;
+}
+
+function formatDeltaYenMan(yen: number): string {
+  const man = yen / 10000;
+  const sign = yen >= 0 ? "+" : "−";
+  // Round to 1 decimal if < 10万, else integer
+  const abs = Math.abs(man);
+  const body = abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
+  return `${sign}¥${body}万`;
+}
+
+function formatDeltaPct(pct: number): string {
+  const sign = pct >= 0 ? "+" : "−";
+  return `${sign}${Math.abs(pct).toFixed(0)}%`;
 }
 
 const SOURCE_OPTIONS: { value: ReviewSource; label: string }[] = [
@@ -42,7 +71,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   negative_points: "気になる点",
 };
 
-export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
+export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: ReviewSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [showNegativeFirst, setShowNegativeFirst] = useState(false);
   const [url, setUrl] = useState("");
@@ -145,7 +174,37 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
         </p>
       )}
 
-      {sortedReviews.map((review) => (
+      {/* Venue-level aggregate estimate-increase badge (avg across reviews) */}
+      {venueEstimateAggregate &&
+        (venueEstimateAggregate.sampleCount ?? 0) > 0 &&
+        (venueEstimateAggregate.deltaYen != null || venueEstimateAggregate.deltaPct != null) && (
+          <div className="flex items-center gap-1.5 text-xs tabular-nums text-[var(--gold-warm)]">
+            <span className="font-medium">見積もり上昇</span>
+            <span>
+              平均{" "}
+              {venueEstimateAggregate.deltaYen != null
+                ? formatDeltaYenMan(venueEstimateAggregate.deltaYen)
+                : ""}
+              {venueEstimateAggregate.deltaYen != null && venueEstimateAggregate.deltaPct != null
+                ? " / "
+                : ""}
+              {venueEstimateAggregate.deltaPct != null
+                ? formatDeltaPct(venueEstimateAggregate.deltaPct)
+                : ""}
+              （n={venueEstimateAggregate.sampleCount}）
+            </span>
+          </div>
+        )}
+
+      {sortedReviews.map((review) => {
+        const hasAggregate =
+          venueEstimateAggregate && (venueEstimateAggregate.sampleCount ?? 0) > 0;
+        const ei = review.estimateIncrease;
+        const showPerReviewBadge =
+          !hasAggregate &&
+          ei != null &&
+          (ei.deltaYen != null || ei.deltaPct != null);
+        return (
         <div key={review.id} className="space-y-3">
           <AIInsightCard
             type="comparison"
@@ -153,6 +212,17 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
             body={review.aiSummary!}
             actions={[{ label: "口コミ元を読む", href: review.sourceUrl }]}
           />
+
+          {showPerReviewBadge && (
+            <div className="flex items-center gap-1.5 text-xs tabular-nums text-[var(--gold-warm)]">
+              <span className="font-medium">見積もり上昇</span>
+              <span>
+                {ei!.deltaYen != null ? formatDeltaYenMan(ei!.deltaYen) : ""}
+                {ei!.deltaYen != null && ei!.deltaPct != null ? " / " : ""}
+                {ei!.deltaPct != null ? formatDeltaPct(ei!.deltaPct) : ""}
+              </span>
+            </div>
+          )}
 
           {/* Category summary chips */}
           {review.categorySummary && Object.keys(review.categorySummary).length > 0 && (
@@ -173,7 +243,8 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

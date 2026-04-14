@@ -6,6 +6,10 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
 import type { ReviewSource } from "@/generated/prisma/client";
+import {
+  parseEstimateIncrease,
+  aggregateEstimateIncrease,
+} from "@/server/actions/review-schema";
 
 interface ReviewSummary {
   summary: string;
@@ -13,6 +17,7 @@ interface ReviewSummary {
   strengths: string[];
   concerns: string[];
   suggestedScores: Record<string, number>;
+  estimateIncrease?: unknown;
 }
 
 export async function analyzeVenueReviews(
@@ -130,12 +135,16 @@ export async function analyzeVenueReviews(
     };
     const isNegative = result.concerns.length > result.strengths.length;
 
+    // Parse estimate-increase payload (optional, AI-extracted)
+    const estimateIncrease = parseEstimateIncrease(result.estimateIncrease);
+
     // Save or update review record
     const reviewData = {
       aiSummary: result.summary,
       sentiment: result.sentiment,
       categorySummary,
       isNegative,
+      estimateIncrease: estimateIncrease ?? undefined,
       rating: result.suggestedScores?.reviews ? result.suggestedScores.reviews : null,
     };
 
@@ -154,6 +163,9 @@ export async function analyzeVenueReviews(
         },
       });
     }
+
+    // Recompute aggregate venue-level estimate-increase stats from all reviews
+    await recomputeVenueReviewEstimate(venueId);
 
     // Save AI-generated per-dimension scores to VenueScore
     // Source: "ai_analysis" so they don't conflict with user ratings
@@ -210,4 +222,92 @@ export async function getVenueReviews(venueId: string) {
     where: { venueId, venue: { projectId } },
     orderBy: { fetchedAt: "desc" },
   });
+}
+
+/**
+ * Fetch the venue-level aggregated review-based estimate-increase
+ * stats for a single venue (populated by recomputeVenueReviewEstimate).
+ */
+export async function getVenueReviewEstimateAggregate(venueId: string): Promise<{
+  deltaYen: number | null;
+  deltaPct: number | null;
+  sampleCount: number | null;
+} | null> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venue = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+    select: {
+      reviewEstimateDeltaYen: true,
+      reviewEstimateDeltaPct: true,
+      reviewEstimateSampleCount: true,
+    },
+  });
+  if (!venue) return null;
+  return {
+    deltaYen: venue.reviewEstimateDeltaYen,
+    deltaPct: venue.reviewEstimateDeltaPct ? Number(venue.reviewEstimateDeltaPct) : null,
+    sampleCount: venue.reviewEstimateSampleCount,
+  };
+}
+
+/**
+ * Aggregate all reviews of a venue that carry estimateIncrease data
+ * and update venue-level columns (avg deltaYen/Pct, sample count).
+ * Called internally after review upsert; not guarded by auth so it can
+ * be reused from trusted server code. Exported primarily for testability.
+ */
+export async function recomputeVenueReviewEstimate(venueId: string): Promise<{
+  deltaYen: number | null;
+  deltaPct: number | null;
+  sampleCount: number;
+}> {
+  const reviews = await prisma.review.findMany({
+    where: { venueId, estimateIncrease: { not: undefined } },
+    select: { estimateIncrease: true },
+  });
+
+  const parsed = reviews.map((r) => parseEstimateIncrease(r.estimateIncrease));
+  const { deltaYen, deltaPct, sampleCount } = aggregateEstimateIncrease(parsed);
+
+  await prisma.venue.update({
+    where: { id: venueId },
+    data: {
+      reviewEstimateDeltaYen: deltaYen,
+      reviewEstimateDeltaPct: deltaPct,
+      reviewEstimateSampleCount: sampleCount > 0 ? sampleCount : null,
+    },
+  });
+
+  return { deltaYen, deltaPct, sampleCount };
+}
+
+/**
+ * Manual entry/override of estimateIncrease on a single review.
+ * UI is not wired yet; this is the back-end hook for future use.
+ */
+export async function updateReviewEstimateIncrease(
+  reviewId: string,
+  data: unknown,
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const review = await prisma.review.findFirst({
+    where: { id: reviewId, venue: { projectId } },
+    select: { id: true, venueId: true },
+  });
+  if (!review) return { success: false, error: "口コミが見つかりません" };
+
+  const parsed = parseEstimateIncrease(data);
+  // Allow clearing by passing null/empty — translate to Prisma JsonNull via undefined+explicit null
+  await prisma.review.update({
+    where: { id: review.id },
+    data: { estimateIncrease: parsed ?? undefined },
+  });
+
+  await recomputeVenueReviewEstimate(review.venueId);
+  revalidatePath(`/venues/${review.venueId}`);
+  return { success: true };
 }

@@ -189,6 +189,9 @@ model Venue {
   dressBringIn   DressBringIn? @map("dress_bring_in")
   dressBringInFee Int?       @map("dress_bring_in_fee")
   paymentMethods String[]    @default([]) @map("payment_methods")
+  reviewEstimateDeltaYen    Int?     @map("review_estimate_delta_yen")
+  reviewEstimateDeltaPct    Decimal? @map("review_estimate_delta_pct") @db.Decimal(5, 2)
+  reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
@@ -437,6 +440,7 @@ model Review {
   sentiment       Json?
   categorySummary Json?        @map("category_summary")
   isNegative      Boolean      @default(false) @map("is_negative")
+  estimateIncrease Json?       @map("estimate_increase")
   fetchedAt       DateTime     @default(now()) @map("fetched_at")
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)

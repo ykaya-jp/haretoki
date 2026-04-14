@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getVenue } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
-import { getVenueReviews } from "@/server/actions/reviews";
+import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actions/reviews";
 import { getVenuePlans } from "@/server/actions/plans";
 import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
 import { VenueHeader } from "@/components/venues/venue-header";
@@ -196,7 +196,10 @@ async function RatingWithPartner({
 }
 
 async function ReviewsContent({ venueId }: { venueId: string }) {
-  const reviews = await getVenueReviews(venueId);
+  const [reviews, venueAgg] = await Promise.all([
+    getVenueReviews(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
   return (
     <ReviewSection
       venueId={venueId}
@@ -209,7 +212,14 @@ async function ReviewsContent({ venueId }: { venueId: string }) {
         rating: r.rating ? Number(r.rating) : null,
         categorySummary: r.categorySummary as Record<string, string> | null,
         isNegative: r.isNegative,
+        estimateIncrease: r.estimateIncrease as {
+          deltaYen?: number;
+          deltaPct?: number;
+          confidence?: "high" | "medium" | "low";
+          note?: string;
+        } | null,
       }))}
+      venueEstimateAggregate={venueAgg}
     />
   );
 }
