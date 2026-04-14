@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Cloud, CloudSun, Sun, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface JourneyCardProps {
   totalVenues: number;
@@ -17,6 +17,7 @@ function getJourneyState(props: JourneyCardProps) {
 
   if (hasDecision) {
     return {
+      stage: "sunny" as const,
       icon: Sun,
       iconColor: "text-[var(--gold-warm)]",
       message: "おめでとうございます、晴れの日です",
@@ -26,6 +27,7 @@ function getJourneyState(props: JourneyCardProps) {
   }
   if (favoriteCount >= 2) {
     return {
+      stage: "partly-warm" as const,
       icon: CloudSun,
       iconColor: "text-[var(--gold-warm)]",
       message: "晴れ間が見えてきました",
@@ -35,6 +37,7 @@ function getJourneyState(props: JourneyCardProps) {
   }
   if (favoriteCount === 1) {
     return {
+      stage: "partly" as const,
       icon: CloudSun,
       iconColor: "text-muted-foreground",
       message: "素敵な式場が見つかりましたね",
@@ -44,6 +47,7 @@ function getJourneyState(props: JourneyCardProps) {
   }
   if (visitedVenues > 0) {
     return {
+      stage: "visited" as const,
       icon: CloudSun,
       iconColor: "text-muted-foreground",
       message: "見学おつかれさまでした",
@@ -53,6 +57,7 @@ function getJourneyState(props: JourneyCardProps) {
   }
   if (totalVenues > 0) {
     return {
+      stage: "cloudy" as const,
       icon: Cloud,
       iconColor: "text-muted-foreground",
       message: "気になる式場がありますね",
@@ -61,6 +66,7 @@ function getJourneyState(props: JourneyCardProps) {
     };
   }
   return {
+    stage: "empty" as const,
     icon: Cloud,
     iconColor: "text-muted-foreground",
     message: "式場探しをはじめてみませんか",
@@ -72,6 +78,7 @@ function getJourneyState(props: JourneyCardProps) {
 export function JourneyCard(props: JourneyCardProps) {
   const state = getJourneyState(props);
   const Icon = state.icon;
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <motion.div
@@ -81,16 +88,21 @@ export function JourneyCard(props: JourneyCardProps) {
       className="rounded-2xl bg-gradient-to-br from-card via-card to-[var(--gold-subtle)] p-6 shadow-[var(--shadow-card)]"
     >
       <div className="flex items-center gap-3 mb-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
+        <motion.div
+          key={state.stage}
+          animate={shouldReduceMotion ? undefined : { scale: [1, 1.12, 1] }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--gold-subtle)]"
+        >
           <Icon className={`h-8 w-8 ${state.iconColor}`} />
-        </div>
+        </motion.div>
         <h3 className="font-serif text-lg tracking-[0.03em]">{state.message}</h3>
       </div>
       <p className="text-sm text-muted-foreground mb-5">{state.summary}</p>
       {state.cta && (
         <Link
           href={state.cta.href}
-          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-400 ease-out active:scale-[0.97] hover:shadow-md"
+          className="inline-flex items-center gap-1.5 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 ease-out active:scale-[0.97] hover:shadow-md"
         >
           {state.cta.label}
           <Sparkles className="h-4 w-4" />

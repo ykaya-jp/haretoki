@@ -78,6 +78,7 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3", onAddPhotoClic
           src={photos[0]}
           alt={`${alt} - 写真`}
           fill
+          priority
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
@@ -107,6 +108,7 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3", onAddPhotoClic
                 src={photo}
                 alt={`${alt} - 写真 ${index + 1}`}
                 fill
+                priority={index === 0}
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />

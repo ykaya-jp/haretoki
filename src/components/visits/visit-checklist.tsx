@@ -113,7 +113,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
             <button
               type="button"
               onClick={() => toggleCategory(cat)}
-              className="flex w-full min-h-[48px] items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors duration-400 active:bg-muted"
+              className="flex w-full min-h-[48px] items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors duration-200 active:bg-muted"
             >
               <span className="text-sm font-medium">{getCategoryLabel(cat)}</span>
               <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                               aria-label={`${item.item}: ${item.status === "yes" ? "よかった" : item.status === "no" ? "気になった" : "まだ見ていない"}`}
                             >
                               <div className={cn(
-                                "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-400",
+                                "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-200",
                                 item.status === "yes" ? "border-green-500 bg-green-500 text-white" :
                                 item.status === "no" ? "border-red-400 bg-red-50 text-red-500" :
                                 "border-muted-foreground/30 bg-card"
@@ -181,7 +181,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                 type="button"
                                 onClick={() => toggleMemo(item.id)}
                                 className={cn(
-                                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-400",
+                                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
                                   memoExpanded || item.memo ? "text-primary" : "text-muted-foreground/50",
                                   "active:bg-muted"
                                 )}

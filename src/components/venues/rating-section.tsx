@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Star } from "lucide-react";
+import { Star, Check } from "lucide-react";
 import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS, DIMENSION_HELP } from "@/lib/constants";
 import { saveDirectRatings } from "@/server/actions/ratings";
@@ -27,7 +28,9 @@ export function RatingSection({
   partnerRatings,
 }: RatingSectionProps) {
   const [ratings, setRatings] = useState<Record<string, number>>(initialRatings);
+  const [justSaved, setJustSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const debouncedSave = useCallback(
     (newRatings: Record<string, number>) => {
@@ -37,7 +40,11 @@ export function RatingSection({
           const result = await saveDirectRatings(venueId, { ratings: newRatings });
           if (!result.success) {
             toast.error("評価の保存に失敗しました");
+            return;
           }
+          setJustSaved(true);
+          if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+          savedTimerRef.current = setTimeout(() => setJustSaved(false), 1000);
         } catch {
           toast.error("評価の保存に失敗しました");
         }
@@ -53,8 +60,22 @@ export function RatingSection({
   };
 
   return (
-    <section className="space-y-4">
+    <section className="relative space-y-4">
       <h2 className="text-base">評価</h2>
+      <AnimatePresence>
+        {justSaved && (
+          <motion.span
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute top-0 right-0 text-xs text-green-600 dark:text-green-400 flex items-center gap-1"
+            aria-live="polite"
+          >
+            <Check className="h-3 w-3" /> 保存しました
+          </motion.span>
+        )}
+      </AnimatePresence>
       {TIER1_DIMENSIONS.map((dim) => {
         const value = ratings[dim] ?? 0;
         const partnerValue = partnerRatings?.[dim];

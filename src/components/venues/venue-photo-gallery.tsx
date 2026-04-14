@@ -76,12 +76,12 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
             type="button"
             onClick={triggerPicker}
             disabled={uploading}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--gold-subtle)] px-4 py-2 text-xs font-medium text-[var(--gold-warm)] transition-all duration-200 hover:bg-[var(--gold-warm)]/20 active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--gold-warm)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-[var(--gold-warm)]/90 active:scale-95 disabled:opacity-50"
           >
             {uploading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Camera className="h-3.5 w-3.5" />
+              <Camera className="h-4 w-4" />
             )}
             {uploading ? "アップロード中..." : "写真を追加"}
           </button>

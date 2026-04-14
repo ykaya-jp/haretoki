@@ -46,7 +46,7 @@ export function PlanSection({ plans }: PlanSectionProps) {
             <button
               type="button"
               onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-400 active:bg-muted/50"
+              className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-200 active:bg-muted/50"
             >
               <div className="flex-1 min-w-0">
                 <p className="font-serif text-base font-normal truncate">{plan.name}</p>

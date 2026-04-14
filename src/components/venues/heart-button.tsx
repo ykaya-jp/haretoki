@@ -41,13 +41,13 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
       aria-label={optimisticFavorite ? "お気に入りから外す" : "お気に入りに追加"}
       className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-colors hover:bg-white active:bg-white/60"
       whileTap={{ scale: 1.15 }}
-      transition={{ type: "spring", stiffness: 100, damping: 16 }}
+      transition={{ type: "spring", stiffness: 200, damping: 12 }}
     >
       <motion.div
         key={optimisticFavorite ? "filled" : "empty"}
         initial={{ scale: 0.3 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 110, damping: 14 }}
+        transition={{ type: "spring", stiffness: 200, damping: 12 }}
       >
         <Heart
           className={cn(

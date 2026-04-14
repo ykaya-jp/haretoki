@@ -22,10 +22,10 @@ export function FilterChips({ chips, onToggle }: FilterChipsProps) {
           type="button"
           onClick={() => onToggle(chip.id)}
           className={cn(
-            "min-h-[44px] whitespace-nowrap rounded-full border px-4 text-sm transition-all duration-300 ease-out active:scale-[0.96]",
+            "min-h-[44px] whitespace-nowrap rounded-full border px-4 text-sm transition-all duration-150 ease-out active:scale-95",
             chip.active
               ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-card text-foreground"
+              : "border-border bg-card text-foreground hover:bg-muted hover:border-foreground/20"
           )}
         >
           {chip.label}

@@ -221,7 +221,7 @@
   a[data-slot="button"] {
     letter-spacing: 0.04em;
     font-weight: 500;
-    transition: all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   button[data-slot="button"]:not(:disabled):hover,
   a[data-slot="button"]:not(:disabled):hover {

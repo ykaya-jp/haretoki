@@ -87,7 +87,7 @@ export function ReviewSection({ venueId, reviews }: ReviewSectionProps) {
               type="button"
               onClick={() => setShowNegativeFirst(!showNegativeFirst)}
               className={cn(
-                "flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-400 active:scale-[0.98]",
+                "flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-200 active:scale-[0.98]",
                 showNegativeFirst
                   ? "border-red-200 bg-red-50 text-red-700"
                   : "border-border bg-card text-muted-foreground"

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { Sparkles, Receipt, Users, ClipboardCheck, BarChart3, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { LucideIcon } from "lucide-react";
 
 type InsightType = "estimate" | "partner" | "visit" | "comparison" | "reminder";
@@ -43,13 +45,9 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {actions.map((action) => (
-            <a
-              key={action.href}
-              href={action.href}
-              className="inline-flex h-9 items-center rounded-full border border-[var(--gold-warm)]/20 bg-card px-4 text-sm font-medium text-[var(--gold-warm)] transition-colors hover:bg-[var(--gold-warm)]/5 active:scale-[0.97]"
-            >
-              {action.label}
-            </a>
+            <Button key={action.href} asChild size="default" variant="secondary" className="rounded-full px-4">
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
           ))}
         </div>
       )}
