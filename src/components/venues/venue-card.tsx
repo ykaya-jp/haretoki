@@ -105,10 +105,13 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
           </p>
         )}
 
-        {/* Style tags + dress info */}
-        {(venue.ceremonyStyles.length > 0 || venue.dressBringIn) && (
+        {/* Style tags + dress info — both fields are optional at the type
+            level because some callers (e.g. /candidates favorites loader)
+            stripped them previously; fall back to empty list / null so the
+            render can't crash if a consumer forgets to map them through. */}
+        {((venue.ceremonyStyles?.length ?? 0) > 0 || venue.dressBringIn) && (
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {venue.ceremonyStyles.map((style) => (
+            {(venue.ceremonyStyles ?? []).map((style) => (
               <span
                 key={style}
                 className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground"

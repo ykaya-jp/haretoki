@@ -47,6 +47,8 @@ interface FavoriteVenue {
     location: string | null;
     photoUrls: string[];
     status: string;
+    ceremonyStyles: string[];
+    dressBringIn: string | null;
     scores: Array<{ dimension: string; score: number; source: string }>;
   };
   favoritedBy: string[];
@@ -114,6 +116,8 @@ async function fetchFavorites(
           location: fav.venue.location,
           photoUrls: fav.venue.photoUrls,
           status: fav.venue.status,
+          ceremonyStyles: fav.venue.ceremonyStyles ?? [],
+          dressBringIn: fav.venue.dressBringIn ?? null,
           scores: fav.venue.scores.map((s) => ({
             dimension: s.dimension,
             score: Number(s.score),
