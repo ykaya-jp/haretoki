@@ -5,7 +5,7 @@ import { analyzeVenueReviews } from "@/server/actions/reviews";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, AlertTriangle } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -74,9 +74,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   negative_points: "気になる点",
 };
 
+type SortMode = "latest" | "highest" | "concerns";
+
+const SORT_CHIPS: { value: SortMode; label: string }[] = [
+  { value: "latest", label: "最新" },
+  { value: "highest", label: "評価高い" },
+  { value: "concerns", label: "気になる点から" },
+];
+
 export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: ReviewSectionProps) {
   const [showForm, setShowForm] = useState(false);
-  const [showNegativeFirst, setShowNegativeFirst] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [url, setUrl] = useState("");
   const [source, setSource] = useState<ReviewSource>("zexy");
   const [isPending, startTransition] = useTransition();
@@ -84,20 +92,19 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
 
   const sortedReviews = useMemo(() => {
     const filtered = reviews.filter(r => r.aiSummary);
-    if (showNegativeFirst) {
+    if (sortMode === "concerns") {
       return [...filtered].sort((a, b) => {
         if (a.isNegative && !b.isNegative) return -1;
         if (!a.isNegative && b.isNegative) return 1;
         return 0;
       });
     }
+    if (sortMode === "highest") {
+      return [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    }
+    // "latest" — keep original order (server returns newest first)
     return filtered;
-  }, [reviews, showNegativeFirst]);
-
-  const hasNegativeReviews = useMemo(
-    () => reviews.some((r) => r.isNegative),
-    [reviews],
-  );
+  }, [reviews, sortMode]);
 
   const handleAnalyze = () => {
     if (!url.trim()) return;
@@ -118,41 +125,38 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base">口コミのまとめ</h2>
-        <div className="flex items-center gap-2">
-          {reviews.length > 0 && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowForm(!showForm)}
+          className="gap-1"
+        >
+          <Plus className="h-4 w-4" />
+          追加
+        </Button>
+      </div>
+
+      {/* Sort chips — shown only when there are reviews */}
+      {reviews.length > 0 && (
+        <div className="flex gap-2" role="group" aria-label="口コミの並び順">
+          {SORT_CHIPS.map((chip) => (
             <button
+              key={chip.value}
               type="button"
-              onClick={() => setShowNegativeFirst(!showNegativeFirst)}
-              disabled={!hasNegativeReviews}
-              title={
-                hasNegativeReviews
-                  ? "ネガティブな口コミを先頭に並べ替えます"
-                  : "ネガティブな口コミがまだありません"
-              }
-              aria-pressed={showNegativeFirst}
+              onClick={() => setSortMode(chip.value)}
+              aria-pressed={sortMode === chip.value}
               className={cn(
-                "flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-200 active:scale-[0.98]",
-                "disabled:cursor-not-allowed disabled:opacity-50",
-                showNegativeFirst
-                  ? "border-destructive/20 bg-destructive/10 text-destructive"
+                "h-9 rounded-full border px-4 text-xs transition-all duration-200 active:scale-[0.98]",
+                sortMode === chip.value
+                  ? "border-foreground bg-foreground text-background"
                   : "border-border bg-card text-muted-foreground"
               )}
             >
-              <AlertTriangle className="h-3 w-3" />
-              ネガティブを先頭に
+              {chip.label}
             </button>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowForm(!showForm)}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            追加
-          </Button>
+          ))}
         </div>
-      </div>
+      )}
 
       {showForm && (
         <div className="space-y-3 rounded-lg border border-border p-4">
