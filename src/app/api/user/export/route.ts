@@ -3,8 +3,6 @@ import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth";
 import { buildUserExportBundle } from "@/server/actions/user-data";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 // GDPR Article 20 — Right to data portability.
 // Returns the authenticated user's entire data footprint (profile + project

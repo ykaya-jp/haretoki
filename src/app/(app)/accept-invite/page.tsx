@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getPendingInvitation } from "@/server/actions/invitations";
 import { AcceptInviteForm } from "./accept-invite-form";
+import AcceptInviteLoading from "./loading";
 
-export default async function AcceptInvitePage() {
+async function AcceptInviteContent() {
   const invitation = await getPendingInvitation();
 
   if (!invitation) {
@@ -25,5 +27,13 @@ export default async function AcceptInvitePage() {
         <AcceptInviteForm invitationId={invitation.id} />
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={<AcceptInviteLoading />}>
+      <AcceptInviteContent />
+    </Suspense>
   );
 }

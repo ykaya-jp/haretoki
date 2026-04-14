@@ -38,6 +38,7 @@ vi.mock("@/server/auth", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+  revalidateTag: vi.fn(),
 }));
 
 describe("estimateIncreaseSchema", () => {

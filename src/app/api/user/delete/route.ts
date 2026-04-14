@@ -5,8 +5,6 @@ import { requireUser } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
 import { deleteUserAccount } from "@/server/actions/user-data";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const BodySchema = z.object({
   confirm: z.literal(true),

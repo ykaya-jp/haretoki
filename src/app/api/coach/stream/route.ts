@@ -9,8 +9,6 @@ import {
 } from "@/lib/anthropic";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const BodySchema = z.object({
   message: z.string().min(1).max(500),

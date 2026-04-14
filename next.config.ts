@@ -6,14 +6,18 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion"],
-  },
+  // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
+  cacheComponents: true,
   images: {
     remotePatterns: [
       // Supabase Storage — venue photos, avatars, PDFs
       { protocol: "https", hostname: "*.supabase.co" },
     ],
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+    // React View Transitions API (P1-6)
+    viewTransition: true,
   },
   async redirects() {
     return [

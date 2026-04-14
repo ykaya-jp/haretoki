@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
@@ -42,6 +42,7 @@ export async function createVenue(input: VenueInput) {
     },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
 
@@ -178,6 +179,7 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
     data: { status },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath(`/venues/${id}`);
 
@@ -246,6 +248,7 @@ export async function uploadVenuePhotos(
       where: { id: venueForUpload.id },
       data: { photoUrls: { push: urls } },
     });
+    revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath(`/venues/${venueForUpload.id}`);
   }
 
@@ -488,6 +491,7 @@ export async function confirmVenueFromUrl(
     },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
 
@@ -534,7 +538,7 @@ export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
   skipped: string[];
 }> {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   if (urls.length === 0) {
     return { results: [], skipped: [] };
@@ -565,6 +569,7 @@ export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
     }
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
 

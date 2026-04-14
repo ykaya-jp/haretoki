@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
@@ -207,6 +207,7 @@ export async function analyzeVenueReviews(
       },
     });
 
+    revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath(`/venues/${venueId}`);
     return { success: true };
   } catch {
@@ -308,6 +309,7 @@ export async function updateReviewEstimateIncrease(
   });
 
   await recomputeVenueReviewEstimate(review.venueId);
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${review.venueId}`);
   return { success: true };
 }

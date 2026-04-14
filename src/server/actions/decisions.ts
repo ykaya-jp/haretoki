@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   requireUser,
   requireProjectMembership,
@@ -58,6 +58,7 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
     throw err;
   }
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/candidates");
   revalidatePath("/home");
   revalidatePath("/explore");
