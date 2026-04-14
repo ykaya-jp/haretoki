@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VenueFilters } from "@/server/actions/venue-filters";
+import { paymentMethodOptions, type PaymentMethod } from "@/lib/payment";
 
 interface VenueFilterSheetProps {
   filters: VenueFilters;
@@ -40,11 +41,9 @@ const DRESS_OPTIONS = [
   { value: "negotiable", label: "要相談" },
 ] as const;
 
-const PAYMENT_OPTIONS = [
-  { value: "カード", label: "カード" },
-  { value: "現金", label: "現金" },
-  { value: "分割", label: "分割" },
-] as const;
+const PAYMENT_OPTIONS = paymentMethodOptions();
+
+const DEFAULT_MIN_INSTALLMENTS = 3;
 
 const DIMENSION_OPTIONS = [
   { value: "atmosphere", label: "雰囲気" },
@@ -84,7 +83,11 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
     setOpen(false);
   };
 
-  const activeCount = Object.values(filters).filter((v) => v !== undefined && v !== "").length;
+  const activeCount = Object.values(filters).filter((v) => {
+    if (v === undefined || v === "") return false;
+    if (Array.isArray(v)) return v.length > 0;
+    return true;
+  }).length;
 
   return (
     <Sheet open={open} onOpenChange={handleOpen}>
@@ -432,31 +435,80 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
             </label>
           </div>
 
-          {/* Payment methods */}
+          {/* Payment methods — multi-select over the new PaymentMethod enum. */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">支払い方法</Label>
             <div className="flex flex-wrap gap-2">
-              {PAYMENT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() =>
-                    setDraft((d) => ({
-                      ...d,
-                      paymentMethod: d.paymentMethod === opt.value ? undefined : opt.value,
-                    }))
-                  }
-                  className={cn(
-                    "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
-                    draft.paymentMethod === opt.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-foreground"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {PAYMENT_OPTIONS.map((opt) => {
+                const selected = draft.paymentMethodEnums ?? [];
+                const isActive = selected.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() =>
+                      setDraft((d) => {
+                        const cur = d.paymentMethodEnums ?? [];
+                        const next: PaymentMethod[] = isActive
+                          ? cur.filter((v) => v !== opt.value)
+                          : [...cur, opt.value];
+                        // When 分割 is toggled off, also clear the min-installments rider.
+                        const clearMin =
+                          opt.value === "installment" && isActive;
+                        return {
+                          ...d,
+                          paymentMethodEnums: next.length > 0 ? next : undefined,
+                          ...(clearMin ? { maxInstallmentsMin: undefined } : {}),
+                        };
+                      })
+                    }
+                    className={cn(
+                      "min-h-[44px] rounded-full border px-4 text-sm font-light transition-colors active:scale-95",
+                      isActive
+                        ? "border-[var(--gold-warm)] bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+                        : "border-border bg-card text-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
+
+            {draft.paymentMethodEnums?.includes("installment") && (
+              <div className="space-y-2 rounded-xl border-l-[3px] border-[var(--gold-warm)] bg-[var(--gold-subtle)] px-3 py-2">
+                <Label
+                  htmlFor="max-installments-min"
+                  className="text-xs font-light text-muted-foreground"
+                >
+                  最低 N 回以上の分割が可能な式場のみ
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="max-installments-min"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={60}
+                    placeholder={String(DEFAULT_MIN_INSTALLMENTS)}
+                    value={draft.maxInstallmentsMin ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setDraft((d) => ({
+                        ...d,
+                        maxInstallmentsMin: raw
+                          ? Math.max(1, parseInt(raw, 10))
+                          : undefined,
+                      }));
+                    }}
+                    className="w-24 tabular-nums"
+                  />
+                  <span className="text-sm font-light text-muted-foreground">
+                    回以上
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

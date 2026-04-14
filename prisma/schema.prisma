@@ -122,6 +122,13 @@ enum MessageRole {
   assistant
 }
 
+enum PaymentMethod {
+  credit_card
+  cash
+  bank_transfer
+  installment
+}
+
 model User {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email     String   @unique
@@ -188,7 +195,14 @@ model Venue {
   costMax        Int?        @map("cost_max")
   dressBringIn   DressBringIn? @map("dress_bring_in")
   dressBringInFee Int?       @map("dress_bring_in_fee")
-  paymentMethods String[]    @default([]) @map("payment_methods")
+  /// @deprecated Free-text legacy column. Retained for data preservation — new
+  /// reads/filters should use `paymentMethodEnums`. Left un-dropped so historical
+  /// free-text values (e.g. "カード", "分割 12回") remain queryable during the
+  /// transition window (R1.5c → R2).
+  paymentMethods     String[]        @default([]) @map("payment_methods")
+  paymentMethodEnums PaymentMethod[] @default([]) @map("payment_method_enums")
+  /// Max allowed installment count. Null = unknown or not supported.
+  maxInstallments    Int?            @map("max_installments")
   reviewEstimateDeltaYen    Int?     @map("review_estimate_delta_yen")
   reviewEstimateDeltaPct    Decimal? @map("review_estimate_delta_pct") @db.Decimal(5, 2)
   reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")

@@ -6,6 +6,8 @@
  * DATABASE_URL at module-init time).
  */
 
+import type { PaymentMethod } from "@/lib/payment";
+
 export interface VenueFilters {
   status?: string;
   minScore?: number;
@@ -21,7 +23,17 @@ export interface VenueFilters {
   dressBringInFeeFreeOnly?: boolean;
   /** When true, also include venues whose dressBringIn status is "negotiable", regardless of fee. */
   dressBringInIncludeNegotiable?: boolean;
+  /**
+   * @deprecated Use `paymentMethodEnums` instead. Kept for backward compat with
+   * old URL params / saved views during the R1.5c → R2 transition. When set,
+   * falls back to a `has` match against the legacy free-text `paymentMethods`
+   * column so pre-migration rows remain queryable.
+   */
   paymentMethod?: string;
+  /** Canonical multi-select filter over `Venue.paymentMethodEnums`. */
+  paymentMethodEnums?: PaymentMethod[];
+  /** Lower bound (inclusive) on `Venue.maxInstallments` — "分割 N 回以上". */
+  maxInstallmentsMin?: number;
   /**
    * Cap on review-derived estimate-increase percent (`Venue.reviewEstimateDeltaPct`).
    * When set, venues with null deltaPct are implicitly excluded (Prisma `lte` semantics).
@@ -113,6 +125,14 @@ export function buildVenueWhere(
     }
   }
 
+  if (filters?.paymentMethodEnums && filters.paymentMethodEnums.length > 0) {
+    where.paymentMethodEnums = { hasSome: filters.paymentMethodEnums };
+  }
+  if (filters?.maxInstallmentsMin !== undefined) {
+    where.maxInstallments = { gte: filters.maxInstallmentsMin };
+  }
+  // Legacy free-text path — kept so saved filter states from before R1.5c still
+  // work. New UI should populate `paymentMethodEnums` instead.
   if (filters?.paymentMethod) {
     where.paymentMethods = { has: filters.paymentMethod };
   }
