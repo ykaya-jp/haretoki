@@ -8,6 +8,7 @@
 ブランドメタファー: 曇り（不安）→ 晴れ間（見えてきた）→ 晴れの日（確信と喜び）
 
 ## Roadmap & Design Docs
+- IMPORTANT: [docs/myreview/remediation-master-plan.md](docs/myreview/remediation-master-plan.md) — 実ユーザー(妻)フィードバックに基づく改善計画。Phase 0 完了済み(2026-04-14)、Phase 1-4 進行中。次フェーズ着手時はここを参照
 - IMPORTANT: [docs/roadmap.md](docs/roadmap.md) — 統合ロードマップ（Release 1-4）。機能スコープとAI境界の判断はここを参照
 - IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム v3 "Morning Light"（Single Source of Truth）
 - [docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md](docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md) — 全画面UI仕様

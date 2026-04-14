@@ -66,7 +66,15 @@ test.describe("Auth Pages — Design Quality", () => {
     await page.goto("/signup");
     await page.locator('a[href="/login"]').click();
     await page.waitForURL("**/login");
-    await expect(page.locator('input[id="email"]')).toBeVisible();
+    // Next 16 App Router soft-nav + cacheComponents may briefly keep the
+    // previous /signup form in the DOM. Scope assertions to the visible
+    // login page via headings + role-based lookups rather than raw #email.
+    await expect(
+      page.getByRole("heading", { name: "ログイン" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "ログイン", exact: true }),
+    ).toBeVisible();
   });
 
   test("login form shows error on invalid credentials", async ({ page }) => {
