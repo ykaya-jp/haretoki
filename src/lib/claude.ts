@@ -8,7 +8,8 @@ export async function askClaude(
 ): Promise<string | null> {
   try {
     return await askClaudeNew({ system: systemPrompt, userMessage });
-  } catch {
+  } catch (err) {
+    console.error("[claude] askClaude failed:", err);
     return null;
   }
 }

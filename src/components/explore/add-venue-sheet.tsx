@@ -109,7 +109,10 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
       if (result.error) {
         // Prefer the server-provided specific cause (HTTP status, timeout,
         // JS-required page, etc.) so the user knows what actually went wrong.
-        toast.info(result.error || "URLから取得できませんでした。手入力に切り替えました");
+        toast.info(result.error || "URLから取得できませんでした。手入力に切り替えました", {
+          duration: 3500,
+        });
+        setUrl("");
         setTab("manual");
       } else if (result.extracted) {
         setExtracted(result.extracted);
@@ -243,17 +246,23 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
 
           <TabsContent value="url" className="space-y-4 pt-4">
             {!extracted ? (
-              <>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!loading && url.trim()) handleUrlSubmit();
+                }}
+              >
                 <div className="space-y-2">
-                  <Label>式場ページのURLを貼り付け</Label>
+                  <Label htmlFor="venue-url">式場ページのURLを貼り付け</Label>
                   <div className="flex gap-2">
                     <Input
+                      id="venue-url"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://..."
                       type="url"
                     />
-                    <Button onClick={handleUrlSubmit} disabled={loading || !url.trim()}>
+                    <Button type="submit" disabled={loading || !url.trim()}>
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "読み取る"}
                     </Button>
                   </div>
@@ -261,7 +270,7 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
                     ゼクシィ・ハナユメ・Wedding Park等に対応
                   </p>
                 </div>
-              </>
+              </form>
             ) : (
               <div className="space-y-4">
                 <p className="text-sm font-medium">読み取った情報</p>
@@ -357,6 +366,13 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4 pt-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!loading && manualName.trim()) handleManualSubmit();
+              }}
+              className="space-y-4"
+            >
             <div className="space-y-2">
               <Label htmlFor="venue-name">式場のお名前 *</Label>
               <Input
@@ -422,9 +438,10 @@ export function AddVenueSheet({ defaultOpen = false }: AddVenueSheetProps = {}) 
               </Button>
             </div>
 
-            <Button onClick={handleManualSubmit} disabled={loading || !manualName.trim()} className="w-full">
+            <Button type="submit" disabled={loading || !manualName.trim()} className="w-full">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "この式場を追加"}
             </Button>
+            </form>
           </TabsContent>
         </Tabs>
       </SheetContent>

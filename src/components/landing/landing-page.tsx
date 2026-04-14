@@ -123,6 +123,7 @@ export function LandingPage() {
               alt="Haretoki"
               width={160}
               height={160}
+              priority
               className="h-36 w-36 sm:h-40 sm:w-40"
             />
             <p className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] sm:text-3xl">
@@ -205,7 +206,7 @@ export function LandingPage() {
             {/* Subtle secondary CTA — lets visitors try the app without signing up */}
             <Link
               href="/demo"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground underline decoration-[var(--gold-warm)]/40 decoration-dotted underline-offset-[6px] transition-colors duration-200 hover:text-foreground hover:decoration-[var(--gold-warm)]"
+              className="inline-flex min-h-[44px] items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground underline decoration-[var(--gold-warm)]/40 decoration-dotted underline-offset-[6px] transition-colors duration-200 hover:text-foreground hover:decoration-[var(--gold-warm)]"
             >
               まずは体験してみる
               <ChevronRight className="h-3.5 w-3.5 text-[var(--gold-warm)]" aria-hidden="true" />
@@ -452,17 +453,23 @@ export function LandingPage() {
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             曇りのち、晴れの日へ
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
-            <Link href="/login" className="transition-colors duration-200 hover:text-foreground">
+          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+            <Link
+              href="/login"
+              className="inline-flex min-h-[44px] items-center px-3 transition-colors duration-200 hover:text-foreground"
+            >
               ログイン
             </Link>
-            <Link href="/signup" className="transition-colors duration-200 hover:text-foreground">
+            <Link
+              href="/signup"
+              className="inline-flex min-h-[44px] items-center px-3 transition-colors duration-200 hover:text-foreground"
+            >
               新規登録
             </Link>
-            <span className="cursor-not-allowed text-muted-foreground opacity-60">
+            <span className="inline-flex min-h-[44px] cursor-not-allowed items-center px-3 text-muted-foreground opacity-60">
               利用規約（準備中）
             </span>
-            <span className="cursor-not-allowed text-muted-foreground opacity-60">
+            <span className="inline-flex min-h-[44px] cursor-not-allowed items-center px-3 text-muted-foreground opacity-60">
               プライバシーポリシー（準備中）
             </span>
           </div>

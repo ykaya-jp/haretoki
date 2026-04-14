@@ -228,6 +228,12 @@ DESIGN.md の差分アップデート案は UX計画書 §2 後半。
 | コーチ#2 | 比較するエラー | Phase 0 | H0-1 |
 | マイページ#1 | うまくいきません | Phase 0 | H0-1, H0-4 |
 | 共通#1 | 遷移/リロード遅い | Phase 1 | P1-1 〜 P1-7 |
+| 妻W-1 | カテゴリ別☆ソート無し | Phase 2 | W-1（venue-filters拡張） |
+| 妻W-2 | 持ち込み料一覧UI | Phase 2 | W-2 |
+| 妻W-3 | ウォーターフォール信頼度 | Phase 2 | W-3 |
+| 妻W-4 | 候補比較の写真横並び | Phase 2 | W-4 |
+| 妻W-5 | 総合☆の外部ソース混合 | Phase 2 | W-5 |
+| 妻W-6 | ポジ/ネガ件数バランス | Phase 2 | W-6 |
 
 ---
 
@@ -288,6 +294,23 @@ DESIGN.md の差分アップデート案は UX計画書 §2 後半。
 | H0-5 | `src/components/venues/rating-section.tsx` | 44–46 | `result.error` を toast に含める |
 | H0-6 | `src/components/explore/add-venue-sheet.tsx` | 109–113 | `setUrl("")` + `toast.info(msg, { duration: 3000 })` |
 | H0-7 | `src/components/venues/review-section.tsx` | 118–131 | ラベル・Tooltip・ゼロ件disable |
+
+---
+
+## Appendix B-2 — 妻要望（wife-requirements.md）ギャップ対応
+
+調査結果: 妻要望の主要機能（ソート・フィルタ / 口コミ要約 / プラン透明化 / 6カテゴリチェックリスト / ウォーターフォール）は**ほぼ全て実装済み**。真の未実装項目は無く、5件の軽微な「部分実装」のみ。以下を Phase 2 後半に組み込む。
+
+| # | ギャップ | 対象 | 対応 | 難易度 |
+|---|---|---|---|---|
+| W-1 | カテゴリ別☆評価でのソートが無い（フィルタはあり） | `src/server/actions/venue-filters.ts:48-53` sortBy enum / `venue-filter-sheet.tsx` | `score_cuisine_desc`, `score_service_desc`, `score_venue_desc`, `score_cost_desc`, `score_facility_desc` を追加 | S |
+| W-2 | 持ち込み品目ごとの料金一覧UIの網羅性が弱い | `src/components/venues/plan-section.tsx` の `bringInItems` 描画 | `{item, fee?}` を行テーブル（品目／可否／料金）で明示表示 | S |
+| W-3 | 見積もりウォーターフォールのレビュー由来値に信頼度情報が無い | `src/components/venues/estimate-waterfall-chart-impl.tsx` | ReferenceLine に「n=X件の口コミ平均」ラベル、±σバンド追加 | M |
+| W-4 | 候補比較で写真サムネイルの横並び表示が無い（`hasPhotos` フラグのみ） | `src/server/actions/checklist-comparison.ts:20`, `src/components/comparison/checklist-comparison.tsx` | 式場×項目のマトリクスで写真サムネを並べる。タップでライトボックス | M |
+| W-5 | 総合☆評価の算出が `user_rating` ソースのみ。外部ソース（zexy/wedding_park）混合無し | `src/server/actions/venues.ts:107` | `VenueScore` 全ソースの加重平均に拡張。source別のウェイト定義を追加 | M |
+| W-6 | ポジ/ネガ口コミの件数バランス可視化が無い（`isNegative`ソートはある） | `src/components/venues/review-section.tsx` | 口コミセクション冒頭に `ポジ:ネガ = X:Y` の比率バー | S |
+
+**Phase 2 のIA再構築時にまとめて実装**（ソート UI 再設計と同時）。いずれも既存スキーマで対応可能で migration 不要。
 
 ---
 

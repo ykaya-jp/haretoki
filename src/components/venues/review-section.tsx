@@ -94,6 +94,11 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
     return filtered;
   }, [reviews, showNegativeFirst]);
 
+  const hasNegativeReviews = useMemo(
+    () => reviews.some((r) => r.isNegative),
+    [reviews],
+  );
+
   const handleAnalyze = () => {
     if (!url.trim()) return;
     startTransition(async () => {
@@ -118,15 +123,23 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             <button
               type="button"
               onClick={() => setShowNegativeFirst(!showNegativeFirst)}
+              disabled={!hasNegativeReviews}
+              title={
+                hasNegativeReviews
+                  ? "ネガティブな口コミを先頭に並べ替えます"
+                  : "ネガティブな口コミがまだありません"
+              }
+              aria-pressed={showNegativeFirst}
               className={cn(
                 "flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-all duration-200 active:scale-[0.98]",
+                "disabled:cursor-not-allowed disabled:opacity-50",
                 showNegativeFirst
                   ? "border-destructive/20 bg-destructive/10 text-destructive"
                   : "border-border bg-card text-muted-foreground"
               )}
             >
               <AlertTriangle className="h-3 w-3" />
-              気になる点を先に
+              ネガティブを先頭に
             </button>
           )}
           <Button
