@@ -160,6 +160,7 @@ model Project {
   decisions        Decision[]
   partnerReactions PartnerReaction[]
   coachMessages    CoachMessage[]
+  coachSessions    CoachSession[]
 
   @@map("projects")
 }
@@ -470,17 +471,34 @@ model Review {
   @@map("reviews")
 }
 
+model CoachSession {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id") @db.Uuid
+  title     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages CoachMessage[]
+
+  @@index([projectId, updatedAt(sort: Desc)])
+  @@map("coach_sessions")
+}
+
 model CoachMessage {
   id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   projectId String      @map("project_id") @db.Uuid
+  sessionId String?     @map("session_id")
   role      MessageRole
   content   String
   metadata  Json?
   createdAt DateTime    @default(now()) @map("created_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  session CoachSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
+  @@index([sessionId])
   @@map("coach_messages")
 }
 
