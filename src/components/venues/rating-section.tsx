@@ -124,13 +124,16 @@ export function RatingSection({
                   tabIndex={value === n || (value === 0 && n === 1) ? 0 : -1}
                   onClick={() => handleRate(dim, n)}
                   onKeyDown={(e) => {
-                    // Arrow keys / Home / End navigate within the radio group
+                    // Arrow keys / Home / End navigate within the radio group.
+                    // Base the new value on `n` (the focused star index), not
+                    // on the currently-selected `value` — otherwise keyboard
+                    // navigation desyncs from which star actually has focus.
                     if (e.key === "ArrowRight" || e.key === "ArrowUp") {
                       e.preventDefault();
-                      handleRate(dim, Math.min(5, (value || 0) + 1 || n + 1));
+                      handleRate(dim, Math.min(5, n + 1));
                     } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
                       e.preventDefault();
-                      handleRate(dim, Math.max(1, (value || n) - 1));
+                      handleRate(dim, Math.max(1, n - 1));
                     } else if (e.key === "Home") {
                       e.preventDefault();
                       handleRate(dim, 1);

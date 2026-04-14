@@ -173,9 +173,10 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
             <button
               type="button"
               onClick={() => setShowNoteForm(true)}
+              aria-label="メモを追加"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-muted transition-transform active:scale-95"
             >
-              <FileText className="h-5 w-5 text-muted-foreground" />
+              <FileText aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
 
