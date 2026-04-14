@@ -50,6 +50,7 @@ export interface VenueFilters {
   dressBringInFeeMax?: number;
   paymentMethod?: string;
   sortBy?: "score_desc" | "cost_asc" | "cost_desc" | "created_desc";
+  query?: string;
 }
 
 export async function getVenues(filters?: VenueFilters) {
@@ -76,6 +77,13 @@ export async function getVenues(filters?: VenueFilters) {
   }
   if (filters?.paymentMethod) {
     where.paymentMethods = { has: filters.paymentMethod };
+  }
+  if (filters?.query && filters.query.trim().length > 0) {
+    const q = filters.query.trim();
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { location: { contains: q, mode: "insensitive" } },
+    ];
   }
 
   // Build orderBy

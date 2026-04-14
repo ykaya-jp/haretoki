@@ -201,7 +201,7 @@ export default async function VenueDetailPage({
       />
 
       {/* Action Bar */}
-      <VenueActionBar venueId={venue.id} isFavorite={isFavorite} />
+      <VenueActionBar venueId={venue.id} venueName={venue.name} isFavorite={isFavorite} />
     </div>
   );
 }

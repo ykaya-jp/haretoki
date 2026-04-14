@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Heart, MessageSquare } from "lucide-react";
+import { Home, Search, Heart, MessageSquare, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/explore", label: "探す", icon: Search },
   { href: "/candidates", label: "候補", icon: Heart, badgeKey: "candidates" },
   { href: "/coach", label: "コーチ", icon: MessageSquare, badgeKey: "coach" },
+  { href: "/mypage", label: "マイページ", icon: UserCircle2 },
 ];
 
 interface BottomNavProps {
@@ -52,7 +53,7 @@ export function BottomNav({ badges }: BottomNavProps) {
               prefetch
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-w-[64px] flex-col items-center justify-center gap-1 px-3 py-1",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1",
                 "min-h-[48px] transition-colors duration-200 active:bg-muted",
                 isActive ? "text-[var(--gold-warm)]" : "text-muted-foreground"
               )}
@@ -75,7 +76,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   </motion.span>
                 )}
               </div>
-              <span className={cn("text-xs transition-colors duration-200", isActive && "font-medium")}>{item.label}</span>
+              <span className={cn("text-[11px] whitespace-nowrap transition-colors duration-200", isActive && "font-medium")}>{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="bottomNavIndicator"

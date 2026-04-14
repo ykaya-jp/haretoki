@@ -4,8 +4,6 @@ import { Greeting } from "@/components/home/greeting";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { JourneyCard } from "@/components/home/journey-card";
 import { RecentVenues } from "@/components/home/recent-venues";
-import { UserCircle2 } from "lucide-react";
-import Link from "next/link";
 
 export default async function HomePage() {
   const homeData = await getHomeData();
@@ -14,19 +12,8 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Header: greeting + mypage icon */}
-      <div className="flex items-center justify-between">
-        <Greeting userName={homeData.userName} />
-        <Link
-          href="/mypage"
-          prefetch
-          aria-label="マイページ"
-          className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors duration-200 active:bg-muted"
-        >
-          <UserCircle2 className="h-6 w-6 text-muted-foreground" />
-          <span className="text-[10px] text-muted-foreground">マイページ</span>
-        </Link>
-      </div>
+      {/* Greeting */}
+      <Greeting userName={homeData.userName} />
 
       {/* Journey Card — the hero of home */}
       <JourneyCard

@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ═══ View Transitions (supported browsers only) ═══ */
+/* Enables smooth cross-fade between navigations without JS overhead.
+   Unsupported browsers ignore this rule silently.
+   Skipped for users who prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

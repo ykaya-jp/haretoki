@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Star } from "lucide-react";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
@@ -27,10 +27,10 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
   const hasCost = venue.costMin || venue.costMax;
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all duration-400 ease-out hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]">
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all duration-400 ease-out hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98] active:duration-100">
       {/* Photo section — larger, with gradient overlay */}
       <div className="relative">
-        <Link href={`/venues/${venue.id}`}>
+        <PrefetchLink href={`/venues/${venue.id}`}>
           <PhotoCarousel
             photos={venue.photoUrls}
             alt={venue.name}
@@ -40,7 +40,7 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
           {venue.photoUrls.length > 0 && (
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
           )}
-        </Link>
+        </PrefetchLink>
 
         {/* Status badge - top left */}
         <div className="absolute left-3 top-3">
@@ -64,7 +64,7 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
       </div>
 
       {/* Info section — generous padding */}
-      <Link href={`/venues/${venue.id}`} className="block p-6">
+      <PrefetchLink href={`/venues/${venue.id}`} className="block p-6">
         {/* Venue name — serif, larger */}
         <h3 className="truncate font-serif text-lg font-medium tracking-[0.05em]">
           {venue.name}
@@ -124,7 +124,7 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
             )}
           </div>
         )}
-      </Link>
+      </PrefetchLink>
     </div>
   );
 }

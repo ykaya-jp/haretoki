@@ -25,10 +25,18 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
     getChecklistComparison(venueIds)
-      .then(setData)
-      .finally(() => setLoading(false));
+      .then((result) => {
+        if (!cancelled) {
+          setData(result);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [venueIds]);
 
   if (loading) {

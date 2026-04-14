@@ -17,12 +17,13 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { usePathname } from "next/navigation";
 
 describe("BottomNav", () => {
-  it("renders 4 navigation tabs", () => {
+  it("renders 5 navigation tabs", () => {
     const { container } = render(<BottomNav />);
     expect(within(container).getByText("ホーム")).toBeInTheDocument();
     expect(within(container).getByText("探す")).toBeInTheDocument();
     expect(within(container).getByText("候補")).toBeInTheDocument();
     expect(within(container).getByText("コーチ")).toBeInTheDocument();
+    expect(within(container).getByText("マイページ")).toBeInTheDocument();
     cleanup();
   });
 
