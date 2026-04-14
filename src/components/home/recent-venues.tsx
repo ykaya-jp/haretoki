@@ -32,8 +32,8 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base">最近ご覧になった式場</h2>
-        <Link href="/explore" className="text-sm text-primary">
+        <h2 className="text-base">先日ご覧になった式場</h2>
+        <Link href="/candidates?view=recent" className="text-sm text-primary">
           すべて →
         </Link>
       </div>
