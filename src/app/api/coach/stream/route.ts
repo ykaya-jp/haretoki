@@ -215,6 +215,12 @@ export async function POST(request: NextRequest) {
         );
       } finally {
         controller.close();
+        if (assembled.trim().length === 0) {
+          console.error(
+            "[coach/stream] claude stream produced 0 chars — likely SDK event shape mismatch or upstream error",
+            { projectId, sessionId: resolvedSessionId },
+          );
+        }
         if (assembled.trim().length > 0) {
           prisma.coachMessage
             .create({

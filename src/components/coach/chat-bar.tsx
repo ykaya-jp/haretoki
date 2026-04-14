@@ -39,6 +39,7 @@ async function streamReply(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let textChunkCount = 0;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -56,15 +57,31 @@ async function streamReply(
         .map((l) => l.slice(5).trimStart());
       if (dataLines.length === 0) continue;
       const dataStr = dataLines.join("\n");
-      if (dataStr === "[DONE]") return;
+      if (dataStr === "[DONE]") {
+        if (textChunkCount === 0) {
+          // Stream closed cleanly but carried zero text chunks — treat as
+          // failure so the caller's catch branch can fall back to the
+          // non-streaming sendCoachMessage path.
+          throw new Error("stream returned no text chunks");
+        }
+        return;
+      }
       try {
         const parsed = JSON.parse(dataStr) as { text?: string; sessionId?: string };
         if (parsed.sessionId) onSessionId(parsed.sessionId);
-        if (parsed.text) onChunk(parsed.text);
+        if (parsed.text) {
+          textChunkCount++;
+          onChunk(parsed.text);
+        }
       } catch {
         // ignore malformed frame
       }
     }
+  }
+
+  // Reader done without seeing [DONE] — still consider empty text as failure.
+  if (textChunkCount === 0) {
+    throw new Error("stream ended without text chunks");
   }
 }
 
