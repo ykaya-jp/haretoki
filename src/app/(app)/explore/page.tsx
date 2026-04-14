@@ -6,6 +6,7 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { AddVenueSheet } from "@/components/explore/add-venue-sheet";
 import { ExploreContent } from "@/components/explore/explore-content";
 import { AIRecommendations } from "@/components/venues/ai-recommendations";
+import { getExploreAIRecommendationsSeed } from "@/server/actions/onboarding";
 import { VenueSearchBar } from "@/components/venues/venue-search-bar";
 import {
   VenuePersonalizedChips,
@@ -99,9 +100,10 @@ export default async function ExplorePage({
 
   const hasAnyFilter = Object.keys(venueFilters).length > 0;
 
-  const [venues, favorites] = await Promise.all([
+  const [venues, favorites, aiSeed] = await Promise.all([
     getVenues(hasAnyFilter ? venueFilters : undefined),
     getFavorites("mine"),
+    getExploreAIRecommendationsSeed(),
   ]);
 
   const favoriteIds = favorites.map((f) => f.venue.id);
@@ -125,8 +127,15 @@ export default async function ExplorePage({
       {/* Personalized filter chips from onboarding conditions */}
       <VenuePersonalizedChips conditions={appliedConditions} />
 
-      {/* AI Recommendations — always visible */}
-      <AIRecommendations />
+      {/* AI Recommendations — always renders a stable container.
+          Server-fetched seed (venueCount + conditions) is passed so the
+          initial paint matches the final state and avoids the "appears
+          then disappears" flicker users complained about. */}
+      <AIRecommendations
+        initialVenueCount={aiSeed.venueCount}
+        initialConditions={aiSeed.conditions}
+        shouldRequest={aiSeed.shouldRequest}
+      />
 
       {/* Venue list with filters */}
       {venues.length === 0 ? (

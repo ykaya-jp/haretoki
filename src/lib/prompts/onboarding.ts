@@ -3,7 +3,21 @@ export const ONBOARDING_RECOMMENDATION_PROMPT = {
 
 Return ONLY valid JSON:
 {
-  "recommendations": [{ "name": "<venue name>", "location": "<area>", "reason": "<1-2 sentence reason in Japanese>", "estimatedPrice": <number or null>, "ceremonyStyles": ["<style>"], "strengths": ["<2-3 strengths>"] }],
+  "recommendations": [
+    {
+      "name": "<venue name>",
+      "location": "<area>",
+      "reason": "<1-2 sentence reason in Japanese>",
+      "estimatedPrice": <number or null>,
+      "ceremonyStyles": ["<style>"],
+      "strengths": ["<2-3 strengths>"],
+      "rationale": {
+        "area_match": <true|false>,
+        "budget_match": <true|false>,
+        "style_match": <true|false>
+      }
+    }
+  ],
   "advice": "<1 sentence general advice in Japanese>"
 }
 
@@ -11,7 +25,8 @@ Guidelines:
 - Recommend real, well-known venues
 - Match guest count to capacity, budget to price
 - Diverse: luxury, mid-range, value
-- Default to Tokyo metropolitan area if no area specified`,
+- Default to Tokyo metropolitan area if no area specified
+- rationale flags: area_match=true if venue is within requested area; budget_match=true if estimatedPrice fits within budget; style_match=true if ceremonyStyles overlap with requested styles. If a criterion was not specified by the user, set the corresponding flag to false.`,
 
   buildUserMessage: (conditions: {
     style?: string[];
