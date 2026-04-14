@@ -27,6 +27,7 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
   return (
     <div
       role="article"
+      aria-label={title}
       className={cn(
         "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6",
         config.borderColor
