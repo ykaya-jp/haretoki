@@ -50,7 +50,7 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
               href={action.href}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "default" }),
-                "rounded-full px-4",
+                "rounded-full px-4 transition-[transform,background-color] duration-200 active:scale-[0.98] active:bg-[var(--gold-subtle)]/60",
               )}
             >
               {action.label}

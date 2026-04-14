@@ -227,7 +227,7 @@ export function JourneyCard(props: JourneyCardProps) {
                 key={`${action.href}-${action.label}`}
                 href={action.href}
                 className={cn(
-                  "inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm transition-all duration-200 ease-out active:scale-[0.97]",
+                  "inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-sm transition-[transform,box-shadow,background-color] duration-200 ease-out active:scale-[0.97]",
                   isPrimary
                     ? "bg-primary text-primary-foreground shadow-sm hover:shadow-md"
                     : "border border-border bg-background text-foreground hover:bg-muted"

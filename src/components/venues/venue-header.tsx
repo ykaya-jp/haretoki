@@ -27,6 +27,11 @@ export function VenueHeader({
         <h1 className="font-serif text-fluid-lg font-light tracking-[0.03em]">{name}</h1>
         <VenueStatusBadge status={status} />
       </div>
+      {/* Subtle gold hairline under venue name — Morning Light detail. */}
+      <div
+        aria-hidden="true"
+        className="h-px w-16 bg-gradient-to-r from-[var(--gold-warm)]/60 to-transparent"
+      />
       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         {location && (
           <span className="flex items-center gap-1">
