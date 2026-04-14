@@ -84,8 +84,19 @@ export function CoachQuickStart() {
     setActiveIdx(idx);
     startTransition(async () => {
       try {
-        await sendCoachMessage(prompt);
-        router.refresh();
+        const result = await sendCoachMessage(prompt);
+        // sendCoachMessage always returns a sessionId (creates one if the
+        // user had none). Navigate to /coach?session=<id> so the coach
+        // page refetches the session history and the assistant reply
+        // actually renders. Previously we just called router.refresh(),
+        // which reloaded /coach without session param → currentSession
+        // stayed null and the user saw QuickStart with nothing changed.
+        if (result.sessionId) {
+          router.replace(`/coach?session=${result.sessionId}`, { scroll: true });
+          router.refresh();
+        } else {
+          router.refresh();
+        }
       } finally {
         sendingRef.current = false;
       }

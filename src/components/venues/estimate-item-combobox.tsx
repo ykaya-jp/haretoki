@@ -27,15 +27,22 @@ export function EstimateItemCombobox({
     setQuery(value);
   }, [value]);
 
-  // Close on outside click
+  // Close only on Escape key. A global pointer-down / outside-click
+  // handler was too aggressive on mobile — any tap elsewhere in the form
+  // (amount input, adjacent row, etc.) dismissed the dropdown before the
+  // user could select. The user reported "どこか触ったら消えちゃう".
+  //
+  // Other close paths are explicit:
+  //   - Selecting a preset (selectPreset)
+  //   - Selecting '自由入力で使う' option
+  //   - Tapping the ChevronDown toggle when already open
+  //   - Pressing Escape
   useEffect(() => {
-    function handlePointerDown(e: PointerEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
   const filtered = query.trim()
@@ -79,13 +86,17 @@ export function EstimateItemCombobox({
           onFocus={() => setOpen(true)}
           className="h-11 w-full rounded-md border border-input bg-background px-3 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         />
-        <ChevronDown
-          className={cn(
-            "absolute right-2.5 h-4 w-4 text-muted-foreground transition-transform",
-            open && "rotate-180",
-          )}
-          aria-hidden
-        />
+        <button
+          type="button"
+          aria-label={open ? "候補を閉じる" : "候補を開く"}
+          onClick={() => setOpen((o) => !o)}
+          className="absolute right-0 flex h-11 w-9 items-center justify-center text-muted-foreground"
+        >
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+            aria-hidden
+          />
+        </button>
       </div>
 
       {/* Dropdown */}

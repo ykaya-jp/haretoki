@@ -96,19 +96,34 @@ function RatingBar({ value, onChange, label }: RatingBarProps) {
           style={{ left: `${(step / 5) * 100}%` }}
         />
       ))}
-      {/* Score label overlaid on the right */}
-      <span
-        aria-hidden
-        className="absolute inset-0 flex items-center justify-end pr-3 text-sm tabular-nums"
-      >
-        {value > 0 ? (
-          <span className={cn("font-medium", value >= fillPct / 20 ? "text-background" : "text-foreground")}>
-            {value % 1 === 0 ? `${value}.0` : value}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-xs">タップして評価</span>
-        )}
-      </span>
+      {/* Numeric value — follows the fill head so it sits inside the filled
+          portion (white text on gold) at every step. When the fill is under
+          18% the number parks just outside the head in dark text to stay
+          readable. Previous design kept the label glued to the right edge
+          so only 4.5 / 5.0 landed inside the fill. */}
+      {value > 0 ? (
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-[left] duration-100",
+            fillPct >= 18
+              ? "bg-transparent text-white"
+              : "bg-card text-foreground shadow-sm",
+          )}
+          style={{
+            left: `calc(${fillPct}% + ${fillPct >= 18 ? "-36px" : "4px"})`,
+          }}
+        >
+          {value % 1 === 0 ? `${value}.0` : value.toFixed(1)}
+        </span>
+      ) : (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-muted-foreground"
+        >
+          タップして評価
+        </span>
+      )}
     </div>
   );
 }
