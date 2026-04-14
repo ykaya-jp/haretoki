@@ -62,6 +62,10 @@ export default async function MyPage() {
           プロフィール・パートナー・設定をまとめて管理
         </p>
       </div>
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+      />
 
       {/* Profile */}
       <section className="space-y-4">
@@ -102,6 +106,11 @@ export default async function MyPage() {
           />
         )}
       </section>
+
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+      />
 
       {/* Conditions */}
       <section className="space-y-4">

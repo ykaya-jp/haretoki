@@ -72,9 +72,13 @@ export function SegmentedControl({ segments, activeId, onChange }: SegmentedCont
           }}
           className={cn(
             "relative z-10 flex min-h-11 flex-1 items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-200",
+            // Subtle gold "ink" underline that expands only on the active tab.
+            // Purely decorative (no ARIA role); the motion pill + aria-selected
+            // remain the source of truth for state.
+            "after:pointer-events-none after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:h-px after:bg-[var(--gold-warm)] after:transition-[width,opacity] after:duration-300 after:ease-out",
             activeId === segment.id
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+              ? "text-foreground after:w-5 after:opacity-80"
+              : "text-muted-foreground hover:text-foreground after:w-0 after:opacity-0",
             segment.disabled && "opacity-50 cursor-not-allowed"
           )}
         >

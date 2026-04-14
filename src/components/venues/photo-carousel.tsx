@@ -82,7 +82,7 @@ export function PhotoCarousel({
     return (
       <div
         className={cn(
-          "relative overflow-hidden rounded-2xl",
+          "relative overflow-hidden rounded-[var(--r-lg)] border-b border-[var(--gold-subtle)]/40",
           aspectRatio === "4/3"
             ? "aspect-[4/3]"
             : aspectRatio === "3/2"
@@ -95,8 +95,14 @@ export function PhotoCarousel({
           alt={`${alt} - 写真`}
           fill
           priority
-          className="object-cover"
+          className="rounded-[var(--r-lg)] object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+        {/* Subtle bottom gradient — adds photographic richness and room
+            for future caption overlays. Kept low-intensity. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-[oklch(0_0_0_/_0.12)]"
         />
       </div>
     );

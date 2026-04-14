@@ -61,7 +61,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
       onClick={handleToggle}
       aria-pressed={favorite}
       aria-label={favorite ? "お気に入りから外す" : "お気に入りに追加"}
-      className="flex h-12 w-12 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-colors hover:bg-card active:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
+      className="flex h-12 w-12 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-[background-color,box-shadow] duration-200 hover:bg-card active:bg-card/60 active:shadow-[var(--shadow-hairline)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
       whileTap={{ scale: 1.15 }}
       transition={{ type: "spring", stiffness: 200, damping: 12 }}
     >

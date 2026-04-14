@@ -86,6 +86,14 @@ export function PhotoCarouselEmbla({
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
+              {/* Bottom gradient overlay — only on the active item. Leaves
+                  room for caption overlays and adds photographic depth. */}
+              {index === selectedIndex && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-[oklch(0_0_0_/_0.12)]"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -96,9 +104,9 @@ export function PhotoCarouselEmbla({
           type="button"
           onClick={() => scrollTo(selectedIndex - 1)}
           aria-label="前の写真"
-          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50 active:scale-95"
+          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[oklch(1_0_0_/_0.85)] text-foreground backdrop-blur-sm transition-all duration-200 hover:bg-[oklch(1_0_0_/_0.95)] active:scale-95"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
         </button>
       )}
       {selectedIndex < photos.length - 1 && (
@@ -106,9 +114,9 @@ export function PhotoCarouselEmbla({
           type="button"
           onClick={() => scrollTo(selectedIndex + 1)}
           aria-label="次の写真"
-          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50 active:scale-95"
+          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-[oklch(1_0_0_/_0.85)] text-foreground backdrop-blur-sm transition-all duration-200 hover:bg-[oklch(1_0_0_/_0.95)] active:scale-95"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
         </button>
       )}
       {/* Dot indicators — visual dot is 6-8px, tap target is 44x44px */}
@@ -125,9 +133,9 @@ export function PhotoCarouselEmbla({
             <span
               aria-hidden="true"
               className={cn(
-                "block rounded-full transition-all",
+                "block rounded-full transition-all duration-200",
                 index === selectedIndex
-                  ? "h-2 w-2 bg-white"
+                  ? "h-2.5 w-2.5 bg-white ring-1 ring-[var(--gold-warm)] ring-offset-2 ring-offset-transparent"
                   : "h-1.5 w-1.5 bg-white/50 hover:bg-white/70",
               )}
             />

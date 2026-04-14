@@ -70,6 +70,11 @@ export default async function VenueDetailPage({
         status={venue.status}
       />
 
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+      />
+
       {/* Rating Section — above the fold (needs synchronous userRatings) */}
       <Suspense
         fallback={<RatingSkeleton />}
@@ -123,6 +128,11 @@ export default async function VenueDetailPage({
           }))}
         />
       )}
+
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[var(--gold-subtle)]/40 to-transparent"
+      />
 
       {/* Below-the-fold sections — each streams independently via Suspense.
           This lets the server flush the HTML for the above-the-fold content
