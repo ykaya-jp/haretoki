@@ -49,10 +49,11 @@ export function BottomNav({ badges }: BottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-w-[64px] flex-col items-center justify-center gap-0.5 px-3 py-1",
-                "min-h-[48px] transition-colors active:bg-muted",
+                "relative flex min-w-[64px] flex-col items-center justify-center gap-1 px-3 py-1",
+                "min-h-[48px] transition-colors duration-200 active:bg-muted",
                 isActive ? "text-[var(--gold-warm)]" : "text-muted-foreground"
               )}
             >
@@ -74,7 +75,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   </motion.span>
                 )}
               </div>
-              <span className={cn("text-[10px] transition-colors", isActive && "font-medium")}>{item.label}</span>
+              <span className={cn("text-xs transition-colors duration-200", isActive && "font-medium")}>{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="bottomNavIndicator"

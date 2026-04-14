@@ -4,7 +4,7 @@ import { Greeting } from "@/components/home/greeting";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { JourneyCard } from "@/components/home/journey-card";
 import { RecentVenues } from "@/components/home/recent-venues";
-import { Settings } from "lucide-react";
+import { UserCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default async function HomePage() {
@@ -14,14 +14,16 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Header: greeting + settings icon */}
+      {/* Header: greeting + mypage icon */}
       <div className="flex items-center justify-between">
         <Greeting userName={homeData.userName} />
         <Link
-          href="/settings"
-          className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors active:bg-muted"
+          href="/mypage"
+          prefetch
+          aria-label="マイページ"
+          className="flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors duration-200 active:bg-muted"
         >
-          <Settings className="h-5 w-5 text-muted-foreground" />
+          <UserCircle2 className="h-6 w-6 text-muted-foreground" />
           <span className="text-[10px] text-muted-foreground">マイページ</span>
         </Link>
       </div>

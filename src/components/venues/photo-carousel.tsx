@@ -3,16 +3,17 @@
 import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselProps {
   photos: string[];
   alt: string;
   aspectRatio?: "4/3" | "16/9";
+  onAddPhotoClick?: () => void;
 }
 
-export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouselProps) {
+export function PhotoCarousel({ photos, alt, aspectRatio = "4/3", onAddPhotoClick }: PhotoCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
 
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -31,13 +32,35 @@ export function PhotoCarousel({ photos, alt, aspectRatio = "4/3" }: PhotoCarouse
   );
 
   if (photos.length === 0) {
+    const baseClasses = cn(
+      "flex flex-col items-center justify-center gap-3 rounded-2xl",
+      "border-2 border-dashed border-border bg-muted/30",
+      "transition-all duration-200",
+      aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video"
+    );
+    if (onAddPhotoClick) {
+      return (
+        <button
+          type="button"
+          onClick={onAddPhotoClick}
+          className={cn(
+            baseClasses,
+            "hover:border-[var(--gold-warm)] hover:bg-[var(--gold-subtle)]",
+            "active:scale-[0.98] cursor-pointer"
+          )}
+          aria-label="写真を追加"
+        >
+          <Camera className="h-8 w-8 text-[var(--gold-warm)]" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">写真を追加しましょう</p>
+            <p className="mt-1 text-xs text-muted-foreground">タップして選ぶ</p>
+          </div>
+        </button>
+      );
+    }
     return (
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-2xl bg-muted",
-          aspectRatio === "4/3" ? "aspect-[4/3]" : "aspect-video"
-        )}
-      >
+      <div className={baseClasses}>
+        <Camera className="h-6 w-6 text-muted-foreground/50" />
         <span className="text-sm text-muted-foreground">写真はまだありません</span>
       </div>
     );
