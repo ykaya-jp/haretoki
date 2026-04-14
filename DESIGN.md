@@ -1,10 +1,49 @@
-# Haretoki Design System v3 — "Morning Light"
+# Haretoki Design System v4 — "Modern Luxury"
 
 > Single Source of Truth for all design decisions.
-> v3: Full rebrand from VenueLens Navy theme to Haretoki "Morning Light" warm palette.
-> カラー、タイポ、モーション、画像アセットの全仕様。実装はこのドキュメントに準拠する。
+> v3: Morning Light palette (Rose × Gold × Cream)
+> **v4 (追加): Modern Luxury UX Principles** — affordance、知覚速度、micro-interactions
+> 実装は必ずこのドキュメントに準拠する。
 
 ---
+
+## Modern Luxury UX Principles (v4 追加、最重要)
+
+全ての実装でこれらを厳守する。プロダクトを「堅実な道具」から「プレミアム体験」に引き上げる原則。
+
+### P1: 空ステートは招待状である
+「〜がありません」で終わらせない。タップすると次に進める **Drop Zone** や **Inline Action** にする。
+- NG: 静的テキスト「写真はまだありません」
+- OK: タップ可能な写真追加ボタン + Camera アイコン + 破線枠
+
+### P2: 情報設計は無意識に正しい
+アイコンとラベルの意味が一致する。ユーザーが考えなくていい。
+- 歯車アイコン = 設定（システム設定）
+- 人/UserCircle アイコン = マイページ（個人情報）
+- NG: 歯車アイコン + 「マイページ」ラベル（矛盾）
+
+### P3: フィードバックは即時かつ複層
+タップから **150ms 以内** に何かが変わる。楽観的更新を多用。
+- 色変化 + スケール変化 + 影 の複数レイヤー
+- サーバー応答を待たずUI先行更新
+
+### P4: 知覚速度 > 実測速度
+- 全 `<Link>` に `prefetch` 明示
+- skeleton は実レイアウトと一致（レイアウトシフトなし）
+- ページ間の白画面をゼロに
+
+### P5: タッチターゲット44px + 視覚48-56px
+指の楽さで設計。ラベルは `text-xs` (12px) 以上。
+
+### P6: アニメーション速度
+- ホバー/タップ反応: **200ms**（400msは遅すぎる）
+- ページ入場: 600-900ms（ラグジュアリー感）
+- マイクロ動作（スケール、色変化）: 150-250ms
+- Spring: stiffness 150-200 / damping 12-18（キビキビ）
+
+---
+
+
 
 ## Product Vision
 
