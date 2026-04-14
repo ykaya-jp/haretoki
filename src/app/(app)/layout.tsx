@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
@@ -23,15 +23,22 @@ const getBottomNavBadgeCounts = cache(async (projectId: string) => {
   return { favoriteCount, insightCount };
 });
 
+// Async Server Component that resolves badge counts and passes them to
+// BottomNav. Rendered inside <Suspense> so the nav shell (no badges) flushes
+// to the client immediately while this DB round-trip is in flight.
+async function NavBadges({ projectId }: { projectId: string }) {
+  const { favoriteCount, insightCount } = await getBottomNavBadgeCounts(
+    projectId,
+  );
+  return <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />;
+}
+
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const project = await getOrCreateProject();
-  const { favoriteCount, insightCount } = await getBottomNavBadgeCounts(
-    project.id,
-  );
 
   return (
     <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
@@ -53,7 +60,11 @@ export default async function AppLayout({
         </main>
       </RealtimeProvider>
       <InstallPrompt />
-      <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />
+      {/* Stream nav badges: shell (BottomNav without counts) flushes first,
+          then badge counts arrive via the NavBadges async component. */}
+      <Suspense fallback={<BottomNav />}>
+        <NavBadges projectId={project.id} />
+      </Suspense>
       <Toaster position="bottom-center" />
     </div>
   );
