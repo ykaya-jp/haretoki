@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { HaloTap } from "@/components/ui/halo-tap";
 
 type CeremonyPhase = "celebration" | "summary" | "reason";
 
@@ -102,14 +103,16 @@ export function DecisionCeremony({ venueName, userName, journeyStats, onRecordRe
           <span>→</span>
           <span className="font-medium text-foreground">{venueName}に</span>
         </div>
-        <button
-          type="button"
-          onClick={() => setPhase("reason")}
-          disabled={saving}
-          className="min-h-11 rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
-        >
-          決めた理由を残す
-        </button>
+        <HaloTap className="rounded-lg">
+          <button
+            type="button"
+            onClick={() => setPhase("reason")}
+            disabled={saving}
+            className="min-h-11 rounded-lg bg-primary px-6 py-3 text-primary-foreground disabled:opacity-50"
+          >
+            決めた理由を残す
+          </button>
+        </HaloTap>
         <button
           type="button"
           onClick={handleSkipAll}
