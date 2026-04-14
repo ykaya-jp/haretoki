@@ -163,6 +163,65 @@ export async function getVenue(id: string) {
   return venue;
 }
 
+/** Above-the-fold fields: name, location, photos, status, scores. */
+export async function getVenueHeader(id: string) {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  return prisma.venue.findFirst({
+    where: { id, projectId },
+    select: {
+      id: true,
+      projectId: true,
+      name: true,
+      location: true,
+      accessInfo: true,
+      capacityMin: true,
+      capacityMax: true,
+      ceremonyStyles: true,
+      photoUrls: true,
+      status: true,
+      scores: true,
+    },
+  });
+}
+
+/** Estimates + line items — below the fold, streamed via Suspense. */
+export async function getVenueEstimates(id: string) {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venue = await prisma.venue.findFirst({
+    where: { id, projectId },
+    select: {
+      estimates: { include: { items: true }, orderBy: { version: "desc" } },
+    },
+  });
+
+  return venue?.estimates ?? [];
+}
+
+/** Visits + ratings, notes, checklist — below the fold, streamed via Suspense. */
+export async function getVenueVisits(id: string) {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venue = await prisma.venue.findFirst({
+    where: { id, projectId },
+    select: {
+      visits: {
+        include: {
+          ratings: true,
+          notes: { include: { media: true } },
+          checklist: true,
+        },
+      },
+    },
+  });
+
+  return venue?.visits ?? [];
+}
+
 export async function updateVenueStatus(id: string, status: VenueStatus) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
