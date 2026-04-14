@@ -74,6 +74,52 @@ const CATEGORY_LABELS: Record<string, string> = {
   negative_points: "気になる点",
 };
 
+/** Classify a review: negative = isNegative flag, positive = rating>=4, neutral = else */
+function classifyReview(review: Review): "positive" | "negative" | "neutral" {
+  if (review.isNegative) return "negative";
+  if (review.rating !== null && review.rating >= 4) return "positive";
+  return "neutral";
+}
+
+/** Compact horizontal ratio bar showing positive / neutral / negative distribution. */
+function ReviewRatioBar({ reviews }: { reviews: Review[] }) {
+  if (reviews.length === 0) return null;
+  const positiveCount = reviews.filter((r) => classifyReview(r) === "positive").length;
+  const negativeCount = reviews.filter((r) => classifyReview(r) === "negative").length;
+  const neutralCount = reviews.length - positiveCount - negativeCount;
+  const total = reviews.length;
+  const positivePct = (positiveCount / total) * 100;
+  const negativePct = (negativeCount / total) * 100;
+  const neutralPct = (neutralCount / total) * 100;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+        {positivePct > 0 && (
+          <div
+            style={{ width: `${positivePct}%` }}
+            className="bg-[color:var(--gold-warm)] transition-all duration-300"
+          />
+        )}
+        {neutralPct > 0 && (
+          <div
+            style={{ width: `${neutralPct}%` }}
+            className="bg-muted-foreground/30 transition-all duration-300"
+          />
+        )}
+        {negativePct > 0 && (
+          <div
+            style={{ width: `${negativePct}%` }}
+            className="bg-destructive transition-all duration-300"
+          />
+        )}
+      </div>
+      <p className="text-xs tabular-nums text-muted-foreground">
+        ポジ {positiveCount} · ネガ {negativeCount} · その他 {neutralCount}
+      </p>
+    </div>
+  );
+}
+
 export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: ReviewSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [showNegativeFirst, setShowNegativeFirst] = useState(false);
@@ -189,6 +235,9 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           口コミページのURLを追加すると、AIが要点をまとめます
         </p>
       )}
+
+      {/* Positive/Negative ratio bar — shown only when there are reviews */}
+      <ReviewRatioBar reviews={reviews} />
 
       {/* Venue-level aggregate estimate-increase badge (avg across reviews) */}
       {venueEstimateAggregate &&
