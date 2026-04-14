@@ -10,6 +10,7 @@ import {
   Cell,
   LabelList,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 import { formatYen } from "@/lib/utils";
 import { useSyncExternalStore } from "react";
@@ -142,6 +143,7 @@ export function EstimateWaterfallChart({
   items,
   reviewMeanFinal,
   reviewSampleCount,
+  reviewStdDevYen,
 }: {
   initialTotal: number;
   predictedFinal: number;
@@ -150,6 +152,8 @@ export function EstimateWaterfallChart({
   reviewMeanFinal?: number;
   /** Sample count behind the review aggregate. Threshold for meaningful display is 3. */
   reviewSampleCount?: number;
+  /** Sample standard deviation of deltaYen across reviews (yen). Show band when defined and n>=3. */
+  reviewStdDevYen?: number | null;
 }) {
   const isMobile = useSyncExternalStore(
     subscribeToMediaQuery,
@@ -202,6 +206,20 @@ export function EstimateWaterfallChart({
               tickLine={false}
               width={isMobile ? 50 : 60}
             />
+            {/* ±1σ band — shown only when n>=3 and stdDev is available */}
+            {reviewMeanFinal != null &&
+              reviewSampleCount != null &&
+              reviewSampleCount >= 3 &&
+              reviewStdDevYen != null &&
+              reviewStdDevYen > 0 && (
+                <ReferenceArea
+                  y1={reviewMeanFinal - reviewStdDevYen}
+                  y2={reviewMeanFinal + reviewStdDevYen}
+                  fill="var(--gold-warm)"
+                  fillOpacity={0.12}
+                  ifOverflow="extendDomain"
+                />
+              )}
             {/* Review-derived average final — overlay when we have >= 3 samples */}
             {reviewMeanFinal != null &&
               reviewSampleCount != null &&
@@ -213,7 +231,10 @@ export function EstimateWaterfallChart({
                   strokeWidth={1.5}
                   ifOverflow="extendDomain"
                   label={{
-                    value: `レビュー平均 ${Math.round(reviewMeanFinal / 10000)}万円 (n=${reviewSampleCount})`,
+                    value:
+                      reviewStdDevYen != null && reviewStdDevYen > 0
+                        ? `${Math.round(reviewMeanFinal / 10000)}万円 ± ${Math.round(reviewStdDevYen / 10000)}万 (n=${reviewSampleCount}件の口コミ平均)`
+                        : `${Math.round(reviewMeanFinal / 10000)}万円 (n=${reviewSampleCount}件の口コミ平均)`,
                     position: "insideTopRight",
                     fill: "var(--gold-warm)",
                     fontSize: isMobile ? 10 : 11,
@@ -236,6 +257,27 @@ export function EstimateWaterfallChart({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      {/* Legend */}
+      {reviewMeanFinal != null && reviewSampleCount != null && reviewSampleCount >= 3 && (
+        <div className="flex items-center justify-center gap-3 flex-wrap text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-0.5 w-5"
+              style={{ background: "var(--gold-warm)", borderTop: "2px dashed var(--gold-warm)" }}
+            />
+            口コミ平均
+          </span>
+          {reviewStdDevYen != null && reviewStdDevYen > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-3 w-5 rounded-sm opacity-30"
+                style={{ background: "var(--gold-warm)" }}
+              />
+              ± 1σ（標準偏差）
+            </span>
+          )}
+        </div>
+      )}
       <p className="text-xs text-muted-foreground text-center leading-relaxed">
         他のカップルも同程度の調整をしています。事前に把握しておくことが大切です。
       </p>
