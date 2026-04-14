@@ -14,6 +14,7 @@ import {
   hasUsefulMetadata,
   buildMetadataPrompt,
 } from "@/server/actions/url-metadata";
+import { captureError } from "@/lib/sentry";
 
 // --- Server actions ---
 
@@ -444,6 +445,7 @@ export async function addVenueFromUrl(url: string): Promise<{
       url,
       error: error instanceof Error ? `${error.name}: ${error.message}` : error,
     });
+    captureError(error, { action: "addVenueFromUrl", url });
     if (isAbort) {
       return {
         error: "読み込みに時間がかかりすぎました。手動で入力するか、URLを再確認してください。",

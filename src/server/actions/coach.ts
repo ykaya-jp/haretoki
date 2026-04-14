@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, stripPII, withRetry } from "@/lib/anthropic";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
+import { captureError } from "@/lib/sentry";
 
 interface CoachResponse {
   answer: string;
@@ -162,8 +163,11 @@ export async function sendCoachMessage(message: string): Promise<CoachResponse> 
 
       revalidatePath("/coach");
       return { answer: response, suggestedActions: [], matched: true };
-    } catch {
-      // Fallback to FAQ on Claude API failure
+    } catch (err) {
+      // Fallback to FAQ on Claude API failure. We still want Sentry to see
+      // the underlying exception — silent fallback was hiding upstream
+      // regressions (rate limits, auth, schema drift).
+      captureError(err, { action: "sendCoachMessage" });
       return await matchFAQ(message, projectId);
     }
   }
