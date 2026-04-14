@@ -5,8 +5,8 @@ export const ratingSchema = z.object({
     z.string(),
     z
       .number()
-      .int()
-      .min(1, "1以上で評価してください")
+      .multipleOf(0.5)
+      .min(0.5, "0.5以上で評価してください")
       .max(5, "5以下で評価してください"),
   ),
 });
