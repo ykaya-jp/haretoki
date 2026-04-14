@@ -1,4 +1,11 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Points the plugin at our App Router request config. If another engineer
+// later adds Sentry's `withSentryConfig`, wrap this `nextConfig` with it
+// BEFORE applying `withNextIntl` — i.e. `withNextIntl(withSentryConfig(...))`
+// — so the intl plugin is the outermost wrapper (see next-intl docs).
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   images: {
@@ -18,4 +25,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);
