@@ -494,11 +494,18 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 
 #### Font Stack
 
-| Role | Font | Weights | Usage |
-|------|------|---------|-------|
-| Heading (JP) | Noto Serif JP | 300, 400, 500 | Page titles, venue names, section headings |
-| Body (JP/EN) | Noto Sans JP | 300, 400, 500, 700 | Body text, labels, UI, data |
-| Numbers | Geist | 400, 500, 600, 700 | Prices, scores, stats (tabular-nums) |
+| Role | Font | CSS var | Weights | Usage |
+|------|------|---------|---------|-------|
+| Display serif (JP) | Shippori Mincho | `--font-display` | 400, 500, 600 | Hero copy, greeting h1, venue-name h1 ONLY (≥24px) |
+| Body serif (JP) | Noto Serif JP | `--font-noto-serif-jp` | 300, 400, 500 | All other headings, section titles, subtitles |
+| Body (JP/EN) | Noto Sans JP | `--font-noto-sans-jp` | 300, 400, 500, 700 | Body text, labels, UI, data |
+| Numbers | Geist | `--font-geist` | 400, 500, 600, 700 | Prices, scores, stats (tabular-nums) |
+
+**Display serif rule**: Shippori Mincho is the display serif reserved for the
+most prominent headings where the extra character matters. Use via
+`font-[family-name:var(--font-display)]` paired with `font-extralight`.
+Do **not** apply to body text, subtitles, or any text smaller than 24px —
+Noto Serif JP remains the body serif and is more legible at small sizes.
 
 #### Heading Treatment (Luxury)
 
@@ -524,6 +531,33 @@ h3+ { font-weight: 400; letter-spacing: 0.05em; line-height: 1.5; }
 #### Tabular Numbers
 
 All numeric data: `font-variant-numeric: tabular-nums;`
+
+### 2b. Photos — Unified Tone Rule
+
+All venue photos and hero images MUST be rendered through the
+`VenueImage` wrapper (`src/components/ui/venue-image.tsx`), which applies
+a shared CSS filter so that wildly different source materials resolve to
+a single warm, cinematic luxury-hotel-brochure register.
+
+| Tone | Class | Filter | When to use |
+|------|-------|--------|-------------|
+| `default` | `.photo-tone` | `saturate(0.92) contrast(1.04) brightness(1.01) sepia(0.03)` | Venue cards, gallery thumbnails, non-active carousel slides, empty-state art |
+| `hero` | `.photo-tone-hero` | `saturate(0.95) contrast(1.06) brightness(1.01) sepia(0.04)` | Active carousel photo, single-photo hero, landing-page hero background |
+| `none` | _(no class)_ | — | Escape hatch — do not pass through VenueImage in the first place |
+
+**Do NOT apply to**:
+- App logo (`/icons/logo.png`)
+- Lucide icons
+- Profile avatars (once they exist)
+- `GoldSparkle` and other decorative SVGs
+
+**Rationale**: Saturation slightly down prevents over-saturated wedding
+reds/golds from feeling tacky. Contrast slightly up adds crispness.
+Mild sepia provides a warm tint that matches the Morning Light palette,
+regardless of each venue's original photography style. Same tone across
+400+ venues → brand cohesion even with crowd-sourced imagery.
+
+Respects `prefers-contrast: more` (filter is dropped for high-contrast users).
 
 ### 3. Spacing & Layout
 

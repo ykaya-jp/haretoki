@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { VenueImage } from "@/components/ui/venue-image";
 import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -89,10 +90,11 @@ export function LandingPage() {
       <section className="relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         {/* Background chapel image with warm overlay */}
         <div className="pointer-events-none absolute inset-0">
-          <Image
+          <VenueImage
             src="/images/hero-chapel.png"
             alt=""
             fill
+            tone="hero"
             className="object-cover opacity-[0.18]"
             priority
           />
@@ -130,7 +132,7 @@ export function LandingPage() {
           <motion.h1
             custom={1}
             variants={fadeUp}
-            className="font-serif text-[clamp(1.75rem,5vw,3.5rem)] font-light leading-[1.3] tracking-[0.06em] text-foreground"
+            className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,5vw,3.5rem)] font-extralight leading-[1.2] tracking-[-0.015em] text-foreground"
           >
             その直感、
             <br />

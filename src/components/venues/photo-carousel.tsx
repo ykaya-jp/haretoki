@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Camera } from "lucide-react";
+import { VenueImage } from "@/components/ui/venue-image";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselProps {
@@ -90,11 +90,12 @@ export function PhotoCarousel({
               : "aspect-video",
         )}
       >
-        <Image
+        <VenueImage
           src={photos[0]}
           alt={`${alt} - 写真`}
           fill
           priority
+          tone="hero"
           className="rounded-[var(--r-lg)] object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />

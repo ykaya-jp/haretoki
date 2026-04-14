@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
-import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { VenueImage } from "@/components/ui/venue-image";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselEmblaProps {
@@ -78,11 +78,12 @@ export function PhotoCarouselEmbla({
               )}
               aria-label={`写真 ${index + 1}/${photos.length}`}
             >
-              <Image
+              <VenueImage
                 src={photo}
                 alt={`${alt} - 写真 ${index + 1}`}
                 fill
                 priority={index === 0}
+                tone={index === selectedIndex ? "hero" : "default"}
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />

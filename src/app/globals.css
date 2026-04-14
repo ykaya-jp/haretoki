@@ -18,6 +18,10 @@
   --font-heading: var(--font-noto-serif-jp, serif);
   --font-sans: var(--font-noto-sans-jp, "Noto Sans JP", sans-serif);
   --font-geist: var(--font-geist, "Geist", sans-serif);
+  /* Display serif — reserved for the most prominent headings (hero copy,
+     venue names). Shippori Mincho brings more character than Noto Serif JP
+     at very large sizes. Falls back to Noto Serif JP, then system mincho. */
+  --font-display: var(--font-shippori-mincho, var(--font-noto-serif-jp, "Shippori Mincho", "Noto Serif JP", serif));
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -369,6 +373,36 @@
   }
   [data-slot="sheet-content"] {
     border-radius: 24px 24px 0 0;
+  }
+}
+
+/* ═══ V3 Visual: Unified Photo Tone ═══
+   All venue photos and hero images share one filter chain so that wildly
+   different source materials (over-saturated wedding reds, cold lobby
+   fluorescents, mixed white balance) resolve to a single warm, cinematic
+   luxury-hotel-brochure register. Applied via the VenueImage wrapper.
+
+   Parameters:
+   - saturate < 1  → prevents over-saturated reds/golds feeling tacky
+   - contrast > 1  → crispness; lifts shadows slightly
+   - brightness    → mild lift (+1%) for cream-background harmony
+   - sepia         → tiny warm tint matching Morning Light palette
+*/
+@layer components {
+  .photo-tone {
+    filter: saturate(0.92) contrast(1.04) brightness(1.01) sepia(0.03);
+  }
+  .photo-tone-hero {
+    filter: saturate(0.95) contrast(1.06) brightness(1.01) sepia(0.04);
+  }
+}
+
+/* Respect user preference: high-contrast mode disables the tint so photos
+   are not further flattened by our luxury wash. */
+@media (prefers-contrast: more) {
+  .photo-tone,
+  .photo-tone-hero {
+    filter: none;
   }
 }
 
