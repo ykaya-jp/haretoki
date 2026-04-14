@@ -7,6 +7,8 @@ import { OfflineBanner } from "@/components/ui/offline-banner";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { prisma } from "@/server/db";
 
+type Project = Awaited<ReturnType<typeof getOrCreateProject>>;
+
 // Wrap the bottom-nav badge counts in React.cache so adjacent renders within
 // the same request (e.g. streaming boundaries) share a single DB round-trip.
 // Same pattern as getAIInsights in src/server/actions/insights.ts.
@@ -23,22 +25,34 @@ const getBottomNavBadgeCounts = cache(async (projectId: string) => {
   return { favoriteCount, insightCount };
 });
 
-// Async Server Component that resolves badge counts and passes them to
-// BottomNav. Rendered inside <Suspense> so the nav shell (no badges) flushes
-// to the client immediately while this DB round-trip is in flight.
-async function NavBadges({ projectId }: { projectId: string }) {
+// Async Server Component: resolves project + badge counts, then renders
+// RealtimeProvider (WebSocket subscription) and nav with badge numbers.
+// Placed inside <Suspense> so the main content flushes to the client
+// immediately while this DB work is still in flight.
+async function NavWithRealtime({
+  projectPromise,
+}: {
+  projectPromise: Promise<Project>;
+}) {
+  const project = await projectPromise;
   const { favoriteCount, insightCount } = await getBottomNavBadgeCounts(
-    projectId,
+    project.id,
   );
-  return <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />;
+  return (
+    <RealtimeProvider projectId={project.id}>
+      <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />
+    </RealtimeProvider>
+  );
 }
 
-export default async function AppLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const project = await getOrCreateProject();
+  // Kick the project fetch immediately — do NOT await here so children can
+  // start rendering before the DB round-trips complete.
+  const projectPromise = getOrCreateProject();
 
   return (
     <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
@@ -51,19 +65,17 @@ export default async function AppLayout({
         メインコンテンツへスキップ
       </a>
       <OfflineBanner />
-      <RealtimeProvider projectId={project.id}>
-        <main
-          id="main-content"
-          className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
-        >
-          {children}
-        </main>
-      </RealtimeProvider>
+      <main
+        id="main-content"
+        className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
+      >
+        {children}
+      </main>
       <InstallPrompt />
-      {/* Stream nav badges: shell (BottomNav without counts) flushes first,
-          then badge counts arrive via the NavBadges async component. */}
+      {/* Stream nav: shell (BottomNav without counts) flushes first while
+          getOrCreateProject + badge DB round-trips resolve in the background. */}
       <Suspense fallback={<BottomNav />}>
-        <NavBadges projectId={project.id} />
+        <NavWithRealtime projectPromise={projectPromise} />
       </Suspense>
       <Toaster position="bottom-center" />
     </div>

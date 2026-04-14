@@ -16,8 +16,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
-    // React View Transitions API (P1-6)
-    viewTransition: true,
+    // viewTransition disabled: both-page DOM coexistence during transition
+    // caused net-negative latency on mobile tab switches (body thrash).
+    viewTransition: false,
   },
   async redirects() {
     return [

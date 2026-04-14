@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Home, Search, Heart, MessageSquare, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -37,6 +37,20 @@ export function BottomNav({ badges }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // Eagerly prefetch all tabs after mount so taps on any tab feel instant.
+  // /home, /explore, /candidates already get link-level prefetch (undefined =
+  // default). /coach and /mypage are prefetch=false on the Link to save bandwidth
+  // on initial load — but we warm them 200 ms after mount when the browser is
+  // likely idle.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.prefetch("/coach");
+      router.prefetch("/mypage");
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [router]);
+
   // Optimistic active href — set on tap so the gold highlight moves instantly,
   // even while the Server Component for the target route is still resolving.
   const [pendingHref, setPendingHref] = useState<string | null>(null);
