@@ -1,12 +1,12 @@
 {
   "common": {
-    "save": "保存",
-    "cancel": "キャンセル",
-    "delete": "削除",
+    "save": "残す",
+    "cancel": "やめる",
+    "delete": "消す",
     "retry": "もう一度",
     "close": "閉じる",
-    "loading": "読み込み中...",
-    "confirm": "確認",
+    "loading": "いま準備しています…",
+    "confirm": "たしかめる",
     "back": "戻る"
   },
   "nav": {
@@ -22,16 +22,16 @@
       "emailLabel": "メールアドレス",
       "passwordLabel": "パスワード",
       "submit": "ログイン",
-      "googleSignIn": "Googleでログイン"
+      "googleSignIn": "Google ではじめる"
     },
     "logout": "ログアウト"
   },
   "settings": {
-    "title": "設定",
+    "title": "整える",
     "appearance": "見た目",
     "theme": "テーマ",
-    "dataManagement": "データ管理",
-    "exportData": "データをダウンロード",
-    "deleteAccount": "アカウントを削除"
+    "dataManagement": "記録の管理",
+    "exportData": "記録をダウンロード",
+    "deleteAccount": "アカウントを消す"
   }
 }

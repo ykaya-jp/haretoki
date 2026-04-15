@@ -87,10 +87,10 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
       });
 
       if (result.success) {
-        toast.success("設定を保存しました");
+        toast.success("残しました");
         router.refresh();
       } else {
-        toast.error("保存に失敗しました");
+        toast.error("うまく残せませんでした");
       }
     });
   };

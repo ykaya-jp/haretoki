@@ -30,7 +30,7 @@ export function VenueStatusSelect({
     setStatus(newStatus);
     startTransition(async () => {
       await updateVenueStatus(venueId, newStatus);
-      toast.success("更新しました ✨");
+      toast.success("変えました");
     });
   }
 

@@ -183,15 +183,15 @@ export function PlanEditorSheet({
       const result = await upsertVenuePlan(venueId, local.data);
       if (!result.success) {
         const first = Object.values(result.error)[0]?.[0];
-        toast.error(first ?? "保存できませんでした");
+        toast.error(first ?? "うまく残せませんでした");
         return;
       }
 
-      toast.success(initialPlan ? "プランを更新しました" : "プランを追加しました");
+      toast.success(initialPlan ? "プランを書き直しました" : "プランを追加しました");
       setOpen(false);
       router.refresh();
     } catch {
-      toast.error("保存できませんでした");
+      toast.error("うまく残せませんでした");
     } finally {
       setSubmitting(false);
     }
@@ -199,16 +199,16 @@ export function PlanEditorSheet({
 
   const onDelete = async () => {
     if (!initialPlan) return;
-    if (!confirm("このプランを削除しますか？")) return;
+    if (!confirm("このプラン、手放しますか？")) return;
     setDeleting(true);
     try {
       const result = await deleteVenuePlan(initialPlan.id);
       if (result.success) {
-        toast.success("プランを削除しました");
+        toast.success("プランを手放しました");
         setOpen(false);
         router.refresh();
       } else {
-        toast.error("削除できませんでした");
+        toast.error("手放せませんでした");
       }
     } finally {
       setDeleting(false);
