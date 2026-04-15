@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
-import { CHECKLIST_PRESETS, getPresetById } from "@/lib/checklist-presets";
+import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/checklist-presets";
 
 // ── Zod schemas ────────────────────────────────────────────────────────────────
 
@@ -79,6 +79,31 @@ export async function toggleItem(
   revalidateTag(checklistTag(projectId), { expire: 0 });
   revalidatePath("/checklist");
   return { success: true };
+}
+
+// ── Apply the starter preset (16 curated items across all 6 categories) ──────
+
+/**
+ * First-run wizard: bulk-activate STARTER_PRESET_IDS for the current project.
+ * Idempotent — skipDuplicates means re-running is safe. Validates that every
+ * starter id still exists in the preset library (guards against stale exports
+ * after a preset rename).
+ */
+export async function applyStarterPreset(): Promise<{ success: boolean; added: number }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const valid = STARTER_PRESET_IDS.filter((id) => getPresetById(id));
+  if (valid.length === 0) return { success: false, added: 0 };
+
+  const res = await prisma.projectChecklist.createMany({
+    data: valid.map((itemId) => ({ projectId, itemId })),
+    skipDuplicates: true,
+  });
+
+  revalidateTag(checklistTag(projectId), { expire: 0 });
+  revalidatePath("/checklist");
+  return { success: true, added: res.count };
 }
 
 // ── Bulk toggle (enable/disable all items in a category) ──────────────────────

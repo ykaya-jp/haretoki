@@ -661,3 +661,33 @@ export const CATEGORY_ORDER: ChecklistCategory[] = [
   "staff_estimate",
   "cuisine_drink",
 ];
+
+/**
+ * Starter pack: 16 high-leverage items spanning all 6 categories.
+ * Used by the `/checklist` first-run wizard ("おすすめ項目から始める") to
+ * remove the blank-slate problem for couples who don't know where to start.
+ */
+export const STARTER_PRESET_IDS: readonly string[] = [
+  // 挙式会場
+  "chapel.interior.decor-style",
+  "chapel.guest.capacity",
+  "chapel.performance.ceremony-style",
+  // 披露宴会場
+  "banquet.layout.capacity",
+  "banquet.performance.sound",
+  // 設備
+  "facility.general.brides-room",
+  "facility.general.cloakroom",
+  // 衣裳・アイテム
+  "dress_item.dress.variety",
+  "dress_item.dress.bring-in-fee",
+  "dress_item.dress.plan-limit",
+  // スタッフ・見積り
+  "staff_estimate.staff.planner",
+  "staff_estimate.estimate.included",
+  "staff_estimate.estimate.payment-method",
+  "staff_estimate.estimate.campaigns",
+  // 料理・飲み物
+  "cuisine_drink.cuisine.taste",
+  "cuisine_drink.drink.variety",
+] as const;
