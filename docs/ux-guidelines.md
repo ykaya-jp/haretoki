@@ -1,6 +1,6 @@
-# VenueLens UX Guidelines
+# Haretoki UX Guidelines
 
-> 9つのリサーチエージェント（5-agent review + 4-agent UX deep dive）の調査結果を統合したUI/UX設計ガイドライン。実装時に必ず参照すること。
+> リサーチエージェント + 実ユーザーテスト（2026-04-14）のフィードバックを統合。実装時に必ず参照すること。
 
 ---
 
@@ -13,11 +13,20 @@
 - リンクテキスト: `py-2 block` で高さ確保
 
 ### Tap Feedback（全タップに即時反応）
-- カード: `active:scale-[0.98]` + `transition-all duration-150`
-- ボタン: `active:scale-95`
+- カード: `active:scale-[0.98]` + `transition-all duration-[400ms]`
+- ボタン: `active:scale-95` + `transition-all duration-[400ms]`
 - ナビリンク: `active:bg-muted`
 - 星評価: `active:scale-90`
 - 300ms遅延排除: `touch-action: manipulation` on html
+
+### Animation Timing (v3 — Luxury Standard)
+- **全般**: 早すぎるアニメーションはチープに見える。ラグジュアリー = ゆっくり
+- ページ/セクション入場: duration **0.9-1.0s**, ease `[0.16, 1, 0.3, 1]`
+- スタガー遅延: **0.15-0.2s** per item
+- Spring: stiffness **100-140**, damping **18-22**
+- CSS transition: **400ms** (`duration-[400ms]`)
+- ホバー/タップ反応: **400ms** ease-out
+- 参考: Aesop ~600ms、Apple ~500ms。150msはNG
 - `-webkit-tap-highlight-color: transparent`
 
 ### SafeArea

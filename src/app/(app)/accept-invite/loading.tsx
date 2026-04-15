@@ -8,7 +8,7 @@ export default function AcceptInviteLoading() {
           <div className="mx-auto h-6 w-48 animate-pulse rounded bg-muted" />
           <div className="mx-auto h-4 w-64 animate-pulse rounded bg-muted" />
         </div>
-        <Card className="shadow-[var(--shadow-soft)]">
+        <Card className="shadow-[var(--shadow-card)]">
           <CardContent className="space-y-4 p-6">
             <div className="mx-auto h-16 w-16 animate-pulse rounded-full bg-muted" />
             <div className="mx-auto h-4 w-full animate-pulse rounded bg-muted" />

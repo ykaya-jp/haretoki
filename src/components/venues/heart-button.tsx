@@ -1,0 +1,85 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toggleFavorite } from "@/server/actions/favorites";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+
+interface HeartButtonProps {
+  venueId: string;
+  initialFavorite: boolean;
+}
+
+export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
+  // NOTE: useOptimistic requires an active Server Action transition to
+  // auto-revert. We perform the mutation via a plain async call wrapped in
+  // try/catch, so we need manual revert semantics — hence useState.
+  const [favorite, setFavorite] = useState(initialFavorite);
+  const inFlightRef = useRef(false);
+  const router = useRouter();
+
+  // Keep in sync if the parent re-renders with a different value (e.g. after
+  // `router.refresh()` re-hydrates from the server).
+  useEffect(() => {
+    setFavorite(initialFavorite);
+  }, [initialFavorite]);
+
+  const handleToggle = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    const previous = favorite;
+    const next = !previous;
+    setFavorite(next);
+
+    try {
+      await toggleFavorite(venueId);
+      toast.success(next ? "候補に追加しました" : "候補から外しました", {
+        duration: 2000,
+        action: !next
+          ? { label: "戻す", onClick: () => void handleToggle() }
+          : undefined,
+      });
+      // Refresh the server tree so any parent-owned favorite snapshot
+      // (Explore/Candidates lists) reflects the change.
+      router.refresh();
+    } catch {
+      setFavorite(previous); // revert optimistic state on failure
+      toast.error("うまく残せませんでした", {
+        action: { label: "もう一度", onClick: () => void handleToggle() },
+      });
+    } finally {
+      inFlightRef.current = false;
+    }
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={handleToggle}
+      aria-pressed={favorite}
+      aria-label={favorite ? "候補から外す" : "候補に入れる"}
+      className="flex h-12 w-12 items-center justify-center rounded-full bg-card/80 backdrop-blur-sm transition-[background-color,box-shadow] duration-200 hover:bg-card active:bg-card/60 active:shadow-[var(--shadow-hairline)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2"
+      whileTap={{ scale: 1.15 }}
+      transition={{ type: "spring", stiffness: 200, damping: 12 }}
+    >
+      <motion.div
+        key={favorite ? "filled" : "empty"}
+        initial={{ scale: 0.3 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 12 }}
+      >
+        <Heart
+          className={cn(
+            "h-5 w-5 transition-colors duration-200",
+            favorite
+              ? "fill-primary text-primary"
+              : "fill-none text-primary/70"
+          )}
+        />
+      </motion.div>
+    </motion.button>
+  );
+}

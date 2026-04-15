@@ -1,17 +1,26 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "command": "npx prettier --write $CLAUDE_FILE_PATH 2>/dev/null || true",
-        "description": "ファイル編集後に自動フォーマット"
-      }
-    ],
     "PreToolUse": [
       {
-        "matcher": "Write",
-        "command": "echo $CLAUDE_FILE_PATH | grep -qE '\\.(env|key|pem)$' && echo 'BLOCK: Sensitive file' && exit 1 || true",
-        "description": "機密ファイルへの書き込みをブロック"
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_FILE_PATH:-}\"; case \"$f\" in *.env|*.env.*|*.key|*.pem|*credentials*|*service_role*) echo \"BLOCK: refused to write secret-like file: $f\" >&2; exit 2 ;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"${CLAUDE_FILE_PATH:-}\"; case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.json|*.md|*.css) [ -f \"$f\" ] && npx --no-install prettier --write \"$f\" >/dev/null 2>&1 || true ;; esac"
+          }
+        ]
       }
     ]
   }

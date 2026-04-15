@@ -3,31 +3,183 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [ "main" ]
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  packages: read
+
+env:
+  NODE_VERSION: "22"
 
 jobs:
-  test:
+  # ──────────────────────────────────────
+  # Lint — コードの書き方ルール違反を検出
+  # ──────────────────────────────────────
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create mount dirs for CI
-        run: mkdir -p ~/.claude
-
-      - name: Login to GHCR (for pulling cache)
-        uses: docker/login-action@v3
+      - uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
-      - name: Run tests in devcontainer
-        uses: devcontainers/ci@v0.3
+      - run: npm ci
+
+      - run: npm run lint
+
+  # ──────────────────────────────────────
+  # Type Check — TypeScript の型エラーを検出
+  # ──────────────────────────────────────
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-devcontainer
-          push: never
-          runCmd: make ci
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - run: npx tsc --noEmit
+
+  # ──────────────────────────────────────
+  # Build — 本番ビルドが通るか検証
+  # ──────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          # Build-time env stubs (no real DB needed for build check)
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+  # ──────────────────────────────────────
+  # Prisma — スキーマの整合性チェック
+  # ──────────────────────────────────────
+  prisma:
+    name: Prisma Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate schema
+        run: npx prisma validate
+
+  # ──────────────────────────────────────
+  # Unit Test — Vitest ユニットテスト
+  # ──────────────────────────────────────
+  unit-test:
+    name: Unit Test
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - run: npm test
+
+  # ──────────────────────────────────────
+  # E2E Test — Playwright ブラウザテス���
+  # (テストファイルが存在する場合のみ実行)
+  # ──────────────────────────────────────
+  e2e-test:
+    name: E2E Test
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for E2E tests
+        id: check
+        run: |
+          if find tests/e2e -name '*.ts' -o -name '*.spec.ts' 2>/dev/null | grep -q .; then
+            echo "has_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+            echo "No E2E test files found — skipping"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.has_tests == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.check.outputs.has_tests == 'true'
+        run: npm ci
+
+      - name: Generate Prisma Client
+        if: steps.check.outputs.has_tests == 'true'
+        run: npx prisma generate
+
+      - name: Install Playwright browsers
+        if: steps.check.outputs.has_tests == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        if: steps.check.outputs.has_tests == 'true'
+        run: npm run test:e2e
+        env:
+          # Existing E2E specs cover unauthenticated flows only (landing,
+          # signup form validation, pages that redirect to /login). They do
+          # not need a real Supabase connection, so prefer GitHub secrets
+          # when provided but fall back to the same placeholder pattern the
+          # `build` job uses — this keeps CI green without requiring the
+          # repository to carry production credentials.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
+
+      - name: Upload test report
+        if: steps.check.outputs.has_tests == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // git worktrees used for parallel agent work — they have their own
+    // node_modules / .next and shouldn't be linted from the main repo.
+    ".claude/worktrees/**",
   ]),
 ]);
 

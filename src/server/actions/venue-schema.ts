@@ -9,6 +9,7 @@ export const venueSchema = z
     capacityMax: z.coerce.number().int().positive().optional(),
     ceremonyStyles: z.array(z.string()).optional(),
     sourceUrls: z.array(z.string().url()).optional(),
+    photoUrls: z.array(z.string().url()).optional(),
   })
   .refine(
     (data) => {

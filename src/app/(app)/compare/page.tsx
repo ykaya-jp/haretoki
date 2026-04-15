@@ -1,102 +1,70 @@
+import type { Metadata } from "next";
+import { getComparisonMatrix, getFavoriteVenueIds } from "@/server/actions/checklist";
+import { ComparisonMatrixView } from "@/components/checklist/comparison-matrix-view";
 import Link from "next/link";
-import { VenueSelector } from "@/components/compare/venue-selector";
-import type { RadarChartData } from "@/components/compare/radar-chart";
-import type { VenueData, CategoryEstimate } from "@/components/compare/comparison-matrix";
-import { Button } from "@/components/ui/button";
-import { getVenues } from "@/server/actions/venues";
-import { TIER1_DIMENSIONS } from "@/lib/constants";
 
-type EstimateBarData = {
-  name: string;
-  initial: number | null;
-  predicted: number | null;
+export const metadata: Metadata = {
+  title: "式場横比較",
+  description: "選んだ項目で式場を横並びに比較します。",
 };
 
-export default async function ComparePage() {
-  const venues = await getVenues();
+interface ComparePageProps {
+  searchParams: Promise<{ venueIds?: string }>;
+}
 
-  if (venues.length < 2) {
-    return (
-      <div className="space-y-6">
-        <h1 className="font-serif text-xl font-bold">式場を比べてみましょう</h1>
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">
-            式場を2件以上追加すると、ここで比べられるようになります
-          </p>
-          <Link href="/venues" className="mt-4 inline-block">
-            <Button variant="outline">式場を探す</Button>
-          </Link>
-        </div>
-      </div>
-    );
+export default async function ComparePage({ searchParams }: ComparePageProps) {
+  const params = await searchParams;
+
+  // Parse venue ids from query or fall back to favorites
+  let venueIds: string[] = [];
+  if (params.venueIds) {
+    venueIds = params.venueIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 5);
   }
 
-  // Build data for each venue
-  const venueInfos = venues.map((venue) => {
-    const scores: Partial<Record<string, number>> = {};
-    for (const dim of TIER1_DIMENSIONS) {
-      const found = venue.scores.find(
-        (s) => s.dimension === dim && s.source === "user_rating"
-      );
-      if (found) {
-        scores[dim] = Number(found.score);
-      }
-    }
+  if (venueIds.length === 0) {
+    venueIds = await getFavoriteVenueIds();
+  }
 
-    const radarData: RadarChartData = {
-      venueName: venue.name,
-      color: "", // will be assigned by selector
-      scores,
-    };
-
-    // Use the latest estimate (getVenues now includes estimates sorted desc, take 1)
-    const latestEstimate = venue.estimates?.[0] ?? null;
-
-    // Build category estimates from items
-    const categoryEstimates: CategoryEstimate[] = [];
-    if (latestEstimate?.items) {
-      const categoryMap = new Map<string, number>();
-      for (const item of latestEstimate.items) {
-        const current = categoryMap.get(item.category) ?? 0;
-        categoryMap.set(item.category, current + item.amount);
-      }
-      for (const [category, total] of categoryMap) {
-        categoryEstimates.push({ category, total });
-      }
-    }
-
-    const matrixData: VenueData = {
-      id: venue.id,
-      name: venue.name,
-      scores,
-      estimateTotal: latestEstimate?.total ?? null,
-      estimatePredicted: latestEstimate?.predictedFinal ?? null,
-      capacityMin: venue.capacityMin,
-      capacityMax: venue.capacityMax,
-      status: venue.status,
-      categoryEstimates:
-        categoryEstimates.length > 0 ? categoryEstimates : undefined,
-    };
-
-    const barData: EstimateBarData = {
-      name: venue.name,
-      initial: latestEstimate?.total ?? null,
-      predicted: latestEstimate?.predictedFinal ?? null,
-    };
-
-    return {
-      id: venue.id,
-      name: venue.name,
-      radarData,
-      matrixData,
-      barData,
-    };
-  });
+  const matrix = await getComparisonMatrix(venueIds);
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-serif text-xl font-bold">式場を比べてみましょう</h1>
-      <VenueSelector venues={venueInfos} />
+    <div className="pb-24">
+      <div className="mb-4 space-y-1">
+        <h2 className="text-h1 font-serif font-extralight">式場横比較</h2>
+        <p className="text-sm text-muted-foreground">
+          {matrix.venues.length > 0
+            ? `${matrix.venues.length}件の式場を比較中`
+            : "候補に式場を追加すると比較できます"}
+        </p>
+      </div>
+
+      {matrix.venues.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-8 text-center">
+          <p className="text-sm text-muted-foreground">比較する式場がありません</p>
+          <Link
+            href="/explore"
+            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground active:scale-[0.98]"
+          >
+            式場を探す
+          </Link>
+        </div>
+      ) : matrix.items.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-8 text-center">
+          <p className="text-sm text-muted-foreground">チェック項目が選ばれていません</p>
+          <Link
+            href="/checklist"
+            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground active:scale-[0.98]"
+          >
+            項目を選ぶ
+          </Link>
+        </div>
+      ) : (
+        <ComparisonMatrixView matrix={matrix} />
+      )}
     </div>
   );
 }

@@ -44,10 +44,10 @@ export function VenueForm() {
         return;
       }
 
-      toast.success("式場を追加しました ✨");
+      toast.success("式場を置きました");
       router.push(`/venues/${result.venue.id}`);
     } catch {
-      setError("式場の登録に失敗しました");
+      setError("式場をうまく置けませんでした");
     } finally {
       setLoading(false);
     }

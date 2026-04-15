@@ -1,0 +1,84 @@
+import Link from "next/link";
+import { Sparkles, Receipt, Users, ClipboardCheck, BarChart3, Bell } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import type { LucideIcon } from "lucide-react";
+
+type InsightType = "estimate" | "partner" | "visit" | "comparison" | "reminder";
+
+interface AIInsightCardProps {
+  type: InsightType;
+  title: string;
+  body: string;
+  actions: { label: string; href: string }[];
+  /**
+   * R-4 Expire design. Age in days since generation:
+   *   0-2  : fully vivid
+   *   3-6  : fades (opacity 0.7) + subtle "少し前の気づき" eyebrow
+   *   >=7  : should be hidden by caller (archived to /coach/insights)
+   */
+  ageDays?: number;
+}
+
+const INSIGHT_CONFIG: Record<InsightType, { icon: LucideIcon; borderColor: string }> = {
+  estimate: { icon: Receipt, borderColor: "border-l-[var(--gold-warm)]" },
+  partner: { icon: Users, borderColor: "border-l-primary" },
+  visit: { icon: ClipboardCheck, borderColor: "border-l-[var(--success)]" },
+  comparison: { icon: BarChart3, borderColor: "border-l-secondary" },
+  reminder: { icon: Bell, borderColor: "border-l-muted-foreground" },
+};
+
+export function AIInsightCard({
+  type,
+  title,
+  body,
+  actions,
+  ageDays,
+}: AIInsightCardProps) {
+  const config = INSIGHT_CONFIG[type];
+  const isAging = (ageDays ?? 0) >= 3;
+
+  return (
+    <div
+      role="article"
+      aria-label={title}
+      className={cn(
+        "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6 transition-opacity",
+        config.borderColor,
+        isAging && "opacity-70",
+      )}
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
+          <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[var(--gold-warm)]" strokeWidth={1.5} />
+        </div>
+        <h3 className="text-eyebrow text-[var(--gold-warm)]">
+          {isAging ? "少し前の気づき" : title}
+        </h3>
+      </div>
+      {isAging && (
+        <p className="mb-2 text-[13px] font-medium leading-relaxed text-foreground">
+          {title}
+        </p>
+      )}
+      <p className="mb-4 text-body text-foreground">{body}</p>
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {actions.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              prefetch={true}
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "default" }),
+                "rounded-full px-4 transition-[transform,background-color] duration-200 active:scale-[0.98] active:bg-[var(--gold-subtle)]/60",
+              )}
+            >
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

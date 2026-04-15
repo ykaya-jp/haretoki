@@ -1,20 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import { SeasonalMotif } from "@/components/ui/seasonal-motif";
+import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
 export default function LoginPage() {
+  // useSearchParams() requires a Suspense boundary for static generation.
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextRaw = searchParams.get("next") ?? "";
+  const nextHref = isSameOriginRedirectPath(nextRaw) ? nextRaw : "/home";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthPending, setOauthPending] = useState(false);
+
+  // Callback redirects here with ?error=auth on OAuth failure.
+  useEffect(() => {
+    if (searchParams.get("error") === "auth") {
+      setError("ログインがうまくいきませんでした。もう一度お試しください");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,47 +56,100 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push(nextHref);
       router.refresh();
     } catch {
-      setError("ログイン中にエラーが発生しました。もう一度お試しください");
+      setError("ログインがうまくいきませんでした。もう一度お試しください");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-[var(--shadow-soft)]">
-        <CardHeader className="text-center">
-          <h1 className="font-serif text-2xl text-primary">VenueLens</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="flex min-h-dvh">
+      {/* Left: Brand panel (hidden on mobile) */}
+      <div className="relative hidden flex-1 flex-col justify-between p-16 lg:flex overflow-hidden">
+        {/* Floral pattern background */}
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/images/auth-pattern.png"
+            alt=""
+            fill
+            className="object-cover opacity-40"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, oklch(0.97 0.01 80 / 0.7) 0%, oklch(0.95 0.01 75 / 0.6) 100%)",
+            }}
+          />
+        </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
+          <Link href="/" prefetch={true} className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
+            Haretoki
+          </Link>
+        </div>
+        <div className="relative z-10 max-w-lg">
+          {/* Seasonal decoration — rotates monthly. Top-right of heading. */}
+          <div className="mb-4 flex justify-end">
+            <SeasonalMotif size="md" className="opacity-60" />
+          </div>
+          <h1 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-light leading-snug tracking-[0.06em] text-foreground">
             おかえりなさい
+          </h1>
+          <p className="mt-6 text-base leading-[1.8] text-muted-foreground">
+            式場探しの続きを始めましょう。
+            <br />
+            AIコーチがあなたの進捗を覚えています。
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            式場探しの続きを始めましょう
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        </div>
+        <p className="relative z-10 text-xs text-muted-foreground/50">
+          © 2026 Haretoki
+        </p>
+      </div>
+
+      {/* Right: Form */}
+      <div className="flex flex-1 items-center justify-center px-6 py-16">
+        <div className="w-full max-w-sm space-y-10">
+          {/* Mobile logo */}
+          <div className="text-center lg:hidden">
+            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
+              Haretoki
+            </Link>
+            <h2 className="mt-4 font-serif text-2xl font-light tracking-[0.06em]">ログイン</h2>
+          </div>
+
+          {/* Desktop heading */}
+          <div className="hidden lg:block">
+            <h2 className="font-serif text-2xl font-light tracking-[0.06em]">おかえりなさい</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              メールアドレスとパスワードを入れて、ふたりの場所に戻りましょう
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
                 {error}
               </div>
             )}
-            <div className="space-y-2">
+
+            <div className="space-y-2.5">
               <Label htmlFor="email">メールアドレス</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="example@email.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
               />
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-2.5">
               <Label htmlFor="password">パスワード</Label>
               <Input
                 id="password"
@@ -85,18 +161,69 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
+
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "ログイン中..." : "ログイン"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ログイン中...
+                </>
+              ) : (
+                "ログイン"
+              )}
+            </Button>
+
+            {/* Divider */}
+            <div className="relative py-3">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/60" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-background px-4 text-muted-foreground">または</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={oauthPending || loading}
+              onClick={async () => {
+                setOauthPending(true);
+                try {
+                  const supabase = createClient();
+                  const callbackUrl =
+                    nextHref !== "/home"
+                      ? `${window.location.origin}/callback?next=${encodeURIComponent(nextHref)}`
+                      : `${window.location.origin}/callback`;
+                  await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo: callbackUrl },
+                  });
+                } catch {
+                  setOauthPending(false);
+                }
+              }}
+            >
+              {oauthPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Google に移動しています…
+                </>
+              ) : (
+                "Google で入る"
+              )}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            アカウントをお持ちでない方は{" "}
-            <Link href="/signup" className="text-primary underline">
-              新規登録
+
+          <p className="text-center text-sm text-muted-foreground">
+            はじめての方は{" "}
+            <Link href="/signup" prefetch={true} className="font-medium text-primary underline underline-offset-4">
+              ふたりの場所をつくる
             </Link>
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

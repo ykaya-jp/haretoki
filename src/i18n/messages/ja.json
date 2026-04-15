@@ -1,0 +1,37 @@
+{
+  "common": {
+    "save": "残す",
+    "cancel": "やめる",
+    "delete": "消す",
+    "retry": "もう一度",
+    "close": "閉じる",
+    "loading": "いま準備しています…",
+    "confirm": "たしかめる",
+    "back": "戻る"
+  },
+  "nav": {
+    "home": "ホーム",
+    "explore": "探す",
+    "candidates": "候補",
+    "coach": "コーチ",
+    "mypage": "マイページ"
+  },
+  "auth": {
+    "login": {
+      "title": "ログイン",
+      "emailLabel": "メールアドレス",
+      "passwordLabel": "パスワード",
+      "submit": "ログイン",
+      "googleSignIn": "Google ではじめる"
+    },
+    "logout": "ログアウト"
+  },
+  "settings": {
+    "title": "整える",
+    "appearance": "見た目",
+    "theme": "テーマ",
+    "dataManagement": "記録の管理",
+    "exportData": "記録をダウンロード",
+    "deleteAccount": "アカウントを消す"
+  }
+}

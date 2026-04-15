@@ -2,11 +2,30 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ═══ View Transitions (supported browsers only) ═══ */
+/* Enables smooth cross-fade between navigations without JS overhead.
+   Unsupported browsers ignore this rule silently.
+   Skipped for users who prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: var(--font-noto-serif-jp, serif);
   --font-sans: var(--font-noto-sans-jp, "Noto Sans JP", sans-serif);
+  --font-geist: var(--font-geist, "Geist", sans-serif);
+  /* Display serif — reserved for the most prominent headings (hero copy,
+     venue names). Shippori Mincho brings more character than Noto Serif JP
+     at very large sizes. Falls back to Noto Serif JP, then system mincho. */
+  --font-display: var(--font-shippori-mincho, var(--font-noto-serif-jp, "Shippori Mincho", "Noto Serif JP", serif));
+  /* Tailwind `font-serif` utility maps to the display serif so legacy markup
+     keeps a real Japanese mincho instead of system serif (which renders 豆腐
+     for some kanji on Linux). */
+  --font-serif: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -36,11 +55,15 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-elevated: var(--card-elevated);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --color-on-primary: var(--primary-foreground);
   --color-foreground-muted: var(--muted-foreground);
   --color-success: var(--success);
+  --color-gold-warm: var(--gold-warm);
+  --color-gold-light: var(--gold-light);
+  --color-gold-subtle: var(--gold-subtle);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,79 +71,263 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --text-fluid-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  --text-fluid-sm: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  --text-fluid-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-fluid-lg: clamp(1.125rem, 1rem + 0.75vw, 1.375rem);
+  --text-fluid-xl: clamp(1.25rem, 1rem + 1.5vw, 2rem);
+  --text-fluid-3xl: clamp(1.75rem, 1.25rem + 2.5vw, 3rem);
+  --shadow-card: 0 1px 3px rgba(42,35,32,0.04), 0 4px 12px rgba(42,35,32,0.06);
+  --shadow-card-hover: 0 4px 12px rgba(42,35,32,0.06), 0 20px 40px rgba(42,35,32,0.10);
+  --shadow-modal: 0 8px 32px rgba(42,35,32,0.12), 0 2px 8px rgba(42,35,32,0.06);
+  --shadow-gold: 0 0 20px rgba(201,164,76,0.15);
+
+  /* ── Motion budget (D-04 motion-budget token system) ──────────────────── */
+  /* Canonical easing: Apple-like luxe-out, gentle settle. Use for hero/page. */
+  --ease-out-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standard ease — day-to-day transitions */
+  --ease-out-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Tight tap feedback (≤150ms) */
+  --dur-tap: 150ms;
+  /* Micro transitions — bg color, border, opacity */
+  --dur-micro: 200ms;
+  /* Standard fade, list item swap */
+  --dur-fade: 300ms;
+  /* Sheet open, drawer slide */
+  --dur-sheet: 400ms;
+  /* Page enter, card reveal */
+  --dur-page: 600ms;
+  /* Hero / editorial card fade-in */
+  --dur-hero: 900ms;
+  /* Stagger step for list reveal (apply × index) */
+  --stagger: 50ms;
 }
 
-/* VenueLens Luxury Navy theme */
+/* ═══ Haretoki "Morning Light" Theme ═══ */
 :root {
-  --background: oklch(0.975 0.005 250);
-  --foreground: oklch(0.17 0.03 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.17 0.03 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.17 0.03 260);
-  --primary: oklch(0.45 0.15 260);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.55 0.18 260);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.94 0.01 260);
-  --muted-foreground: oklch(0.5 0.03 250);
-  --accent: oklch(0.55 0.14 75);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.52 0.17 155);
-  --border: oklch(0.9 0.02 260);
-  --input: oklch(0.9 0.02 260);
-  --ring: oklch(0.45 0.15 260);
-  --chart-1: oklch(0.45 0.15 260);
-  --chart-2: oklch(0.55 0.18 260);
-  --chart-3: oklch(0.55 0.14 75);
-  --chart-4: oklch(0.52 0.17 155);
-  --chart-5: oklch(0.577 0.245 27.325);
+  /* Background layers — warm cream tones */
+  --background: oklch(0.97 0.01 80);
+  --foreground: oklch(0.22 0.02 50);
+  --card: oklch(0.99 0.005 80);
+  --card-foreground: oklch(0.22 0.02 50);
+  --popover: oklch(0.99 0.005 80);
+  --popover-foreground: oklch(0.22 0.02 50);
+
+  /* Primary — Rose terracotta for user actions */
+  --primary: oklch(0.62 0.12 45);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* Secondary — warm brown */
+  --secondary: oklch(0.45 0.06 50);
+  --secondary-foreground: oklch(0.99 0 0);
+
+  /* Muted — warm gray */
+  --muted: oklch(0.95 0.01 75);
+  --muted-foreground: oklch(0.45 0.02 60);
+
+  /* Accent — Gold for AI features */
+  --accent: oklch(0.70 0.13 80);
+  --accent-foreground: oklch(0.22 0.02 50);
+
+  /* Semantic */
+  --destructive: oklch(0.55 0.15 25);
+  --success: oklch(0.58 0.14 155);
+
+  /* Borders & inputs */
+  --border: oklch(0.91 0.02 70);
+  --input: oklch(0.91 0.02 70);
+  --ring: oklch(0.62 0.12 45);
+
+  /* Charts */
+  --chart-1: oklch(0.62 0.12 45);
+  --chart-2: oklch(0.70 0.13 80);
+  --chart-3: oklch(0.58 0.14 155);
+  --chart-4: oklch(0.55 0.15 25);
+  --chart-5: oklch(0.52 0.02 60);
+
   --radius: 0.75rem;
-  --shadow-soft: 4px 4px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.17 0.03 260);
-  --sidebar-primary: oklch(0.45 0.15 260);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.94 0.01 260);
-  --sidebar-accent-foreground: oklch(0.17 0.03 260);
-  --sidebar-border: oklch(0.9 0.02 260);
-  --sidebar-ring: oklch(0.45 0.15 260);
+
+  /* Spacing rhythm — 3-level vertical cadence.
+     Apply via var(--space-section/heading/item) or the matching Tailwind
+     classes (space-y-8 / space-y-4 / space-y-3) to keep pages breathing. */
+  --space-section: 48px;
+  --space-heading: 16px;
+  --space-item: 12px;
+
+  /* Gold accents — for AI features */
+  --gold-warm: oklch(0.70 0.13 80);
+  --gold-light: oklch(0.80 0.10 80);
+  --gold-subtle: oklch(0.70 0.13 80 / 0.10);
+
+  /* V3 Visual: sunlight layer — warm glow reserved for LP + Home hero.
+     Applied as a ::before pseudo-element on scoped containers only.
+     See DESIGN.md → "Sunlight Layer" for scope rules. */
+  --hero-sunlight: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    oklch(0.95 0.05 85 / 0.5) 0%,
+    oklch(0.97 0.02 85 / 0) 60%
+  );
+
+  /* Elevated surface — on top of card */
+  --card-elevated: oklch(0.995 0.003 80);
+
+  /* ── Atmospheric Layers v4.1 ─────────────────────────────────
+     Three gradient tokens layered like morning light passing
+     through a window: dawn (cream→rose), noon (rose→gold),
+     dusk (gold→cream for Home Hero background).
+     Opacity range 4-6% — air, not paint.                       */
+  --gradient-dawn: radial-gradient(
+    ellipse 80% 50% at 20% 0%,
+    oklch(0.88 0.06 10 / 0.05) 0%,
+    oklch(0.97 0.01 80 / 0) 70%
+  );
+  --gradient-noon: linear-gradient(
+    45deg,
+    oklch(0.88 0.06 10 / 0.06) 0%,
+    oklch(0.82 0.10 75 / 0.05) 100%
+  );
+  --gradient-dusk: linear-gradient(
+    180deg,
+    oklch(0.82 0.10 75 / 0.05) 0%,
+    oklch(0.97 0.01 80 / 0.04) 100%
+  );
+
+  /* gold hairline — 0.5px accent for section separators */
+  --hairline-gold: 0.5px solid oklch(0.70 0.13 80 / 0.35);
+
+  /* frosted glass surface token */
+  --glass-surface: rgba(255, 255, 255, 0.60);
+
+  /* inner glow — soft emboss on Hero cards */
+  --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.60);
+
+  /* ── V1 Visual: Typography 7-tier (luxury hotel scale) ── */
+  --type-display: 2.25rem;    /* 36px — reserved for hero-level */
+  --type-h1: 1.75rem;         /* 28px */
+  --type-h2: 1.375rem;        /* 22px */
+  --type-h3: 1.125rem;        /* 18px */
+  --type-body: 0.9375rem;     /* 15px — more breathable than 14 */
+  --type-meta: 0.8125rem;     /* 13px */
+  --type-eyebrow: 0.6875rem;  /* 11px — uppercase tracking */
+
+  --leading-display: 1.15;
+  --leading-heading: 1.35;
+  --leading-body: 1.8;        /* very generous for Japanese */
+  --leading-tight: 1.4;
+
+  --tracking-eyebrow: 0.16em;
+  --tracking-heading: -0.01em;
+
+  /* ── V1 Visual: Surface tiers ── */
+  --bg-card: oklch(0.99 0.005 85);          /* aligns with --card */
+  --bg-card-elevated: oklch(1 0 0);          /* pure white, slightly above cream */
+  --bg-hero: oklch(0.97 0.012 85);           /* warmer cream for heros */
+
+  /* ── V1 Visual: Shadow tiers (4 levels) ── */
+  --shadow-hairline: 0 0 0 0.5px oklch(0.35 0.02 50 / 0.08);
+  --shadow-elevated: 0 2px 6px oklch(0.35 0.02 50 / 0.08), 0 12px 28px oklch(0.35 0.02 50 / 0.08);
+  --shadow-hero: 0 4px 16px oklch(0.35 0.02 50 / 0.10), 0 24px 48px oklch(0.35 0.02 50 / 0.12);
+
+  /* ── V1 Visual: Radius tier scale (orthogonal namespace to avoid
+     overriding Tailwind's --radius-sm/md/lg utilities mapped via @theme) ── */
+  --r-sm: 0.25rem;   /* 4px — chips, tiny badges */
+  --r-md: 0.75rem;   /* 12px — inputs, compact cards */
+  --r-lg: 1.5rem;    /* 24px — hero cards, venue cards */
+
+  /* Sidebar (if used) */
+  --sidebar: oklch(0.97 0.01 80);
+  --sidebar-foreground: oklch(0.22 0.02 50);
+  --sidebar-primary: oklch(0.62 0.12 45);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.01 75);
+  --sidebar-accent-foreground: oklch(0.22 0.02 50);
+  --sidebar-border: oklch(0.91 0.02 70);
+  --sidebar-ring: oklch(0.62 0.12 45);
 }
 
 .dark {
-  --background: oklch(0.145 0.02 260);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0.02 260);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0.02 260);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.6 0.18 260);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0.02 260);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0.02 260);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.6 0.14 75);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  /* Warm-tinted dark layers (hue 50 = warm cream). Three-level hierarchy:
+     background (base) → card (raised) → card-elevated (highest). */
+  --background: oklch(0.18 0.015 50);
+  --foreground: oklch(0.95 0.005 80);
+  --card: oklch(0.23 0.012 50);
+  --card-foreground: oklch(0.95 0.005 80);
+  --card-elevated: oklch(0.27 0.010 50);
+  --popover: oklch(0.25 0.012 50);
+  --popover-foreground: oklch(0.95 0.005 80);
+  /* Primary — desaturated rose (from 0.70/0.12 fluorescent salmon to calm tone) */
+  --primary: oklch(0.66 0.08 45);
+  --primary-foreground: oklch(0.98 0.005 80);
+  --secondary: oklch(0.30 0.02 50);
+  --secondary-foreground: oklch(0.95 0.005 80);
+  --muted: oklch(0.26 0.008 50);
+  --muted-foreground: oklch(0.74 0.02 60);
+  --accent: oklch(0.72 0.14 80);
+  --accent-foreground: oklch(0.15 0 0);
+  --destructive: oklch(0.65 0.18 25);
   --success: oklch(0.62 0.17 155);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.18 260);
-  --chart-1: oklch(0.6 0.18 260);
-  --chart-2: oklch(0.55 0.14 75);
+  --border: oklch(0.30 0.01 50);
+  --input: oklch(0.30 0.01 50);
+  --ring: oklch(0.66 0.08 45);
+  --chart-1: oklch(0.66 0.08 45);
+  --chart-2: oklch(0.72 0.14 80);
   --chart-3: oklch(0.62 0.17 155);
-  --chart-4: oklch(0.704 0.191 22.216);
-  --chart-5: oklch(0.708 0 0);
-  --sidebar: oklch(0.205 0.02 260);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.18 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0.02 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.6 0.18 260);
+  --chart-4: oklch(0.65 0.18 25);
+  --chart-5: oklch(0.65 0.02 60);
+  --sidebar: oklch(0.20 0.01 50);
+  --sidebar-foreground: oklch(0.95 0.005 80);
+  --sidebar-primary: oklch(0.66 0.08 45);
+  --sidebar-primary-foreground: oklch(0.98 0.005 80);
+  --sidebar-accent: oklch(0.26 0.008 50);
+  --sidebar-accent-foreground: oklch(0.95 0.005 80);
+  --sidebar-border: oklch(0.30 0.01 50);
+  --sidebar-ring: oklch(0.66 0.08 45);
+
+  /* Dark mode shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3), 0 20px 40px rgba(0,0,0,0.4);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-gold: 0 0 20px rgba(201,164,76,0.25);
+
+  /* Gold variants for dark mode */
+  --gold-warm: oklch(0.72 0.14 80);
+  --gold-light: oklch(0.82 0.12 80);
+  --gold-subtle: oklch(0.72 0.14 80 / 0.15);
+
+  /* V3 Visual: dark-mode sunlight — cooler, dimmer warm glow */
+  --hero-sunlight: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    oklch(0.3 0.02 85 / 0.3) 0%,
+    oklch(0.3 0.02 85 / 0) 60%
+  );
+
+  /* ── V1 Visual: Dark-mode surface & shadow tiers ── */
+  --bg-card: oklch(0.23 0.012 50);
+  --bg-card-elevated: oklch(0.27 0.012 50);
+  --bg-hero: oklch(0.20 0.012 50);
+  --shadow-hairline: 0 0 0 0.5px oklch(0.98 0 0 / 0.08);
+  --shadow-elevated: 0 2px 6px oklch(0 0 0 / 0.35), 0 12px 28px oklch(0 0 0 / 0.45);
+  --shadow-hero: 0 4px 16px oklch(0 0 0 / 0.40), 0 24px 48px oklch(0 0 0 / 0.55);
+
+  /* Atmospheric Layers v4.1 — dark mode: Ink Blue / Wine Rose / Amber tones */
+  --gradient-dawn: radial-gradient(
+    ellipse 80% 50% at 20% 0%,
+    oklch(0.35 0.06 270 / 0.06) 0%,
+    oklch(0.18 0.015 50 / 0) 70%
+  );
+  --gradient-noon: linear-gradient(
+    45deg,
+    oklch(0.38 0.08 350 / 0.06) 0%,
+    oklch(0.42 0.09 70 / 0.05) 100%
+  );
+  --gradient-dusk: linear-gradient(
+    180deg,
+    oklch(0.42 0.09 70 / 0.05) 0%,
+    oklch(0.18 0.015 50 / 0.04) 100%
+  );
+  --hairline-gold: 0.5px solid oklch(0.72 0.14 80 / 0.25);
+  --glass-surface: rgba(30, 25, 20, 0.60);
+  --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -134,7 +341,243 @@
   body {
     @apply bg-background text-foreground;
   }
-  h1, h2, h3, h4, h5, h6 {
+  /* Japanese-first heading tracking. Full-width CJK glyphs already carry
+     visual whitespace, so the wide Latin letter-spacing (0.1em+) used by
+     typical Western luxury themes causes rivers/gaps. Use tight-to-normal
+     tracking for JP body headings, and let component-level classes apply
+     wider tracking only when content is Latin/uppercase. */
+  h1 {
     font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+  h2 {
+    font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  h3, h4, h5, h6 {
+    font-family: var(--font-noto-serif-jp, "Noto Serif JP", serif);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ═══ V1 Visual: Typography utility classes (7-tier scale) ═══ */
+@layer components {
+  .text-display {
+    font-size: var(--type-display);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-heading);
+    font-weight: 300;
+  }
+  .text-h1 {
+    font-size: var(--type-h1);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-heading);
+    font-weight: 300;
+  }
+  .text-h2 {
+    font-size: var(--type-h2);
+    line-height: var(--leading-heading);
+    font-weight: 300;
+  }
+  .text-h3 {
+    font-size: var(--type-h3);
+    line-height: var(--leading-heading);
+    font-weight: 400;
+  }
+  .text-body {
+    font-size: var(--type-body);
+    line-height: var(--leading-body);
+    font-weight: 400;
+  }
+  .text-meta {
+    font-size: var(--type-meta);
+    line-height: var(--leading-tight);
+    font-weight: 400;
+  }
+  .text-eyebrow {
+    font-size: var(--type-eyebrow);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-eyebrow);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+}
+
+/* ═══ Component Refinements ═══ */
+@layer components {
+  /* Buttons — elevated, letter-spaced, smooth transitions */
+  button[data-slot="button"],
+  a[data-slot="button"] {
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  button[data-slot="button"]:not(:disabled):hover,
+  a[data-slot="button"]:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+  button[data-slot="button"]:not(:disabled):active,
+  a[data-slot="button"]:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* Inputs — larger, rounded, warm focus */
+  input[data-slot="input"],
+  textarea[data-slot="textarea"] {
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: border-color 400ms, box-shadow 400ms;
+  }
+  input[data-slot="input"]:focus,
+  textarea[data-slot="textarea"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px oklch(0.62 0.12 45 / 0.08);
+  }
+
+  /* Cards — borderless, warm shadow */
+  [data-slot="card"] {
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-slot="card"]:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Sheet — warm overlay */
+  [data-slot="sheet-overlay"] {
+    background-color: oklch(0.22 0.02 50 / 0.4);
+    backdrop-filter: blur(4px);
+  }
+  [data-slot="sheet-content"] {
+    border-radius: 24px 24px 0 0;
+  }
+}
+
+/* ═══ V3 Visual: Unified Photo Tone ═══
+   All venue photos and hero images share one filter chain so that wildly
+   different source materials (over-saturated wedding reds, cold lobby
+   fluorescents, mixed white balance) resolve to a single warm, cinematic
+   luxury-hotel-brochure register. Applied via the VenueImage wrapper.
+
+   Parameters:
+   - saturate < 1  → prevents over-saturated reds/golds feeling tacky
+   - contrast > 1  → crispness; lifts shadows slightly
+   - brightness    → mild lift (+1%) for cream-background harmony
+   - sepia         → tiny warm tint matching Morning Light palette
+*/
+@layer components {
+  .photo-tone {
+    filter: saturate(0.92) contrast(1.04) brightness(1.01) sepia(0.03);
+  }
+  .photo-tone-hero {
+    filter: saturate(0.95) contrast(1.06) brightness(1.01) sepia(0.04);
+  }
+}
+
+/* Respect user preference: high-contrast mode disables the tint so photos
+   are not further flattened by our luxury wash. */
+@media (prefers-contrast: more) {
+  .photo-tone,
+  .photo-tone-hero {
+    filter: none;
+  }
+}
+
+/* ═══ V3 Visual: Sunlight Layer ═══
+   Scope rule: only on the LP hero and the Home hero area (Greeting +
+   JourneyCard). Never on body/layout. Applied via ::before so it sits
+   behind content without affecting flow. The container must be
+   `position: relative` and `isolate` for stacking safety. */
+@layer components {
+  .hero-sunlight,
+  .hero-sunlight-sm {
+    position: relative;
+    isolation: isolate;
+  }
+  .hero-sunlight::before,
+  .hero-sunlight-sm::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--hero-sunlight);
+  }
+  /* Smaller variant for the Home hero — reduced opacity so it hints
+     rather than dominates. */
+  .hero-sunlight-sm::before {
+    opacity: 0.6;
+  }
+  /* Ensure direct children sit above the glow. */
+  .hero-sunlight > *,
+  .hero-sunlight-sm > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* High-contrast users: disable the decorative warm glow. */
+@media (prefers-contrast: more) {
+  .hero-sunlight::before,
+  .hero-sunlight-sm::before {
+    display: none;
+  }
+}
+
+/* ═══ Halo Tap animation ═══ */
+@keyframes halo-tap-ring {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.7;
+  }
+  100% {
+    width: 120px;
+    height: 120px;
+    opacity: 0;
+  }
+}
+
+.halo-animate {
+  animation: halo-tap-ring 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ═══ Global focus-visible ring (WCAG 2.4.7) ═══
+   Every interactive element gets a gold ring when reached via keyboard. Mouse /
+   touch users never see it (:focus-visible only fires for keyboard). Matches
+   DESIGN.md v4.2 — gold 55% 2px + 2px offset, echoing the brand hairline. */
+:where(a, button, [role="button"], [role="switch"], [role="tab"],
+        input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--gold-warm) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Skip rings on purely decorative <a>/<button> that opted out explicitly */
+.no-focus-ring:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

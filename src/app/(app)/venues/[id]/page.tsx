@@ -1,16 +1,39 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { MapPin, Users, ExternalLink } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { VenueStatusSelect } from "@/components/venues/venue-status-select";
-import { VenueRatingsSection } from "@/components/venues/venue-ratings-section";
-import { EstimateSection } from "@/components/venues/estimate-section";
-import { getVenue } from "@/server/actions/venues";
+  getVenueHeader,
+  getVenueEstimates,
+  getVenueVisits,
+} from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
+import { getFavorites } from "@/server/actions/favorites";
+import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actions/reviews";
+import { getVenuePlans } from "@/server/actions/plans";
+import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
+import { VenueHeader } from "@/components/venues/venue-header";
+import { RatingSection } from "@/components/venues/rating-section";
+import { EstimateSection } from "@/components/venues/estimate-section";
+import { MoneyReality } from "@/components/venues/money-reality";
+import { getMoneyReality } from "@/server/actions/money-reality";
+import { ReviewSection } from "@/components/venues/review-section";
+import { VenueWhisper } from "@/components/venues/venue-whisper";
+import { PlanSection } from "@/components/venues/plan-section";
+import { VenueActionBar } from "@/components/venues/venue-action-bar";
+import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
+import { VisitSection } from "@/components/visits/visit-section";
+import { EstimateXRay } from "@/components/venues/estimate-xray";
+import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
+import { VenueDetailBackLink } from "@/components/venues/back-link";
+import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const VENUE_SECTIONS = [
+  { id: "overview", label: "概要" },
+  { id: "estimate", label: "見積" },
+  { id: "visit", label: "見学" },
+  { id: "review", label: "口コミ" },
+  { id: "ai", label: "AI解析" },
+] as const;
 
 export default async function VenueDetailPage({
   params,
@@ -18,129 +41,409 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [venue, partnerRatingsData] = await Promise.all([
-    getVenue(id),
-    getPartnerRatings(id).catch(() => null),
+
+  // Fetch only the above-the-fold header + favorites synchronously.
+  // requireUser / requireProjectMembership are React.cache'd, so the repeated
+  // calls inside the Suspense children (getVenueEstimates, getVenueVisits, …)
+  // reuse the same cached result — no extra DB round-trips.
+  const [venue, favorites] = await Promise.all([
+    getVenueHeader(id),
+    getFavorites("mine"),
   ]);
 
   if (!venue) notFound();
 
-  // Extract existing user_rating scores into a Record<dimension, score>
-  const existingScores: Record<string, number> = {};
-  for (const s of venue.scores) {
-    if (s.source === "user_rating") {
-      existingScores[s.dimension] = Number(s.score);
+  const isFavorite = favorites.some((f) => f.venue.id === venue.id);
+
+  // Extract user ratings into Record<dimension, score>
+  const userRatings: Record<string, number> = {};
+  for (const score of venue.scores) {
+    if (score.source === "user_rating") {
+      userRatings[score.dimension] = Number(score.score);
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="font-serif text-xl font-bold">{venue.name}</h1>
-            <VenueStatusSelect
-              venueId={venue.id}
-              currentStatus={venue.status}
-            />
-          </div>
+    <div className="space-y-6 pb-20">
+      {/* Back link — uses router.back() to preserve filter/scroll state on
+          the referrer page (Explore, Candidates, Home all link here). */}
+      <VenueDetailBackLink />
 
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            {venue.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {venue.location}
-              </span>
-            )}
-            {(venue.capacityMin || venue.capacityMax) && (
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {venue.capacityMin && venue.capacityMax
-                  ? `${venue.capacityMin}〜${venue.capacityMax}名`
-                  : venue.capacityMax
-                    ? `〜${venue.capacityMax}名`
-                    : `${venue.capacityMin}名〜`}
-              </span>
-            )}
-          </div>
+      {/* Photo Gallery — above the fold */}
+      <VenuePhotoGallery
+        venueId={venue.id}
+        name={venue.name}
+        photoUrls={venue.photoUrls}
+      />
 
-          {venue.accessInfo && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {venue.accessInfo}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Venue Header — above the fold */}
+      <VenueHeader
+        name={venue.name}
+        location={venue.location}
+        accessInfo={venue.accessInfo}
+        capacityMin={venue.capacityMin}
+        capacityMax={venue.capacityMax}
+        ceremonyStyles={venue.ceremonyStyles}
+        status={venue.status}
+      />
 
-      {/* Source URLs */}
-      {venue.sourceUrls.length > 0 && (
-        <Card className="shadow-[var(--shadow-soft)]">
-          <CardHeader>
-            <CardTitle className="font-serif text-base">参考リンク</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {venue.sourceUrls.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-primary hover:underline"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {url}
-              </a>
-            ))}
-          </CardContent>
-        </Card>
+      {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
+      <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
+
+      {/* ===== Overview section ===== */}
+      <section id="overview" className="space-y-4">
+        <div
+          aria-hidden="true"
+          className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+        />
+
+        {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
+        <Suspense fallback={<RatingSkeleton />}>
+          <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
+        </Suspense>
+      </section>
+
+      {/* ===== Estimate section ===== */}
+      <section id="estimate" className="space-y-4">
+        {/* Estimate sections — fetched in this Suspense child, streams independently */}
+        <Suspense fallback={<EstimatesSkeleton />}>
+          <EstimatesContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+      />
+
+      {/* ===== Visit section ===== */}
+      <section id="visit" className="space-y-4">
+        {/* Below-the-fold sections — each streams independently via Suspense. */}
+        <Suspense fallback={<VisitsSkeleton />}>
+          <VisitsContent
+            venueId={venue.id}
+            venueName={venue.name}
+            projectId={venue.projectId}
+          />
+        </Suspense>
+      </section>
+
+      {/* ===== Review section ===== */}
+      <section id="review" className="space-y-4">
+        <Suspense fallback={<ReviewsSkeleton />}>
+          <ReviewsContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      {/* ===== AI analysis section ===== */}
+      <section id="ai" className="space-y-4">
+        <Suspense fallback={<PlansSkeleton />}>
+          <PlansContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      {/* Action Bar */}
+      <VenueActionBar
+        venueId={venue.id}
+        venueName={venue.name}
+        isFavorite={isFavorite}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Async child Server Components — each one is a Suspense boundary.
+// ---------------------------------------------------------------------------
+
+async function RatingWithPartner({
+  venueId,
+  userRatings,
+}: {
+  venueId: string;
+  userRatings: Record<string, number>;
+}) {
+  const partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
+
+  const partnerRatings: Record<string, number> = {};
+  if (partnerRatingsData?.partnerRatings) {
+    for (const [dim, score] of Object.entries(
+      partnerRatingsData.partnerRatings.ratings,
+    )) {
+      partnerRatings[dim] = score;
+    }
+  }
+  const hasPartner = Object.keys(partnerRatings).length > 0;
+
+  return (
+    <>
+      <RatingSection
+        venueId={venueId}
+        initialRatings={userRatings}
+        partnerRatings={hasPartner ? partnerRatings : undefined}
+      />
+      {hasPartner && (
+        <PartnerComparisonSummary
+          venueId={venueId}
+          myRatings={userRatings}
+          partnerRatings={partnerRatings}
+        />
+      )}
+    </>
+  );
+}
+
+async function EstimatesContent({ venueId }: { venueId: string }) {
+  const [estimates, reviewEstimateAgg] = await Promise.all([
+    getVenueEstimates(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
+
+  if (estimates.length === 0) return null;
+
+  // E-6: Money Reality for the most recent estimate (full static analysis,
+  // no Claude). Catch so a bad report never blocks the estimate UI.
+  const moneyReality = await getMoneyReality(estimates[0].id).catch(() => null);
+
+  const reviewMeanFinal =
+    reviewEstimateAgg?.deltaYen != null
+      ? estimates[0].total + reviewEstimateAgg.deltaYen
+      : undefined;
+
+  return (
+    <>
+      <EstimateSection
+        venueId={venueId}
+        estimates={estimates.map((e) => ({
+          ...e,
+          predictedFinal: e.predictedFinal,
+          // Coerce Prisma Decimal objects to plain numbers so the payload
+          // can cross the Server → Client Component boundary without the
+          // 'Only plain objects can be passed' warning.
+          items: e.items.map((item) => ({
+            ...item,
+            amount: Number(item.amount),
+            upgradeProbability:
+              item.upgradeProbability != null
+                ? Number(item.upgradeProbability)
+                : null,
+          })),
+        }))}
+      />
+
+      {estimates[0].items.length > 0 && (
+        <EstimateXRay
+          items={estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            tier: item.tier,
+            predictedUpgrade: item.predictedUpgrade ?? null,
+            upgradeProbability: item.upgradeProbability
+              ? Number(item.upgradeProbability)
+              : null,
+          }))}
+          totalEstimate={estimates[0].total}
+          predictedFinal={estimates[0].predictedFinal}
+        />
       )}
 
-      {/* Ratings */}
-      <Card className="shadow-[var(--shadow-soft)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">おふたりの印象</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VenueRatingsSection
-            venueId={venue.id}
-            initialScores={existingScores}
-            ownerRatings={partnerRatingsData?.ownerRatings}
-            partnerRatings={partnerRatingsData?.partnerRatings}
-          />
-        </CardContent>
-      </Card>
+      {estimates[0].predictedFinal && (
+        <EstimateWaterfallChart
+          initialTotal={estimates[0].total}
+          predictedFinal={estimates[0].predictedFinal}
+          items={estimates[0].items.map((item) => ({
+            category: item.category,
+            itemName: item.itemName,
+            amount: item.amount,
+            predictedUpgrade: item.predictedUpgrade ?? 0,
+          }))}
+          reviewMeanFinal={reviewMeanFinal}
+          reviewSampleCount={reviewEstimateAgg?.sampleCount ?? undefined}
+          reviewStdDevYen={reviewEstimateAgg?.standardDeviation ?? undefined}
+        />
+      )}
 
-      {/* Estimates */}
-      <Card className="shadow-[var(--shadow-soft)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">見積もり</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EstimateSection
-            venueId={venue.id}
-            estimates={venue.estimates.map((e) => ({
-              ...e,
-              predictedFinal: e.predictedFinal,
-              items: e.items.map((item) => ({
-                ...item,
-              })),
-            }))}
-          />
-        </CardContent>
-      </Card>
+      {moneyReality && <MoneyReality report={moneyReality} />}
+    </>
+  );
+}
 
-      {/* Visit Notes - Phase 2 placeholder */}
-      <Card className="shadow-[var(--shadow-soft)]">
-        <CardHeader>
-          <CardTitle className="font-serif text-base">見学メモ</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Phase 2で見学メモ・写真記録機能が追加されます
-          </p>
-        </CardContent>
-      </Card>
+async function ReviewsContent({ venueId }: { venueId: string }) {
+  const [reviews, venueAgg] = await Promise.all([
+    getVenueReviews(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
+  return (
+    <div className="space-y-5">
+      {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
+          to no render when no reviews analyzed yet (0 noise). */}
+      <VenueWhisper
+        reviews={reviews.map((r) => ({
+          categorySummary: r.categorySummary,
+          isNegative: r.isNegative,
+        }))}
+        reviewEstimateAggregate={venueAgg}
+      />
+
+      <ReviewSection
+        venueId={venueId}
+        reviews={reviews.map((r) => ({
+          id: r.id,
+          source: r.source,
+          sourceUrl: r.sourceUrl,
+          aiSummary: r.aiSummary,
+          sentiment: r.sentiment as Record<string, number> | null,
+          rating: r.rating ? Number(r.rating) : null,
+          categorySummary: r.categorySummary as Record<string, string> | null,
+          isNegative: r.isNegative,
+          estimateIncrease: r.estimateIncrease as {
+            deltaYen?: number;
+            deltaPct?: number;
+            confidence?: "high" | "medium" | "low";
+            note?: string;
+          } | null,
+        }))}
+        venueEstimateAggregate={venueAgg}
+      />
+    </div>
+  );
+}
+
+async function PlansContent({ venueId }: { venueId: string }) {
+  const plans = await getVenuePlans(venueId);
+  return (
+    <PlanSection
+      venueId={venueId}
+      plans={plans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        basePrice: p.basePrice,
+        guestCountMin: p.guestCountMin,
+        guestCountMax: p.guestCountMax,
+        includedItems: (p.includedItems as string[]) ?? [],
+        excludedItems: (p.excludedItems as string[]) ?? [],
+        bringInItems:
+          (p.bringInItems as Array<{ item: string; fee?: number }>) ?? [],
+        dressAllowance: p.dressAllowance,
+        dressAllowanceNote: p.dressAllowanceNote,
+        dressBrideCount: p.dressBrideCount,
+        dressGroomCount: p.dressGroomCount,
+        dressBudgetCapYen: p.dressBudgetCapYen,
+        campaigns:
+          (p.campaigns as Array<{ name: string; discount?: string }>) ?? [],
+        notes: p.notes,
+      }))}
+    />
+  );
+}
+
+async function VisitsContent({
+  venueId,
+  venueName,
+  projectId,
+}: {
+  venueId: string;
+  venueName: string;
+  projectId: string;
+}) {
+  const visits = await getVenueVisits(venueId);
+  return (
+    <VisitSection
+      venueId={venueId}
+      venueName={venueName}
+      projectId={projectId}
+      visits={visits.map((v) => ({
+        id: v.id,
+        scheduledAt: v.scheduledAt,
+        status: v.status,
+        completedAt: v.completedAt,
+        title: v.title,
+        memo: v.memo,
+        checklist:
+          v.checklist?.map((c) => ({
+            id: c.id,
+            item: c.item,
+            category: c.category,
+            status: c.status,
+            memo: c.memo,
+            photoUrls: c.photoUrls,
+          })) ?? [],
+        notes:
+          v.notes?.map((n) => ({
+            id: n.id,
+            content: n.content,
+            tags: n.tags,
+            locationLat: n.locationLat ? Number(n.locationLat) : null,
+            locationLng: n.locationLng ? Number(n.locationLng) : null,
+            createdAt: n.createdAt,
+            media:
+              n.media?.map((m) => ({
+                id: m.id,
+                type: m.type,
+                mediaUrl: m.mediaUrl,
+              })) ?? [],
+          })) ?? [],
+      }))}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Skeleton fallbacks — approximate real layout to avoid layout shift when
+// each Suspense boundary resolves.
+// ---------------------------------------------------------------------------
+
+function RatingSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-32" />
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-6 flex-1" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EstimatesSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  );
+}
+
+function ReviewsSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
+    </div>
+  );
+}
+
+function PlansSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-20" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}
+
+function VisitsSkeleton() {
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton className="h-5 w-28" />
+      <Skeleton className="h-20 w-full" />
     </div>
   );
 }

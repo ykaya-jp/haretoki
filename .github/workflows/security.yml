@@ -1,0 +1,59 @@
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  schedule:
+    # 毎週月曜 9:00 JST (= 0:00 UTC) に定期スキャン
+    - cron: "0 0 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ──────────────────────────────────────
+  # Dependency Review
+  # PRで追加・更新されるパッケージに既知の脆弱性がないかチェック
+  # ──────────────────────────────────────
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Review dependencies for vulnerabilities
+        uses: actions/dependency-review-action@v4
+        with:
+          # high以上の脆弱性があればブロック
+          fail-on-severity: high
+          # ライセンスもチェック（コピーレフト系をブロック）
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+        # Dependency graph が無効なリポジトリではスキップ
+        continue-on-error: true
+
+  # ──────────────────────────────────────
+  # CodeQL — コードの脆弱性パターンを静的解析
+  # ──────────────────────────────────────
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # default + security-extended queries
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript

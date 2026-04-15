@@ -34,6 +34,7 @@ enum ScoreDimension {
   staff_continuity
   capacity
   cancellation
+  way_home_mood
 }
 
 enum ScoreSource {
@@ -76,11 +77,65 @@ enum VisitStatus {
   cancelled
 }
 
+enum DressBringIn {
+  allowed
+  not_allowed
+  negotiable
+}
+
+enum ChecklistItemStatus {
+  unchecked
+  yes
+  no
+}
+
 enum AiAnalysisType {
   review_summary
   estimate_prediction
   comparison
+  fit_reason
+  matrix_insight
   visit_prep
+  coach_chat
+  rating_comparison
+}
+
+enum NotificationFrequency {
+  auto
+  quiet
+  off
+}
+
+enum ReactionType {
+  like
+  maybe
+  pass
+}
+
+enum ReviewSource {
+  zexy
+  wedding_park
+  hanayume
+  mynavi
+  minna_no_wedding
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+enum PaymentMethod {
+  credit_card
+  cash
+  bank_transfer
+  installment
+}
+
+enum AgreementStatus {
+  discussing
+  decided
+  revisit
 }
 
 model User {
@@ -90,8 +145,15 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  projectMembers ProjectMember[]
-  visitRatings   VisitRating[]
+  projectMembers         ProjectMember[]
+  visitRatings           VisitRating[]
+  favorites              VenueFavorite[]
+  notificationPreference NotificationPreference?
+  notifications          Notification[]
+  createdInvitations     ProjectInvitation[] @relation("ProjectInvitationCreator")
+  consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
+  agreements             CoupleAgreement[]
+  savedSearches          SavedSearch[]
 
   @@map("users")
 }
@@ -104,13 +166,42 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  members    ProjectMember[]
-  venues     Venue[]
-  estimates  Estimate[]
-  analyses   AiAnalysis[]
-  decisions  Decision[]
+  members          ProjectMember[]
+  venues           Venue[]
+  estimates        Estimate[]
+  analyses         AiAnalysis[]
+  decisions        Decision[]
+  partnerReactions PartnerReaction[]
+  coachMessages    CoachMessage[]
+  coachSessions    CoachSession[]
+  checklists       ProjectChecklist[]
+  rituals          DailyRitual[]
+  invitations      ProjectInvitation[]
+  agreements       CoupleAgreement[]
+  savedSearches    SavedSearch[]
 
   @@map("projects")
+}
+
+/// E-1 Weather Ritual: 朝/夕に Claude が生成する 1 文。日次キャッシュ。
+model DailyRitual {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  date       DateTime @db.Date
+  weather    String   // "cloudy" | "break" | "clear" | "sunny"
+  headline   String   // 明朝 1 文 (20-40 字)
+  mood       String?  // 補足 (60 字)
+  ctaLabel   String?  @map("cta_label")
+  ctaHref    String?  @map("cta_href")
+  seenAt     DateTime? @map("seen_at")
+  actedAt    DateTime? @map("acted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, date])
+  @@index([projectId, date])
+  @@map("daily_rituals")
 }
 
 model ProjectMember {
@@ -125,7 +216,30 @@ model ProjectMember {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
+  @@index([userId])
   @@map("project_members")
+}
+
+/// E-11 1-tap 招待リンク: ProjectMember pre-create を避け、トークンを使った
+/// one-time consume 型。リンクを受け取った partner が Google OAuth でログインし、
+/// このトークンを consume すると自動で ProjectMember を作る。
+model ProjectInvitation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  token       String    @unique
+  createdBy   String    @map("created_by") @db.Uuid
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  consumedBy  String?   @map("consumed_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User    @relation("ProjectInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  consumer User?  @relation("ProjectInvitationConsumer", fields: [consumedBy], references: [id])
+
+  @@index([projectId])
+  @@index([expiresAt])
+  @@map("project_invitations")
 }
 
 model Venue {
@@ -138,18 +252,42 @@ model Venue {
   capacityMax    Int?        @map("capacity_max")
   ceremonyStyles String[]    @map("ceremony_styles")
   sourceUrls     String[]    @map("source_urls")
+  photoUrls      String[]    @default([]) @map("photo_urls")
   status         VenueStatus @default(researching)
+  costMin        Int?        @map("cost_min")
+  costMax        Int?        @map("cost_max")
+  dressBringIn   DressBringIn? @map("dress_bring_in")
+  dressBringInFee Int?       @map("dress_bring_in_fee")
+  /// @deprecated Free-text legacy column. Retained for data preservation — new
+  /// reads/filters should use `paymentMethodEnums`. Left un-dropped so historical
+  /// free-text values (e.g. "カード", "分割 12回") remain queryable during the
+  /// transition window (R1.5c → R2).
+  paymentMethods     String[]        @default([]) @map("payment_methods")
+  paymentMethodEnums PaymentMethod[] @default([]) @map("payment_method_enums")
+  /// Max allowed installment count. Null = unknown or not supported.
+  maxInstallments    Int?            @map("max_installments")
+  reviewEstimateDeltaYen    Int?     @map("review_estimate_delta_yen")
+  reviewEstimateDeltaPct    Decimal? @map("review_estimate_delta_pct") @db.Decimal(5, 2)
+  reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
+  /// R-2 気分で探す: 式場の雰囲気タグ (VibeTag[])
+  vibeTags           String[]        @default([]) @map("vibe_tags")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  scores    VenueScore[]
-  estimates Estimate[]
-  visits    Visit[]
-  analyses  AiAnalysis[]
-  decision  Decision?
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scores           VenueScore[]
+  estimates        Estimate[]
+  visits           Visit[]
+  analyses         AiAnalysis[]
+  decision         Decision?
+  favorites        VenueFavorite[]
+  partnerReactions PartnerReaction[]
+  reviews          Review[]
+  plans            VenuePlan[]
+  checklistAnswers VenueChecklistAnswer[]
 
   @@index([projectId])
+  @@index([projectId, status])
   @@map("venues")
 }
 
@@ -213,8 +351,11 @@ model Visit {
   venueId     String      @map("venue_id") @db.Uuid
   scheduledAt DateTime?   @map("scheduled_at")
   status      VisitStatus @default(scheduled)
-  completedAt DateTime?   @map("completed_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
+  completedAt    DateTime?   @map("completed_at")
+  title          String?
+  memo           String?
+  reminderSentAt DateTime?   @map("reminder_sent_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   venue     Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
@@ -227,13 +368,16 @@ model Visit {
 }
 
 model VisitChecklistItem {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  visitId   String    @map("visit_id") @db.Uuid
+  id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId   String              @map("visit_id") @db.Uuid
   item      String
   category  String?
-  checked   Boolean   @default(false)
-  checkedAt DateTime? @map("checked_at")
-  sortOrder Int       @default(0) @map("sort_order")
+  status    ChecklistItemStatus @default(unchecked)
+  memo      String?
+  photoUrls String[]            @default([]) @map("photo_urls")
+  checkedAt DateTime?           @map("checked_at")
+  sortOrder Int                 @default(0) @map("sort_order")
+  metadata  Json?
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
@@ -273,7 +417,7 @@ model VisitRating {
   visitId   String         @map("visit_id") @db.Uuid
   userId    String         @map("user_id") @db.Uuid
   dimension ScoreDimension
-  score     Int
+  score     Decimal        @db.Decimal(2, 1)
   comment   String?
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime       @updatedAt @map("updated_at")
@@ -282,6 +426,7 @@ model VisitRating {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([visitId, userId, dimension])
+  @@index([userId])
   @@map("visit_ratings")
 }
 
@@ -298,6 +443,7 @@ model AiAnalysis {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, type])
+  @@index([projectId, type, inputHash])
   @@map("ai_analyses")
 }
 
@@ -313,4 +459,214 @@ model Decision {
   venue   Venue   @relation(fields: [selectedVenueId], references: [id])
 
   @@map("decisions")
+}
+
+model PartnerReaction {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId      String       @map("venue_id") @db.Uuid
+  projectId    String       @map("project_id") @db.Uuid
+  visitorToken String       @map("visitor_token")
+  reaction     ReactionType
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  venue   Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, visitorToken])
+  @@index([projectId])
+  @@map("partner_reactions")
+}
+
+model VenueFavorite {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, userId])
+  @@index([userId])
+  @@map("venue_favorites")
+}
+
+model VenuePlan {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId        String   @map("venue_id") @db.Uuid
+  name           String
+  basePrice      Int?     @map("base_price")
+  guestCountMin  Int?     @map("guest_count_min")
+  guestCountMax  Int?     @map("guest_count_max")
+  includedItems  Json     @default("[]") @map("included_items")
+  excludedItems  Json     @default("[]") @map("excluded_items")
+  bringInItems   Json     @default("[]") @map("bring_in_items")
+  // Legacy free-text field. Preserved for backfill; new edits use the
+  // structured columns below + dressAllowanceNote for free-form notes.
+  dressAllowance     String?  @map("dress_allowance")
+  dressAllowanceNote String?  @map("dress_allowance_note")
+  dressBrideCount    Int?     @map("dress_bride_count")
+  dressGroomCount    Int?     @map("dress_groom_count")
+  dressBudgetCapYen  Int?     @map("dress_budget_cap_yen")
+  campaigns      Json     @default("[]")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
+  @@map("venue_plans")
+}
+
+model Review {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId         String       @map("venue_id") @db.Uuid
+  source          ReviewSource
+  sourceUrl       String       @map("source_url")
+  rating          Decimal?     @db.Decimal(2, 1)
+  aiSummary       String?      @map("ai_summary")
+  sentiment       Json?
+  categorySummary Json?        @map("category_summary")
+  isNegative      Boolean      @default(false) @map("is_negative")
+  estimateIncrease Json?       @map("estimate_increase")
+  fetchedAt       DateTime     @default(now()) @map("fetched_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId])
+  @@map("reviews")
+}
+
+model CoachSession {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id") @db.Uuid
+  title     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages CoachMessage[]
+
+  @@index([projectId, updatedAt(sort: Desc)])
+  @@map("coach_sessions")
+}
+
+model CoachMessage {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String      @map("project_id") @db.Uuid
+  sessionId String?     @map("session_id")
+  role      MessageRole
+  content   String
+  metadata  Json?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  session CoachSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([sessionId])
+  @@map("coach_messages")
+}
+
+model NotificationPreference {
+  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String                @unique @map("user_id") @db.Uuid
+  frequency        NotificationFrequency @default(auto)
+  pushEnabled      Boolean               @default(false) @map("push_enabled")
+  emailEnabled     Boolean               @default(true) @map("email_enabled")
+  pushSubscription Json?                 @map("push_subscription")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model ProjectChecklist {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id") @db.Uuid
+  itemId    String   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  answers VenueChecklistAnswer[]
+
+  @@unique([projectId, itemId])
+  @@index([projectId])
+  @@map("project_checklists")
+}
+
+model VenueChecklistAnswer {
+  id                 String   @id @default(cuid())
+  projectChecklistId String   @map("project_checklist_id")
+  venueId            String   @map("venue_id") @db.Uuid
+  status             String?
+  memo               String?
+  numberValue        Decimal? @map("number_value") @db.Decimal(12, 2)
+  photoUrls          String[] @default([]) @map("photo_urls")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  projectChecklist ProjectChecklist @relation(fields: [projectChecklistId], references: [id], onDelete: Cascade)
+  venue            Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([projectChecklistId, venueId])
+  @@index([projectChecklistId])
+  @@index([venueId])
+  @@map("venue_checklist_answers")
+}
+
+model Notification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  href      String?
+  read      Boolean   @default(false)
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// E-10 Saved Search: ユーザーが保存した検索条件。マッチした式場を日次通知。
+model SavedSearch {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String    @map("project_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  label          String
+  filters        Json
+  lastNotifiedAt DateTime? @map("last_notified_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+/// R-7 合意事項: カップルが話し合って決めたこと / 話し合い中のこと
+model CoupleAgreement {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String          @map("project_id") @db.Uuid
+  text      String
+  status    AgreementStatus @default(discussing)
+  createdBy String          @map("created_by") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("couple_agreements")
 }

@@ -1,0 +1,85 @@
+name: vercel-preview
+
+# Vercel がデプロイ完了したらPRにプレビューURLをコメントする
+# Vercel の GitHub Integration が deployment_status イベントを発火する
+
+on:
+  deployment_status:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    name: Preview URL Comment
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find PR for this deployment
+        id: find-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.deployment.sha;
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 10,
+            });
+            const pr = prs.find(p => p.head.sha === sha);
+            if (pr) {
+              core.setOutput('pr_number', pr.number);
+              core.setOutput('found', 'true');
+            } else {
+              core.setOutput('found', 'false');
+            }
+
+      - name: Comment preview URL on PR
+        if: steps.find-pr.outputs.found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.find-pr.outputs.pr_number }};
+            const url = context.payload.deployment_status.target_url;
+            const env = context.payload.deployment.environment;
+            const sha = context.payload.deployment.sha.substring(0, 7);
+
+            const marker = '<!-- vercel-preview-bot -->';
+            const body = [
+              marker,
+              `### 🔍 Preview Deploy`,
+              '',
+              `| | |`,
+              `|---|---|`,
+              `| **URL** | ${url} |`,
+              `| **Environment** | ${env} |`,
+              `| **Commit** | \`${sha}\` |`,
+              '',
+              `> このURLで変更内容を確認できます`,
+            ].join('\n');
+
+            // Delete previous bot comments to keep PR clean
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            for (const c of comments.filter(c => c.body.includes(marker))) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: c.id,
+              });
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body,
+            });

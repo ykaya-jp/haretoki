@@ -2,8 +2,8 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { requireUser, requireProjectMembership } from "@/server/auth";
-import { revalidatePath } from "next/cache";
+import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
 
@@ -38,10 +38,11 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, validation.data.venueId);
 
   // Get current version count
   const count = await prisma.estimate.count({
-    where: { venueId: validation.data.venueId },
+    where: { venueId: validation.data.venueId, projectId },
   });
 
   const estimate = await prisma.estimate.create({
@@ -64,17 +65,18 @@ export async function createEstimate(input: z.input<typeof estimateSchema>) {
     include: { items: true },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${validation.data.venueId}`);
-  revalidatePath("/compare");
+  revalidatePath("/candidates");
   return { estimate };
 }
 
 export async function getEstimatesForVenue(venueId: string) {
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
 
   return prisma.estimate.findMany({
-    where: { venueId },
+    where: { venueId, projectId },
     include: { items: true },
     orderBy: { version: "desc" },
   });
@@ -129,6 +131,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   // Auth check
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, venueId);
 
   // Check Claude availability
   if (!isClaudeAvailable()) {
@@ -171,7 +174,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     if (!pdfText || pdfText.trim().length === 0) {
       return {
         error:
-          "PDFからテキストを抽出できませんでした。スキャンされたPDFの場合は手入力をお試しください",
+          "PDFからうまく読み取れませんでした。スキャン画像の PDF なら手入力をお試しください",
       };
     }
 
@@ -182,7 +185,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     );
 
     if (!claudeResponse) {
-      return { error: "AI分析に失敗しました。しばらくしてから再度お試しください" };
+      return { error: "AI がうまく読めませんでした。少し時間をおいてもう一度お試しください" };
     }
 
     // Parse Claude's JSON response
@@ -191,13 +194,13 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       analysis = JSON.parse(claudeResponse);
     } catch {
       return {
-        error: "AI分析結果の解析に失敗しました。再度お試しください",
+        error: "AI の応答をうまく読み取れませんでした。もう一度お試しください",
       };
     }
 
     // Validate the analysis has required fields
     if (!analysis.total || !Array.isArray(analysis.items)) {
-      return { error: "AI分析結果が不完全です。再度お試しください" };
+      return { error: "AI の読み取りが途中で止まりました。もう一度お試しください" };
     }
 
     return {
@@ -212,7 +215,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       error:
         error instanceof Error
           ? error.message
-          : "見積もりPDFの分析に失敗しました",
+          : "見積もり PDF をうまく読めませんでした",
     };
   }
 }
@@ -256,10 +259,11 @@ export async function saveAnalyzedEstimate(input: {
 }) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  await requireVenueAccess(user.id, input.venueId);
 
   // Get current version count
   const count = await prisma.estimate.count({
-    where: { venueId: input.venueId },
+    where: { venueId: input.venueId, projectId },
   });
 
   const estimate = await prisma.estimate.create({
@@ -283,7 +287,8 @@ export async function saveAnalyzedEstimate(input: {
     include: { items: true },
   });
 
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${input.venueId}`);
-  revalidatePath("/compare");
+  revalidatePath("/candidates");
   return { estimate };
 }

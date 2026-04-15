@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haretoki Design Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; font-family: "Noto Sans JP", sans-serif; background: linear-gradient(180deg, #efeae0, #e4ded2); color: #2a2320; padding: 48px 24px 64px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .eye { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: oklch(0.70 0.13 80); }
+  h1 { font-family: "Shippori Mincho", serif; font-weight: 300; font-size: 32px; letter-spacing: -0.01em; margin: 10px 0 6px; }
+  .lede { color: #6b5d4d; font-size: 14px; margin: 0 0 40px; line-height: 1.8; }
+  h2 { font-family: "Shippori Mincho", serif; font-weight: 300; font-size: 20px; letter-spacing: 0; margin: 40px 0 16px; border-bottom: 1px solid color-mix(in oklab, oklch(0.70 0.13 80) 30%, transparent); padding-bottom: 10px; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  li a {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 22px; text-decoration: none; color: inherit;
+    background: #fff; border-radius: 16px;
+    border: 1px solid oklch(0.90 0.01 70);
+    box-shadow: 0 1px 3px rgba(42,35,32,.04), 0 6px 18px rgba(42,35,32,.04);
+    transition: transform .2s, box-shadow .2s;
+  }
+  li a:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(42,35,32,.06), 0 12px 24px rgba(42,35,32,.08); }
+  .num { font-family: "Shippori Mincho"; font-weight: 300; font-size: 24px; color: oklch(0.70 0.13 80); min-width: 48px; }
+  .meta { flex: 1; }
+  .meta h3 { margin: 0; font-size: 14px; font-weight: 500; }
+  .meta p { margin: 4px 0 0; font-size: 12.5px; color: #6b5d4d; }
+  .doc-link { display: inline-block; margin-top: 6px; font-size: 11px; color: oklch(0.62 0.12 45); text-decoration: none; }
+  .badge-h { background: oklch(0.70 0.13 80); color: #fff; font-size: 9.5px; font-weight: 500; letter-spacing: .1em; padding: 3px 8px; border-radius: 999px; }
+  .badge-m { background: color-mix(in oklab, oklch(0.62 0.12 45) 15%, transparent); color: oklch(0.62 0.12 45); font-size: 9.5px; font-weight: 500; letter-spacing: .1em; padding: 3px 8px; border-radius: 999px; }
+  .note { margin-top: 40px; padding: 20px 24px; background: color-mix(in oklab, oklch(0.70 0.13 80) 10%, transparent); border-left: 3px solid oklch(0.70 0.13 80); border-radius: 12px; font-size: 13px; color: #2a2320; line-height: 1.8; }
+</style></head>
+<body>
+<div class="wrap">
+  <p class="eye">Haretoki · Design Proposals v2</p>
+  <h1>新機能と既存改修 全モックアップ</h1>
+  <p class="lede">
+    各提案は <strong>モック（HTML）と設計書（md）</strong> のセット。<br/>
+    承認後にそれぞれ実装フェーズへ進みます。
+  </p>
+
+  <h2>新機能 — H 優先</h2>
+  <ul>
+    <li><a href="e-1-weather-ritual.html">
+      <span class="num">E-1</span>
+      <div class="meta">
+        <h3>Weather Ritual — 朝の一言</h3>
+        <p>毎朝 Claude が今日のふたりへ 1 文 · 3.5h · R-1 と同時着手</p>
+        <a class="doc-link" href="../design-proposals/E-1-weather-ritual.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+    <li><a href="e-2-fit-reason.html">
+      <span class="num">E-2</span>
+      <div class="meta">
+        <h3>Fit Reason 一行</h3>
+        <p>式場カードに「ふたりの◯◯条件に合います」AI 1 行 · 2.5h</p>
+        <a class="doc-link" href="../design-proposals/E-2-fit-reason.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+    <li><a href="e-3-way-home-mode.html">
+      <span class="num">E-3</span>
+      <div class="meta">
+        <h3>帰り道モード — 見学直後 3 分</h3>
+        <p>気持ち + 感想 + 写真 + 音声メモ · 6.5h</p>
+        <a class="doc-link" href="../design-proposals/E-3-way-home-mode.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+    <li><a href="e-4-couple-view.html">
+      <span class="num">E-4</span>
+      <div class="meta">
+        <h3>二人ビュー — Couple View</h3>
+        <p>妻/夫アバター + 差分バッジ + 二人カラム + 温度差リスト · 7h</p>
+        <a class="doc-link" href="../design-proposals/E-4-couple-view.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+    <li><a href="e-5-final-two-duel.html">
+      <span class="num">E-5</span>
+      <div class="meta">
+        <h3>Final Two Duel — 最後の二択</h3>
+        <p>10 問の情景で感情決断 · 7h</p>
+        <a class="doc-link" href="../design-proposals/E-5-final-two-duel.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+    <li><a href="e-6-money-reality-check.html">
+      <span class="num">E-6</span>
+      <div class="meta">
+        <h3>Money Reality Check — 見積の落とし穴</h3>
+        <p>3 カード (抜け/上がりやすい/交渉余地) · 6h · 商用差別化の核</p>
+        <a class="doc-link" href="../design-proposals/E-6-money-reality-check.md">📄 設計書</a>
+      </div>
+      <span class="badge-h">H</span>
+    </a></li>
+  </ul>
+
+  <h2>新機能 — M 優先（Mini spec 束）</h2>
+  <ul>
+    <li><a href="e-7-to-e-11.html">
+      <span class="num">E-7〜11</span>
+      <div class="meta">
+        <h3>Timeline / Question Bank / Venue Whisper / Saved Search / 招待リンク</h3>
+        <p>5 機能束 · 合計 21h · 一体設計書 + 5 面モック</p>
+        <a class="doc-link" href="../design-proposals/E-7-to-E-11-mini-specs.md">📄 設計書</a>
+      </div>
+      <span class="badge-m">M×5</span>
+    </a></li>
+  </ul>
+
+  <h2>既存機能 改修</h2>
+  <ul>
+    <li><a href="r-1-to-r-7.html">
+      <span class="num">R-1〜7</span>
+      <div class="meta">
+        <h3>7 件の既存磨き — 天気アイコン / 気分タグ / 時間帯写真 / insight expire / 今夜の一問 / 感情カラム / 合意事項</h3>
+        <p>合計 16h · R-1 は E-1 と同時着手推奨</p>
+        <a class="doc-link" href="../design-proposals/R-1-to-R-7-existing-improvements.md">📄 設計書</a>
+      </div>
+      <span class="badge-m">mix</span>
+    </a></li>
+  </ul>
+
+  <h2>Sprint 2-5 完了済み刷新（本番反映済）</h2>
+  <ul>
+    <li><a href="sprint2-home.html"><span class="num">①</span><div class="meta"><h3>ホーム (F-14/F-21)</h3><p>editorial hero · sky chip</p></div></a></li>
+    <li><a href="sprint2-coach.html"><span class="num">②</span><div class="meta"><h3>コーチ (F-17/F-18)</h3><p>sticky chip header</p></div></a></li>
+    <li><a href="sprint2-add-sheet.html"><span class="num">③</span><div class="meta"><h3>追加 Sheet (F-01/B-12)</h3><p>URL 入力を主役に</p></div></a></li>
+    <li><a href="sprint2-compare.html"><span class="num">④</span><div class="meta"><h3>比較 (F-04/F-05/B-13)</h3><p>Crown 廃止 · bg tint + AI 分析</p></div></a></li>
+    <li><a href="sprint2-decision.html"><span class="num">⑤</span><div class="meta"><h3>決定セレモニー (F-10)</h3><p>朝光 wash · 2px gold 記念カード</p></div></a></li>
+  </ul>
+
+  <div class="note">
+    <strong>実装順の推奨</strong><br/>
+    Phase α (妻レビュー直後): <strong>R-1 + E-1</strong> の同時着手 — Weather Ritual の骨格。<br/>
+    Phase β: <strong>E-2 + E-9 + E-11</strong> — AI 価値の可視化と Partner 流入。<br/>
+    Phase γ: <strong>E-3 + E-6</strong> — 情緒キャプチャと商用差別化。<br/>
+    Phase δ: <strong>E-4 + E-5 + E-8 + E-10 + R-4〜7</strong> — 体験の深化。<br/>
+    <br/>
+    <strong>全体合計工数: 約 82 時間</strong>（新機能 11 件 + 既存改修 7 件）
+  </div>
+</div>
+</body></html>

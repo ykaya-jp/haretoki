@@ -1,0 +1,37 @@
+# Dependabot: ライブラリの新バージョンが出たら自動でPRを作成
+# https://docs.github.com/en/code-security/dependabot
+
+version: 2
+
+updates:
+  # npm パッケージの更新チェック（毎週月曜）
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    # PRが溜まりすぎないよう上限設定
+    open-pull-requests-limit: 10
+    # パッチ・マイナーはまとめて1つのPRに
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps):"
+
+  # GitHub Actions の更新チェック（毎週月曜）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    labels:
+      - ci
+    commit-message:
+      prefix: "chore(ci):"

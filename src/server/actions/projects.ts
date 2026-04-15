@@ -7,42 +7,69 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 export async function getOrCreateProject() {
   const user = await requireUser();
 
-  // Ensure user exists in DB
-  await prisma.user.upsert({
-    where: { id: user.id },
-    update: { email: user.email! },
-    create: {
-      id: user.id,
-      email: user.email!,
-      name: user.user_metadata?.name,
-    },
-  });
+  try {
+    // Ensure user exists in DB. Handle email conflicts gracefully.
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: user.email! },
+    });
 
-  // Find existing project membership
-  const membership = await prisma.projectMember.findFirst({
-    where: { userId: user.id, acceptedAt: { not: null } },
-    include: { project: { include: { venues: true } } },
-    orderBy: { project: { updatedAt: "desc" } },
-  });
-
-  if (membership) return membership.project;
-
-  // Create new project + owner membership
-  const project = await prisma.project.create({
-    data: {
-      name: "わたしたちの式場選び",
-      members: {
+    if (existingByEmail && existingByEmail.id !== user.id) {
+      // Email exists with different ID (e.g., prior email signup before Google).
+      // Update the existing record to use the new Supabase auth ID.
+      // This is rare but prevents unique constraint failures.
+      console.warn(
+        `[getOrCreateProject] Email collision: existing user ${existingByEmail.id} has email ${user.email}, new auth ID ${user.id}. Merging.`,
+      );
+      await prisma.user.update({
+        where: { email: user.email! },
+        data: {
+          id: user.id,
+          name: user.user_metadata?.name ?? existingByEmail.name,
+        },
+      });
+    } else {
+      await prisma.user.upsert({
+        where: { id: user.id },
+        update: { email: user.email! },
         create: {
-          userId: user.id,
-          role: "owner",
-          acceptedAt: new Date(),
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.name,
+        },
+      });
+    }
+
+    // Find existing project membership
+    const membership = await prisma.projectMember.findFirst({
+      where: { userId: user.id, acceptedAt: { not: null } },
+      include: { project: { include: { venues: true } } },
+      orderBy: { project: { updatedAt: "desc" } },
+    });
+
+    if (membership) return membership.project;
+
+    // Create new project + owner membership
+    const project = await prisma.project.create({
+      data: {
+        name: "わたしたちの式場選び",
+        members: {
+          create: {
+            userId: user.id,
+            role: "owner",
+            acceptedAt: new Date(),
+          },
         },
       },
-    },
-    include: { venues: true },
-  });
+      include: { venues: true },
+    });
 
-  return project;
+    return project;
+  } catch (error) {
+    console.error("[getOrCreateProject] failed:", error);
+    throw new Error(
+      `うまくはじめられませんでした: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 export async function updateProjectStep(projectId: string, step: number) {
@@ -69,6 +96,6 @@ export async function updateConditions(conditions: {
     where: { id: projectId },
     data: { conditions, currentStep: 2 },
   });
-  revalidatePath("/dashboard");
-  revalidatePath("/conditions");
+  revalidatePath("/home");
+  revalidatePath("/onboarding");
 }

@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
+import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // SECURITY: `next` is attacker-controllable (OAuth callback URL). Allow only
+  // same-origin relative paths; reject protocol-relative ("//evil.com") and
+  // userinfo ("@evil.com") tricks that would redirect post-auth to phishing.
+  const rawNext = searchParams.get("next");
+  const next = rawNext && isSameOriginRedirectPath(rawNext) ? rawNext : "/home";
 
   if (code) {
     const supabase = await createClient();

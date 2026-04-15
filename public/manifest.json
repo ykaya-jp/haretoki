@@ -1,0 +1,14 @@
+{
+  "name": "Haretoki — ふたりの式場選びパートナー",
+  "short_name": "Haretoki",
+  "description": "見積もりの落とし穴を事前に把握し、二人の意見を見える化して、後悔のない式場選びを支援します。",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#C4816E",
+  "background_color": "#FBF7F1",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
