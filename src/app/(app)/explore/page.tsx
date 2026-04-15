@@ -16,7 +16,6 @@ import {
   type PersonalizedConditions,
 } from "@/components/venues/venue-personalized-chips";
 import { VibeFilterChips } from "@/components/explore/vibe-filter-chips";
-import { SaveSearchButton } from "@/components/explore/save-search-button";
 import { listSavedSearches } from "@/server/actions/saved-searches";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
@@ -165,21 +164,6 @@ export default async function ExplorePage({
       {/* R-2 気分で探す — vibe tag chips */}
       <VibeFilterChips activeVibes={activeVibes} />
 
-      {/* E-10 Save search — show only when filters are active */}
-      {hasAnyFilter && (
-        <div className="flex justify-end">
-          <SaveSearchButton
-            filters={{
-              area: appliedConditions.areas,
-              budgetMax: appliedConditions.budgetMax,
-              capacityMin: appliedConditions.guestCount,
-              keyword: query || undefined,
-            }}
-            atLimit={savedSearches.length >= 5}
-          />
-        </div>
-      )}
-
       {/* AI Recommendations — always renders a stable container.
           Server-fetched seed (venueCount + conditions) is passed so the
           initial paint matches the final state and avoids the "appears
@@ -226,6 +210,7 @@ export default async function ExplorePage({
           favoriteIds={favoriteIds}
           baseFilters={hasAnyFilter ? venueFilters : undefined}
           fitReasons={fitReasons}
+          savedSearchCount={savedSearches.length}
         />
       )}
     </div>

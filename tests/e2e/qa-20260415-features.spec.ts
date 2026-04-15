@@ -49,34 +49,54 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.waitForURL(/\/(home|onboarding)/, { timeout: 20000 });
 }
 
-// Complete onboarding flow: creates Project + sets cookie
-// Skips name input, answers all questions via スキップ
+// Complete onboarding: calls saveOnboardingAnswers (empty) directly via
+// the "スキップして式場を追加" link, which triggers the server action and
+// sets the httpOnly onboarding_completed cookie.
 async function completeOnboarding(page: Page) {
   if (!page.url().includes("/onboarding")) return;
-  // Wait for intro (step -1) — skip name, click はじめる
-  const startBtn = await page.locator('button:has-text("はじめる")').first();
-  if (await startBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await startBtn.click();
-    await page.waitForTimeout(500);
-  }
-  // Skip through all 4 questions
-  for (let i = 0; i < 6; i++) {
-    const skip = page.locator('button:has-text("スキップ")').first();
-    const next = page.locator('button:has-text("次へ"), button:has-text("おすすめを見る")').first();
-    if (await skip.isVisible({ timeout: 1500 }).catch(() => false)) {
-      await skip.click();
-    } else if (await next.isVisible({ timeout: 1500 }).catch(() => false)) {
-      await next.click();
+
+  // Wait for intro (step -1)
+  const skipLink = page.locator('a:has-text("スキップして式場を追加"), a[href="/explore?addVenue=1"]').first();
+  const startBtn = page.locator('button:has-text("はじめる")').first();
+
+  if (await skipLink.isVisible({ timeout: 4000 }).catch(() => false)) {
+    // Use the skip link — it navigates to /explore without calling saveOnboardingAnswers.
+    // We need the cookie though, so click はじめる first then スキップ through questions.
+    if (await startBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await startBtn.click();
+      await page.waitForTimeout(400);
     }
-    await page.waitForTimeout(600);
-    if (page.url().includes("/home")) break;
-    const homeBtn = page.locator('button:has-text("ホームへ進む"), button:has-text("条件なしでひとまず始める")').first();
-    if (await homeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+  }
+
+  // Skip through all 4 questions
+  for (let i = 0; i < 8; i++) {
+    const currentUrl = page.url();
+    if (!currentUrl.includes("/onboarding")) break;
+
+    const skip = page.locator('button:has-text("スキップ")').first();
+    const next = page.locator('button:has-text("次へ")').first();
+    const seeRecs = page.locator('button:has-text("おすすめを見る")').first();
+    const homeBtn = page.locator('button:has-text("ホームへ進む")').first();
+    const skipCondition = page.locator('button:has-text("条件なしでひとまず始める")').first();
+
+    if (await homeBtn.isVisible({ timeout: 800 }).catch(() => false)) {
       await homeBtn.click();
       break;
+    } else if (await skipCondition.isVisible({ timeout: 800 }).catch(() => false)) {
+      await skipCondition.click();
+      break;
+    } else if (await skip.isVisible({ timeout: 800 }).catch(() => false)) {
+      await skip.click();
+    } else if (await seeRecs.isVisible({ timeout: 800 }).catch(() => false)) {
+      await seeRecs.click();
+    } else if (await next.isVisible({ timeout: 800 }).catch(() => false)) {
+      await next.click();
     }
+    await page.waitForTimeout(800);
   }
-  await page.waitForURL(/\/home/, { timeout: 15000 }).catch(() => {});
+
+  // Wait for landing on /home or /explore (onboarding done)
+  await page.waitForURL(/\/(home|explore)/, { timeout: 20000 }).catch(() => {});
 }
 
 // Login + complete onboarding + set cookie

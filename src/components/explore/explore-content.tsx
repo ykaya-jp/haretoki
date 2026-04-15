@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useMemo, useCallback, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueFilterSheet } from "@/components/explore/venue-filter-sheet";
+import { SaveSearchButton } from "@/components/explore/save-search-button";
 import { VenueCard } from "@/components/venues/venue-card";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
+import type { SavedSearchFilters } from "@/server/actions/saved-searches";
+import { VIBE_TAGS } from "@/lib/vibe-tags";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 
 type VenueWithRelations = Venue & {
@@ -24,7 +28,11 @@ interface ExploreContentProps {
   baseFilters?: VenueFilters;
   /** E-2 Fit Reason map { venueId: "◯◯ — ふたりの..." | null } */
   fitReasons?: Record<string, string | null>;
+  /** Number of saved searches already stored (for limit check). */
+  savedSearchCount?: number;
 }
+
+const validVibeIds: Set<string> = new Set(VIBE_TAGS.map((t) => t.id));
 
 const STATUS_FILTERS = [
   { id: "all", label: "すべて" },
@@ -39,12 +47,16 @@ export function ExploreContent({
   favoriteIds,
   baseFilters,
   fitReasons = {},
+  savedSearchCount = 0,
 }: ExploreContentProps) {
   const [venues, setVenues] = useState(initialVenues);
   const [activeFilter, setActiveFilter] = useState("all");
   const [advancedFilters, setAdvancedFilters] = useState<VenueFilters>({});
   const [isPending, startTransition] = useTransition();
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+
+  // Read URL params for keyword and vibe tags (managed by parent components).
+  const searchParams = useSearchParams();
 
   const chips = STATUS_FILTERS.map((f) => {
     const count = f.id === "all"
@@ -82,6 +94,47 @@ export function ExploreContent({
     return venues.filter((v) => v.status === activeFilter);
   }, [venues, activeFilter]);
 
+  // Build the live SavedSearchFilters from all active filter sources.
+  // Priority: advancedFilters (sheet) overrides baseFilters (onboarding/URL).
+  const liveFilters = useMemo((): SavedSearchFilters => {
+    const keyword = searchParams.get("q")?.trim() || undefined;
+    const vibeParam = searchParams.get("vibe");
+    const vibeTags = vibeParam
+      ? vibeParam
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => validVibeIds.has(s))
+      : undefined;
+
+    // advancedFilters.areas / advancedFilters.budgetMax etc. are VenueFilters keys.
+    // Fall back to baseFilters (onboarding-derived) when sheet doesn't override.
+    const area =
+      (advancedFilters.areas && advancedFilters.areas.length > 0
+        ? advancedFilters.areas
+        : baseFilters?.areas) ?? undefined;
+
+    const budgetMax =
+      advancedFilters.budgetMax ?? baseFilters?.budgetMax ?? undefined;
+
+    const capacityMin =
+      advancedFilters.guestCount ?? baseFilters?.guestCount ?? undefined;
+
+    return {
+      area: area && area.length > 0 ? area : undefined,
+      budgetMax,
+      capacityMin,
+      vibeTags: vibeTags && vibeTags.length > 0 ? vibeTags : undefined,
+      keyword,
+    };
+  }, [advancedFilters, baseFilters, searchParams]);
+
+  const hasLiveFilters =
+    (liveFilters.area && liveFilters.area.length > 0) ||
+    liveFilters.budgetMax !== undefined ||
+    liveFilters.capacityMin !== undefined ||
+    (liveFilters.vibeTags && liveFilters.vibeTags.length > 0) ||
+    (liveFilters.keyword && liveFilters.keyword.trim().length > 0);
+
   return (
     <>
       <div className="flex items-center gap-3">
@@ -90,6 +143,16 @@ export function ExploreContent({
         </div>
         <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
       </div>
+
+      {/* E-10 v2: Save Search — reflects live client filter state */}
+      {hasLiveFilters && (
+        <div className="flex justify-end">
+          <SaveSearchButton
+            filters={liveFilters}
+            atLimit={savedSearchCount >= 5}
+          />
+        </div>
+      )}
 
       {isPending && (
         <div className="flex justify-center py-8">
