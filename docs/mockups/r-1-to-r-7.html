@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>R-1〜R-7 既存機能改修</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --card: oklch(0.99 0.005 80);
+    --border: oklch(0.90 0.01 70);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: linear-gradient(180deg, #efeae0, #e4ded2); padding: 32px 20px 80px; color: var(--foreground); -webkit-font-smoothing: antialiased; }
+  h1.t { text-align: center; font-weight: 300; font-size: 26px; font-family: var(--mincho); margin: 0 0 8px; }
+  .lede { text-align: center; color: #6b5d4d; font-size: 13.5px; max-width: 620px; margin: 0 auto 40px; line-height: 1.7; }
+
+  .card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+  .improve-card { background: var(--card); border-radius: 20px; padding: 20px; box-shadow: 0 1px 3px rgba(42,35,32,.04), 0 4px 12px rgba(42,35,32,.06); }
+  .improve-card .title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .improve-card .id { font-family: var(--mincho); font-size: 28px; font-weight: 300; color: var(--gold-warm); }
+  .improve-card h3 { margin: 0; font-family: var(--mincho); font-size: 17px; font-weight: 400; flex: 1; padding-left: 10px; }
+  .improve-card .prio { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 999px; background: var(--gold-subtle); color: var(--gold-warm); letter-spacing: .08em; text-transform: uppercase; }
+  .improve-card .prio.m { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+  .improve-card .mini-preview { margin: 12px 0; padding: 14px; background: var(--background); border-radius: 14px; border: 1px solid var(--border); min-height: 120px; display: flex; align-items: center; justify-content: center; }
+  .improve-card .body { font-size: 12.5px; line-height: 1.75; color: var(--foreground); }
+  .improve-card .cost { margin-top: 10px; font-size: 11px; color: var(--muted-foreground); }
+
+  .ring-old { width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--gold-warm); border-top-color: var(--border); font-family: var(--mincho); display: flex; align-items: center; justify-content: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .ring-new { width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(120% 120% at 30% 20%, oklch(0.95 0.04 75) 0%, oklch(0.92 0.06 65) 40%, oklch(0.86 0.08 55) 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(201,164,76,.25); }
+  .caption { text-align: center; font-size: 11px; color: var(--muted-foreground); margin-top: 8px; line-height: 1.5; }
+
+  .mood-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .mood-tag { padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; display: inline-flex; align-items: center; gap: 4px; }
+  .mood-tag.gold { background: var(--gold-subtle); border-color: color-mix(in oklab, var(--gold-warm) 40%, transparent); color: var(--gold-warm); }
+
+  .tod-tabs { display: flex; gap: 6px; background: color-mix(in oklab, var(--foreground) 5%, transparent); border-radius: 10px; padding: 4px; }
+  .tod-tab { flex: 1; text-align: center; padding: 7px 10px; border-radius: 8px; font-size: 11.5px; cursor: pointer; }
+  .tod-tab.active { background: #fff; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .insight-old, .insight-new { background: var(--gold-subtle); border-left: 3px solid var(--gold-warm); padding: 10px 12px; border-radius: 10px; font-size: 11px; margin-bottom: 6px; }
+  .insight-faded { opacity: .4; filter: grayscale(30%); }
+  .insight-archived-label { font-size: 9.5px; letter-spacing: .08em; color: var(--muted-foreground); text-transform: uppercase; margin-top: 4px; }
+
+  .night-q { padding: 14px 16px; background: color-mix(in oklab, var(--primary) 5%, transparent); border-left: 3px solid var(--primary); border-radius: 12px; font-family: var(--mincho); font-size: 13.5px; font-weight: 300; line-height: 1.6; color: var(--foreground); }
+
+  .feel-col { text-align: center; padding: 8px; font-size: 18px; }
+
+  .kanban { display: flex; gap: 6px; }
+  .k-col { flex: 1; min-width: 0; padding: 8px; background: var(--background); border-radius: 10px; }
+  .k-col h4 { margin: 0 0 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+  .k-item { padding: 6px 8px; background: var(--card); border-radius: 8px; font-size: 10.5px; margin-bottom: 4px; font-family: var(--mincho); }
+</style>
+</head>
+<body>
+
+<h1 class="t">R-1〜R-7 既存機能 改修束</h1>
+<p class="lede">
+  追加ではなく <strong>改修</strong>。既存画面を Haretoki らしく。<br/>
+  全体工数 16 時間。R-1 は E-1 と同時着手推奨。
+</p>
+
+<div class="card-row">
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-1</span>
+      <h3>進捗リング → 天気アイコン化</h3>
+      <span class="prio">H</span>
+    </div>
+    <div class="mini-preview">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div>
+          <div class="ring-old">40%</div>
+          <p class="caption">Before<br/>決定まで</p>
+        </div>
+        <div style="font-size:24px;color:var(--muted-foreground);">→</div>
+        <div>
+          <div class="ring-new">🌤</div>
+          <p class="caption">After<br/>ふたりの空は 晴れ間</p>
+        </div>
+      </div>
+    </div>
+    <p class="body">パーセント表示を撤廃し、天気アイコンで「いまの状況」を直感的に見せる。ブランドメタファーと完全一致。</p>
+    <p class="cost">工数 1h / E-1 と同時着手必須</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-2</span>
+      <h3>探す → "気分で探す" モード</h3>
+      <span class="prio m">M</span>
+    </div>
+    <div class="mini-preview" style="flex-direction:column;gap:10px;">
+      <div class="mood-row">
+        <span class="mood-tag gold">☀ 光がきれい</span>
+        <span class="mood-tag gold">🌿 緑が見える</span>
+      </div>
+      <div class="mood-row">
+        <span class="mood-tag">🌌 都心の夜景</span>
+        <span class="mood-tag">🏯 歴史を感じる</span>
+        <span class="mood-tag">🌊 海が近い</span>
+      </div>
+      <div class="mood-row">
+        <span class="mood-tag">🎶 賑やかな</span>
+        <span class="mood-tag">🕯 静かな</span>
+      </div>
+    </div>
+    <p class="body">条件フィルタの隣に「気分タグ」セクション。Airbnb Categories 型。言語化できない好みを引き出す。</p>
+    <p class="cost">工数 3h / Venue.vibeTags 追加</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-3</span>
+      <h3>写真 → 朝/昼/夕 切替</h3>
+      <span class="prio m">M</span>
+    </div>
+    <div class="mini-preview" style="flex-direction:column;gap:10px;">
+      <div class="tod-tabs" style="width:100%;">
+        <div class="tod-tab">朝</div>
+        <div class="tod-tab active">昼</div>
+        <div class="tod-tab">夕</div>
+      </div>
+      <div style="width:100%;height:90px;background:linear-gradient(135deg,#dcc9a8,#b29866);border-radius:12px;position:relative;">
+        <span style="position:absolute;top:8px;left:10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.3);padding:3px 7px;border-radius:999px;">12:00</span>
+      </div>
+    </div>
+    <p class="body">同じ会場の時間帯別写真で、挙式時間の判断材料 + 光の変化メタファー。EXIF 自動分類。</p>
+    <p class="cost">工数 2h</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-4</span>
+      <h3>AI insight → Expire 設計</h3>
+      <span class="prio">H</span>
+    </div>
+    <div class="mini-preview" style="flex-direction:column;gap:6px;padding:12px;">
+      <div class="insight-new">✦ 今日のひらめき · アマン東京の料理が光っています</div>
+      <div class="insight-old insight-faded">✦ 3 日前 · リッツの雰囲気が高評価</div>
+      <p class="insight-archived-label">7 日経ったら → /coach/history に</p>
+    </div>
+    <p class="body">生成から 3 日で褪色、7 日でアーカイブ。鮮度の可視化で再訪動機 up。過去資産として見返せる。</p>
+    <p class="cost">工数 2h</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-5</span>
+      <h3>コーチ → "今夜の一問" 常設</h3>
+      <span class="prio m">M</span>
+    </div>
+    <div class="mini-preview" style="padding:0;">
+      <div class="night-q" style="margin:14px;">
+        🌙 <strong>今夜、もし一言だけふたりで話すなら</strong><br/>
+        料理と雰囲気、どちらを優先したいですか？
+      </div>
+    </div>
+    <p class="body">毎晩 21:00 に AI が 1 問生成、コーチ空状態の最上部に。話すきっかけを毎日提供。</p>
+    <p class="cost">工数 2h / E-1 Cron と合流</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-6</span>
+      <h3>比較ボード → 感情カラム</h3>
+      <span class="prio m">M</span>
+    </div>
+    <div class="mini-preview" style="padding:0;">
+      <table style="width:100%;font-size:11px;border-collapse:collapse;">
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 4px;color:var(--muted-foreground);">総合</td>
+          <td class="feel-col" style="color:var(--gold-warm);font-size:12px;">4.6</td>
+          <td class="feel-col">4.5</td>
+          <td class="feel-col">3.9</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 4px;color:var(--muted-foreground);">料理</td>
+          <td class="feel-col">4.5</td>
+          <td class="feel-col">4.8</td>
+          <td class="feel-col">3.5</td>
+        </tr>
+        <tr style="background:color-mix(in oklab, var(--gold-warm) 8%, transparent);">
+          <td style="padding:8px 4px;color:var(--gold-warm);font-weight:500;">見学後の気持ち</td>
+          <td class="feel-col">☀️</td>
+          <td class="feel-col">🌤</td>
+          <td class="feel-col">☁️</td>
+        </tr>
+      </table>
+    </div>
+    <p class="body">数字スコアの最下段に気持ちカラム。認知的不協和 (スコア高いのに☁️) が決断の鍵。E-3 帰り道モードと連動。</p>
+    <p class="cost">工数 2h</p>
+  </div>
+
+  <div class="improve-card">
+    <div class="title-row">
+      <span class="id">R-7</span>
+      <h3>マイページ → 合意事項</h3>
+      <span class="prio m">M</span>
+    </div>
+    <div class="mini-preview" style="padding:10px;">
+      <div class="kanban">
+        <div class="k-col">
+          <h4>決まった</h4>
+          <div class="k-item">ゲスト 80 名</div>
+          <div class="k-item">11 月挙式</div>
+        </div>
+        <div class="k-col">
+          <h4>保留</h4>
+          <div class="k-item">予算上限</div>
+        </div>
+        <div class="k-col">
+          <h4>要相談</h4>
+          <div class="k-item">衣装の数</div>
+        </div>
+      </div>
+    </div>
+    <p class="body">3 カラム Kanban 風。ふたりが非同期で「今どこまで決まったか」を共有。会話を待たずに済む。</p>
+    <p class="cost">工数 4h / Agreement model 追加</p>
+  </div>
+
+</div>
+
+<div style="max-width:820px; margin:48px auto 0; padding: 32px; background: color-mix(in oklab, var(--gold-warm) 6%, var(--background)); border-radius: 20px; border: 1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent); font-size: 14px; line-height: 1.8;">
+  <h3 style="margin: 0 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 18px;">既存画面を "Haretoki らしく" する 7 件</h3>
+  <p style="margin: 0 0 10px;">
+    追加機能ではなく <strong>磨き</strong>。Sprint 2-5 で骨格は完成、ここからは <strong>品性・情緒・文脈</strong> を足す段階。
+  </p>
+  <p style="margin: 0 0 10px;">
+    R-1 は E-1 Weather Ritual と同時着手必須（天気メタファーの一体化）。<br/>
+    R-4 / R-5 は R-1/E-1 の Cron 基盤に乗せると工数半減。
+  </p>
+  <p style="margin: 0; color: var(--muted-foreground); font-size: 12.5px;">
+    合計 16 時間。新機能 E-1〜E-11 と平行で回せる。
+  </p>
+</div>
+
+</body>
+</html>
