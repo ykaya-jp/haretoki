@@ -259,7 +259,7 @@ function PhotoUploadButton({ itemId }: { itemId: string }) {
       await addChecklistPhoto(itemId, formData);
       router.refresh();
     } catch {
-      toast.error("写真を追加できませんでした");
+      toast.error("写真をうまく追加できませんでした");
     } finally {
       setUploading(false);
     }

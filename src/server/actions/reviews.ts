@@ -79,7 +79,7 @@ export async function analyzeVenueReviews(
     });
 
     if (!response.ok) {
-      return { success: false, error: "レビューページを取得できませんでした" };
+      return { success: false, error: "口コミページをうまく取れませんでした" };
     }
 
     const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB
@@ -119,10 +119,10 @@ export async function analyzeVenueReviews(
     try {
       result = JSON.parse(claudeResponse) as ReviewSummary & { reviewCount: number };
     } catch {
-      return { success: false, error: "AIの応答を解析できませんでした" };
+      return { success: false, error: "AI の応答をうまく読み取れませんでした" };
     }
     if (!result.summary) {
-      return { success: false, error: "AIの分析結果が不完全です" };
+      return { success: false, error: "AI の読み取りが途中で止まりました" };
     }
 
     // Build categorySummary from AI output
@@ -211,7 +211,7 @@ export async function analyzeVenueReviews(
     revalidatePath(`/venues/${venueId}`);
     return { success: true };
   } catch {
-    return { success: false, error: "口コミ分析に失敗しました" };
+    return { success: false, error: "口コミをうまくまとめられませんでした" };
   }
 }
 

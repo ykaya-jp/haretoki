@@ -29,7 +29,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
         URL.revokeObjectURL(url);
         toast.success("記録をダウンロードしました");
       } catch {
-        toast.error("ダウンロードに失敗しました。もう一度お試しください");
+        toast.error("ダウンロードがうまくいきませんでした。もう一度お試しください");
       }
     });
   };

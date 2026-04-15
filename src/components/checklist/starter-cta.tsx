@@ -23,7 +23,7 @@ export function ChecklistStarterCTA() {
         showToast("success", `おすすめ ${res.added} 項目をセットしました`);
         router.refresh();
       } else {
-        showToast("error", "セットできませんでした");
+        showToast("error", "うまくセットできませんでした");
       }
     });
   };

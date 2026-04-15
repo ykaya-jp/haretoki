@@ -268,7 +268,7 @@ export function OnboardingFlow() {
         toast.success(`${rec.name}をリストに追加しました`);
       }
     } catch {
-      toast.error("追加できませんでした");
+      toast.error("うまく追加できませんでした");
     } finally {
       setAddingVenues((prev) => {
         const next = new Set(prev);

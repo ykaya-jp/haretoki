@@ -27,7 +27,7 @@ export function LogoutButton() {
         ) {
           throw error;
         }
-        toast.error("ログアウトできませんでした。もう一度お試しください");
+        toast.error("うまくログアウトできませんでした。もう一度お試しください");
       }
     });
   };

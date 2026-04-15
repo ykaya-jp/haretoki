@@ -688,6 +688,78 @@ async function loadChecklistItems() {
   return mod.getAllChecklistItems();
 }
 
+// Load the 16-item starter preset + all preset definitions from src/lib.
+async function loadChecklistPresets() {
+  const mod = await import("../src/lib/checklist-presets");
+  return {
+    starterIds: mod.STARTER_PRESET_IDS,
+    allPresets: mod.CHECKLIST_PRESETS,
+  };
+}
+
+/**
+ * F-09 fix: seed ProjectChecklist (which items the couple cares about) +
+ * VenueChecklistAnswer (each venue's answer to those items) so the
+ * `/compare` page shows meaningful diff — yes/no/unknown spread across
+ * venues for the same items.
+ *
+ * Strategy:
+ * - Activate the 16-item starter preset on the project
+ * - For each seeded venue, answer each active item with a pseudo-random
+ *   but deterministic yes/no/unknown so diffs are obvious
+ * - Skip items whose type isn't `yesno` (memo/photo/number left blank)
+ */
+async function seedProjectChecklist(
+  prisma: PrismaClient,
+  projectId: string,
+  venueIds: string[],
+) {
+  const { starterIds, allPresets } = await loadChecklistPresets();
+  const presetById = new Map(allPresets.map((p) => [p.id, p]));
+
+  // Activate starter items (idempotent via skipDuplicates)
+  await prisma.projectChecklist.createMany({
+    data: starterIds
+      .filter((id) => presetById.has(id))
+      .map((itemId) => ({ projectId, itemId })),
+    skipDuplicates: true,
+  });
+
+  // Read back the rows to get their ids (needed for VenueChecklistAnswer FK)
+  const activations = await prisma.projectChecklist.findMany({
+    where: { projectId, itemId: { in: [...starterIds] } },
+    select: { id: true, itemId: true },
+  });
+
+  // Create answers for each (activation × venue) combination
+  for (let vi = 0; vi < venueIds.length; vi++) {
+    const venueId = venueIds[vi];
+    for (let ai = 0; ai < activations.length; ai++) {
+      const activation = activations[ai];
+      const preset = presetById.get(activation.itemId);
+      if (!preset || preset.type !== "yesno") continue;
+      // Deterministic spread: each venue-item pair gets a stable status
+      // derived from indices — same seed run produces the same diff view.
+      const n = (vi * 7 + ai * 3) % 5;
+      const status = n < 2 ? "yes" : n < 4 ? "no" : "unknown";
+      await prisma.venueChecklistAnswer.upsert({
+        where: {
+          projectChecklistId_venueId: {
+            projectChecklistId: activation.id,
+            venueId,
+          },
+        },
+        create: {
+          projectChecklistId: activation.id,
+          venueId,
+          status,
+        },
+        update: { status },
+      });
+    }
+  }
+}
+
 // ---------- Main ----------
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -751,9 +823,17 @@ async function main() {
       console.log(`      + ${v.name}`);
     }
 
-    console.log(`[7/7] Seeding visits on first venue…`);
+    console.log(`[7/8] Seeding visits on first venue…`);
     await seedVisits(prisma, createdVenues[0].id, user.id, checklistItems);
     console.log(`      + completed visit + scheduled visit on "${createdVenues[0].name}"`);
+
+    console.log(`[8/8] Seeding project checklist + per-venue answers (F-09)…`);
+    await seedProjectChecklist(
+      prisma,
+      project.id,
+      createdVenues.map((v) => v.id),
+    );
+    console.log(`      + starter 16 items × ${createdVenues.length} venues answered`);
 
     console.log(`\nDone. Summary:`);
     console.log(`  user     : ${email}`);

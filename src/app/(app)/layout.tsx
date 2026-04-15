@@ -5,6 +5,7 @@ import { RealtimeProvider } from "@/components/realtime-provider";
 import { getOrCreateProject } from "@/server/actions/projects";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { BfcacheRefresh } from "@/components/app/bfcache-refresh";
 import { prisma } from "@/server/db";
 
 type Project = Awaited<ReturnType<typeof getOrCreateProject>>;
@@ -65,6 +66,7 @@ export default function AppLayout({
         メインコンテンツへスキップ
       </a>
       <OfflineBanner />
+      <BfcacheRefresh />
       <main
         id="main-content"
         className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
