@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import { analyzeVenueReviews } from "@/server/actions/reviews";
+import { analyzeVenueReviews, batchAnalyzeVenueReviews } from "@/server/actions/reviews";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -134,6 +134,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
   const [url, setUrl] = useState("");
   const [source, setSource] = useState<ReviewSource>("zexy");
   const [isPending, startTransition] = useTransition();
+  const [isRefreshing, startRefreshing] = useTransition();
   const router = useRouter();
 
   const sortedReviews = useMemo(() => {
@@ -152,6 +153,23 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
     return filtered;
   }, [reviews, sortMode]);
 
+  const handleRefreshAll = () => {
+    startRefreshing(async () => {
+      const result = await batchAnalyzeVenueReviews(venueId, { force: true });
+      const { succeeded, skipped, failed } = result;
+      if (succeeded > 0 && failed.length === 0) {
+        toast.success(`${succeeded} 件の要約を書き直しました`);
+      } else if (succeeded > 0 && failed.length > 0) {
+        toast.success(`${succeeded} 件を更新、${failed.length} 件はまたの機会に`);
+      } else if (skipped > 0 && succeeded === 0 && failed.length === 0) {
+        toast.info("更新できる口コミがありませんでした");
+      } else {
+        toast.error("要約の更新ができませんでした");
+      }
+      router.refresh();
+    });
+  };
+
   const handleAnalyze = () => {
     if (!url.trim()) return;
     startTransition(async () => {
@@ -169,17 +187,34 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-base">口コミのまとめ</h2>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowForm(!showForm)}
-          className="gap-1"
-        >
-          <Plus className="h-4 w-4" />
-          追加
-        </Button>
+        <div className="flex items-center gap-2">
+          {reviews.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefreshAll}
+              disabled={isRefreshing}
+              className="gap-1 text-muted-foreground"
+              aria-label="既存の口コミ要約を AI で書き直す"
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", isRefreshing && "animate-spin")}
+              />
+              {isRefreshing ? "更新中…" : "AI 要約を更新"}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowForm(!showForm)}
+            className="gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            追加
+          </Button>
+        </div>
       </div>
 
       {/* Ratio bar — compact overview of positive/neutral/negative mix */}

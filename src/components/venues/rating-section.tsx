@@ -198,7 +198,7 @@ export function RatingSection({
 
   return (
     <section className="relative space-y-4">
-      <h2 className="text-base">評価</h2>
+      <h2 className="text-base">印象を残す</h2>
       <AnimatePresence mode="wait">
         {saving ? (
           <motion.span

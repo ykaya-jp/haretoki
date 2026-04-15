@@ -5,8 +5,10 @@ test.describe("Auth Pages — Design Quality", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/login");
 
-    // Brand panel should be visible on desktop
-    await expect(page.locator("text=おかえりなさい")).toBeVisible();
+    // Brand panel headline (h1) should be visible on desktop. Both the
+    // brand-panel h1 and the form-side h2 currently read 「おかえりなさい」
+    // post-S5 copy softening, so scope to h1 to keep this assertion specific.
+    await expect(page.getByRole("heading", { level: 1, name: "おかえりなさい" })).toBeVisible();
 
     // Haretoki branding
     await expect(page.locator("text=Haretoki").first()).toBeVisible();
@@ -16,8 +18,10 @@ test.describe("Auth Pages — Design Quality", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/login");
 
-    // Brand panel text should be hidden
-    await expect(page.locator("text=おかえりなさい")).not.toBeVisible();
+    // Brand panel h1 hides on mobile via `hidden lg:flex`
+    await expect(
+      page.getByRole("heading", { level: 1, name: "おかえりなさい" }),
+    ).not.toBeVisible();
 
     // But the form should be visible
     await expect(page.locator('input[id="email"]')).toBeVisible();
@@ -47,12 +51,12 @@ test.describe("Auth Pages — Design Quality", () => {
 
   test("login has Google OAuth button", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.locator("text=Googleでログイン")).toBeVisible();
+    await expect(page.locator("text=Google で入る")).toBeVisible();
   });
 
   test("signup has Google OAuth button", async ({ page }) => {
     await page.goto("/signup");
-    await expect(page.locator("text=Googleで登録")).toBeVisible();
+    await expect(page.locator("text=Google ではじめる")).toBeVisible();
   });
 
   test("login → signup navigation works", async ({ page }) => {
