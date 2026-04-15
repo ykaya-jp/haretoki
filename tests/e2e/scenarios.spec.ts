@@ -47,8 +47,8 @@ test.describe("シナリオ2: ログインを試みる既存ユーザー", () =>
     await expect(page.locator('input[id="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
 
-    // Google OAuth オプション
-    await expect(page.locator("text=Googleでログイン")).toBeVisible();
+    // Google OAuth オプション (S5 copy softening)
+    await expect(page.locator("text=Google で入る")).toBeVisible();
 
     // サインアップへのリンク
     await expect(page.locator('a[href="/signup"]')).toBeVisible();
