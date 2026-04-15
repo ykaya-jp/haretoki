@@ -19,7 +19,7 @@ export default async function SettingsPage() {
         マイページ
       </Link>
 
-      <h2 className="font-serif text-2xl font-light tracking-wide">設定</h2>
+      <h2 className="font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.02em]">整える</h2>
 
       {/* Theme */}
       <section className="space-y-3">
@@ -30,7 +30,7 @@ export default async function SettingsPage() {
           <div>
             <p className="text-sm font-medium">テーマ</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              端末の設定に合わせる、またはお好みで
+              端末に合わせる、またはお好みで
             </p>
           </div>
           <ThemeSwitcher />
@@ -40,7 +40,7 @@ export default async function SettingsPage() {
       {/* Data management (GDPR) */}
       <section className="space-y-3">
         <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          データ管理
+          記録の管理
         </h3>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
           <DataManagement userEmail={user.email ?? ""} />

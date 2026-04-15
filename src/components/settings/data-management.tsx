@@ -27,7 +27,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success("データをダウンロードしました");
+        toast.success("記録をダウンロードしました");
       } catch {
         toast.error("ダウンロードに失敗しました。もう一度お試しください");
       }
@@ -75,7 +75,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
           className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground transition-colors hover:bg-muted active:scale-[0.98] disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
-          {isExporting ? "準備しています..." : "データをダウンロード"}
+          {isExporting ? "準備しています…" : "記録をダウンロード"}
         </button>
 
         <button
@@ -88,7 +88,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
         </button>
 
         <p className="text-xs text-muted-foreground">
-          ダウンロードには、あなたのプロフィール・式場・見学記録・評価・候補・最終決定がすべて含まれます。削除は取り消せません。
+          ダウンロードには、お名前・式場・見学記録・評価・候補・決めた場所のすべてが含まれます。消すと戻せません。
         </p>
       </div>
 
