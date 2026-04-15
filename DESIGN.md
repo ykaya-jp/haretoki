@@ -1,9 +1,45 @@
-# Haretoki Design System v4 — "Modern Luxury"
+# Haretoki Design System v4.2 — "Modern Luxury · Editorial Refresh"
 
 > Single Source of Truth for all design decisions.
 > v3: Morning Light palette (Rose × Gold × Cream)
-> **v4 (追加): Modern Luxury UX Principles** — affordance、知覚速度、micro-interactions
+> v4: Modern Luxury UX Principles — affordance、知覚速度、micro-interactions
+> **v4.2 (Sprint 2-5, 2026-04-15): editorial 刷新 5 画面、モーション予算 token 化、コピー辞書連動**
 > 実装は必ずこのドキュメントに準拠する。
+
+---
+
+## v4.2 Changelog — Sprint 2-5 の主要アップデート
+
+### 画面刷新（Sprint 2）
+- **ホーム** (`editorial-hero.tsx`): 白枠カード廃止、editorial layout（日付 eyebrow + 明朝 light 見出し + 横 1 行メトリクス + SkyChip illustration + 小リング + flat primary CTA + gradient hairline）
+- **コーチ** (`coach-client.tsx` / `session-history-sheet.tsx`): sticky frosted header（backdrop-blur-xl）+ 履歴 chip + gold-subtle「新しい会話」chip
+- **追加 Sheet** (`add-venue-sheet.tsx`): 見出しを text-3xl → 17px に縮小、URL 入力を主役（gold→rose gradient frame）
+- **比較マトリクス** (`decision-matrix.tsx`): Crown icon 撤去 → bg tint 10% + 総合/費用行は 2px gold band + 観点行は右上 6px dot、観点ごとのベスト block + AI ひとこと分析カード
+- **決定セレモニー** (`decision-ceremony.tsx`): 朝光 wash + 2px gold 記念カード（明朝 30px 細字）+ confetti 28 粒に控えめ化
+
+### 新コンポーネント
+- `EditorialHero` — ホームの hero セクション（Stage 別 headline/sub/CTA）
+- `SkyChip` — 56px 円形ブランドメタファー（cloud → sun-rays の 4 段階）
+- `ChecklistStarterCTA` — `/checklist` 空状態の 16 項目一括 CTA
+- `ReflectionHint` — `/checklist` 非空時の「反映先」ストリップ
+- `MatrixInsight` — 決定マトリクス下の AI ひとこと分析カード
+
+### 新トークン
+- **Motion budget** (globals.css): `--ease-out-luxe`, `--ease-out-standard`, `--dur-tap 150ms`, `--dur-micro 200ms`, `--dur-fade 300ms`, `--dur-sheet 400ms`, `--dur-page 600ms`, `--dur-hero 900ms`, `--stagger 50ms`
+- prefers-reduced-motion: reduce は既存ルールで全 transition を 0.01ms に潰す
+
+### コピー
+- `docs/copy-lexicon.md` に置換表と Tone of Voice を定義
+- 全画面の UI 文言を「プロジェクト→ふたりの式場さがし」「保存→残す」「削除→消す」等に置換
+- 絵文字 ✨ を削除、明朝 + eyebrow 構造で格を出す
+- 詳細は [docs/copy-lexicon.md](./docs/copy-lexicon.md)
+
+### 用語マッピング（UI / コード）
+- UI「気になる」/ DB `Venue`（status='considering' 系）
+- UI「印象メモ」/ DB `VenueScore`（source='user_rating'）
+- UI「本命」/ DB `VenueFavorite`
+- UI「晴れの日」/ DB `Decision`（Venue.status='selected' も同等）
+- UI「ふたりの式場さがし」/ DB `Project`
 
 ---
 
