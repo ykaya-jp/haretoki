@@ -27,11 +27,16 @@ export default async function NotificationsPage() {
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-h1 font-extralight">
+            <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+              <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+              <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+              <span>Inbox</span>
+            </p>
+            <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
               通知
             </h2>
-            <p className="mt-1 text-meta text-muted-foreground">
-              新着のお知らせをここで確認できます
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+              ふたりに届いたお知らせを、ここにまとめています。
             </p>
           </div>
           {hasUnread && <MarkAllReadButton />}

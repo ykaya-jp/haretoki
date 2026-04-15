@@ -98,11 +98,16 @@ export default async function SavedSearchesPage() {
           <ArrowLeft className="h-4 w-4" />
           マイページに戻る
         </Link>
-        <h2 className="text-h1 font-[family-name:var(--font-display)] font-extralight">
+        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span>Saved</span>
+        </p>
+        <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           保存した検索条件
         </h2>
-        <p className="mt-1 text-meta text-muted-foreground">
-          新しい式場が追加されたときにお知らせします
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          条件にあう新しい式場が出会ったら、そっとお知らせします。
         </p>
       </div>
 

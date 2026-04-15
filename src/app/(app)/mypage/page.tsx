@@ -74,9 +74,16 @@ export default async function MyPage() {
     <div className="space-y-12">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-h1 font-serif font-extralight">マイページ</h2>
-          <p className="mt-1 text-meta text-muted-foreground">
-            お名前・パートナー・アプリの整え方を、ここから
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+            <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+            <span>My</span>
+          </p>
+          <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+            マイページ
+          </h2>
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            お名前・パートナー・アプリの整え方を、ここから。
           </p>
         </div>
         <NotificationBadge initialCount={unreadCount} />

@@ -37,11 +37,18 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-h1 font-[family-name:var(--font-display)] font-extralight">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+            <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+            <span>{isRecentView ? "Recent" : "Candidates"}</span>
+          </p>
+          <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
             {isRecentView ? "最近見た式場" : "候補"}
           </h2>
-          <p className="mt-1 text-meta text-muted-foreground">
-            {isRecentView ? "先日ご覧になった式場の一覧です" : "集めて、比べて、決める"}
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            {isRecentView
+              ? "先日ご覧になった式場を、そっとまとめました。"
+              : "集めて、並べて、ふたりの輪郭を描く。"}
           </p>
         </div>
         <Link

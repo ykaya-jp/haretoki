@@ -146,10 +146,19 @@ export default async function ExplorePage({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header — masthead + quiet tagline */}
       <div>
-        <h2 className="text-h1 font-serif font-extralight">式場を、見つける</h2>
-        <p className="mt-1 text-meta text-muted-foreground">まだ知らない一つを</p>
+        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span>Explore</span>
+        </p>
+        <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+          式場を、見つける
+        </h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          まだ知らない、ふたりの一つへ。
+        </p>
       </div>
 
       {/* FAB + Sheet (client component, shared open state) */}
