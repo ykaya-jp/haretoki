@@ -34,33 +34,56 @@ export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
     [activeSet, pathname, router, searchParams],
   );
 
+  const activeCount = activeSet.size;
+
   return (
-    <div
-      className="flex gap-2 overflow-x-auto py-1 scrollbar-hide"
-      style={{ scrollSnapType: "x mandatory" }}
-    >
-      {VIBE_TAGS.map((tag) => {
-        const isActive = activeSet.has(tag.id);
-        return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <p className="text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+          気分で探す
+        </p>
+        {activeCount > 0 && (
           <button
-            key={tag.id}
             type="button"
-            onClick={() => handleToggle(tag.id)}
-            style={{ scrollSnapAlign: "start" }}
-            className={cn(
-              "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12.5px] transition-all duration-150 ease-out active:scale-95",
-              isActive
-                ? "border-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] bg-[var(--gold-subtle)] text-foreground"
-                : "border-border bg-card text-foreground hover:bg-muted hover:border-foreground/20",
-            )}
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("vibe");
+              router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+            }}
+            className="text-[11px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
           >
-            <span role="img" aria-hidden="true" className="text-[11px]">
-              {tag.emoji}
-            </span>
-            {tag.label}
+            すべて外す
           </button>
-        );
-      })}
+        )}
+      </div>
+      <div
+        className="-mx-6 flex gap-2 overflow-x-auto px-6 py-1 scrollbar-hide"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {VIBE_TAGS.map((tag) => {
+          const isActive = activeSet.has(tag.id);
+          return (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => handleToggle(tag.id)}
+              aria-pressed={isActive}
+              style={{ scrollSnapAlign: "start" }}
+              className={cn(
+                "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[12.5px] transition-all duration-150 ease-out active:scale-95",
+                isActive
+                  ? "border-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)] bg-[var(--gold-subtle)] text-[var(--gold-warm)] shadow-[0_1px_2px_rgba(201,164,76,0.12),0_4px_12px_color-mix(in_oklab,var(--gold-warm)_14%,transparent)]"
+                  : "border-border bg-card text-foreground/85 hover:bg-muted hover:border-foreground/25",
+              )}
+            >
+              <span aria-hidden="true" className="text-[11px]">
+                {tag.emoji}
+              </span>
+              {tag.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
