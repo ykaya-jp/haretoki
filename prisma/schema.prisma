@@ -92,6 +92,8 @@ enum AiAnalysisType {
   review_summary
   estimate_prediction
   comparison
+  fit_reason
+  matrix_insight
   visit_prep
   coach_chat
   rating_comparison
@@ -141,6 +143,8 @@ model User {
   favorites              VenueFavorite[]
   notificationPreference NotificationPreference?
   notifications          Notification[]
+  createdInvitations     ProjectInvitation[] @relation("ProjectInvitationCreator")
+  consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
 
   @@map("users")
 }
@@ -163,6 +167,7 @@ model Project {
   coachSessions    CoachSession[]
   checklists       ProjectChecklist[]
   rituals          DailyRitual[]
+  invitations      ProjectInvitation[]
 
   @@map("projects")
 }
@@ -201,6 +206,28 @@ model ProjectMember {
 
   @@unique([projectId, userId])
   @@map("project_members")
+}
+
+/// E-11 1-tap 招待リンク: ProjectMember pre-create を避け、トークンを使った
+/// one-time consume 型。リンクを受け取った partner が Google OAuth でログインし、
+/// このトークンを consume すると自動で ProjectMember を作る。
+model ProjectInvitation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  token       String    @unique
+  createdBy   String    @map("created_by") @db.Uuid
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  consumedBy  String?   @map("consumed_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User    @relation("ProjectInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  consumer User?  @relation("ProjectInvitationConsumer", fields: [consumedBy], references: [id])
+
+  @@index([projectId])
+  @@index([expiresAt])
+  @@map("project_invitations")
 }
 
 model Venue {

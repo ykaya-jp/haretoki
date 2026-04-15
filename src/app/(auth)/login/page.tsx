@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
+import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
 export default function LoginPage() {
   // useSearchParams() requires a Suspense boundary for static generation.
@@ -23,6 +24,8 @@ export default function LoginPage() {
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextRaw = searchParams.get("next") ?? "";
+  const nextHref = isSameOriginRedirectPath(nextRaw) ? nextRaw : "/home";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ function LoginPageInner() {
         return;
       }
 
-      router.push("/home");
+      router.push(nextHref);
       router.refresh();
     } catch {
       setError("ログインがうまくいきませんでした。もう一度お試しください");
@@ -189,9 +192,13 @@ function LoginPageInner() {
                 setOauthPending(true);
                 try {
                   const supabase = createClient();
+                  const callbackUrl =
+                    nextHref !== "/home"
+                      ? `${window.location.origin}/callback?next=${encodeURIComponent(nextHref)}`
+                      : `${window.location.origin}/callback`;
                   await supabase.auth.signInWithOAuth({
                     provider: "google",
-                    options: { redirectTo: `${window.location.origin}/callback` },
+                    options: { redirectTo: callbackUrl },
                   });
                 } catch {
                   setOauthPending(false);

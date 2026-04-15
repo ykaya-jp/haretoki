@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -11,9 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ChevronRight } from "lucide-react";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
+import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextRaw = searchParams.get("next") ?? "";
+  // Same-origin relative path only — prevents open-redirect via signup ?next=
+  const nextHref = isSameOriginRedirectPath(nextRaw) ? nextRaw : "/home";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +49,7 @@ export default function SignupPage() {
       }
 
       track("signup_completed", { method: "email" });
-      router.push("/home");
+      router.push(nextHref);
       router.refresh();
     } catch {
       setError("うまくはじめられませんでした。もう一度お試しください");
@@ -216,9 +221,13 @@ export default function SignupPage() {
                 setOauthPending(true);
                 try {
                   const supabase = createClient();
+                  const callbackUrl =
+                    nextHref !== "/home"
+                      ? `${window.location.origin}/callback?next=${encodeURIComponent(nextHref)}`
+                      : `${window.location.origin}/callback`;
                   await supabase.auth.signInWithOAuth({
                     provider: "google",
-                    options: { redirectTo: `${window.location.origin}/callback` },
+                    options: { redirectTo: callbackUrl },
                   });
                 } catch {
                   setOauthPending(false);

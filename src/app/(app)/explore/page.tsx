@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
 import { getFavorites } from "@/server/actions/favorites";
+import { getFitReasons } from "@/server/actions/fit-reason";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { ExploreContent } from "@/components/explore/explore-content";
@@ -113,6 +114,10 @@ export default async function ExplorePage({
   ]);
 
   const favoriteIds = favorites.map((f) => f.venue.id);
+  // E-2 Fit Reasons — fetch after venues so we know which ids to ask for.
+  // If conditions aren't set (new user), returns {} so cards render without
+  // the gold italic line.
+  const fitReasons = await getFitReasons(venues.map((v: { id: string }) => v.id));
 
   return (
     <div className="space-y-8">
@@ -176,6 +181,7 @@ export default async function ExplorePage({
           venues={venues}
           favoriteIds={favoriteIds}
           baseFilters={hasAnyFilter ? venueFilters : undefined}
+          fitReasons={fitReasons}
         />
       )}
     </div>

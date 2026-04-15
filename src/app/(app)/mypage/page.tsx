@@ -4,6 +4,8 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { PartnerInvite } from "@/components/partner/partner-invite";
+import { InviteLinkPanel } from "@/components/partner/invite-link-panel";
+import { getCurrentInvitationLink } from "@/server/actions/invitation-links";
 import { NameEdit } from "@/components/mypage/name-edit";
 import { Settings, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -33,7 +35,7 @@ export default async function MyPage() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  const [members, project, appOrigin] = await Promise.all([
+  const [members, project, appOrigin, invitationLink] = await Promise.all([
     prisma.projectMember.findMany({
       where: { projectId },
       include: { user: { select: { name: true, email: true } } },
@@ -43,6 +45,10 @@ export default async function MyPage() {
       select: { conditions: true },
     }),
     getAppOrigin(),
+    // E-11: pre-fetch the current live 1-tap invitation link (if any).
+    // Catch to avoid crashing mypage when the owner guard fails — invite
+    // panel simply falls back to "generate" state.
+    getCurrentInvitationLink().catch(() => null),
   ]);
 
   const hasPartner = members.some((m) => m.role === "partner" && m.acceptedAt);
@@ -106,10 +112,23 @@ export default async function MyPage() {
             </span>
           </div>
         ) : (
-          <PartnerInvite
-            inviteLink={`${appOrigin}/accept-invite`}
-            partnerStatus={partner ? "invited" : "not_invited"}
-          />
+          <div className="space-y-4">
+            {/* E-11: 1-tap invite (preferred) */}
+            <InviteLinkPanel initialLink={invitationLink} />
+
+            {/* Legacy email-based invite (kept as a fallback option) */}
+            <details className="rounded-2xl border border-border/60 bg-card/50">
+              <summary className="cursor-pointer list-none p-4 text-[12.5px] text-muted-foreground hover:text-foreground">
+                メールアドレスで招く（従来の方法）
+              </summary>
+              <div className="p-4 pt-0">
+                <PartnerInvite
+                  inviteLink={`${appOrigin}/accept-invite`}
+                  partnerStatus={partner ? "invited" : "not_invited"}
+                />
+              </div>
+            </details>
+          </div>
         )}
       </section>
 

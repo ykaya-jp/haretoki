@@ -14,6 +14,7 @@ import { VenueHeader } from "@/components/venues/venue-header";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { ReviewSection } from "@/components/venues/review-section";
+import { VenueWhisper } from "@/components/venues/venue-whisper";
 import { PlanSection } from "@/components/venues/plan-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
@@ -266,26 +267,38 @@ async function ReviewsContent({ venueId }: { venueId: string }) {
     getVenueReviewEstimateAggregate(venueId),
   ]);
   return (
-    <ReviewSection
-      venueId={venueId}
-      reviews={reviews.map((r) => ({
-        id: r.id,
-        source: r.source,
-        sourceUrl: r.sourceUrl,
-        aiSummary: r.aiSummary,
-        sentiment: r.sentiment as Record<string, number> | null,
-        rating: r.rating ? Number(r.rating) : null,
-        categorySummary: r.categorySummary as Record<string, string> | null,
-        isNegative: r.isNegative,
-        estimateIncrease: r.estimateIncrease as {
-          deltaYen?: number;
-          deltaPct?: number;
-          confidence?: "high" | "medium" | "low";
-          note?: string;
-        } | null,
-      }))}
-      venueEstimateAggregate={venueAgg}
-    />
+    <div className="space-y-5">
+      {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
+          to no render when no reviews analyzed yet (0 noise). */}
+      <VenueWhisper
+        reviews={reviews.map((r) => ({
+          categorySummary: r.categorySummary,
+          isNegative: r.isNegative,
+        }))}
+        reviewEstimateAggregate={venueAgg}
+      />
+
+      <ReviewSection
+        venueId={venueId}
+        reviews={reviews.map((r) => ({
+          id: r.id,
+          source: r.source,
+          sourceUrl: r.sourceUrl,
+          aiSummary: r.aiSummary,
+          sentiment: r.sentiment as Record<string, number> | null,
+          rating: r.rating ? Number(r.rating) : null,
+          categorySummary: r.categorySummary as Record<string, string> | null,
+          isNegative: r.isNegative,
+          estimateIncrease: r.estimateIncrease as {
+            deltaYen?: number;
+            deltaPct?: number;
+            confidence?: "high" | "medium" | "low";
+            note?: string;
+          } | null,
+        }))}
+        venueEstimateAggregate={venueAgg}
+      />
+    </div>
   );
 }
 
