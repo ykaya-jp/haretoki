@@ -127,7 +127,7 @@ function renderBarLabel(props: any) {
     <text
       x={x + width / 2}
       y={y - 6}
-      fill="#374151"
+      fill="var(--foreground)"
       textAnchor="middle"
       fontSize={11}
       fontWeight={500}
@@ -164,10 +164,10 @@ export function EstimateWaterfallChart({
   const data = buildWaterfallData(initialTotal, predictedFinal, items);
   const chartHeight = isMobile ? 250 : 350;
 
-  // Colors
-  const COLOR_PRIMARY = "#1E3A8A";
-  const COLOR_ACCENT = "#A16207";
-  const COLOR_FINAL = "#7C3AED";
+  // Colors — use CSS vars so dark mode is respected
+  const COLOR_PRIMARY = "var(--primary)";
+  const COLOR_ACCENT = "var(--gold-warm)";
+  const COLOR_FINAL = "var(--accent)";
 
   function getBarColor(entry: WaterfallData): string {
     if (entry.name === "最終予測額") return COLOR_FINAL;
@@ -191,7 +191,7 @@ export function EstimateWaterfallChart({
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748B" }}
+              tick={{ fontSize: isMobile ? 10 : 12, fill: "var(--muted-foreground)" }}
               tickLine={false}
               axisLine={false}
               interval={0}
@@ -201,7 +201,7 @@ export function EstimateWaterfallChart({
             />
             <YAxis
               tickFormatter={(v: number) => formatYen(v)}
-              tick={{ fontSize: isMobile ? 9 : 11, fill: "#94A3B8" }}
+              tick={{ fontSize: isMobile ? 9 : 11, fill: "var(--muted-foreground)" }}
               axisLine={false}
               tickLine={false}
               width={isMobile ? 50 : 60}

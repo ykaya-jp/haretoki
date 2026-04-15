@@ -48,8 +48,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
             />
             <h4 className="text-[13.5px] font-medium">抜けている項目</h4>
             <span
-              className="ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums"
-              style={{ background: "rgba(255,255,255,0.5)" }}
+              className="ml-auto rounded-full bg-card px-2 py-0.5 text-[11px] font-medium tabular-nums"
             >
               {report.missing.length} 件
             </span>
@@ -68,7 +67,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
                 </span>
                 {m.typicalAmount > 0 && (
                   <span
-                    className="rounded-full px-2.5 py-0.5 text-[11px] tabular-nums text-white"
+                    className="rounded-full px-2.5 py-0.5 text-[11px] tabular-nums text-primary-foreground"
                     style={{ background: "oklch(0.82 0.12 75)" }}
                   >
                     平均 +¥{Math.round(m.typicalAmount / 10_000)}万
@@ -102,8 +101,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
             />
             <h4 className="text-[13.5px] font-medium">上がりやすい項目</h4>
             <span
-              className="ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums"
-              style={{ background: "rgba(255,255,255,0.5)" }}
+              className="ml-auto rounded-full bg-card px-2 py-0.5 text-[11px] font-medium tabular-nums"
             >
               {report.upgradeRisks.length} 件
             </span>

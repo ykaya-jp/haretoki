@@ -138,7 +138,7 @@ export function PhotoCarouselEmbla({
       {photos.length >= 2 && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-3 left-3 flex max-w-[70%] items-center gap-2 rounded-full border border-white/40 bg-white/85 px-3 py-1.5 text-[11px] tracking-[0.04em] text-[var(--gold-warm)] shadow-[0_1px_4px_rgba(0,0,0,0.08)] backdrop-blur-sm animate-in fade-in duration-500"
+          className="pointer-events-none absolute bottom-3 left-3 flex max-w-[70%] items-center gap-2 rounded-full border border-border/40 bg-background/85 px-3 py-1.5 text-[11px] tracking-[0.04em] text-[var(--gold-warm)] shadow-[0_1px_4px_rgba(0,0,0,0.08)] backdrop-blur-sm animate-in fade-in duration-500"
         >
           <span className="truncate font-medium text-foreground/80">{alt}</span>
           <span className="tabular-nums text-[var(--gold-warm)]">
@@ -162,8 +162,8 @@ export function PhotoCarouselEmbla({
               className={cn(
                 "block rounded-full transition-all duration-200",
                 index === selectedIndex
-                  ? "h-2.5 w-2.5 bg-white ring-1 ring-[var(--gold-warm)] ring-offset-2 ring-offset-transparent"
-                  : "h-1.5 w-1.5 bg-white/50 hover:bg-white/70",
+                  ? "h-2.5 w-2.5 bg-primary-foreground ring-1 ring-[var(--gold-warm)] ring-offset-2 ring-offset-transparent"
+                  : "h-1.5 w-1.5 bg-primary-foreground/50 hover:bg-primary-foreground/70",
               )}
             />
           </button>

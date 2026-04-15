@@ -15,9 +15,9 @@ export function CircularProgressScore({ score, size = 64, label }: CircularProgr
     const stars = score / 20;
     if (stars >= 4.5) return "var(--gold-warm)";
     if (stars >= 4.0) return "var(--gold-light)";
-    if (stars >= 3.5) return "#9B8E7E";
-    if (stars >= 3.0) return "#6B7280";
-    return "#9B6B6B";
+    if (stars >= 3.5) return "var(--muted-foreground)";
+    if (stars >= 3.0) return "var(--muted-foreground)";
+    return "var(--destructive)";
   };
 
   return (
