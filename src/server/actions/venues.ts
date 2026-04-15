@@ -207,6 +207,7 @@ export async function getVenueHeader(id: string) {
       photoUrls: true,
       status: true,
       scores: true,
+      vibeTags: true,
     },
   });
 }

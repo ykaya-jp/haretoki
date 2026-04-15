@@ -137,7 +137,7 @@ function RowMenu({ session, onClose }: RowMenuProps) {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="h-8 w-8 shrink-0 text-muted-foreground"
+        className="h-11 w-11 shrink-0 text-muted-foreground"
       >
         <MoreHorizontal className="h-4 w-4" />
       </Button>

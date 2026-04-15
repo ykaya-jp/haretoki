@@ -100,7 +100,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
               type="button"
               onClick={back}
               aria-label="前に戻る"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-95"
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={1.6} />
             </button>

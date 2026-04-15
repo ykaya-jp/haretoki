@@ -7,6 +7,8 @@ import {
 } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
+import { requireUser, requireProjectMembership } from "@/server/auth";
+import { VibeTagEditor } from "@/components/venues/vibe-tag-editor";
 import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actions/reviews";
 import { getVenuePlans } from "@/server/actions/plans";
 import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
@@ -46,6 +48,10 @@ export default async function VenueDetailPage({
   // requireUser / requireProjectMembership are React.cache'd, so the repeated
   // calls inside the Suspense children (getVenueEstimates, getVenueVisits, …)
   // reuse the same cached result — no extra DB round-trips.
+  const user = await requireUser();
+  const membership = await requireProjectMembership(user.id);
+  const isOwner = membership.role === "owner";
+
   const [venue, favorites] = await Promise.all([
     getVenueHeader(id),
     getFavorites("mine"),
@@ -140,6 +146,11 @@ export default async function VenueDetailPage({
         <Suspense fallback={<PlansSkeleton />}>
           <PlansContent venueId={venue.id} />
         </Suspense>
+
+        {/* VibeTag editor — owner only */}
+        {isOwner && (
+          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
+        )}
       </section>
 
       {/* Action Bar */}
