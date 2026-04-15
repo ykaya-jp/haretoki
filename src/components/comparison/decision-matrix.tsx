@@ -36,10 +36,32 @@ function scoreBackground(score: number | null, isWinner: boolean): string {
   return "bg-transparent";
 }
 
+/**
+ * Hydrate hiddenDims from localStorage via a lazy useState initializer rather
+ * than an effect. `useEffect`+`setState` pattern trips React 19's
+ * `set-state-in-effect` rule (cascading renders). `typeof window` guards SSR;
+ * the matrix shows a loading skeleton until `getMatrixData()` resolves, so
+ * there's no hydration-visible difference.
+ */
+function readPersistedHiddenDims(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(HIDDEN_DIMS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) {
+      return new Set(parsed as string[]);
+    }
+  } catch {
+    // corrupted/privacy mode — fall through
+  }
+  return new Set();
+}
+
 export function DecisionMatrix() {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hiddenDims, setHiddenDims] = useState<Set<string>>(new Set());
+  const [hiddenDims, setHiddenDims] = useState<Set<string>>(readPersistedHiddenDims);
   const [filterOpen, setFilterOpen] = useState(false);
   const prefersReduced = useReducedMotion();
 
@@ -47,20 +69,6 @@ export function DecisionMatrix() {
     getMatrixData()
       .then(setData)
       .finally(() => setLoading(false));
-  }, []);
-
-  // Hydrate user's dimension-filter choice from localStorage so preferences
-  // persist across sessions without an extra round-trip to the DB.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(HIDDEN_DIMS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as string[];
-        if (Array.isArray(parsed)) setHiddenDims(new Set(parsed));
-      }
-    } catch {
-      // ignore corrupted localStorage
-    }
   }, []);
 
   const toggleDim = (id: string) => {
