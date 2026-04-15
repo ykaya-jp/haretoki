@@ -178,24 +178,60 @@ export async function analyzeVenueReviews(
     // Recompute aggregate venue-level estimate-increase stats from all reviews
     await recomputeVenueReviewEstimate(venueId);
 
-    // Save AI-generated per-dimension scores to VenueScore
-    // Source: "ai_analysis" so they don't conflict with user ratings
+    // Save AI-generated per-dimension scores to VenueScore. Source:
+    // "ai_analysis" so they don't conflict with user ratings. Dimensions
+    // are validated against the ScoreDimension enum so an unexpected Claude
+    // key (e.g. typo) can never reach the DB (TS-01 fix: no more `as never`).
     if (result.suggestedScores) {
+      const VALID_DIMS = new Set<string>([
+        "atmosphere",
+        "hospitality",
+        "cuisine",
+        "cost",
+        "access",
+        "reviews",
+        "dress",
+        "photo_video",
+        "flowers",
+        "staff_continuity",
+        "capacity",
+        "cancellation",
+      ]);
+      type Dim =
+        | "atmosphere"
+        | "hospitality"
+        | "cuisine"
+        | "cost"
+        | "access"
+        | "reviews"
+        | "dress"
+        | "photo_video"
+        | "flowers"
+        | "staff_continuity"
+        | "capacity"
+        | "cancellation";
+
       const scoreUpserts = Object.entries(result.suggestedScores)
-        .filter(([_, score]) => typeof score === "number" && score >= 1 && score <= 5)
+        .filter(
+          ([dim, score]) =>
+            VALID_DIMS.has(dim) &&
+            typeof score === "number" &&
+            score >= 1 &&
+            score <= 5,
+        )
         .map(([dimension, score]) =>
           prisma.venueScore.upsert({
             where: {
               venueId_dimension_source: {
                 venueId,
-                dimension: dimension as never,
+                dimension: dimension as Dim,
                 source: "ai_analysis",
               },
             },
             update: { score, reviewCount: result.reviewCount ?? 0 },
             create: {
               venueId,
-              dimension: dimension as never,
+              dimension: dimension as Dim,
               source: "ai_analysis",
               score,
               reviewCount: result.reviewCount ?? 0,
