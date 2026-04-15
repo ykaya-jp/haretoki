@@ -70,13 +70,14 @@ function scoreColor(score: number | null, isWinner: boolean): string {
   return "text-muted-foreground";
 }
 
-/** Winner cell: stronger gold tint + subtle top hairline. Non-winner: subtle tonal. */
+/** Winner cell: stronger gold tint + subtle top hairline. Non-winner: subtle
+ *  tonal. All colors go through var() tokens so ダークモードで崩れない. */
 function scoreBackground(score: number | null, isWinner: boolean): string {
   if (isWinner) return "bg-[color-mix(in_oklab,var(--gold-warm)_10%,transparent)]";
   if (score === null) return "bg-transparent";
-  if (score >= 4.5) return "bg-green-50/50";
-  if (score >= 4.0) return "bg-green-50/25";
-  if (score < 3.0) return "bg-red-50/25";
+  if (score >= 4.5) return "bg-[color-mix(in_oklab,var(--success)_10%,transparent)]";
+  if (score >= 4.0) return "bg-[color-mix(in_oklab,var(--success)_5%,transparent)]";
+  if (score < 3.0) return "bg-[color-mix(in_oklab,var(--destructive)_6%,transparent)]";
   return "bg-transparent";
 }
 
@@ -279,7 +280,7 @@ export function DecisionMatrix() {
           aria-expanded={filterOpen}
           aria-label="絞り込みを開く"
           className={cn(
-            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition active:scale-[0.98]",
+            "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)]",
             hiddenCount > 0 || venueFilterActive || filterOpen
               ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
               : "bg-background/60 text-foreground",

@@ -48,9 +48,20 @@ export function DecisionCeremony({
     const prefersReducedMotion = window
       .matchMedia("(prefers-reduced-motion: reduce)")
       .matches;
+    let confettiTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (!prefersReducedMotion) {
-      // Gentle confetti, delayed 900ms to align with card reveal.
-      const confettiTimer = setTimeout(() => {
+      // Resolve brand colors from CSS var() so confetti respects light/dark
+      // tokens. canvas-confetti needs literal color strings, so we snapshot
+      // the computed values at effect time.
+      const root = getComputedStyle(document.documentElement);
+      const pick = (name: string, fallback: string) =>
+        root.getPropertyValue(name).trim() || fallback;
+      const gold = pick("--gold-warm", "#C9A84C");
+      const goldSoft = pick("--gold-light", "#E8D89A");
+      const ink = pick("--foreground", "#6B5D4D");
+
+      confettiTimer = setTimeout(() => {
         void import("canvas-confetti").then((mod) => {
           if (cancelled) return;
           mod.default({
@@ -60,20 +71,16 @@ export function DecisionCeremony({
             gravity: 0.9,
             ticks: 120,
             origin: { y: 0.42 },
-            colors: ["#C9A84C", "#E8D89A", "#6B5D4D"],
+            colors: [gold, goldSoft, ink],
           });
         });
       }, 900);
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-        clearTimeout(confettiTimer);
-      };
     }
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      if (confettiTimer !== undefined) clearTimeout(confettiTimer);
     };
   }, [phase]);
 

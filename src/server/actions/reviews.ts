@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
+import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
 import {
   parseEstimateIncrease,
@@ -43,16 +44,23 @@ export async function analyzeVenueReviews(
     "mwed.jp", "www.mwed.jp",
   ];
 
-  try {
-    const parsedUrl = new URL(sourceUrl);
-    if (parsedUrl.protocol !== "https:") {
-      return { success: false, error: "HTTPSのURLのみ対応しています" };
-    }
-    if (!ALLOWED_REVIEW_DOMAINS.some(d => parsedUrl.hostname === d || parsedUrl.hostname.endsWith("." + d))) {
-      return { success: false, error: "対応していないサイトです。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングのURLを入力してください" };
-    }
-  } catch {
-    return { success: false, error: "有効なURLを入力してください" };
+  // SSRF guard first (blocks private IPs, non-HTTPS, metadata endpoints),
+  // then domain allowlist.
+  const guard = guardExternalUrl(sourceUrl);
+  if (!guard.ok) {
+    return {
+      success: false,
+      error:
+        guard.reason === "scheme"
+          ? "HTTPS の URL のみ対応しています"
+          : guard.reason === "invalid"
+            ? "有効な URL を入力してください"
+            : "この URL は取得できません",
+    };
+  }
+  const parsedUrl = guard.url;
+  if (!ALLOWED_REVIEW_DOMAINS.some(d => parsedUrl.hostname === d || parsedUrl.hostname.endsWith("." + d))) {
+    return { success: false, error: "対応していないサイトです。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングの URL を入力してください" };
   }
 
   if (!isClaudeAvailable()) {

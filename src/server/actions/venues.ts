@@ -17,6 +17,7 @@ import {
 } from "@/server/actions/url-metadata";
 import { captureServerEvent } from "@/lib/analytics/server";
 import { captureError } from "@/lib/sentry";
+import { guardExternalUrl } from "@/lib/url-guard";
 
 // --- Server actions ---
 
@@ -421,10 +422,11 @@ export async function addVenueFromUrl(url: string): Promise<{
     return { error: "AI機能を利用するにはAPIキーを設定してください。手動で入力してください。" };
   }
 
-  try {
-    new URL(url);
-  } catch {
-    return { error: "有効なURLを入力してください" };
+  const guard = guardExternalUrl(url);
+  if (!guard.ok) {
+    if (guard.reason === "invalid") return { error: "有効な URL を入力してください" };
+    if (guard.reason === "scheme") return { error: "https:// で始まる URL を入力してください" };
+    return { error: "この URL は取得できません" };
   }
 
   try {
