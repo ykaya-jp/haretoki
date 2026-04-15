@@ -17,9 +17,9 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
     return (
       <EmptyState
         icon={Building2}
-        title="まだ最近見た式場はありません"
-        description="気になる式場を見てみましょう"
-        action={{ label: "探してみる", href: "/explore" }}
+        title="これから、ふたりの候補が集まっていきます"
+        description="気になる式場を眺めるところから。直感でかまいません。"
+        action={{ label: "式場を見てみる", href: "/explore" }}
       />
     );
   }
@@ -31,12 +31,19 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
 
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base">先日ご覧になった式場</h2>
+      <div className="mb-4 flex items-baseline justify-between">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            Recent
+          </p>
+          <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+            先日ご覧になった式場
+          </h2>
+        </div>
         <Link
           href="/candidates?view=recent"
           prefetch={true}
-          className="text-sm text-primary"
+          className="text-[12px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
         >
           すべて →
         </Link>
