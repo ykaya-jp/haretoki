@@ -56,7 +56,7 @@ function LoginPageInner() {
       router.push("/home");
       router.refresh();
     } catch {
-      setError("ログイン中にエラーが発生しました。もう一度お試しください");
+      setError("ログインがうまくいきませんでした。もう一度お試しください");
     } finally {
       setLoading(false);
     }

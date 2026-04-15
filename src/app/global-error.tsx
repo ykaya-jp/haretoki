@@ -69,7 +69,7 @@ export default function GlobalError({
       >
         <div style={{ width: "100%", maxWidth: "28rem", textAlign: "center" }}>
           <h2 style={{ fontSize: "1.125rem", fontWeight: 300, margin: 0 }}>
-            {offline ? "オフラインです" : "予期しないエラーが発生しました"}
+            {offline ? "ネットにつながっていません" : "うまく表示できませんでした"}
           </h2>
           <p
             style={{
@@ -79,8 +79,8 @@ export default function GlobalError({
             }}
           >
             {offline
-              ? "ネットワーク接続を確認してください"
-              : "ページを再読み込みしてください"}
+              ? "電波の届く場所で、もう一度お試しください"
+              : "ページをもう一度開き直してみてください"}
           </p>
           <div
             style={{

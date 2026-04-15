@@ -44,13 +44,13 @@ export function renderPartnerInviteEmail(
             </tr>
             <tr>
               <td style="font-size:15px;line-height:1.8;color:${BRAND.fg};padding-bottom:24px;">
-                ${escapeHtml(inviterName)}さんが「${escapeHtml(projectName)}」におふたりを招待しました。<br/>
-                下のボタンからプロジェクトに参加してください。
+                ${escapeHtml(inviterName)}さんが「${escapeHtml(projectName)}」におふたりを招ばれました。<br/>
+                下のボタンから、ふたりの式場さがしに合流してください。
               </td>
             </tr>
             <tr>
               <td align="center" style="padding:8px 0 24px;">
-                <a href="${encodeURI(inviteUrl)}" style="display:inline-block;background-color:${BRAND.primary};color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:999px;font-size:15px;font-weight:400;min-height:44px;line-height:1.2;">プロジェクトに参加</a>
+                <a href="${encodeURI(inviteUrl)}" style="display:inline-block;background-color:${BRAND.primary};color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:999px;font-size:15px;font-weight:400;min-height:44px;line-height:1.2;">式場さがしに合流する</a>
               </td>
             </tr>
             <tr>
@@ -75,8 +75,8 @@ export function renderPartnerInviteEmail(
   const text = [
     `${inviterName}さんから招待が届いています（Haretoki）`,
     "",
-    `${inviterName}さんが「${projectName}」におふたりを招待しました。`,
-    "下のURLからプロジェクトに参加してください。",
+    `${inviterName}さんが「${projectName}」におふたりを招ばれました。`,
+    "下の URL から、ふたりの式場さがしに合流してください。",
     "",
     inviteUrl,
     "",

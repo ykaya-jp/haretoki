@@ -18,10 +18,13 @@ async function AcceptInviteContent() {
           Haretoki
         </p>
         <div>
-          <h1>プロジェクトへの招待</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            「{invitation.projectName}」に招待されています。
-            パートナーとして式場選びに参加しましょう。
+          <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.01em]">
+            ふたりの式場さがしに、招待が届いています
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            「{invitation.projectName}」に招ばれました。
+            <br />
+            パートナーとして一緒に、式場を見ていきませんか。
           </p>
         </div>
         <AcceptInviteForm invitationId={invitation.id} />

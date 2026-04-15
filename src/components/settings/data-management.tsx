@@ -113,7 +113,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
                   アカウントを削除しますか？
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  プロジェクト・式場・見学記録を含む、あなたに紐づくすべてのデータが完全に削除されます。この操作は取り消せません。
+                  式場・見学記録・これまでの会話を含む、おふたりの式場さがしに関わるすべての中身が完全に消えます。この操作は戻せません。
                 </p>
               </div>
             </div>
