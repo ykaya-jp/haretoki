@@ -1,0 +1,133 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Bookmark, ArrowLeft, Search } from "lucide-react";
+import {
+  listSavedSearches,
+  matchesSavedSearchCount,
+} from "@/server/actions/saved-searches";
+import { SavedSearchDeleteButton } from "@/components/mypage/saved-search-delete-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { SavedSearchFilters } from "@/server/actions/saved-searches";
+
+export const metadata: Metadata = {
+  title: "保存した検索条件",
+  description: "保存した検索条件と、現在の一致件数を確認できます。",
+};
+
+function buildExploreUrl(filters: SavedSearchFilters): string {
+  const params = new URLSearchParams();
+  if (filters.keyword) params.set("q", filters.keyword);
+  if (filters.area && filters.area.length > 0) {
+    filters.area.forEach((a) => params.append("areas", a));
+  }
+  if (filters.budgetMax !== undefined)
+    params.set("budgetMax", String(filters.budgetMax));
+  if (filters.capacityMin !== undefined)
+    params.set("guestCount", String(filters.capacityMin));
+  if (filters.vibeTags && filters.vibeTags.length > 0) {
+    filters.vibeTags.forEach((t) => params.append("styles", t));
+  }
+  const qs = params.toString();
+  return qs ? `/explore?${qs}` : "/explore";
+}
+
+function FilterPreview({ filters }: { filters: SavedSearchFilters }) {
+  const parts: string[] = [];
+  if (filters.area && filters.area.length > 0)
+    parts.push(filters.area.join("・"));
+  if (filters.budgetMax !== undefined)
+    parts.push(`${filters.budgetMax.toLocaleString()}円以下`);
+  if (filters.capacityMin !== undefined)
+    parts.push(`${filters.capacityMin}人以上`);
+  if (filters.vibeTags && filters.vibeTags.length > 0)
+    parts.push(filters.vibeTags.join("・"));
+  if (filters.keyword) parts.push(`「${filters.keyword}」`);
+  if (parts.length === 0) return <span>すべての条件</span>;
+  return <span>{parts.join(" ／ ")}</span>;
+}
+
+async function SavedSearchCard({
+  id,
+  label,
+  filters,
+}: {
+  id: string;
+  label: string;
+  filters: SavedSearchFilters;
+}) {
+  const count = await matchesSavedSearchCount(id);
+  const exploreUrl = buildExploreUrl(filters);
+
+  return (
+    <div className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
+        <Bookmark className="h-4 w-4 text-[var(--gold-warm)]" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-[family-name:var(--font-display)] font-extralight text-base leading-snug tracking-wide">
+          {label}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+          <FilterPreview filters={filters} />
+        </p>
+        <Link
+          href={exploreUrl}
+          prefetch={false}
+          className="mt-2 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-4"
+        >
+          <Search className="h-3 w-3" />
+          <span className="tabular-nums">{count}件該当</span>
+          <span>— 検索する</span>
+        </Link>
+      </div>
+      <SavedSearchDeleteButton id={id} />
+    </div>
+  );
+}
+
+export default async function SavedSearchesPage() {
+  const searches = await listSavedSearches();
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <Link
+          href="/mypage"
+          className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          マイページに戻る
+        </Link>
+        <h2 className="text-h1 font-[family-name:var(--font-display)] font-extralight">
+          保存した検索条件
+        </h2>
+        <p className="mt-1 text-meta text-muted-foreground">
+          新しい式場が追加されたときにお知らせします
+        </p>
+      </div>
+
+      {searches.length === 0 ? (
+        <EmptyState
+          icon={Bookmark}
+          title="保存した条件はまだありません"
+          description="「式場をさがす」画面でフィルターを設定すると、条件を保存できます。"
+          action={{ href: "/explore", label: "式場をさがす" }}
+        />
+      ) : (
+        <div className="space-y-3">
+          {searches.map((s) => (
+            <SavedSearchCard
+              key={s.id}
+              id={s.id}
+              label={s.label}
+              filters={s.filters}
+            />
+          ))}
+          <p className="text-center text-xs text-muted-foreground pt-2">
+            最大 5 件まで保存できます（現在 {searches.length} 件）
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -7,7 +7,7 @@ import { PartnerInvite } from "@/components/partner/partner-invite";
 import { InviteLinkPanel } from "@/components/partner/invite-link-panel";
 import { getCurrentInvitationLink } from "@/server/actions/invitation-links";
 import { NameEdit } from "@/components/mypage/name-edit";
-import { Settings, ChevronRight } from "lucide-react";
+import { Settings, ChevronRight, Bookmark } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -147,25 +147,43 @@ export default async function MyPage() {
         </div>
       </section>
 
-      {/* Link to Settings */}
+      {/* Link to Settings + Saved Searches */}
       <section className="space-y-4">
         <h3 className="font-serif text-lg font-light tracking-wide">
           その他
         </h3>
-        <Link
-          href="/settings"
-          prefetch
-          className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
-        >
-          <div className="flex items-center gap-3">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="font-medium">整える</p>
-              <p className="text-xs text-muted-foreground">見た目・通知・ログアウト</p>
+        <div className="space-y-3">
+          {/* E-10: Saved search conditions */}
+          <Link
+            href="/mypage/saved-searches"
+            prefetch
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <Bookmark className="h-5 w-5 text-[var(--gold-warm)]" />
+              <div>
+                <p className="font-medium">保存した検索条件</p>
+                <p className="text-xs text-muted-foreground">新しい式場が出たらお知らせ</p>
+              </div>
             </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <Link
+            href="/settings"
+            prefetch
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">整える</p>
+                <p className="text-xs text-muted-foreground">見た目・通知・ログアウト</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
       </section>
     </div>
   );
