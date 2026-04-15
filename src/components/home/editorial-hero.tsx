@@ -205,7 +205,11 @@ export function EditorialHero(props: EditorialHeroProps) {
           {/* Top row: eyebrow + sky chip */}
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1 space-y-2.5">
+              {/* Publication-style masthead eyebrow — HARETOKI · date · 時間帯 ·
+                  stage。magazine のページ柱のような静かな主張を置く。 */}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+                <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+                <span aria-hidden="true" className="opacity-30">·</span>
                 <span className="tabular-nums">{date || "\u00a0"}</span>
                 {timeOfDay && (
                   <>
@@ -287,9 +291,9 @@ export function EditorialHero(props: EditorialHeroProps) {
               </div>
             </div>
           )}
-          <div className="ml-auto flex gap-5 text-right">
+          <div className="ml-auto flex items-stretch divide-x divide-border/40 text-right">
             {metrics.map((m) => (
-              <div key={m.label} className="flex flex-col items-end leading-tight">
+              <div key={m.label} className="flex flex-col items-end leading-tight px-3 first:pl-0 last:pr-0">
                 <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-[22px] text-foreground">
                   {m.value}
                 </span>

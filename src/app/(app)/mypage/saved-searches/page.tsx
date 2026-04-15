@@ -109,8 +109,8 @@ export default async function SavedSearchesPage() {
       {searches.length === 0 ? (
         <EmptyState
           icon={Bookmark}
-          title="保存した条件はまだありません"
-          description="「式場をさがす」画面でフィルターを設定すると、条件を保存できます。"
+          title="これから、検索のしおりを集めましょう"
+          description="「式場をさがす」で条件をしぼったら、その条件をそっと残しておけます。新しい式場が届いたら、通知でお知らせします。"
           action={{ href: "/explore", label: "式場をさがす" }}
         />
       ) : (

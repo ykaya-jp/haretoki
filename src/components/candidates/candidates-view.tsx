@@ -204,8 +204,8 @@ export function CandidatesView({
                   icon={Heart}
                   imageUrl="/images/empty-candidates.png"
                   imageAlt="候補を集める"
-                  title="まだ候補はありません。気になる1件から始めましょう"
-                  description="式場カードの♡をタップすると、ここに表示されます。2件以上で比較もできます。"
+                  title="これから、ふたりの輪郭を描いていきましょう"
+                  description="式場カードの♡をそっとタップすると、ここに集まります。2件並んだら、比較してみてください。"
                   action={
                     venueOptions.length === 0
                       ? { label: "最初の式場を追加", href: "/explore?addVenue=1" }

@@ -89,9 +89,20 @@ export function DailyRitual({ ritual, todayLabel, timeOfDayLabel }: DailyRitualP
           aria-hidden="true"
           className="mt-3 text-[10.5px] text-muted-foreground/70"
         >
-          ※ AI の朝の一言が一時的に使えません。
+          今日はそっと、静かに。
         </p>
       )}
+
+      {/* Editorial hairline — gold が左右にフェードする細い罫線。magazine 的な
+          余白のリズムをつくる。次のブロックとの呼吸を保つため mt を控えめに。*/}
+      <div
+        aria-hidden="true"
+        className="mt-6 h-px w-full"
+        style={{
+          background:
+            "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 30%, transparent) 35%, color-mix(in oklab, var(--gold-warm) 30%, transparent) 65%, transparent 100%)",
+        }}
+      />
     </motion.section>
   );
 }

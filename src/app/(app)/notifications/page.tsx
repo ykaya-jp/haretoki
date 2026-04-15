@@ -41,8 +41,8 @@ export default async function NotificationsPage() {
       {notifications.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title="まだ通知はありません"
-          description="式場の新着情報や保存した検索条件のマッチなど、お知らせが届いたらここに表示されます。"
+          title="いまは静かな一日です"
+          description="保存した条件に合う式場が見つかったり、ふたりに届くお知らせがあれば、こちらにそっと並びます。"
         />
       ) : (
         <div className="space-y-3">

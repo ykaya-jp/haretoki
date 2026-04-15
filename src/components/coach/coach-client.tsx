@@ -139,8 +139,8 @@ export function CoachClient({
                 <div className="opacity-70">
                   <EmptyState
                     icon={Search}
-                    title="式場を追加すると、さらに寄り添います"
-                    description="気になる式場を追加すると、おふたりに合ったアドバイスや比較をお届けします。"
+                    title="式場がふえると、もう少しそばに"
+                    description="気になる式場を一つ入れてくれたら、おふたりの歩幅に合わせた声かけができます。"
                     action={{ label: "式場を見てみる", href: "/explore" }}
                   />
                 </div>
@@ -165,8 +165,8 @@ export function CoachClient({
             ) : (
               <EmptyState
                 icon={Search}
-                title="インサイトはまだありません"
-                description="式場や見積もりを追加すると、AIがおふたりに合ったインサイトをお届けします。"
+                title="気づきは、これから"
+                description="式場や見積もりが集まると、おふたりの選び方に合わせた小さな気づきが届きはじめます。"
                 action={{ label: "式場を見てみる", href: "/explore" }}
               />
             )}
