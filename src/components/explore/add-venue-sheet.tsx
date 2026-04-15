@@ -293,40 +293,48 @@ export function AddVenueSheet({
           追加
         </Button>
       )}
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto">
-        {/* E-5: Editorial header */}
-        <SheetHeader className="relative overflow-hidden rounded-t-2xl -mx-4 -mt-4 px-6 pt-8 pb-6 mb-2"
-          style={{
-            background:
-              "radial-gradient(ellipse at 60% 0%, oklch(0.97 0.012 85 / 0.6) 0%, oklch(0.96 0.015 10 / 0.15) 60%, transparent 100%), var(--bg-hero, oklch(0.97 0.012 85))",
-          }}
-        >
-          <SheetTitle className="font-serif text-3xl font-extralight tracking-tight text-foreground leading-snug text-left">
-            新しい式場を、迎える
-          </SheetTitle>
-          <p className="text-xs text-muted-foreground mt-1 text-left">
-            URLを貼るだけで、AIが情報をお持ちします
+      <SheetContent side="bottom" className="rounded-t-3xl max-h-[92dvh] overflow-y-auto">
+        {/* Understated header — eyebrow + small title, input is the hero */}
+        <SheetHeader className="px-1 pt-1 pb-2 mb-1">
+          <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground text-left">
+            気になる式場を、置く
           </p>
+          <SheetTitle className="mt-1.5 font-[family-name:var(--font-display)] text-[17px] font-extralight tracking-[0.01em] text-foreground text-left">
+            URL を貼る、もしくは手動で追加
+          </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 pb-8">
-          {/* ── Primary: URL input area ── */}
+        <div className="space-y-5 pb-8">
+          {/* ── Primary: URL input — the hero of this sheet ── */}
           <div className="space-y-3">
-            <textarea
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              placeholder={"式場のURLを貼ってください（複数OK、改行で区切り）"}
-              rows={4}
-              disabled={urlLoading}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[var(--gold-warm)]/40 resize-none leading-relaxed disabled:opacity-50"
-            />
-            <p className="text-xs text-muted-foreground">
-              ゼクシィ・ハナユメ・Wedding Park 等のURLに対応
+            <div
+              className="rounded-2xl p-0.5"
+              style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 20%, transparent) 0%, color-mix(in oklab, var(--primary) 10%, transparent) 100%)",
+              }}
+            >
+              <textarea
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder={"式場の URL を貼ってください\n(複数可 · 改行で区切り)"}
+                rows={4}
+                disabled={urlLoading}
+                className="w-full rounded-[14px] border-0 bg-card px-4 py-4 text-[15px] placeholder:text-muted-foreground/50 focus:outline-none resize-none leading-relaxed disabled:opacity-50"
+                style={{ minHeight: 112 }}
+              />
+            </div>
+            <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+              ゼクシィ・ハナユメ・Wedding Park 等に対応しています
             </p>
             <Button
               onClick={handleUrlSubmit}
               disabled={urlLoading || parseUrls(urlInput).length === 0}
-              className="w-full h-11 bg-[var(--gold-warm)] hover:bg-[var(--gold-warm)]/90 text-white font-normal active:scale-[0.98] transition-transform"
+              className="w-full h-12 rounded-[14px] text-[14.5px] font-medium tracking-wide bg-[var(--gold-warm)] hover:bg-[var(--gold-warm)]/90 text-white active:scale-[0.98] transition-transform"
+              style={{
+                boxShadow:
+                  "0 1px 2px rgba(42,35,32,0.06), 0 8px 24px color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+              }}
             >
               {urlLoading ? (
                 <>
@@ -334,7 +342,7 @@ export function AddVenueSheet({
                   読み込んでいます…
                 </>
               ) : (
-                "読み込む"
+                "URL から取り込む"
               )}
             </Button>
           </div>
@@ -376,13 +384,21 @@ export function AddVenueSheet({
           </AnimatePresence>
 
           {/* ── Secondary: Collapsible manual form ── */}
-          <div className="border-t border-border/50 pt-4">
+          <div
+            className="pt-4"
+            style={{
+              borderTop:
+                "1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent)",
+              borderImage:
+                "linear-gradient(to right, transparent, color-mix(in oklab, var(--gold-warm) 35%, transparent), transparent) 1",
+            }}
+          >
             <button
               type="button"
               onClick={() => setManualOpen((v) => !v)}
-              className="flex items-center gap-1 text-sm text-muted-foreground active:text-foreground transition-colors py-1"
+              className="flex items-center gap-1.5 text-[13px] text-muted-foreground active:text-foreground transition-colors py-1.5"
             >
-              URLがない場合は
+              URL がない場合は
               <span className="font-medium text-foreground">手動で入力する</span>
               <ChevronRight
                 className={`h-4 w-4 text-foreground transition-transform duration-200 ${manualOpen ? "rotate-90" : ""}`}

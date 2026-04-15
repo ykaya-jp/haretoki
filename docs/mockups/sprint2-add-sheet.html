@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 2 — 追加 Sheet (refined)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --muted: oklch(0.93 0.01 70);
+    --border: oklch(0.90 0.01 70);
+    --card: oklch(0.99 0.005 80);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans);
+    background: linear-gradient(180deg, #efeae0 0%, #e4ded2 100%);
+    color: var(--foreground); -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 80px;
+  }
+  .stage { max-width: 900px; margin: 0 auto; }
+  .stage > h2 { font-weight: 300; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 16px 0 28px; }
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device {
+    width: 390px; height: 780px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--foreground) 35%, transparent) 0%, rgba(42,35,32,.6) 100%);
+    border-radius: 38px;
+    box-shadow: 0 20px 60px rgba(42,35,32,.18), 0 4px 12px rgba(42,35,32,.08);
+    border: 10px solid #2a2320;
+  }
+  /* Blurred page behind sheet */
+  .behind {
+    position: absolute; inset: 0; background: var(--background) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23efeae0'/></svg>");
+    filter: blur(4px) brightness(.7);
+  }
+  /* Sheet */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--background);
+    border-radius: 24px 24px 0 0;
+    padding: 16px 20px 24px;
+    max-height: 92%;
+    overflow-y: auto;
+    box-shadow: 0 -10px 40px rgba(0,0,0,.25);
+  }
+  .sheet::-webkit-scrollbar { width: 0; }
+  .handle { width: 40px; height: 4px; border-radius: 2px; background: color-mix(in oklab, var(--foreground) 20%, transparent); margin: 0 auto 14px; }
+
+  .eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); margin: 0; }
+  .title { margin: 6px 0 0; font-family: var(--mincho); font-size: 17px; font-weight: 300; letter-spacing: .01em; color: var(--foreground); }
+
+  /* URL input — hero */
+  .url-frame {
+    margin-top: 18px;
+    padding: 2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 20%, transparent) 0%, color-mix(in oklab, var(--primary) 10%, transparent) 100%);
+  }
+  .url-input {
+    width: 100%; min-height: 112px;
+    border: 0; outline: none; resize: none;
+    border-radius: 14px;
+    background: var(--card);
+    padding: 16px;
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    color: var(--foreground);
+  }
+  .url-input::placeholder { color: color-mix(in oklab, var(--muted-foreground) 60%, transparent); }
+  .hint { font-size: 11.5px; color: var(--muted-foreground); margin: 8px 4px 0; line-height: 1.5; }
+
+  .cta {
+    display: block; width: 100%; margin-top: 14px;
+    padding: 14px; border: 0; border-radius: 14px;
+    background: var(--gold-warm); color: #fff;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 500; letter-spacing: .02em;
+    box-shadow: 0 1px 2px rgba(42,35,32,0.06), 0 8px 24px color-mix(in oklab, var(--gold-warm) 22%, transparent);
+    cursor: pointer;
+  }
+
+  /* Divider */
+  .divider {
+    margin-top: 22px; padding-top: 14px;
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(to right, transparent, color-mix(in oklab, var(--gold-warm) 35%, transparent), transparent) 1;
+  }
+  .manual-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--muted-foreground);
+    background: none; border: 0; padding: 6px 0; cursor: pointer;
+  }
+  .manual-toggle strong { color: var(--foreground); font-weight: 500; }
+  .manual-toggle svg { width: 14px; height: 14px; fill: none; stroke: var(--foreground); stroke-width: 2; transition: transform .2s; }
+
+  /* Manual form (expanded variant) */
+  .manual-form { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--foreground); font-weight: 500; }
+  .field input {
+    height: 44px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--card); padding: 0 14px; font-size: 14px; font-family: var(--sans);
+    outline: none; color: var(--foreground);
+  }
+  .photo-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .photo-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 40px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card);
+    font-size: 12.5px; cursor: pointer;
+  }
+  .photo-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+  .primary {
+    display: block; width: 100%; margin-top: 6px;
+    padding: 13px; border: 0; border-radius: 14px;
+    background: var(--primary); color: #fff;
+    font-size: 14.5px; font-weight: 500;
+    box-shadow: 0 1px 2px rgba(42,35,32,0.06), 0 6px 16px color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+<h2>Sprint 2 · ③追加 Sheet (F-01 / B-12) — 見出し小、入力主役</h2>
+
+<div class="frames">
+
+  <!-- State 1: collapsed, URL focus -->
+  <div class="col">
+    <div class="label">State · 初期 (URL 主役)</div>
+    <div class="device">
+      <div class="behind"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <p class="eyebrow">気になる式場を、置く</p>
+        <h2 class="title">URL を貼る、もしくは手動で追加</h2>
+        <div class="url-frame">
+          <textarea class="url-input" placeholder="式場の URL を貼ってください&#10;(複数可 · 改行で区切り)"></textarea>
+        </div>
+        <p class="hint">ゼクシィ・ハナユメ・Wedding Park 等に対応しています</p>
+        <button class="cta">URL から取り込む</button>
+
+        <div class="divider">
+          <button class="manual-toggle">
+            URL がない場合は
+            <strong>手動で入力する</strong>
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 2: manual expanded -->
+  <div class="col">
+    <div class="label">State · 手動入力 展開</div>
+    <div class="device">
+      <div class="behind"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <p class="eyebrow">気になる式場を、置く</p>
+        <h2 class="title">URL を貼る、もしくは手動で追加</h2>
+        <div class="url-frame">
+          <textarea class="url-input" placeholder="式場の URL を貼ってください&#10;(複数可 · 改行で区切り)"></textarea>
+        </div>
+        <p class="hint">ゼクシィ・ハナユメ・Wedding Park 等に対応しています</p>
+        <button class="cta">URL から取り込む</button>
+
+        <div class="divider">
+          <button class="manual-toggle">
+            URL がない場合は
+            <strong>手動で入力する</strong>
+            <svg viewBox="0 0 24 24" style="transform:rotate(90deg);"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div class="manual-form">
+            <div class="field">
+              <label>式場のお名前 *</label>
+              <input placeholder="アニヴェルセル表参道" />
+            </div>
+            <div class="field">
+              <label>エリア</label>
+              <input placeholder="表参道" />
+            </div>
+            <div class="field">
+              <label>写真</label>
+              <div class="photo-row">
+                <button class="photo-btn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>写真を選ぶ</button>
+              </div>
+            </div>
+            <button class="primary">手動で追加する</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:56px; color:#555; font-size:13px; text-align:center;">
+  <code>add-venue-sheet.tsx</code> と揃えた静的モック。見出しを極小化し、<strong>URL 入力を主役</strong>に。
+  手動入力へは gold hairline 下の控えめ toggle から。
+</p>
+</div>
+</body>
+</html>
