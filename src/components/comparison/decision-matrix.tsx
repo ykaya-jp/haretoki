@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, SlidersHorizontal, Check, X } from "lucide-react";
+import { Loader2, SlidersHorizontal, Check, X, Sparkles } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
+import { getMatrixInsight, type MatrixInsight } from "@/server/actions/matrix-insight";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 
@@ -63,12 +64,29 @@ export function DecisionMatrix() {
   const [loading, setLoading] = useState(true);
   const [hiddenDims, setHiddenDims] = useState<Set<string>>(readPersistedHiddenDims);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [insight, setInsight] = useState<MatrixInsight | null | undefined>(undefined);
   const prefersReduced = useReducedMotion();
 
   useEffect(() => {
     getMatrixData()
       .then(setData)
       .finally(() => setLoading(false));
+  }, []);
+
+  // Fetch AI insight in parallel — the matrix renders first, the insight
+  // card arrives progressively. null = not enough data; undefined = loading.
+  useEffect(() => {
+    let cancelled = false;
+    getMatrixInsight()
+      .then((res) => {
+        if (!cancelled) setInsight(res);
+      })
+      .catch(() => {
+        if (!cancelled) setInsight(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggleDim = (id: string) => {
@@ -423,6 +441,61 @@ export function DecisionMatrix() {
           })}
         </div>
       </div>
+
+      {/* AI ひとこと分析 — progressive; card appears once Claude (or template) returns */}
+      <AnimatePresence>
+        {insight && (
+          <motion.div
+            key="ai-insight"
+            initial={prefersReduced ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: LUXURY_EASE }}
+            className="rounded-2xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-5"
+            role="article"
+            aria-label="AI によるひとこと分析"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
+                <Sparkles
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 text-[var(--gold-warm)]"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <p className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--gold-warm)]">
+                AI のひとこと分析
+              </p>
+            </div>
+
+            <p className="mt-3 text-[13.5px] leading-[1.7] text-foreground">
+              {insight.summary}
+            </p>
+
+            {insight.nextActions.length > 0 && (
+              <ul className="mt-3 space-y-1.5">
+                {insight.nextActions.map((action, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-[12.5px] leading-relaxed text-foreground"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="mt-1.5 block h-1 w-1 shrink-0 rounded-full bg-[var(--gold-warm)]"
+                    />
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {insight.fallback && (
+              <p className="mt-3 text-[10.5px] text-muted-foreground/80">
+                ※ AI 分析が一時的に使えないため、簡易分析を表示しています
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
