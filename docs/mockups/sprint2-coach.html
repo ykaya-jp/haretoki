@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 2 — コーチ (refined)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --muted: oklch(0.93 0.01 70);
+    --border: oklch(0.90 0.01 70);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans);
+    background: linear-gradient(180deg, #efeae0 0%, #e4ded2 100%);
+    color: var(--foreground); -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 80px;
+  }
+  .stage { max-width: 900px; margin: 0 auto; }
+  .stage > h2 { font-weight: 300; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 16px 0 28px; }
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device {
+    width: 390px; height: 780px; overflow-y: auto; position: relative;
+    background: var(--background); border-radius: 38px;
+    box-shadow: 0 20px 60px rgba(42,35,32,.18), 0 4px 12px rgba(42,35,32,.08);
+    border: 10px solid #2a2320; padding: 0;
+  }
+  .device::-webkit-scrollbar { width: 0; }
+
+  /* Sticky header */
+  .hdr {
+    position: sticky; top: 0; z-index: 20;
+    padding: 12px 16px;
+    background: color-mix(in oklab, var(--background) 75%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 40px;
+    border-radius: 999px; padding: 0 12px;
+    font-size: 12.5px; letter-spacing: .02em;
+    background: color-mix(in oklab, var(--background) 80%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+    color: var(--foreground);
+    box-shadow: 0 1px 2px rgba(42,35,32,.05);
+    cursor: pointer;
+  }
+  .chip svg { width: 16px; height: 16px; stroke: var(--muted-foreground); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .chip.gold {
+    background: var(--gold-subtle);
+    border-color: color-mix(in oklab, var(--gold-warm) 55%, transparent);
+    color: var(--gold-warm);
+    box-shadow: 0 1px 2px rgba(42,35,32,.04), 0 6px 16px color-mix(in oklab, var(--gold-warm) 18%, transparent);
+    font-weight: 500;
+  }
+  .chip.gold svg { stroke: var(--gold-warm); stroke-width: 2; }
+  .hdr .title {
+    flex: 1; min-width: 0; text-align: center;
+    font-family: var(--mincho); font-weight: 300; font-size: 15px;
+    letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .body { padding: 20px 20px 120px; }
+
+  /* Segmented */
+  .seg { display: flex; background: var(--muted); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+  .seg button { flex: 1; padding: 8px 0; border: 0; background: transparent; font-size: 13px; font-weight: 300; color: var(--muted-foreground); border-radius: 8px; cursor: pointer; }
+  .seg button.on { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px rgba(0,0,0,.04); font-weight: 400; }
+
+  /* QuickStart */
+  .qs-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .qs-head .sparkle { width: 16px; height: 16px; color: var(--gold-warm); }
+  .qs-head span { font-family: var(--mincho); font-weight: 300; font-size: 15px; letter-spacing: 0.04em; }
+
+  .uc { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .uc-card {
+    padding: 20px; border-radius: 18px;
+    border-left: 3px solid var(--gold-warm);
+    background: var(--gold-subtle);
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 88px;
+    transition: transform .15s;
+  }
+  .uc-card:active { transform: scale(.98); }
+  .uc-card svg { width: 18px; height: 18px; color: var(--gold-warm); stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .uc-card h3 { font-family: var(--mincho); font-size: 14px; font-weight: 500; margin: 0; line-height: 1.45; color: var(--foreground); }
+  .uc-card p { font-size: 12px; color: var(--muted-foreground); margin: 0; line-height: 1.6; }
+
+  .sec-label { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 10px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 40px;
+    padding: 0 14px; border-radius: 999px;
+    background: #fff; border: 1px solid var(--border);
+    font-size: 12px; color: var(--foreground);
+    cursor: pointer;
+  }
+  .pill svg { width: 12px; height: 12px; color: var(--gold-warm); fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 20px 16px; opacity: .7; }
+  .empty .icon { width: 28px; height: 28px; margin: 0 auto 8px; color: var(--muted-foreground); }
+  .empty h4 { font-size: 13px; font-weight: 400; margin: 0 0 4px; color: var(--foreground); }
+  .empty p { font-size: 12px; color: var(--muted-foreground); margin: 0 0 12px; line-height: 1.5; }
+  .empty a { display: inline-block; padding: 8px 16px; border-radius: 999px; background: var(--foreground); color: var(--background); font-size: 12px; text-decoration: none; }
+
+  /* Chat messages */
+  .msg { display: flex; margin-bottom: 14px; }
+  .msg.u { justify-content: flex-end; }
+  .bubble { max-width: 82%; padding: 11px 14px; font-size: 13.5px; line-height: 1.7; }
+  .msg.u .bubble { background: var(--primary); color: #fff; border-radius: 18px 18px 4px 18px; }
+  .msg.a .bubble { background: #fff; border: 1px solid var(--border); border-radius: 18px 18px 18px 4px; }
+
+  /* Composer */
+  .composer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px 20px;
+    background: color-mix(in oklab, var(--background) 70%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+  }
+  .composer .input {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border-radius: 999px;
+    padding: 4px 4px 4px 16px; min-height: 48px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(42,35,32,.05);
+  }
+  .composer .input input { flex: 1; border: 0; background: transparent; outline: none; font-size: 14px; font-family: var(--sans); color: var(--foreground); }
+  .composer .input input::placeholder { color: var(--muted-foreground); }
+  .composer .send {
+    width: 40px; height: 40px; border-radius: 999px; border: 0;
+    background: var(--primary); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .composer .send svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="stage">
+<h2>Sprint 2 · ②コーチ (F-17 / F-18) — sticky chip header + softer copy</h2>
+
+<div class="frames">
+
+  <!-- Empty state -->
+  <div class="col">
+    <div class="label">空状態 · QuickStart</div>
+    <div class="device">
+      <div class="hdr">
+        <button class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>これまでの会話</span></button>
+        <div class="title">AI コーチ</div>
+        <button class="chip gold"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新しい会話</span></button>
+      </div>
+      <div class="body">
+        <div class="seg"><button class="on">チャット</button><button>インサイト</button></div>
+
+        <div class="qs-head">
+          <svg class="sparkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg>
+          <span>どんなこと、話そう？</span>
+        </div>
+
+        <div class="uc">
+          <div class="uc-card">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16 8 10 10 8 16 14 14 16 8"/></svg>
+            <h3>式場選びの基準がまだ決まっていない</h3>
+            <p>好みや優先順位を AI と一緒に整理</p>
+          </div>
+          <div class="uc-card">
+            <svg viewBox="0 0 24 24"><path d="M8 2v20M16 2v20M2 8h20M2 16h20"/></svg>
+            <h3>見積もりの妥当性が不安</h3>
+            <p>相場と比べて、上がりそうな項目を先回りで確認</p>
+          </div>
+          <div class="uc-card">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.5 8.5 8.5 0 0 1-9-8.5 8.5 8.5 0 0 1 9-8.5 8.38 8.38 0 0 1 9 8.5z"/></svg>
+            <h3>ふたりで意見が割れている</h3>
+            <p>意見の違いを整理して、納得できる選択を</p>
+          </div>
+        </div>
+
+        <p class="sec-label">ほかの質問</p>
+        <div class="pills">
+          <div class="pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg><span>予算の相場を知りたい</span></div>
+          <div class="pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg><span>神前式とチャペルの違いを教えて</span></div>
+          <div class="pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg><span>ゲスト 80 人だとどれくらい？</span></div>
+        </div>
+
+        <div class="empty">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <h4>式場を追加すると、さらに寄り添います</h4>
+          <p>気になる式場を追加すると、おふたりに<br/>合ったアドバイスや比較をお届けします。</p>
+          <a href="#">式場を見てみる</a>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="input">
+          <input placeholder="何でも聞いてみてください" />
+          <button class="send"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active conversation -->
+  <div class="col">
+    <div class="label">会話中 · streaming</div>
+    <div class="device">
+      <div class="hdr">
+        <button class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>これまでの会話</span></button>
+        <div class="title">見積もりの妥当性について</div>
+        <button class="chip gold"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>新しい会話</span></button>
+      </div>
+      <div class="body">
+        <div class="seg"><button class="on">チャット</button><button>インサイト</button></div>
+
+        <div class="msg u"><div class="bubble">リッツとアマンで迷っています。料理が近いと聞きましたが、どちらが良さそう？</div></div>
+        <div class="msg a"><div class="bubble">お二人にとっての「料理」は、どちらも十分に満足いただけるレベルです。<br/><br/>ただ、アマンはコース構成の自由度が一段高く、試食会で細かな相談がしやすい傾向にあります。<br/><br/>まずは<strong>試食会の枠</strong>をアマン側で取ってみるのはいかがでしょう？</div></div>
+        <div class="msg u"><div class="bubble">試食会、いつ頃がいい？</div></div>
+        <div class="msg a"><div class="bubble">式の<strong>6〜8 ヶ月前</strong>がおすすめです。料理の仕入れが同条件でしっかり試せるタイミング…<span style="opacity:.5;">●●●</span></div></div>
+      </div>
+
+      <div class="composer">
+        <div class="input">
+          <input placeholder="返信を書く…" />
+          <button class="send"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:56px; color:#555; font-size:13px; text-align:center;">
+  <code>coach-client.tsx</code> + <code>session-history-sheet.tsx</code> と揃えた静的モック。
+  左下の chip = これまでの会話 (F-18)、右下の gold chip = 新しい会話 (F-17)。
+</p>
+</div>
+</body>
+</html>
