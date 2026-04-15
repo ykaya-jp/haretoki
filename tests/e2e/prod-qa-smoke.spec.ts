@@ -24,24 +24,6 @@ async function saveScreenshot(page: Page, name: string) {
   });
 }
 
-async function getConsoleErrors(page: Page): Promise<string[]> {
-  const errors: string[] = [];
-  page.on("console", (msg) => {
-    if (msg.type() === "error") errors.push(msg.text());
-  });
-  return errors;
-}
-
-async function getNetworkErrors(page: Page): Promise<string[]> {
-  const errors: string[] = [];
-  page.on("response", (response) => {
-    if (response.status() >= 400) {
-      errors.push(`${response.status()} ${response.url()}`);
-    }
-  });
-  return errors;
-}
-
 async function checkHorizontalScroll(page: Page): Promise<boolean> {
   return await page.evaluate(() => {
     return document.documentElement.scrollWidth > window.innerWidth;
@@ -143,7 +125,6 @@ test.describe("Mobile 375px — Landing Page", () => {
 
   test("landing: Haretoki brand name is visible", async ({ page }) => {
     await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-    const brand = page.locator("text=Haretoki, text=晴れ時").first();
     // At least one branding element should be present somewhere on page
     const bodyText = await page.locator("body").textContent();
     const hasHaretoki =
@@ -205,9 +186,6 @@ test.describe("Mobile 375px — Login Page", () => {
   test.skip("login: keyboard Tab focuses email then password", async ({ page }) => {
     await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     await page.keyboard.press("Tab");
-    const emailFocused = await page
-      .locator('input[type="email"]')
-      .evaluate((el) => document.activeElement === el);
     // Focus may land on email or another focusable element — just verify Tab works
     const anyFocused = await page.evaluate(
       () => document.activeElement?.tagName !== "BODY"

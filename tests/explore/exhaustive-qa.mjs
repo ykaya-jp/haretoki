@@ -321,7 +321,7 @@ if (firstVenue) {
   console.log("  - favorite toggle");
   const heart = await page.$("button[aria-label*='お気に入り'], button[aria-label*='候補']");
   if (heart) {
-    const { ms } = await timed("heart-toggle", async () => {
+    await timed("heart-toggle", async () => {
       await heart.click();
       await page.waitForTimeout(500);
     }, 1000);

@@ -18,7 +18,6 @@
 
 // Load .env.local first (Next.js convention), falling back to .env.
 // Using dynamic require to avoid pulling in a dep if not installed.
-/* eslint-disable @typescript-eslint/no-require-imports */
 import * as fs from "node:fs";
 import * as path from "node:path";
 

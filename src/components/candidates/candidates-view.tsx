@@ -27,10 +27,6 @@ const TabFallback = () => (
   </div>
 );
 
-const ComparisonBoard = dynamic(
-  () => import("@/components/comparison/comparison-board").then((m) => m.ComparisonBoard),
-  { loading: TabFallback },
-);
 const DecisionMatrix = dynamic(
   () => import("@/components/comparison/decision-matrix").then((m) => m.DecisionMatrix),
   { loading: TabFallback },

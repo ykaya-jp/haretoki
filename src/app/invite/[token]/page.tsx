@@ -46,7 +46,6 @@ export default async function InvitePage({
 
     if (!invitation) return <InvalidCard reason="invalid" />;
     if (invitation.consumedAt) return <InvalidCard reason="stale" />;
-    // eslint-disable-next-line react-hooks/purity
     const now = new Date();
     if (invitation.expiresAt < now) return <InvalidCard reason="expired" />;
 

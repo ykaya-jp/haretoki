@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { VenueImage } from "@/components/ui/venue-image";
-import { Heart, BarChart3, Shield, MessageSquare, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
+import { Heart, BarChart3, Shield, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { DemoSequence } from "./demo-sequence";
 
