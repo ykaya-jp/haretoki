@@ -33,7 +33,7 @@ async function fetchOverview(
     where: { projectId, acceptedAt: { not: null } },
     select: {
       userId: true,
-      user: { select: { firstName: true } },
+      user: { select: { name: true } },
     },
   });
   const partner = members.find((m) => m.userId !== userId);
@@ -82,8 +82,8 @@ async function fetchOverview(
 
   return {
     hasPartner,
-    meName: me?.user?.firstName ?? null,
-    partnerName: partner?.user?.firstName ?? null,
+    meName: me?.user?.name ?? null,
+    partnerName: partner?.user?.name ?? null,
     bothCount: both.length,
     gaps,
     both,

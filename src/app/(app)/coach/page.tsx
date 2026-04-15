@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getAIInsights } from "@/server/actions/insights";
 import { listCoachSessions, getCoachSession } from "@/server/actions/coach";
 import { getHomeData } from "@/server/actions/home";
+import { getAgreements } from "@/server/actions/agreements";
 import { CoachClient } from "@/components/coach/coach-client";
 import {
   selectNightQuestion,
@@ -20,12 +21,14 @@ interface CoachPageProps {
 export default async function CoachPage({ searchParams }: CoachPageProps) {
   const { session: sessionId } = await searchParams;
 
-  const [insights, sessions, currentSession, homeData] = await Promise.all([
-    getAIInsights(),
-    listCoachSessions(),
-    sessionId ? getCoachSession(sessionId) : Promise.resolve(null),
-    getHomeData(),
-  ]);
+  const [insights, sessions, currentSession, homeData, agreements] =
+    await Promise.all([
+      getAIInsights(),
+      listCoachSessions(),
+      sessionId ? getCoachSession(sessionId) : Promise.resolve(null),
+      getHomeData(),
+      getAgreements(),
+    ]);
 
   // R-5 今夜の一問: deterministic pick from stage + day-of-year
   const stage = stageFromCounts({
@@ -43,6 +46,11 @@ export default async function CoachPage({ searchParams }: CoachPageProps) {
       currentSessionId={sessionId}
       insights={insights}
       nightQuestion={nightQuestion}
+      agreements={agreements.map((a) => ({
+        id: a.id,
+        text: a.text,
+        status: a.status,
+      }))}
     />
   );
 }

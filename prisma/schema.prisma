@@ -132,6 +132,12 @@ enum PaymentMethod {
   installment
 }
 
+enum AgreementStatus {
+  discussing
+  decided
+  revisit
+}
+
 model User {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email     String   @unique
@@ -146,6 +152,7 @@ model User {
   notifications          Notification[]
   createdInvitations     ProjectInvitation[] @relation("ProjectInvitationCreator")
   consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
+  agreements             CoupleAgreement[]
 
   @@map("users")
 }
@@ -169,6 +176,7 @@ model Project {
   checklists       ProjectChecklist[]
   rituals          DailyRitual[]
   invitations      ProjectInvitation[]
+  agreements       CoupleAgreement[]
 
   @@map("projects")
 }
@@ -621,4 +629,21 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+/// R-7 合意事項: カップルが話し合って決めたこと / 話し合い中のこと
+model CoupleAgreement {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String          @map("project_id") @db.Uuid
+  text      String
+  status    AgreementStatus @default(discussing)
+  createdBy String          @map("created_by") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("couple_agreements")
 }
