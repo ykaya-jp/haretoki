@@ -47,8 +47,20 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
     (s): s is string => Boolean(s),
   );
 
+  const isDecided = venue.status === "selected";
+
   return (
-    <div className="group overflow-hidden rounded-[var(--r-lg)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-500 ease-out md:hover:shadow-[var(--shadow-elevated)] md:hover:-translate-y-0.5 active:scale-[0.98] active:duration-100">
+    <div
+      className="group relative overflow-hidden rounded-[var(--r-lg)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-500 ease-out md:hover:shadow-[var(--shadow-elevated)] md:hover:-translate-y-0.5 active:scale-[0.98] active:duration-100"
+      style={
+        isDecided
+          ? {
+              boxShadow:
+                "0 0 0 2px color-mix(in oklab, var(--gold-warm) 55%, transparent), 0 1px 3px rgba(42,35,32,0.04), 0 12px 28px color-mix(in oklab, var(--gold-warm) 14%, transparent)",
+            }
+          : undefined
+      }
+    >
       {/* Photo section — 3:2 hotel-brochure ratio, gold hairline below */}
       <div className="relative border-b border-[var(--gold-subtle)]/40">
         <PrefetchLink href={`/venues/${venue.id}`}>
@@ -82,6 +94,22 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
         <div className="absolute right-3 top-3">
           <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
         </div>
+
+        {/* "晴れの日" chip — decided venue only, bottom right */}
+        {isDecided && (
+          <div
+            aria-label="決まった場所"
+            className="absolute right-3 bottom-3 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium tracking-[0.12em] uppercase text-white backdrop-blur-sm"
+            style={{
+              background:
+                "color-mix(in oklab, var(--gold-warm) 85%, transparent)",
+              boxShadow:
+                "0 1px 2px rgba(42,35,32,0.15), 0 6px 16px color-mix(in oklab, var(--gold-warm) 30%, transparent)",
+            }}
+          >
+            晴れの日
+          </div>
+        )}
       </div>
 
       {/* Info section — generous padding, hotel-brochure typography */}
