@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, SlidersHorizontal, Check, X } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+
+const HIDDEN_DIMS_KEY = "haretoki:matrix:hidden-dims";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -37,6 +39,8 @@ function scoreBackground(score: number | null, isWinner: boolean): string {
 export function DecisionMatrix() {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hiddenDims, setHiddenDims] = useState<Set<string>>(new Set());
+  const [filterOpen, setFilterOpen] = useState(false);
   const prefersReduced = useReducedMotion();
 
   useEffect(() => {
@@ -44,6 +48,43 @@ export function DecisionMatrix() {
       .then(setData)
       .finally(() => setLoading(false));
   }, []);
+
+  // Hydrate user's dimension-filter choice from localStorage so preferences
+  // persist across sessions without an extra round-trip to the DB.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HIDDEN_DIMS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as string[];
+        if (Array.isArray(parsed)) setHiddenDims(new Set(parsed));
+      }
+    } catch {
+      // ignore corrupted localStorage
+    }
+  }, []);
+
+  const toggleDim = (id: string) => {
+    setHiddenDims((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(HIDDEN_DIMS_KEY, JSON.stringify([...next]));
+      } catch {
+        // quota or privacy mode — silent, preference will reset next session
+      }
+      return next;
+    });
+  };
+
+  const resetDims = () => {
+    setHiddenDims(new Set());
+    try {
+      localStorage.removeItem(HIDDEN_DIMS_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   if (loading) {
     return (
@@ -87,7 +128,9 @@ export function DecisionMatrix() {
     );
   }
 
-  const { venues, dimensions, winners } = data;
+  const { venues, dimensions: allDimensions, winners } = data;
+  const dimensions = allDimensions.filter((d) => !hiddenDims.has(d.id));
+  const hiddenCount = allDimensions.length - dimensions.length;
 
   return (
     <motion.div
@@ -96,17 +139,116 @@ export function DecisionMatrix() {
       transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
       className="space-y-4"
     >
-      <div className="space-y-1">
-        <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
-          並べて、見比べる
-        </p>
-        <h3 className="font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground">
-          決定マトリクス
-        </h3>
-        <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-          ゴールドの背景が、各観点の 1 位です。横にスクロールできます。
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+            並べて、見比べる
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground">
+            決定マトリクス
+          </h3>
+          <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+            {hiddenCount > 0
+              ? `${allDimensions.length - hiddenCount} / ${allDimensions.length} 観点を表示中`
+              : "ゴールドの背景が、各観点の 1 位です"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((v) => !v)}
+          aria-expanded={filterOpen}
+          aria-label="表示する観点を絞る"
+          className={cn(
+            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition active:scale-[0.98]",
+            hiddenCount > 0 || filterOpen
+              ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+              : "bg-background/60 text-foreground",
+          )}
+          style={{
+            borderColor:
+              hiddenCount > 0 || filterOpen
+                ? "color-mix(in oklab, var(--gold-warm) 55%, transparent)"
+                : "var(--border)",
+          }}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.6} />
+          <span>絞る</span>
+          {hiddenCount > 0 && (
+            <span className="tabular-nums">
+              ·{dimensions.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      <AnimatePresence initial={false}>
+        {filterOpen && (
+          <motion.div
+            key="filter-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div
+              className="rounded-2xl border border-border/70 bg-card/70 p-4 backdrop-blur-sm"
+              role="group"
+              aria-label="表示する観点"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                  表示する観点
+                </p>
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={resetDims}
+                    className="text-[11.5px] text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    すべて表示に戻す
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {allDimensions.map((dim) => {
+                  const isActive = !hiddenDims.has(dim.id);
+                  return (
+                    <button
+                      key={dim.id}
+                      type="button"
+                      role="switch"
+                      aria-checked={isActive}
+                      onClick={() => toggleDim(dim.id)}
+                      className={cn(
+                        "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[12.5px] transition active:scale-[0.98]",
+                        isActive
+                          ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+                          : "bg-background text-muted-foreground line-through decoration-1",
+                      )}
+                      style={{
+                        borderColor: isActive
+                          ? "color-mix(in oklab, var(--gold-warm) 40%, transparent)"
+                          : "var(--border)",
+                      }}
+                    >
+                      {isActive ? (
+                        <Check className="h-3 w-3" strokeWidth={2} />
+                      ) : (
+                        <X className="h-3 w-3" strokeWidth={2} />
+                      )}
+                      <span>{dim.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground/80">
+                選択はこの端末のみ記憶されます。
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scrollable table with right-edge fade to signal horizontal scroll.
           Note: The "別の式場を検討する / 決め直す" affordance for post-decision
