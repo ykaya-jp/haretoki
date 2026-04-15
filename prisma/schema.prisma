@@ -162,8 +162,30 @@ model Project {
   coachMessages    CoachMessage[]
   coachSessions    CoachSession[]
   checklists       ProjectChecklist[]
+  rituals          DailyRitual[]
 
   @@map("projects")
+}
+
+/// E-1 Weather Ritual: 朝/夕に Claude が生成する 1 文。日次キャッシュ。
+model DailyRitual {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  date       DateTime @db.Date
+  weather    String   // "cloudy" | "break" | "clear" | "sunny"
+  headline   String   // 明朝 1 文 (20-40 字)
+  mood       String?  // 補足 (60 字)
+  ctaLabel   String?  @map("cta_label")
+  ctaHref    String?  @map("cta_href")
+  seenAt     DateTime? @map("seen_at")
+  actedAt    DateTime? @map("acted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, date])
+  @@index([projectId, date])
+  @@map("daily_rituals")
 }
 
 model ProjectMember {
