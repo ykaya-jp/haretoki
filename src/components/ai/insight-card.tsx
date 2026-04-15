@@ -11,6 +11,13 @@ interface AIInsightCardProps {
   title: string;
   body: string;
   actions: { label: string; href: string }[];
+  /**
+   * R-4 Expire design. Age in days since generation:
+   *   0-2  : fully vivid
+   *   3-6  : fades (opacity 0.7) + subtle "少し前の気づき" eyebrow
+   *   >=7  : should be hidden by caller (archived to /coach/insights)
+   */
+  ageDays?: number;
 }
 
 const INSIGHT_CONFIG: Record<InsightType, { icon: LucideIcon; borderColor: string }> = {
@@ -21,16 +28,24 @@ const INSIGHT_CONFIG: Record<InsightType, { icon: LucideIcon; borderColor: strin
   reminder: { icon: Bell, borderColor: "border-l-muted-foreground" },
 };
 
-export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps) {
+export function AIInsightCard({
+  type,
+  title,
+  body,
+  actions,
+  ageDays,
+}: AIInsightCardProps) {
   const config = INSIGHT_CONFIG[type];
+  const isAging = (ageDays ?? 0) >= 3;
 
   return (
     <div
       role="article"
       aria-label={title}
       className={cn(
-        "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6",
-        config.borderColor
+        "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6 transition-opacity",
+        config.borderColor,
+        isAging && "opacity-70",
       )}
     >
       <div className="mb-3 flex items-center gap-2">
@@ -38,9 +53,14 @@ export function AIInsightCard({ type, title, body, actions }: AIInsightCardProps
           <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[var(--gold-warm)]" strokeWidth={1.5} />
         </div>
         <h3 className="text-eyebrow text-[var(--gold-warm)]">
-          {title}
+          {isAging ? "少し前の気づき" : title}
         </h3>
       </div>
+      {isAging && (
+        <p className="mb-2 text-[13px] font-medium leading-relaxed text-foreground">
+          {title}
+        </p>
+      )}
       <p className="mb-4 text-body text-foreground">{body}</p>
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
