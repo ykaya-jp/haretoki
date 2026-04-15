@@ -18,6 +18,8 @@ export interface MatrixVenue {
   dressBringInFee: number | null;
   paymentMethodEnums: string[];
   maxInstallments: number | null;
+  /** R-6: average 帰り道モード mood (1-5, 5=晴れやか). Null if never visited. */
+  wayHomeMood: number | null;
 }
 
 export interface MatrixData {
@@ -46,6 +48,16 @@ export async function getMatrixData(): Promise<MatrixData> {
           // Include both user_rating and ai_analysis scores (fallback)
           scores: { where: { source: { in: ["user_rating", "ai_analysis"] } } },
           estimates: { orderBy: { version: "desc" }, take: 1 },
+          // R-6: E-3 帰り道モード で記録した mood を集計するため
+          // VisitRating(dimension=way_home_mood) を含める
+          visits: {
+            select: {
+              ratings: {
+                where: { dimension: "way_home_mood" },
+                select: { score: true },
+              },
+            },
+          },
         },
       },
     },
@@ -82,6 +94,19 @@ export async function getMatrixData(): Promise<MatrixData> {
         ) / 10;
     }
 
+    // R-6: flatten 帰り道モード mood scores across all visits for this venue
+    const moodScores = fav.venue.visits.flatMap((v) =>
+      v.ratings.map((r) => Number(r.score)),
+    );
+    const wayHomeMood =
+      moodScores.length > 0
+        ? Math.round(
+            (moodScores.reduce((a: number, b: number) => a + b, 0) /
+              moodScores.length) *
+              10,
+          ) / 10
+        : null;
+
     return {
       id: fav.venue.id,
       name: fav.venue.name,
@@ -95,6 +120,7 @@ export async function getMatrixData(): Promise<MatrixData> {
       dressBringInFee: fav.venue.dressBringInFee,
       paymentMethodEnums: fav.venue.paymentMethodEnums,
       maxInstallments: fav.venue.maxInstallments,
+      wayHomeMood,
     };
   });
 

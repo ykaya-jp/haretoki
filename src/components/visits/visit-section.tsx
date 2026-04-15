@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, Check, FileText, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { cn } from "@/lib/utils";
 import { VisitChecklist } from "@/components/visits/visit-checklist";
@@ -174,11 +175,21 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
 
           {visit.memo && <p className="text-sm text-muted-foreground">{visit.memo}</p>}
 
-          {/* Complete button */}
+          {/* Complete + Prep buttons for scheduled visits */}
           {visit.status === "scheduled" && (
-            <Button size="sm" variant="outline" onClick={() => handleComplete(visit.id)} disabled={isPending} className="gap-1">
-              <Check className="h-4 w-4" /> 見学を終えた
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => handleComplete(visit.id)} disabled={isPending} className="gap-1">
+                <Check className="h-4 w-4" /> 見学を終えた
+              </Button>
+              {/* E-8 Question Bank: 当日の質問リスト */}
+              <Link
+                href={`/visits/${visit.id}/prep`}
+                prefetch={false}
+                className="inline-flex min-h-9 items-center gap-1 rounded-md px-3 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              >
+                質問を用意する →
+              </Link>
+            </div>
           )}
 
           {/* Checklist */}
