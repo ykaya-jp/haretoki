@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 2 — ホーム (editorial)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --border: oklch(0.90 0.01 70);
+    --card: oklch(0.99 0.005 80);
+    --primary: oklch(0.62 0.12 45);
+    --primary-fg: #fff;
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.10);
+    --sans: "Noto Sans JP", system-ui, -apple-system, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+    --shadow-card: 0 1px 3px rgba(42,35,32,.04), 0 4px 12px rgba(42,35,32,.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: #e8e4dd;
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Dual-device layout */
+  .stage { max-width: 1100px; margin: 32px auto; padding: 0 20px 80px; }
+  .stage h2 { font-weight: 300; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 32px 0 12px; }
+  .frames { display: flex; gap: 32px; flex-wrap: wrap; }
+  .device {
+    width: 390px; height: 760px; overflow-y: auto;
+    background: var(--background); border-radius: 36px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06);
+    border: 10px solid #2a2320; padding: 0;
+    scrollbar-width: thin;
+  }
+  .device.wide { width: 390px; }
+  .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+  .page { padding: 24px 20px 120px; font-family: var(--sans); font-weight: 400; color: var(--foreground); }
+  .stack > * + * { margin-top: 48px; }
+
+  /* Eyebrow */
+  .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .eyebrow .dot { opacity: .4; }
+  .eyebrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  /* Headline */
+  h1.head {
+    font-family: var(--mincho);
+    font-weight: 300;
+    font-size: clamp(28px, 7vw, 36px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 12px 0 6px;
+  }
+  .sub { font-size: 13px; color: var(--muted-foreground); margin: 0; }
+
+  /* Hairline */
+  .hairline { height: 1px; width: 100%; margin: 24px 0 16px; background: color-mix(in oklab, var(--gold-warm) 30%, transparent); }
+
+  /* Metrics row */
+  .metrics { display: flex; align-items: center; gap: 20px; }
+  .ring-wrap { display: flex; align-items: center; gap: 8px; }
+  .ring { width: 36px; height: 36px; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--border); fill: none; stroke-width: 3; }
+  .ring .arc { stroke: var(--gold-warm); fill: none; stroke-width: 3; stroke-linecap: round; }
+  .ring-label { font-size: 12px; color: var(--muted-foreground); }
+  .ring-label .pct { font-variant-numeric: tabular-nums; color: var(--foreground); }
+  .metrics .right { margin-left: auto; display: flex; gap: 16px; text-align: right; }
+  .metric { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+  .metric .v { font-family: var(--mincho); font-weight: 300; font-variant-numeric: tabular-nums; font-size: 24px; }
+  .metric .k { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); margin-top: 2px; }
+
+  /* Primary CTA */
+  .cta {
+    display: block; width: 100%; margin-top: 28px;
+    padding: 14px 16px; border: 0; border-radius: 10px;
+    background: var(--primary); color: var(--primary-fg);
+    font-family: var(--sans); font-size: 15px; font-weight: 500;
+    text-align: center; text-decoration: none;
+    box-shadow: 0 1px 3px rgba(42,35,32,.08), 0 4px 12px rgba(42,35,32,.1);
+    transition: transform .2s;
+  }
+  .cta:active { transform: scale(.98); }
+  .sub-cta { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted-foreground); text-decoration: none; }
+
+  /* Recent venues */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-head h2 { margin: 0; font-family: var(--sans); font-size: 15px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--foreground); }
+  .all-link { font-size: 13px; color: var(--primary); text-decoration: none; }
+  .scroller { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: none; }
+  .scroller::-webkit-scrollbar { display: none; }
+  .venue { position: relative; flex: 0 0 300px; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; scroll-snap-align: start; box-shadow: var(--shadow-card); background: #ccc; }
+  .venue img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .venue .grad { position: absolute; inset: auto 0 0 0; height: 96px; background: linear-gradient(to top, rgba(0,0,0,.6), transparent); }
+  .venue .badge { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.4); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(6px); display: flex; gap: 4px; align-items: center; }
+  .venue .badge .star { color: var(--gold-warm); }
+  .venue .name { position: absolute; left: 16px; right: 16px; bottom: 16px; color: #fff; }
+  .venue .name h3 { font-family: var(--mincho); font-weight: 400; font-size: 16px; margin: 0; letter-spacing: .05em; }
+  .venue .name p { margin: 2px 0 0; font-size: 11px; opacity: .85; }
+
+  /* AI Insight */
+  .insight {
+    background: var(--gold-subtle);
+    border-left: 3px solid var(--gold-warm);
+    padding: 20px 20px 20px 20px;
+    border-radius: 16px;
+  }
+  .insight .title { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-warm); }
+  .insight .title .icon { width: 24px; height: 24px; border-radius: 999px; background: color-mix(in oklab, var(--gold-warm) 10%, transparent); display: inline-flex; align-items: center; justify-content: center; }
+  .insight p { margin: 12px 0 16px; font-size: 14px; line-height: 1.6; }
+  .insight .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--border); font-size: 13px; text-decoration: none; color: var(--foreground); }
+
+  /* Decide stage variant */
+  .device.decide .eyebrow .dot, .device.decide h1.head { }
+</style>
+</head>
+<body>
+<div class="stage">
+  <h2>Sprint 2 · ①ホーム (F-14 / F-21) — editorial 刷新</h2>
+
+  <div class="frames">
+    <div>
+      <div class="label">Stage: adding (初期)</div>
+      <div class="device">
+        <div class="page stack">
+
+          <section>
+            <div class="eyebrow">
+              <svg viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 1 0 0-9 6 6 0 0 0-11.5 2 4 4 0 0 0 1 8h10.5z"/></svg>
+              <span>2026 · APR · 15</span>
+              <span class="dot">·</span>
+              <span>おはようございます、ゆうすけさん</span>
+            </div>
+            <h1 class="head">気になる式場を置く。</h1>
+            <p class="sub">URL を貼るだけで、自動で情報を集めます</p>
+            <div class="hairline"></div>
+            <div class="metrics">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 36 36">
+                  <circle class="track" cx="18" cy="18" r="16.5" />
+                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="93.3" />
+                </svg>
+                <span class="ring-label">決定まで <span class="pct">10%</span></span>
+              </div>
+              <div class="right">
+                <div class="metric"><span class="v">0</span><span class="k">候補</span></div>
+                <div class="metric"><span class="v">0</span><span class="k">評価済</span></div>
+                <div class="metric"><span class="v">0</span><span class="k">お気に入り</span></div>
+              </div>
+            </div>
+            <a href="#" class="cta">URL から追加</a>
+            <a href="#" class="sub-cta">式場を探してみる</a>
+          </section>
+
+          <section>
+            <div class="section-head">
+              <h2>先日ご覧になった式場</h2>
+            </div>
+            <div class="scroller">
+              <div class="venue" style="background:#e0d8c8;">
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#dcc9a8,#b29866);"></div>
+                <div class="grad"></div>
+                <div class="name"><h3>まだ式場はありません</h3><p>気になる式場を追加しましょう</p></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Stage: comparing (候補 3 件)</div>
+      <div class="device">
+        <div class="page stack">
+
+          <section>
+            <div class="eyebrow">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+              <span>2026 · APR · 15</span>
+              <span class="dot">·</span>
+              <span>こんにちは、ゆうすけさん</span>
+            </div>
+            <h1 class="head">並べて、見比べてみる。</h1>
+            <p class="sub">候補 3 件、比べるほど輪郭が見えてきます</p>
+            <div class="hairline"></div>
+            <div class="metrics">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 36 36">
+                  <circle class="track" cx="18" cy="18" r="16.5" />
+                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="20.7" />
+                </svg>
+                <span class="ring-label">決定まで <span class="pct">80%</span></span>
+              </div>
+              <div class="right">
+                <div class="metric"><span class="v">5</span><span class="k">候補</span></div>
+                <div class="metric"><span class="v">2</span><span class="k">評価済</span></div>
+                <div class="metric"><span class="v">3</span><span class="k">お気に入り</span></div>
+              </div>
+            </div>
+            <a href="#" class="cta">比べる</a>
+          </section>
+
+          <section>
+            <div class="section-head">
+              <h2>先日ご覧になった式場</h2>
+              <a href="#" class="all-link">すべて →</a>
+            </div>
+            <div class="scroller">
+              <div class="venue"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.6</span></div><div class="name"><h3>ザ・リッツ・カールトン東京</h3><p>東京・六本木</p></div></div>
+              <div class="venue"><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.3</span></div><div class="name"><h3>アマン東京</h3><p>東京・大手町</p></div></div>
+              <div class="venue"><img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.1</span></div><div class="name"><h3>パレスホテル東京</h3><p>東京・丸の内</p></div></div>
+            </div>
+          </section>
+
+          <section>
+            <div class="insight">
+              <div class="title">
+                <span class="icon">✦</span>
+                <span>AI の気づき</span>
+              </div>
+              <p>リッツとアマンは料理評価が近い一方、アクセス面でパレスホテルが抜けています。決め手を 1 つ仮置きしてみませんか？</p>
+              <div class="actions">
+                <a href="#" class="pill">決め手を決める</a>
+                <a href="#" class="pill">比較表を見る</a>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">Stage: decided</div>
+      <div class="device decide">
+        <div class="page stack">
+          <section>
+            <div class="eyebrow">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
+              <span>2026 · APR · 15</span>
+              <span class="dot">·</span>
+              <span>こんにちは、ゆうすけさん</span>
+            </div>
+            <h1 class="head">晴れの日へ、ふたりで。</h1>
+            <p class="sub">決めた式場の準備をゆっくり進めていきましょう</p>
+            <div class="hairline"></div>
+            <div class="metrics">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 36 36">
+                  <circle class="track" cx="18" cy="18" r="16.5" />
+                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="0" />
+                </svg>
+                <span class="ring-label">決定まで <span class="pct">100%</span></span>
+              </div>
+              <div class="right">
+                <div class="metric"><span class="v">5</span><span class="k">候補</span></div>
+                <div class="metric"><span class="v">3</span><span class="k">評価済</span></div>
+                <div class="metric"><span class="v">1</span><span class="k">決定</span></div>
+              </div>
+            </div>
+            <a href="#" class="cta">決めた式場を見る</a>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:48px; color:#555; font-size:13px;">
+    ※ これは <strong>静的モックアップ</strong> です。実装側 (<code>src/components/home/editorial-hero.tsx</code>) と揃えた editorial 方針のビジュアル確認用。
+    実際の配色・フォント・画像ロードはビルド後に Next.js 側で最終確認します。
+  </p>
+</div>
+</body>
+</html>
