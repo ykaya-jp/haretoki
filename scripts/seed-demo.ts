@@ -98,6 +98,7 @@ type SeedVenue = {
   photos: string[];
   costMin: number;
   costMax: number;
+  vibeTags: string[];
   paymentMethods: string[];
   paymentMethodEnums: ("credit_card" | "cash" | "bank_transfer" | "installment")[];
   maxInstallments: number | null;
@@ -152,6 +153,7 @@ const SEED_VENUES: SeedVenue[] = [
     photos: [UNSPLASH.chapel1, UNSPLASH.chapel2, UNSPLASH.chapel3],
     costMin: 3_200_000,
     costMax: 4_500_000,
+    vibeTags: ["chapel", "natural_light", "glass"],
     paymentMethods: ["カード", "現金"],
     paymentMethodEnums: ["credit_card", "cash"],
     maxInstallments: null,
@@ -221,6 +223,7 @@ const SEED_VENUES: SeedVenue[] = [
     photos: [UNSPLASH.garden1, UNSPLASH.garden2, UNSPLASH.garden3],
     costMin: 2_800_000,
     costMax: 4_000_000,
+    vibeTags: ["garden", "natural_light", "private_floor"],
     paymentMethods: ["カード", "現金", "分割"],
     paymentMethodEnums: ["credit_card", "cash", "installment"],
     maxInstallments: 3,
@@ -271,6 +274,7 @@ const SEED_VENUES: SeedVenue[] = [
     photos: [UNSPLASH.hotel1, UNSPLASH.hotel2, UNSPLASH.hotel3],
     costMin: 4_000_000,
     costMax: 6_000_000,
+    vibeTags: ["historic", "garden", "classical"],
     paymentMethods: ["カード", "現金", "振込"],
     paymentMethodEnums: ["credit_card", "cash", "bank_transfer"],
     maxInstallments: null,
@@ -322,6 +326,7 @@ const SEED_VENUES: SeedVenue[] = [
     photos: [UNSPLASH.modern1, UNSPLASH.modern2, UNSPLASH.modern3],
     costMin: 2_500_000,
     costMax: 3_500_000,
+    vibeTags: ["modern", "glass", "rooftop"],
     paymentMethods: ["カード", "現金"],
     paymentMethodEnums: ["credit_card", "cash"],
     maxInstallments: null,
@@ -456,6 +461,7 @@ async function seedVenue(
       status: "researching",
       costMin: v.costMin,
       costMax: v.costMax,
+      vibeTags: v.vibeTags,
       paymentMethods: v.paymentMethods,
       paymentMethodEnums: v.paymentMethodEnums,
       maxInstallments: v.maxInstallments,

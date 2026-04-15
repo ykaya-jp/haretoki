@@ -3,6 +3,7 @@ import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
 import { getFavorites } from "@/server/actions/favorites";
 import { getFitReasons } from "@/server/actions/fit-reason";
+import { filterVenuesByVibe } from "@/server/actions/vibe-search";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { ExploreContent } from "@/components/explore/explore-content";
@@ -14,9 +15,14 @@ import {
   VenuePersonalizedChips,
   type PersonalizedConditions,
 } from "@/components/venues/venue-personalized-chips";
+import { VibeFilterChips } from "@/components/explore/vibe-filter-chips";
+import { SaveSearchButton } from "@/components/explore/save-search-button";
+import { listSavedSearches } from "@/server/actions/saved-searches";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 import Link from "next/link";
+import type { VibeTag } from "@/lib/vibe-tags";
+import { VIBE_TAGS } from "@/lib/vibe-tags";
 
 type ExploreSearchParams = {
   q?: string;
@@ -26,6 +32,7 @@ type ExploreSearchParams = {
   budgetMax?: string;
   personalized?: string;
   addVenue?: string;
+  vibe?: string;
 };
 
 function toArray(v: string | string[] | undefined): string[] | undefined {
@@ -53,6 +60,15 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
+
+  // Parse vibe tags from URL (?vibe=natural_light,garden)
+  const validVibeIds = new Set(VIBE_TAGS.map((t) => t.id));
+  const activeVibes: VibeTag[] = params.vibe
+    ? (params.vibe
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => validVibeIds.has(s as VibeTag)) as VibeTag[])
+    : [];
 
   // Parse URL-provided filters
   const urlFilters: PersonalizedConditions = {
@@ -107,11 +123,21 @@ export default async function ExplorePage({
 
   const hasAnyFilter = Object.keys(venueFilters).length > 0;
 
-  const [venues, favorites, aiSeed] = await Promise.all([
+  const [venuesFromFilters, vibeVenues, favorites, aiSeed, savedSearches] = await Promise.all([
     getVenues(hasAnyFilter ? venueFilters : undefined),
+    activeVibes.length > 0 ? filterVenuesByVibe(activeVibes) : Promise.resolve(null),
     getFavorites("mine"),
     getExploreAIRecommendationsSeed(),
+    listSavedSearches(),
   ]);
+
+  // When vibe filter is active, intersect with vibe results (OR match across vibes,
+  // but venue must also satisfy other filters when they are set).
+  let venues = venuesFromFilters;
+  if (vibeVenues !== null) {
+    const vibeIds = new Set(vibeVenues.map((v) => v.id));
+    venues = venuesFromFilters.filter((v) => vibeIds.has(v.id));
+  }
 
   const favoriteIds = favorites.map((f) => f.venue.id);
   // E-2 Fit Reasons — fetch after venues so we know which ids to ask for.
@@ -135,6 +161,24 @@ export default async function ExplorePage({
 
       {/* Personalized filter chips from onboarding conditions */}
       <VenuePersonalizedChips conditions={appliedConditions} />
+
+      {/* R-2 気分で探す — vibe tag chips */}
+      <VibeFilterChips activeVibes={activeVibes} />
+
+      {/* E-10 Save search — show only when filters are active */}
+      {hasAnyFilter && (
+        <div className="flex justify-end">
+          <SaveSearchButton
+            filters={{
+              area: appliedConditions.areas,
+              budgetMax: appliedConditions.budgetMax,
+              capacityMin: appliedConditions.guestCount,
+              keyword: query || undefined,
+            }}
+            atLimit={savedSearches.length >= 5}
+          />
+        </div>
+      )}
 
       {/* AI Recommendations — always renders a stable container.
           Server-fetched seed (venueCount + conditions) is passed so the

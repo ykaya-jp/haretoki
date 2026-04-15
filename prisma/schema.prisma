@@ -269,6 +269,8 @@ model Venue {
   reviewEstimateDeltaYen    Int?     @map("review_estimate_delta_yen")
   reviewEstimateDeltaPct    Decimal? @map("review_estimate_delta_pct") @db.Decimal(5, 2)
   reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
+  /// R-2 気分で探す: 式場の雰囲気タグ (VibeTag[])
+  vibeTags           String[]        @default([]) @map("vibe_tags")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
