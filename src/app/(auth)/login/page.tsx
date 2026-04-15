@@ -120,9 +120,9 @@ function LoginPageInner() {
 
           {/* Desktop heading */}
           <div className="hidden lg:block">
-            <h2 className="font-serif text-2xl font-light tracking-[0.06em]">ログイン</h2>
+            <h2 className="font-serif text-2xl font-light tracking-[0.06em]">おかえりなさい</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              メールアドレスとパスワードを入力してください
+              メールアドレスとパスワードを入れて、ふたりの場所に戻りましょう
             </p>
           </div>
 
@@ -201,18 +201,18 @@ function LoginPageInner() {
               {oauthPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Googleに移動中...
+                  Google に移動しています…
                 </>
               ) : (
-                "Googleでログイン"
+                "Google で入る"
               )}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            アカウントをお持ちでない方は{" "}
+            はじめての方は{" "}
             <Link href="/signup" prefetch={true} className="font-medium text-primary underline underline-offset-4">
-              新規登録
+              ふたりの場所をつくる
             </Link>
           </p>
         </div>

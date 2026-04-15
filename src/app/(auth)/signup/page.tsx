@@ -129,9 +129,9 @@ export default function SignupPage() {
 
           {/* Desktop heading */}
           <div className="hidden lg:block">
-            <h2 className="font-serif text-2xl font-light tracking-[0.06em]">アカウントを作成</h2>
+            <h2 className="font-serif text-2xl font-light tracking-[0.06em]">ふたりの場所を、はじめる</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              無料で利用できます。3分で始められます。
+              無料ではじめられます。3 分で準備できます。
             </p>
           </div>
 
@@ -228,18 +228,18 @@ export default function SignupPage() {
               {oauthPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Googleに移動中...
+                  Google に移動しています…
                 </>
               ) : (
-                "Googleで登録"
+                "Google ではじめる"
               )}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            すでにアカウントをお持ちの方は{" "}
+            すでに場所をお持ちの方は{" "}
             <Link href="/login" prefetch={true} className="font-medium text-primary underline underline-offset-4">
-              ログイン
+              ログインして戻る
             </Link>
           </p>
         </div>
