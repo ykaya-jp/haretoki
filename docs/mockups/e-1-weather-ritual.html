@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>E-1 Weather Ritual — 朝の一言</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --card: oklch(0.99 0.005 80);
+    --border: oklch(0.90 0.01 70);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--sans);
+    background: linear-gradient(180deg, #efeae0 0%, #e4ded2 100%);
+    color: var(--foreground); padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1.stage-title {
+    text-align: center; font-weight: 300; font-size: 26px;
+    font-family: var(--mincho); letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .lede { text-align: center; color: #6b5d4d; font-size: 13.5px; max-width: 560px; margin: 0 auto 40px; line-height: 1.7; }
+
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device {
+    width: 390px; height: 800px; overflow-y: auto; background: var(--background);
+    border-radius: 38px; box-shadow: 0 20px 60px rgba(42,35,32,.18);
+    border: 10px solid #2a2320;
+  }
+  .device::-webkit-scrollbar { width: 0; }
+  .page { padding: 24px 20px 120px; }
+
+  /* Ritual */
+  .ritual {
+    padding: 8px 0 24px;
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(to right, transparent, color-mix(in oklab, var(--gold-warm) 25%, transparent), transparent) 1;
+  }
+  .ritual .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .ritual .eye { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .ritual h1 { margin: 14px 0 0; font-family: var(--mincho); font-weight: 300; font-size: 24px; line-height: 1.28; letter-spacing: -0.005em; color: var(--foreground); }
+  .ritual .mood { margin: 10px 0 0; font-size: 13px; color: var(--muted-foreground); line-height: 1.7; }
+  .ritual .cta { margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; color: var(--gold-warm); text-decoration: none; }
+  .ritual .cta:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+  /* Sky chip (larger — 64px) */
+  .sky {
+    width: 64px; height: 64px; border-radius: 999px; flex-shrink: 0;
+    background: radial-gradient(120% 120% at 30% 20%, oklch(0.95 0.04 75) 0%, oklch(0.92 0.06 65) 40%, oklch(0.86 0.08 55) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(201,164,76,0.12), 0 8px 20px rgba(201,164,76,0.18);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Hero below ritual (existing editorial-hero) */
+  .hero { margin-top: 32px; padding: 0; }
+  .hero h2 { margin: 0; font-family: var(--mincho); font-weight: 300; font-size: 17px; letter-spacing: .02em; color: var(--muted-foreground); }
+  .metric-row { margin-top: 14px; display: flex; gap: 12px; }
+  .metric-card { flex: 1; padding: 12px 10px; background: color-mix(in oklab, var(--gold-warm) 4%, var(--background)); border-radius: 14px; text-align: center; border: 1px solid color-mix(in oklab, var(--gold-warm) 20%, transparent); }
+  .metric-card .k { font-size: 10px; letter-spacing: .08em; color: var(--muted-foreground); text-transform: uppercase; }
+  .metric-card .v { font-family: var(--mincho); font-weight: 300; font-size: 22px; color: var(--foreground); }
+
+  /* 各バリエーション説明 */
+  .caption { margin-top: 12px; max-width: 400px; text-align: center; font-size: 12px; color: #666; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1 class="stage-title">E-1 Weather Ritual — 朝の一言</h1>
+<p class="lede">
+  毎朝、ふたりの今日の状況に合わせて Claude が生成する 1 文。<br />
+  「開くたびに違う、でも静かで押しつけない」毎日の接点。
+</p>
+
+<div class="frames">
+
+  <!-- Variant 1: 曇り / start -->
+  <div class="col">
+    <div class="label">Variant A · 曇り (stage: start)</div>
+    <div class="device">
+      <div class="page">
+
+        <div class="ritual">
+          <div class="top">
+            <div style="flex:1;">
+              <p class="eye">2026 APR 16 · 朝 · くもり</p>
+              <h1>まだ見ぬ、あの一日へ。</h1>
+              <p class="mood">今日は気になる 1 件、置いてみませんか。URL を貼るだけで自動で読み取ります。</p>
+              <a href="#" class="cta">式場を見てみる →</a>
+            </div>
+            <div class="sky">
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+                <circle cx="12" cy="17" r="5" fill="oklch(0.98 0.01 75)" opacity="0.95" />
+                <circle cx="19" cy="15" r="6" fill="oklch(0.98 0.01 75)" opacity="0.95" />
+                <ellipse cx="15" cy="20" rx="9" ry="4" fill="oklch(0.98 0.01 75)" opacity="0.95" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <h2>おふたりの式場さがし</h2>
+          <div class="metric-row">
+            <div class="metric-card"><div class="v">0</div><div class="k">気になる</div></div>
+            <div class="metric-card"><div class="v">0</div><div class="k">印象メモ</div></div>
+            <div class="metric-card"><div class="v">0</div><div class="k">本命</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">まだ情報が少ないので、Sky は曇り。<br/>一言は招待状、mood は具体行動。</p>
+  </div>
+
+  <!-- Variant 2: 晴れ間 / comparing -->
+  <div class="col">
+    <div class="label">Variant B · 晴れ間 (stage: comparing)</div>
+    <div class="device">
+      <div class="page">
+
+        <div class="ritual">
+          <div class="top">
+            <div style="flex:1;">
+              <p class="eye">2026 APR 16 · 昼 · 晴れ間</p>
+              <h1>費用差 80 万、内訳を見比べる時期かもしれません。</h1>
+              <p class="mood">リッツとアマンの見積もりに差が出てきました。どの項目で差がついているか、今日 2 分で確認できます。</p>
+              <a href="#" class="cta">比較表を見る →</a>
+            </div>
+            <div class="sky">
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+                <circle cx="21" cy="11" r="5" fill="oklch(0.85 0.14 80)"/>
+                <g stroke="oklch(0.85 0.14 80)" stroke-width="1.2" stroke-linecap="round">
+                  <line x1="21" y1="3" x2="21" y2="5"/>
+                  <line x1="27.5" y1="4.5" x2="26.2" y2="5.8"/>
+                  <line x1="29" y1="11" x2="27" y2="11"/>
+                </g>
+                <ellipse cx="13" cy="20" rx="10" ry="4.5" fill="oklch(0.99 0.005 80)"/>
+                <circle cx="9" cy="18" r="4.5" fill="oklch(0.99 0.005 80)"/>
+                <circle cx="16" cy="17" r="5.5" fill="oklch(0.99 0.005 80)"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <h2>おふたりの式場さがし</h2>
+          <div class="metric-row">
+            <div class="metric-card"><div class="v">5</div><div class="k">気になる</div></div>
+            <div class="metric-card"><div class="v">3</div><div class="k">印象メモ</div></div>
+            <div class="metric-card"><div class="v">2</div><div class="k">本命</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">データが揃ってきて視界が開けた瞬間。<br/>Sky は晴れ間、一言は<br/>「具体の数字」で関心を引く。</p>
+  </div>
+
+  <!-- Variant 3: 晴れ / decided -->
+  <div class="col">
+    <div class="label">Variant C · 晴れ (stage: decided)</div>
+    <div class="device">
+      <div class="page">
+
+        <div class="ritual">
+          <div class="top">
+            <div style="flex:1;">
+              <p class="eye">2026 APR 16 · 朝 · よく晴れ</p>
+              <h1>晴れの日まで、あと 142 日。</h1>
+              <p class="mood">今日は、ドレスの試着日程を決めておけると来月が動きやすくなります。</p>
+              <a href="#" class="cta">準備を確認する →</a>
+            </div>
+            <div class="sky">
+              <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="5" fill="oklch(0.78 0.17 80)"/>
+                <g stroke="oklch(0.78 0.17 80)" stroke-width="1.4" stroke-linecap="round">
+                  <line x1="16" y1="3" x2="16" y2="6"/>
+                  <line x1="16" y1="26" x2="16" y2="29"/>
+                  <line x1="3" y1="16" x2="6" y2="16"/>
+                  <line x1="26" y1="16" x2="29" y2="16"/>
+                  <line x1="7" y1="7" x2="9" y2="9"/>
+                  <line x1="23" y1="23" x2="25" y2="25"/>
+                  <line x1="7" y1="25" x2="9" y2="23"/>
+                  <line x1="23" y1="9" x2="25" y2="7"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <h2>決まった場所: ザ・リッツ・カールトン東京</h2>
+          <div class="metric-row">
+            <div class="metric-card" style="background:var(--gold-subtle);border-color:color-mix(in oklab, var(--gold-warm) 40%, transparent);"><div class="v" style="color:var(--gold-warm);">142</div><div class="k">晴れまで</div></div>
+            <div class="metric-card"><div class="v">3</div><div class="k">準備完了</div></div>
+            <div class="metric-card"><div class="v">5</div><div class="k">残りToDo</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">決定後は「晴れ」モード。<br/>一言はカウントダウン、mood は<br/>「次の 2 分」を提案。</p>
+  </div>
+</div>
+
+<div style="max-width:800px; margin:48px auto 0; padding: 32px; background: color-mix(in oklab, var(--gold-warm) 6%, var(--background)); border-radius: 20px; border: 1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent); font-family: var(--sans); font-size: 14px; line-height: 1.8; color: var(--foreground);">
+  <h3 style="margin: 0 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 18px;">この仕掛けが狙うもの</h3>
+  <p style="margin: 0 0 10px;">
+    一般的なウェディングアプリが「検索 → 比較 → 予約」の機能集なのに対して、
+    Haretoki は <strong>「毎朝の光のような存在」</strong> になる。
+  </p>
+  <p style="margin: 0 0 10px;">
+    妻がスマホを開くたび「今日のふたり」を <strong>肯定</strong> し、<strong>小さな一歩</strong> を示す。
+    Duolingo のストリークではなく、Things 3 の "Today" でもなく、<br />
+    <strong>"お茶を淹れてくれる伴走者"</strong> を目指す。
+  </p>
+  <p style="margin: 0; color: var(--muted-foreground); font-size: 12.5px;">
+    実装は Claude Sonnet 4.6 + JSON schema + Vercel Cron で 1 日 1 回生成。
+    プロジェクト 1,000 件で月コスト ~¥3,000 / ユーザー。
+  </p>
+</div>
+
+</body>
+</html>

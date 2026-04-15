@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>E-2 Fit Reason 一行</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --card: oklch(0.99 0.005 80);
+    --border: oklch(0.90 0.01 70);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: linear-gradient(180deg, #efeae0, #e4ded2); padding: 32px 20px 80px; -webkit-font-smoothing: antialiased; color: var(--foreground); }
+  h1.t { text-align: center; font-weight: 300; font-size: 26px; font-family: var(--mincho); letter-spacing: -0.01em; margin: 0 0 8px; }
+  .lede { text-align: center; color: #6b5d4d; font-size: 13.5px; max-width: 560px; margin: 0 auto 40px; line-height: 1.7; }
+
+  .compare { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device { width: 390px; height: 800px; overflow-y: auto; background: var(--background); border-radius: 38px; box-shadow: 0 20px 60px rgba(42,35,32,.18); border: 10px solid #2a2320; }
+  .page { padding: 20px 16px 80px; }
+
+  /* Venue card */
+  .venue-card {
+    background: var(--card);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(42,35,32,.04), 0 4px 12px rgba(42,35,32,.06);
+    margin-bottom: 16px;
+  }
+  .venue-card .photo {
+    position: relative;
+    aspect-ratio: 3/2;
+    background: linear-gradient(135deg, #b89480, #7d5a45);
+  }
+  .venue-card .photo .price-eyebrow {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(0,0,0,.4); backdrop-filter: blur(4px);
+    color: #fff; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; font-variant-numeric: tabular-nums;
+  }
+  .venue-card .photo .heart {
+    position: absolute; top: 12px; right: 12px;
+    width: 36px; height: 36px; border-radius: 999px;
+    background: rgba(255,255,255,.85); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold-warm); font-size: 16px;
+  }
+  .venue-card .info { padding: 20px 20px; }
+  .venue-card h3 { margin: 0; font-family: var(--mincho); font-size: 19px; font-weight: 300; letter-spacing: -0.01em; color: var(--foreground); }
+  .venue-card .meta { margin-top: 8px; font-size: 12px; color: var(--muted-foreground); }
+  .venue-card .tags { margin-top: 14px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .venue-card .tag { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 6%, transparent); color: var(--muted-foreground); }
+
+  /* NEW: Fit Reason */
+  .venue-card .fit {
+    margin: 0; padding: 14px 20px 0;
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 13px; line-height: 1.55; color: var(--gold-warm);
+    font-style: italic; font-weight: 300;
+    letter-spacing: 0.01em;
+  }
+  .venue-card .fit .sparkle { flex-shrink: 0; margin-top: 3px; width: 12px; height: 12px; }
+  .venue-card .fit::before { content: ""; display: none; }
+
+  .before-badge, .after-badge {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    font-family: var(--mincho); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase;
+    padding: 4px 14px; border-radius: 999px;
+  }
+  .before-badge { background: color-mix(in oklab, var(--foreground) 20%, transparent); color: var(--muted-foreground); }
+  .after-badge { background: var(--gold-warm); color: #fff; }
+
+  .device-wrap { position: relative; }
+
+  .legend { font-size: 12px; color: #6b5d4d; text-align: center; margin-top: 8px; line-height: 1.6; max-width: 300px; }
+</style>
+</head>
+<body>
+
+<h1 class="t">E-2 Fit Reason 一行</h1>
+<p class="lede">
+  Project.conditions（おふたりの希望）× Venue（式場の特徴）を Claude に渡し、<br />
+  「なぜ合うのか」を 30〜50 字で 1 行にする。
+</p>
+
+<div class="compare">
+
+  <!-- BEFORE -->
+  <div class="col">
+    <div class="device-wrap">
+      <div class="before-badge">Before</div>
+      <div class="device">
+        <div class="page">
+
+          <div class="venue-card">
+            <div class="photo">
+              <span class="price-eyebrow">¥380〜520 万円</span>
+              <span class="heart">♥</span>
+            </div>
+            <div class="info">
+              <h3>ザ・リッツ・カールトン東京</h3>
+              <p class="meta">東京・六本木 · 着席 30〜200 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">神前式</span>
+                <span class="tag">持ち込み可</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="venue-card">
+            <div class="photo" style="background:linear-gradient(135deg,#d0b87c,#a58143);">
+              <span class="price-eyebrow">¥450〜650 万円</span>
+              <span class="heart">♡</span>
+            </div>
+            <div class="info">
+              <h3>アマン東京</h3>
+              <p class="meta">東京・大手町 · 着席 20〜120 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">持ち込み要相談</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="venue-card">
+            <div class="photo" style="background:linear-gradient(135deg,#9abac0,#6f8b92);">
+              <span class="price-eyebrow">¥320〜420 万円</span>
+              <span class="heart">♡</span>
+            </div>
+            <div class="info">
+              <h3>パレスホテル東京</h3>
+              <p class="meta">東京・丸の内 · 着席 60〜180 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">神前式</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="legend">同じ情報量でも、どれが自分たちに合うか<strong>読み取り負荷が高い</strong>。<br/>3 件比較するのに脳内で特徴 × 条件を掛け算する必要がある。</p>
+  </div>
+
+  <!-- AFTER -->
+  <div class="col">
+    <div class="device-wrap">
+      <div class="after-badge">After</div>
+      <div class="device">
+        <div class="page">
+
+          <div class="venue-card">
+            <div class="photo">
+              <span class="price-eyebrow">¥380〜520 万円</span>
+              <span class="heart">♥</span>
+            </div>
+            <p class="fit">
+              <svg class="sparkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg>
+              プライベートチャペル 40 名 — ふたりの"少人数で静か"にぴったり
+            </p>
+            <div class="info">
+              <h3>ザ・リッツ・カールトン東京</h3>
+              <p class="meta">東京・六本木 · 着席 30〜200 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">神前式</span>
+                <span class="tag">持ち込み可</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="venue-card">
+            <div class="photo" style="background:linear-gradient(135deg,#d0b87c,#a58143);">
+              <span class="price-eyebrow">¥450〜650 万円</span>
+              <span class="heart">♡</span>
+            </div>
+            <p class="fit">
+              <svg class="sparkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg>
+              天井 12m と緑の中庭 — ふたりの"光と緑"に合います
+            </p>
+            <div class="info">
+              <h3>アマン東京</h3>
+              <p class="meta">東京・大手町 · 着席 20〜120 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">持ち込み要相談</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="venue-card">
+            <div class="photo" style="background:linear-gradient(135deg,#9abac0,#6f8b92);">
+              <span class="price-eyebrow">¥320〜420 万円</span>
+              <span class="heart">♡</span>
+            </div>
+            <p class="fit">
+              <svg class="sparkle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg>
+              大手町駅直結 — ふたりの"アクセス"にまっすぐ合います
+            </p>
+            <div class="info">
+              <h3>パレスホテル東京</h3>
+              <p class="meta">東京・丸の内 · 着席 60〜180 名</p>
+              <div class="tags">
+                <span class="tag">チャペル</span>
+                <span class="tag">神前式</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="legend">それぞれの式場が「ふたりの何に合うか」が一目で分かる。<br/>カタログ化から抜け出し、<strong>AI が働いている実感</strong>も毎回感じる。</p>
+  </div>
+</div>
+
+<div style="max-width:800px; margin:48px auto 0; padding: 32px; background: color-mix(in oklab, var(--gold-warm) 6%, var(--background)); border-radius: 20px; border: 1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent); font-size: 14px; line-height: 1.8;">
+  <h3 style="margin: 0 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 18px;">技術メモ</h3>
+  <ul style="margin: 0; padding-left: 20px;">
+    <li><code>AiAnalysis.type = 'fit_reason'</code> として venue × conditions hash でキャッシュ</li>
+    <li>初回生成: ~600ms、2 回目以降: 0ms（DB ヒット）</li>
+    <li>条件変更時に <code>revalidateTag('fit-reason:${projectId}')</code> で全カードが更新</li>
+    <li>条件未設定時は fit reason 非表示（曇り空の暗喩）</li>
+  </ul>
+</div>
+
+</body>
+</html>
