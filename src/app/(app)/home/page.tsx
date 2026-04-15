@@ -89,14 +89,28 @@ export default async function HomePage() {
       <Link
         href="/journey"
         prefetch={false}
-        className="group flex items-center justify-between rounded-2xl border bg-card px-4 py-3.5 transition active:scale-[0.99]"
+        className="group relative flex items-center justify-between overflow-hidden rounded-2xl border px-5 py-4 transition active:scale-[0.99]"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 6%, var(--background)) 0%, color-mix(in oklab, var(--primary) 4%, var(--background)) 100%)",
+          borderColor:
+            "color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+        }}
       >
-        <span className="font-[family-name:var(--font-display)] text-[13.5px] font-light">
-          晴れまでの道をみる
-        </span>
+        <div className="min-w-0">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-[var(--gold-warm)]">
+            Journey
+          </p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em] text-foreground">
+            晴れまでの道をみる
+          </p>
+          <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">
+            ここまでの歩み、これからの 5 つの節目
+          </p>
+        </div>
         <ArrowRight
           aria-hidden="true"
-          className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          className="h-4 w-4 shrink-0 text-[var(--gold-warm)] transition-transform group-hover:translate-x-0.5"
           strokeWidth={1.6}
         />
       </Link>
