@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>E-7〜E-11 Mini 設計束</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --card: oklch(0.99 0.005 80);
+    --border: oklch(0.90 0.01 70);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: linear-gradient(180deg, #efeae0, #e4ded2); padding: 32px 20px 80px; color: var(--foreground); -webkit-font-smoothing: antialiased; }
+  h1.t { text-align: center; font-weight: 300; font-size: 26px; font-family: var(--mincho); margin: 0 0 8px; }
+  .lede { text-align: center; color: #6b5d4d; font-size: 13.5px; max-width: 620px; margin: 0 auto 40px; line-height: 1.7; }
+
+  .frames { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device { width: 380px; height: 720px; background: var(--background); border-radius: 38px; box-shadow: 0 20px 60px rgba(42,35,32,.18); border: 10px solid #2a2320; overflow-y: auto; }
+  .page { padding: 22px 20px 80px; }
+
+  .eyebrow { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+  h2.section { margin: 6px 0 16px; font-family: var(--mincho); font-size: 22px; font-weight: 300; }
+
+  /* E-7 Timeline */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: 4px; width: 1px; background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--gold-warm) 55%, transparent), color-mix(in oklab, var(--gold-warm) 55%, transparent), transparent); }
+  .t-event { margin-bottom: 28px; position: relative; }
+  .t-event::before { content: ""; position: absolute; top: 6px; left: -19px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold-warm); border: 2px solid var(--background); }
+  .t-event .date { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .t-event h3 { margin: 6px 0 4px; font-family: var(--mincho); font-size: 15px; font-weight: 400; letter-spacing: -0.005em; }
+  .t-event p { margin: 0; font-size: 12px; color: var(--muted-foreground); line-height: 1.7; }
+  .t-event .emoji { font-size: 16px; }
+
+  /* E-8 Question Bank */
+  .qbank { padding: 16px; background: var(--gold-subtle); border-radius: 18px; border-left: 3px solid var(--gold-warm); margin-bottom: 14px; }
+  .qbank .ic { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-warm); font-weight: 500; }
+  .qbank h3 { margin: 6px 0 10px; font-family: var(--mincho); font-size: 16px; font-weight: 400; }
+  .q-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #fff; border-radius: 12px; margin-bottom: 6px; }
+  .q-item .num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--gold-warm); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+  .q-item .q { font-size: 12.5px; line-height: 1.6; }
+  .q-item input { flex-shrink: 0; margin-top: 2px; }
+
+  /* E-9 Venue Whisper */
+  .whisper { padding: 18px 20px; background: var(--card); border-radius: 18px; box-shadow: 0 1px 3px rgba(42,35,32,.04); margin-bottom: 14px; }
+  .whisper .hdr { display: flex; align-items: center; gap: 8px; }
+  .whisper .spark { color: var(--gold-warm); width: 14px; height: 14px; }
+  .whisper .lbl { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+  .whisper .sec { margin-top: 12px; }
+  .whisper .sec-hdr { font-size: 11.5px; font-weight: 500; margin: 0 0 4px; }
+  .whisper .sec.good .sec-hdr { color: var(--gold-warm); }
+  .whisper .sec.concern .sec-hdr { color: oklch(0.65 0.18 25); }
+  .whisper p.body { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--foreground); }
+  .whisper .foot { margin-top: 10px; font-size: 10.5px; color: var(--muted-foreground); border-top: 1px dashed var(--border); padding-top: 8px; }
+
+  /* E-10 Saved Search */
+  .saved { padding: 18px 20px; background: color-mix(in oklab, var(--primary) 4%, var(--background)); border-radius: 18px; border-left: 3px solid var(--primary); margin-bottom: 14px; }
+  .saved .pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+  .saved .pill { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #fff; color: var(--foreground); border: 1px solid var(--border); }
+  .saved .new { font-family: var(--mincho); font-size: 15px; font-weight: 400; color: var(--primary); margin: 0 0 10px; }
+  .saved .match-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border-radius: 10px; margin-bottom: 6px; }
+  .saved .match-card .avatar { width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0; }
+  .saved .match-card .name { flex: 1; font-size: 12.5px; font-weight: 400; font-family: var(--mincho); }
+  .saved .match-card .fit { font-size: 11px; color: var(--muted-foreground); }
+
+  /* E-11 招待リンク */
+  .invite-hero { padding: 28px 24px; text-align: center; background: color-mix(in oklab, var(--gold-warm) 8%, var(--background)); border-radius: 20px; }
+  .invite-hero .seal-pair { display: flex; justify-content: center; gap: 12px; margin: 0 0 18px; }
+  .invite-hero .big { width: 56px; height: 56px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-family: var(--mincho); font-size: 22px; color: #fff; }
+  .invite-hero .big.a { background: var(--gold-warm); }
+  .invite-hero .big.b { background: var(--primary); opacity: .4; border: 2px dashed var(--primary); color: var(--primary); background: transparent; }
+  .invite-hero h2 { margin: 0 0 6px; font-family: var(--mincho); font-weight: 300; font-size: 20px; }
+  .invite-hero p { margin: 0 0 18px; font-size: 12.5px; color: var(--muted-foreground); line-height: 1.75; }
+  .invite-link {
+    padding: 10px 12px; background: #fff; border-radius: 12px; border: 1px solid var(--border);
+    font-family: ui-monospace, monospace; font-size: 11px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--foreground);
+  }
+  .invite-link .l { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .invite-link .copy { padding: 4px 10px; background: var(--foreground); color: var(--background); border-radius: 999px; font-size: 11px; border: 0; cursor: pointer; }
+  .line-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 12px; background: #06C755; color: #fff; border: 0; border-radius: 14px; width: 100%; font-size: 13.5px; font-weight: 500; }
+  .expire { margin-top: 10px; font-size: 10.5px; color: var(--muted-foreground); }
+</style>
+</head>
+<body>
+
+<h1 class="t">E-7〜E-11 Mini 設計束</h1>
+<p class="lede">
+  中粒度 5 機能のモック。Full spec 化は着手時に拡張。
+</p>
+
+<div class="frames">
+
+  <!-- E-7 Timeline -->
+  <div class="col">
+    <div class="label">E-7 Timeline — 晴れまでの道</div>
+    <div class="device">
+      <div class="page">
+        <p class="eyebrow">ふたりの歩み · 2026 APR</p>
+        <h2 class="section">晴れまでの道</h2>
+
+        <div class="timeline">
+          <div class="t-event">
+            <p class="date">2026 · 04 · 10</p>
+            <h3>最初の式場を置きました</h3>
+            <p>「アマン東京」を候補に入れました</p>
+          </div>
+          <div class="t-event">
+            <p class="date">2026 · 04 · 12</p>
+            <h3>AI コーチに相談</h3>
+            <p>「2 件で迷っている」と話しました</p>
+          </div>
+          <div class="t-event">
+            <p class="date">2026 · 04 · 14</p>
+            <h3>ザ・リッツを見学 <span class="emoji">☀️</span></h3>
+            <p>「晴れやか」の気持ち — 空間と料理が印象的</p>
+          </div>
+          <div class="t-event">
+            <p class="date">2026 · 04 · 16</p>
+            <h3>本命に「アマン東京」を追加</h3>
+            <p>本命 2 件、温度差 0.8 ポイント</p>
+          </div>
+          <div class="t-event">
+            <p class="date">2026 · 04 · 20</p>
+            <h3 style="color:var(--gold-warm);">ファイナルチョイス</h3>
+            <p style="color:var(--gold-warm);">「アマン東京」— 晴れの日へ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-8 Question Bank -->
+  <div class="col">
+    <div class="label">E-8 Question Bank — 見学の質問</div>
+    <div class="device">
+      <div class="page">
+        <p class="eyebrow">明日 · 2026/04/17 14:00 見学</p>
+        <h2 class="section">アマン東京、これだけは聞いて</h2>
+
+        <div class="qbank">
+          <div class="ic">🔍 明日の見学 · 10 問</div>
+          <h3>AI が厳選しました</h3>
+
+          <div class="q-item"><input type="checkbox"><div class="num">1</div><div class="q">最終見積もり提示のタイミングは何ヶ月前？</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">2</div><div class="q">ドレス 2 着目の持込料は？</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">3</div><div class="q">雨天時の代替プランは？ (中庭利用予定)</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">4</div><div class="q">キャンセル料の開始タイミング</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">5</div><div class="q">写真・映像の自己手配は可能？</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">6</div><div class="q">控室・更衣室の広さと利用時間</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">7</div><div class="q">ゲスト送迎バスの費用</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">8</div><div class="q">支払い方法 (カード/分割/振込)</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">9</div><div class="q">料理のアレルギー対応</div></div>
+          <div class="q-item"><input type="checkbox"><div class="num">10</div><div class="q">チーム再編の可能性 (プランナー)</div></div>
+        </div>
+
+        <p style="font-size:11px;color:var(--muted-foreground);text-align:center;line-height:1.7;">
+          質問を追加したい？ カスタム項目 + 優先度設定で<br/>
+          次回以降の自動生成にも反映されます
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-9 Venue Whisper -->
+  <div class="col">
+    <div class="label">E-9 Venue Whisper — 口コミ要約</div>
+    <div class="device">
+      <div class="page">
+        <p class="eyebrow">アマン東京 · 式場詳細</p>
+        <h2 class="section">口コミのまとめ</h2>
+
+        <div class="whisper">
+          <div class="hdr">
+            <svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg>
+            <span class="lbl">Whisper — 12 件の匿名口コミから</span>
+          </div>
+
+          <div class="sec good">
+            <p class="sec-hdr">◯ 印象に残る点</p>
+            <p class="body">
+              料理の質と空間の静けさで評価が高い傾向。<br/>
+              スタッフの対応が丁寧で、当日の動線も自然。<br/>
+              ゲストからは「今までで一番」の声が複数。
+            </p>
+          </div>
+
+          <div class="sec concern">
+            <p class="sec-hdr">△ 気になる点</p>
+            <p class="body">
+              見積もりが初期から平均 <strong>+¥82 万</strong> 上がった声が多い。<br/>
+              駐車場が遠く、タクシー案内を依頼する参列者が出やすい。<br/>
+              繁忙期 (10-11 月) は予約が取りづらい。
+            </p>
+          </div>
+
+          <p class="foot">Claude Sonnet 4.6 が要約。原文は AI によるレビュー URL から自動取得</p>
+        </div>
+
+        <p style="font-size:11px;color:var(--muted-foreground);text-align:center;">
+          <button style="background:none;border:0;color:var(--gold-warm);text-decoration:underline;text-underline-offset:3px;font-size:11px;cursor:pointer;">AI 要約を更新</button>
+          (この場で再生成)
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-10 Saved Search -->
+  <div class="col">
+    <div class="label">E-10 Saved Search + 通知</div>
+    <div class="device">
+      <div class="page">
+        <p class="eyebrow">2026 APR 17 · 朝 · 晴れ間</p>
+        <h2 class="section">新しく合う式場が、<br/>2 件あります</h2>
+
+        <div class="saved">
+          <p style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);font-weight:500;margin:0;">Saved Search に合致</p>
+          <div class="pills">
+            <span class="pill">東京</span>
+            <span class="pill">80-100 名</span>
+            <span class="pill">¥300-400 万</span>
+            <span class="pill">和装可</span>
+          </div>
+
+          <p class="new">見つかった 2 件</p>
+          <div class="match-card">
+            <div class="avatar" style="background:linear-gradient(135deg,#c4a880,#8b6a47);"></div>
+            <div>
+              <div class="name">The Strings 表参道</div>
+              <div class="fit">天井高 + 和装プラン</div>
+            </div>
+          </div>
+          <div class="match-card">
+            <div class="avatar" style="background:linear-gradient(135deg,#9abac0,#6f8b92);"></div>
+            <div>
+              <div class="name">八芳園</div>
+              <div class="fit">日本庭園 + 料理評価高</div>
+            </div>
+          </div>
+          <button style="margin-top:10px;width:100%;padding:10px;background:var(--primary);color:#fff;border:0;border-radius:12px;font-size:12.5px;font-weight:500;">この 2 件を見てみる</button>
+        </div>
+
+        <p style="font-size:11px;color:var(--muted-foreground);text-align:center;line-height:1.7;">
+          Saved Search は マイページ から管理。<br/>
+          毎朝 6:00 に市場をチェック、<strong>新しく合う式場だけ</strong>を通知します。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-11 招待リンク -->
+  <div class="col">
+    <div class="label">E-11 招待リンク</div>
+    <div class="device">
+      <div class="page">
+        <p class="eyebrow">あやかさんへ、招待</p>
+        <h2 class="section">一緒に、式場さがしを</h2>
+
+        <div class="invite-hero">
+          <div class="seal-pair">
+            <div class="big a">由</div>
+            <div class="big b">?</div>
+          </div>
+          <h2>ふたりの場所に、<br/>あやかさんを招きます</h2>
+          <p>リンクをタップするだけで、<br/>Google で合流できます。<br/>メールアドレスの事前一致は不要です。</p>
+
+          <div class="invite-link">
+            <span class="l">haretoki.app/invite/8e3f2a1c...</span>
+            <button class="copy">コピー</button>
+          </div>
+
+          <button class="line-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4H5a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h7l5 4v-4h2a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3z"/></svg>
+            LINE で送る
+          </button>
+
+          <p class="expire">⏱ このリンクは 7 日間有効</p>
+        </div>
+
+        <div style="margin-top:20px;padding:14px 16px;background:color-mix(in oklab, var(--gold-warm) 5%, transparent);border-radius:14px;font-size:12px;line-height:1.7;color:var(--muted-foreground);">
+          <strong>1 タップで合流できる理由</strong><br/>
+          リンク内のトークンで、パートナーのメアドを事前に揃える必要がなくなりました。
+          Google でログインするだけで、このプロジェクトに自動で参加します。
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="max-width:820px; margin:48px auto 0; padding: 32px; background: color-mix(in oklab, var(--gold-warm) 6%, var(--background)); border-radius: 20px; border: 1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent); font-size: 14px; line-height: 1.8;">
+  <h3 style="margin: 0 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 18px;">実装推奨順</h3>
+  <ol style="margin: 0; padding-left: 20px;">
+    <li><strong>E-9 Venue Whisper</strong> — 3h / 既存 batchAnalyzeVenueReviews 活用</li>
+    <li><strong>E-11 招待リンク</strong> — 4h / Partner 流入増加</li>
+    <li><strong>E-8 Question Bank</strong> — 4h / Visit データ質向上</li>
+    <li><strong>E-10 Saved Search</strong> — 5h / 通知基盤の最初の用途</li>
+    <li><strong>E-7 Timeline</strong> — 5h / 情緒面・可視化</li>
+  </ol>
+  <p style="margin: 14px 0 0; color: var(--muted-foreground); font-size: 12.5px;">合計 21 時間。DailyRitual (E-1) と連動させると相乗効果。</p>
+</div>
+
+</body>
+</html>
