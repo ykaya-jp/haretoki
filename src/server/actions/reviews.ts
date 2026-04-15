@@ -134,10 +134,13 @@ export async function analyzeVenueReviews(
     }
 
     // Build categorySummary from AI output
+    // E-9: explicit positiveHighlights + negativeHighlights drive the
+    // "Venue Whisper" 2-axis card on the venue detail page.
     const categorySummary = {
       service: result.sentiment?.service != null ? `接客: ${result.strengths.filter(s => s.includes("スタッフ") || s.includes("接客")).join("、") || "特記なし"}` : null,
       cuisine: result.sentiment?.cuisine != null ? `料理: ${result.strengths.filter(s => s.includes("料理") || s.includes("食")).join("、") || "特記なし"}` : null,
       costIncrease: result.concerns.filter(c => c.includes("見積") || c.includes("費用") || c.includes("金額")).join("、") || null,
+      positiveHighlights: result.strengths,
       negativeHighlights: result.concerns,
       overall: result.summary,
     };

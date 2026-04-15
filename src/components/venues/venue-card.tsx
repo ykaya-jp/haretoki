@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, Sparkles } from "lucide-react";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
@@ -14,9 +14,16 @@ type VenueWithScores = Venue & {
 interface VenueCardProps {
   venue: VenueWithScores;
   isFavorite?: boolean;
+  /**
+   * E-2 Fit Reason: AI-generated one-liner like
+   * "天井 12m と緑の中庭 — ふたりの『光と緑』に合います".
+   * Null or undefined = render no fit line (conditions not set yet, or
+   * generation failed). Shown between photo and info block in gold italics.
+   */
+  fitReason?: string | null;
 }
 
-export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
+export function VenueCard({ venue, isFavorite = false, fitReason = null }: VenueCardProps) {
   const avgScore = computeCompositeScore(venue.scores);
   const hasCost = venue.costMin || venue.costMax;
 
@@ -112,8 +119,23 @@ export function VenueCard({ venue, isFavorite = false }: VenueCardProps) {
         )}
       </div>
 
+      {/* E-2 Fit Reason — AI 1-line match reason (optional, gold italic) */}
+      {fitReason && (
+        <p
+          aria-label="AI による相性コメント"
+          className="flex items-start gap-2 px-6 pt-5 text-[13px] leading-relaxed font-light italic tracking-[0.01em] text-[var(--gold-warm)]"
+        >
+          <Sparkles
+            aria-hidden="true"
+            className="mt-0.5 h-3.5 w-3.5 shrink-0"
+            strokeWidth={1.6}
+          />
+          <span>{fitReason}</span>
+        </p>
+      )}
+
       {/* Info section — generous padding, hotel-brochure typography */}
-      <PrefetchLink href={`/venues/${venue.id}`} className="block p-6">
+      <PrefetchLink href={`/venues/${venue.id}`} className={fitReason ? "block px-6 pt-3 pb-6" : "block p-6"}>
         {/* Price as eyebrow — gold, uppercase tracking, tabular */}
         {priceLabel && (
           <p className="text-eyebrow tabular-nums text-[var(--gold-warm)] mb-2">

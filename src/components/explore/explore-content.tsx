@@ -22,6 +22,8 @@ interface ExploreContentProps {
   // (from URL search params or project.conditions). Pass them in so the
   // filter-sheet merges ON TOP of them instead of silently clobbering them.
   baseFilters?: VenueFilters;
+  /** E-2 Fit Reason map { venueId: "◯◯ — ふたりの..." | null } */
+  fitReasons?: Record<string, string | null>;
 }
 
 const STATUS_FILTERS = [
@@ -36,6 +38,7 @@ export function ExploreContent({
   venues: initialVenues,
   favoriteIds,
   baseFilters,
+  fitReasons = {},
 }: ExploreContentProps) {
   const [venues, setVenues] = useState(initialVenues);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -133,6 +136,7 @@ export function ExploreContent({
                   <VenueCard
                     venue={venue}
                     isFavorite={favoriteSet.has(venue.id)}
+                    fitReason={fitReasons[venue.id] ?? null}
                   />
                 </motion.div>
               ))}
