@@ -17,6 +17,11 @@ interface EditorialHeroProps {
   hasDecision: boolean;
   upcomingVisits: number;
   percentage: number;
+  /**
+   * When true, DailyRitual is shown above and already covers eyebrow +
+   * headline + sub. EditorialHero collapses to metrics + primary CTA only.
+   */
+  compact?: boolean;
 }
 
 type StageKey = "start" | "adding" | "visiting" | "comparing" | "decided";
@@ -195,60 +200,78 @@ export function EditorialHero(props: EditorialHeroProps) {
     { label: "本命", value: props.favoriteCount },
   ];
 
+  const compact = props.compact === true;
+
   return (
     <motion.section
-      aria-label="今日のおすすめアクション"
+      aria-label="ふたりの進捗とおすすめアクション"
       className="relative"
       initial={prefersReduced ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
     >
-      {/* Top row: eyebrow + sky chip */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 space-y-2.5">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
-            <span className="tabular-nums">{date || "\u00a0"}</span>
-            {timeOfDay && (
-              <>
-                <span aria-hidden="true" className="opacity-30">·</span>
-                <span className="normal-case tracking-normal text-[12px]">{timeOfDay}</span>
-              </>
-            )}
-            <span
-              className="ml-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] tracking-[0.12em] uppercase"
-              style={{
-                background: "var(--gold-subtle)",
-                color: "var(--gold-warm)",
-              }}
-            >
-              {stage.stageLabel}
-            </span>
+      {!compact && (
+        <>
+          {/* Top row: eyebrow + sky chip */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+                <span className="tabular-nums">{date || "\u00a0"}</span>
+                {timeOfDay && (
+                  <>
+                    <span aria-hidden="true" className="opacity-30">·</span>
+                    <span className="normal-case tracking-normal text-[12px]">{timeOfDay}</span>
+                  </>
+                )}
+                <span
+                  className="ml-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-[10.5px] tracking-[0.12em] uppercase"
+                  style={{
+                    background: "var(--gold-subtle)",
+                    color: "var(--gold-warm)",
+                  }}
+                >
+                  {stage.stageLabel}
+                </span>
+              </div>
+              <p className="text-[13px] text-muted-foreground">
+                {timeOfDay === "朝" ? "おはようございます" : timeOfDay === "夕" || timeOfDay === "夜" ? "こんばんは" : "こんにちは"}、
+                <span className="text-foreground">{props.userName}</span>さん
+              </p>
+            </div>
+            <SkyChip mood={stage.sky} />
           </div>
-          <p className="text-[13px] text-muted-foreground">
-            {timeOfDay === "朝" ? "おはようございます" : timeOfDay === "夕" || timeOfDay === "夜" ? "こんばんは" : "こんにちは"}、
-            <span className="text-foreground">{props.userName}</span>さん
+
+          {/* Headline — mincho, light, editorial but warmer */}
+          <h1 className="mt-5 font-[family-name:var(--font-display)] font-extralight leading-[1.22] tracking-[-0.01em] text-fluid-3xl text-foreground">
+            {stage.headline}
+          </h1>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
+            {stage.sub(props)}
           </p>
-        </div>
-        <SkyChip mood={stage.sky} />
-      </div>
+        </>
+      )}
 
-      {/* Headline — mincho, light, editorial but warmer */}
-      <h1 className="mt-5 font-[family-name:var(--font-display)] font-extralight leading-[1.22] tracking-[-0.01em] text-fluid-3xl text-foreground">
-        {stage.headline}
-      </h1>
-      <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
-        {stage.sub(props)}
-      </p>
+      {compact && (
+        // Compact mode: DailyRitual covers the headline above. Show only a
+        // tiny stage label as a connector to the metrics block.
+        <p className="mb-3 inline-flex items-center gap-2 text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground">
+          <span className="text-[var(--gold-warm)]">{stage.stageLabel}</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span>進捗</span>
+        </p>
+      )}
 
-      {/* Gradient hairline (fade in → fade out) */}
-      <div
-        aria-hidden="true"
-        className="mt-7 h-px w-full"
-        style={{
-          background:
-            "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 30%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 70%, transparent 100%)",
-        }}
-      />
+      {/* Gradient hairline (fade in → fade out) — only in full mode */}
+      {!compact && (
+        <div
+          aria-hidden="true"
+          className="mt-7 h-px w-full"
+          style={{
+            background:
+              "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 30%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 70%, transparent 100%)",
+          }}
+        />
+      )}
 
       {/* Metrics block — soft gradient-noon background, rounded, gentle */}
       <div
@@ -260,15 +283,20 @@ export function EditorialHero(props: EditorialHeroProps) {
         }}
       >
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <JourneyRingSm percentage={props.percentage} />
-            <div className="leading-tight">
-              <div className="text-[10.5px] tracking-[0.12em] uppercase text-muted-foreground">Progress</div>
-              <div className="font-[family-name:var(--font-display)] tabular-nums text-[15px] text-foreground">
-                {props.percentage}%
+          {/* In compact mode the DailyRitual above already shows the weather
+              SkyChip; the percentage ring would be visually redundant
+              (R-1: 進捗リング → 天気アイコン化 = sky chip already covers it). */}
+          {!compact && (
+            <div className="flex items-center gap-2">
+              <JourneyRingSm percentage={props.percentage} />
+              <div className="leading-tight">
+                <div className="text-[10.5px] tracking-[0.12em] uppercase text-muted-foreground">Progress</div>
+                <div className="font-[family-name:var(--font-display)] tabular-nums text-[15px] text-foreground">
+                  {props.percentage}%
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <div className="ml-auto flex gap-5 text-right">
             {metrics.map((m) => (
               <div key={m.label} className="flex flex-col items-end leading-tight">
