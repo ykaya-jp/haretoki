@@ -9,14 +9,17 @@ import { CoachQuickStart } from "@/components/coach/coach-quick-start";
 import { SessionHistorySheet } from "@/components/coach/session-history-sheet";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { NightQuestionCard } from "@/components/coach/night-question-card";
 import type { SessionListItem, SessionDetail } from "@/server/actions/coach";
 import type { AIInsight } from "@/server/actions/insights";
+import type { NightQuestion } from "@/lib/night-questions";
 
 interface CoachClientProps {
   sessions: SessionListItem[];
   currentSession: SessionDetail | null;
   currentSessionId: string | undefined;
   insights: AIInsight[];
+  nightQuestion?: NightQuestion | null;
 }
 
 type Tab = "chat" | "insights";
@@ -26,6 +29,7 @@ export function CoachClient({
   currentSession,
   currentSessionId,
   insights,
+  nightQuestion,
 }: CoachClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("chat");
@@ -122,6 +126,8 @@ export function CoachClient({
               <ChatHistory messages={messages} />
             ) : (
               <div className="space-y-8">
+                {/* R-5 今夜の一問 — day-of-year × stage で 1 問だけ */}
+                {nightQuestion && <NightQuestionCard question={nightQuestion} />}
                 <CoachQuickStart />
                 <div className="opacity-70">
                   <EmptyState
