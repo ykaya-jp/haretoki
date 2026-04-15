@@ -6,6 +6,7 @@ import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
 import { getCurrentUserName } from "@/server/actions/home";
 import { CandidatesView } from "@/components/candidates/candidates-view";
+import { CoupleGapSection } from "@/components/candidates/couple-gap-section";
 
 export const metadata: Metadata = {
   title: "候補",
@@ -52,6 +53,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           <SlidersHorizontal className="h-4 w-4" />
         </Link>
       </div>
+      <CoupleGapSection />
       <CandidatesView
         initialFavorites={favorites}
         venueOptions={venueOptions}
