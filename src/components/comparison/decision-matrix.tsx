@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, Crown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
@@ -24,12 +24,13 @@ function scoreColor(score: number | null, isWinner: boolean): string {
   return "text-muted-foreground";
 }
 
+/** Winner cell: stronger gold tint + subtle top hairline. Non-winner: subtle tonal. */
 function scoreBackground(score: number | null, isWinner: boolean): string {
-  if (isWinner) return "bg-[var(--gold-subtle)]";
+  if (isWinner) return "bg-[color-mix(in_oklab,var(--gold-warm)_10%,transparent)]";
   if (score === null) return "bg-transparent";
-  if (score >= 4.5) return "bg-green-50/60";
-  if (score >= 4.0) return "bg-green-50/30";
-  if (score < 3.0) return "bg-red-50/30";
+  if (score >= 4.5) return "bg-green-50/50";
+  if (score >= 4.0) return "bg-green-50/25";
+  if (score < 3.0) return "bg-red-50/25";
   return "bg-transparent";
 }
 
@@ -96,11 +97,14 @@ export function DecisionMatrix() {
       className="space-y-4"
     >
       <div className="space-y-1">
-        <h3 className="font-serif text-lg font-light tracking-wide">
+        <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+          並べて、見比べる
+        </p>
+        <h3 className="font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground">
           決定マトリクス
         </h3>
-        <p className="text-xs text-muted-foreground">
-          👑 が各観点の1位です。横にスクロールできます。
+        <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+          ゴールドの背景が、各観点の 1 位です。横にスクロールできます。
         </p>
       </div>
 
@@ -149,18 +153,15 @@ export function DecisionMatrix() {
                 return (
                   <td
                     key={v.id}
+                    aria-label={isWinner ? "総合 1 位" : undefined}
                     className={cn(
-                      "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
+                      "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
                       scoreBackground(v.totalScore, isWinner),
                       scoreColor(v.totalScore, isWinner),
+                      isWinner &&
+                        "before:absolute before:left-2 before:right-2 before:top-0 before:h-[2px] before:bg-[var(--gold-warm)] before:content-['']",
                     )}
                   >
-                    {isWinner && (
-                      <Crown
-                        className="absolute -top-3 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]"
-                        aria-label="1位"
-                      />
-                    )}
                     {v.totalScore !== null ? v.totalScore.toFixed(1) : "—"}
                   </td>
                 );
@@ -178,14 +179,18 @@ export function DecisionMatrix() {
                   return (
                     <td
                       key={v.id}
+                      aria-label={isWinner ? `${dim.label} 1 位` : undefined}
                       className={cn(
-                        "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
+                        "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
                         scoreBackground(score, isWinner),
                         scoreColor(score, isWinner),
                       )}
                     >
                       {isWinner && (
-                        <Crown className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]" />
+                        <span
+                          aria-hidden="true"
+                          className="absolute right-1.5 top-1.5 block h-1.5 w-1.5 rounded-full bg-[var(--gold-warm)]"
+                        />
                       )}
                       {score !== null ? score.toFixed(1) : "—"}
                     </td>
@@ -205,17 +210,12 @@ export function DecisionMatrix() {
                   <td
                     key={v.id}
                     className={cn(
-                      "relative px-2 pb-3 pt-5 text-center text-sm tabular-nums transition-colors",
-                      isWinner && "bg-[var(--gold-subtle)] text-[var(--gold-warm)] font-medium",
+                      "relative px-2 py-3 text-center text-sm tabular-nums transition-colors",
+                      isWinner &&
+                        "bg-[color-mix(in_oklab,var(--gold-warm)_10%,transparent)] text-[var(--gold-warm)] font-medium before:absolute before:left-2 before:right-2 before:top-0 before:h-[2px] before:bg-[var(--gold-warm)] before:content-['']",
                     )}
-                    aria-label={isWinner ? `${formatYen(cost)} 1位` : undefined}
+                    aria-label={isWinner ? `${formatYen(cost)} 費用 1 位` : undefined}
                   >
-                    {isWinner && (
-                      <Crown
-                        className="absolute -top-3 left-1/2 -translate-x-1/2 h-3 w-3 text-[var(--gold-warm)]"
-                        aria-label="1位"
-                      />
-                    )}
                     {formatYen(cost)}
                   </td>
                 );
@@ -231,30 +231,43 @@ export function DecisionMatrix() {
         />
       </div>
 
-      {/* Winners summary */}
-      <div className="rounded-2xl bg-[var(--gold-subtle)] p-5 space-y-2.5">
-        <p className="text-xs font-medium uppercase tracking-wider text-[var(--gold-warm)]">
-          各観点の1位
+      {/* Winners summary — "観点ごとのベスト" */}
+      <div
+        className="relative overflow-hidden rounded-2xl p-5"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 10%, var(--background)) 0%, color-mix(in oklab, var(--primary) 5%, var(--background)) 100%)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
+        }}
+      >
+        <p className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--gold-warm)]">
+          観点ごとのベスト
         </p>
-        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-          {winners.total && (
-            <div className="col-span-2 flex items-baseline gap-2">
-              <span className="text-xs text-muted-foreground min-w-[4rem]">総合</span>
-              <span className="font-serif font-medium">
-                {venues.find((v) => v.id === winners.total)?.name}
-              </span>
-            </div>
-          )}
+
+        {winners.total && (
+          <div
+            className="mt-3 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] bg-background/60 p-3"
+          >
+            <p className="text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">総合</p>
+            <p className="mt-0.5 font-[family-name:var(--font-display)] text-[17px] font-light text-foreground">
+              ◎ {venues.find((v) => v.id === winners.total)?.name}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-y-2.5 gap-x-4">
           {dimensions.map((dim) => {
             const winnerId = winners[dim.id];
             const winnerName = venues.find((v) => v.id === winnerId)?.name;
             if (!winnerName) return null;
             return (
-              <div key={dim.id} className="flex items-baseline gap-2">
-                <span className="text-xs text-muted-foreground min-w-[4rem]">
+              <div key={dim.id} className="flex flex-col gap-0.5">
+                <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                   {dim.label}
                 </span>
-                <span className="font-serif text-sm truncate">{winnerName}</span>
+                <span className="font-[family-name:var(--font-display)] text-[13.5px] font-light text-foreground truncate">
+                  {winnerName}
+                </span>
               </div>
             );
           })}
