@@ -11,9 +11,8 @@ import { generateRitualsForAllActiveProjects } from "@/server/actions/ritual";
  * Auth: requires Bearer token matching `CRON_SECRET`. Vercel Cron sends
  * this header automatically when configured via `vercel.json crons[]`.
  */
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const maxDuration = 300; // up to 5 min — N projects × Claude latency
+// Up to 5 min — N projects × Claude latency
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   return handleCron(request);
