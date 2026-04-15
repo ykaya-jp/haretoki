@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Heart, BarChart3, Trophy, PartyPopper, ClipboardCheck, Loader2 } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper, ClipboardCheck, Loader2, Sparkles } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
@@ -218,6 +219,24 @@ export function CandidatesView({
               </motion.div>
             ) : (
               <div className="mt-4 space-y-4">
+                {favorites.length === 2 && !showSwipe && (
+                  <Link
+                    href={`/candidates/duel?a=${favorites[0].venue.id}&b=${favorites[1].venue.id}`}
+                    prefetch={false}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-[var(--shadow-card)] transition-colors active:bg-muted"
+                  >
+                    <Sparkles
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-[color:var(--gold-warm)]"
+                      strokeWidth={1.8}
+                    />
+                    <span className="flex-1 text-[13.5px] font-light">
+                      2件で迷ったら、情景で決める
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">→</span>
+                  </Link>
+                )}
+
                 {favorites.length >= 5 && !showSwipe && (
                   <motion.button
                     type="button"
