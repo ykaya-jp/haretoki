@@ -67,7 +67,7 @@ export async function getOrCreateProject() {
   } catch (error) {
     console.error("[getOrCreateProject] failed:", error);
     throw new Error(
-      `プロジェクトの作成に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+      `うまくはじめられませんでした: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

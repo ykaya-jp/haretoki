@@ -90,7 +90,7 @@ export async function invitePartner(email: string) {
     const inviteUrl = `${origin}/accept-invite`;
     const inviterName =
       inviterRecord?.name ?? inviterRecord?.email?.split("@")[0] ?? "オーナー";
-    const projectName = projectRecord?.name ?? "結婚式プロジェクト";
+    const projectName = projectRecord?.name ?? "ふたりの式場さがし";
     const { subject, html, text } = renderPartnerInviteEmail({
       inviterName,
       projectName,
@@ -239,7 +239,7 @@ export async function acceptInvitation(invitationId: string) {
       return {
         success: false as const,
         error:
-          "すでに別のプロジェクトに参加しています。パートナーと同じプロジェクトに合流するには、オーナーに再招待を依頼してください。",
+          "すでに別の式場さがしに参加しています。パートナーと同じ場所に合流するには、招待したご本人にもう一度招待をお願いしてください。",
       };
     }
   }

@@ -38,7 +38,7 @@ export default function SignupPage() {
         if (authError.message.includes("already registered")) {
           setError("このメールアドレスは既に登録されています");
         } else {
-          setError("登録中にエラーが発生しました。もう一度お試しください");
+          setError("うまくはじめられませんでした。もう一度お試しください");
         }
         return;
       }
@@ -47,7 +47,7 @@ export default function SignupPage() {
       router.push("/home");
       router.refresh();
     } catch {
-      setError("登録中にエラーが発生しました。もう一度お試しください");
+      setError("うまくはじめられませんでした。もう一度お試しください");
     } finally {
       setLoading(false);
     }

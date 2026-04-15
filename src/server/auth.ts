@@ -28,7 +28,7 @@ export async function requireOwner(userId: string) {
     where: { userId, role: "owner", acceptedAt: { not: null } },
     select: { projectId: true },
   });
-  if (!membership) throw new Error("プロジェクトオーナーのみ実行できます");
+  if (!membership) throw new Error("はじめに登録した方のみ実行できます");
   return membership;
 }
 
