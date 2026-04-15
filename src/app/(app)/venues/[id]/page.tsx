@@ -13,6 +13,8 @@ import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
 import { VenueHeader } from "@/components/venues/venue-header";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
+import { MoneyReality } from "@/components/venues/money-reality";
+import { getMoneyReality } from "@/server/actions/money-reality";
 import { ReviewSection } from "@/components/venues/review-section";
 import { VenueWhisper } from "@/components/venues/venue-whisper";
 import { PlanSection } from "@/components/venues/plan-section";
@@ -199,6 +201,10 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 
   if (estimates.length === 0) return null;
 
+  // E-6: Money Reality for the most recent estimate (full static analysis,
+  // no Claude). Catch so a bad report never blocks the estimate UI.
+  const moneyReality = await getMoneyReality(estimates[0].id).catch(() => null);
+
   const reviewMeanFinal =
     reviewEstimateAgg?.deltaYen != null
       ? estimates[0].total + reviewEstimateAgg.deltaYen
@@ -257,6 +263,8 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
           reviewStdDevYen={reviewEstimateAgg?.standardDeviation ?? undefined}
         />
       )}
+
+      {moneyReality && <MoneyReality report={moneyReality} />}
     </>
   );
 }

@@ -81,7 +81,16 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   const handleComplete = (visitId: string) => {
     startTransition(async () => {
       await completeVisit(visitId);
-      toast.success("見学おつかれさまでした");
+      // E-3: prompt the couple to use "帰り道モード" while impressions are
+      // still warm. Action sends them to the 3-step capture flow.
+      toast.success("見学おつかれさまでした", {
+        description: "帰り道モードで、3 分の印象を残しませんか？",
+        action: {
+          label: "残す",
+          onClick: () => router.push(`/visits/${visitId}/way-home`),
+        },
+        duration: 8000,
+      });
       router.refresh();
     });
   };
