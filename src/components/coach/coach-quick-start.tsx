@@ -105,9 +105,11 @@ export function CoachQuickStart() {
 
   return (
     <section className="space-y-5">
-      <div className="flex items-center gap-2 text-sm">
-        <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
-        <span className="font-medium">こんなときに相談してください</span>
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" aria-hidden="true" />
+        <span className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          どんなこと、話そう？
+        </span>
       </div>
 
       {/* Primary: 3 use-case cards. Stack on mobile, 3-col grid on md+. */}
@@ -142,7 +144,7 @@ export function CoachQuickStart() {
 
       {/* Secondary: classic short prompts (one-tap send). */}
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">他の質問</p>
+        <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">ほかの質問</p>
         <div className="flex flex-wrap gap-2">
           {SECONDARY_PROMPTS.map((prompt, idx) => {
             const loading = isPending && activeIdx === idx;
