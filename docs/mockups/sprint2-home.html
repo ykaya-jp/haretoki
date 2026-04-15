@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sprint 2 — ホーム (editorial)</title>
+<title>Sprint 2 — ホーム (refined)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
@@ -16,271 +16,345 @@
     --foreground: oklch(0.22 0.02 50);
     --muted-foreground: oklch(0.45 0.02 50);
     --border: oklch(0.90 0.01 70);
-    --card: oklch(0.99 0.005 80);
     --primary: oklch(0.62 0.12 45);
     --primary-fg: #fff;
     --gold-warm: oklch(0.70 0.13 80);
-    --gold-subtle: oklch(0.70 0.13 80 / 0.10);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
     --sans: "Noto Sans JP", system-ui, -apple-system, sans-serif;
     --mincho: "Shippori Mincho", "Noto Serif JP", serif;
-    --shadow-card: 0 1px 3px rgba(42,35,32,.04), 0 4px 12px rgba(42,35,32,.06);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: var(--sans);
-    background: #e8e4dd;
+    background: linear-gradient(180deg, #efeae0 0%, #e4ded2 100%);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 80px;
   }
-  /* Dual-device layout */
-  .stage { max-width: 1100px; margin: 32px auto; padding: 0 20px 80px; }
-  .stage h2 { font-weight: 300; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 32px 0 12px; }
-  .frames { display: flex; gap: 32px; flex-wrap: wrap; }
+  .stage { max-width: 1200px; margin: 0 auto; }
+  .stage > h2 { font-weight: 300; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #555; margin: 16px 0 28px; }
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
   .device {
-    width: 390px; height: 760px; overflow-y: auto;
-    background: var(--background); border-radius: 36px;
-    box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06);
+    width: 390px; height: 780px; overflow-y: auto;
+    background: var(--background); border-radius: 38px;
+    box-shadow: 0 20px 60px rgba(42,35,32,.18), 0 4px 12px rgba(42,35,32,.08);
     border: 10px solid #2a2320; padding: 0;
     scrollbar-width: thin;
   }
-  .device.wide { width: 390px; }
-  .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #888; margin-bottom: 8px; }
-  .page { padding: 24px 20px 120px; font-family: var(--sans); font-weight: 400; color: var(--foreground); }
-  .stack > * + * { margin-top: 48px; }
+  .device::-webkit-scrollbar { width: 0; }
+  .page { padding: 28px 20px 120px; font-family: var(--sans); font-weight: 400; color: var(--foreground); }
+  .stack > * + * { margin-top: 44px; }
 
-  /* Eyebrow */
-  .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
-  .eyebrow .dot { opacity: .4; }
-  .eyebrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  /* Top row */
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .top .meta { flex: 1; min-width: 0; }
+
+  .eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .eyebrow .dot { opacity: .3; }
+  .eyebrow .tod { text-transform: none; letter-spacing: 0; font-size: 12px; }
+  .pill {
+    display: inline-flex; align-items: center; padding: 2px 10px;
+    border-radius: 999px; background: var(--gold-subtle);
+    color: var(--gold-warm);
+    font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .greeting { margin: 10px 0 0; font-size: 13px; color: var(--muted-foreground); }
+  .greeting strong { color: var(--foreground); font-weight: 400; }
+
+  /* Sky chip */
+  .sky {
+    width: 56px; height: 56px; border-radius: 999px; flex-shrink: 0;
+    background: radial-gradient(120% 120% at 30% 20%, oklch(0.95 0.04 75) 0%, oklch(0.92 0.06 65) 40%, oklch(0.86 0.08 55) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(201,164,76,0.12), 0 6px 16px rgba(201,164,76,0.18);
+    display: flex; align-items: center; justify-content: center;
+  }
+
   /* Headline */
   h1.head {
     font-family: var(--mincho);
     font-weight: 300;
-    font-size: clamp(28px, 7vw, 36px);
-    line-height: 1.2;
+    font-size: clamp(26px, 7vw, 32px);
+    line-height: 1.22;
     letter-spacing: -0.01em;
-    margin: 12px 0 6px;
+    margin: 20px 0 10px;
+    color: var(--foreground);
   }
-  .sub { font-size: 13px; color: var(--muted-foreground); margin: 0; }
+  .sub { font-size: 13.5px; color: var(--muted-foreground); line-height: 1.6; margin: 0; }
 
-  /* Hairline */
-  .hairline { height: 1px; width: 100%; margin: 24px 0 16px; background: color-mix(in oklab, var(--gold-warm) 30%, transparent); }
+  .hairline {
+    height: 1px; width: 100%; margin: 28px 0 20px;
+    background: linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 30%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 70%, transparent 100%);
+  }
 
-  /* Metrics row */
-  .metrics { display: flex; align-items: center; gap: 20px; }
+  /* Metrics block */
+  .metrics-block {
+    padding: 16px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 5%, var(--background)) 0%, color-mix(in oklab, var(--primary) 3%, var(--background)) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .metrics { display: flex; align-items: center; gap: 16px; }
   .ring-wrap { display: flex; align-items: center; gap: 8px; }
-  .ring { width: 36px; height: 36px; transform: rotate(-90deg); }
+  .ring { width: 40px; height: 40px; transform: rotate(-90deg); }
   .ring .track { stroke: var(--border); fill: none; stroke-width: 3; }
-  .ring .arc { stroke: var(--gold-warm); fill: none; stroke-width: 3; stroke-linecap: round; }
-  .ring-label { font-size: 12px; color: var(--muted-foreground); }
-  .ring-label .pct { font-variant-numeric: tabular-nums; color: var(--foreground); }
-  .metrics .right { margin-left: auto; display: flex; gap: 16px; text-align: right; }
+  .ring .arc { stroke: url(#ringg); fill: none; stroke-width: 3; stroke-linecap: round; }
+  .ring-label { line-height: 1.1; }
+  .ring-label .pk { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
+  .ring-label .pv { font-family: var(--mincho); font-variant-numeric: tabular-nums; font-size: 15px; color: var(--foreground); }
+  .metrics .right { margin-left: auto; display: flex; gap: 20px; text-align: right; }
   .metric { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-  .metric .v { font-family: var(--mincho); font-weight: 300; font-variant-numeric: tabular-nums; font-size: 24px; }
-  .metric .k { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-foreground); margin-top: 2px; }
+  .metric .v { font-family: var(--mincho); font-weight: 300; font-variant-numeric: tabular-nums; font-size: 22px; color: var(--foreground); }
+  .metric .k { font-size: 10px; letter-spacing: .08em; color: var(--muted-foreground); margin-top: 2px; }
 
   /* Primary CTA */
   .cta {
-    display: block; width: 100%; margin-top: 28px;
-    padding: 14px 16px; border: 0; border-radius: 10px;
+    display: block; width: 100%; margin-top: 24px;
+    padding: 14px 16px; border: 0; border-radius: 14px;
     background: var(--primary); color: var(--primary-fg);
-    font-family: var(--sans); font-size: 15px; font-weight: 500;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 500;
     text-align: center; text-decoration: none;
-    box-shadow: 0 1px 3px rgba(42,35,32,.08), 0 4px 12px rgba(42,35,32,.1);
-    transition: transform .2s;
+    letter-spacing: 0.02em;
+    box-shadow: 0 1px 2px rgba(42,35,32,0.08), 0 8px 24px color-mix(in oklab, var(--gold-warm) 18%, transparent);
+    transition: transform .18s;
   }
   .cta:active { transform: scale(.98); }
-  .sub-cta { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted-foreground); text-decoration: none; }
+  .sub-cta { display: block; text-align: center; margin-top: 10px; font-size: 13px; color: var(--muted-foreground); text-decoration: none; }
 
   /* Recent venues */
-  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .section-head h2 { margin: 0; font-family: var(--sans); font-size: 15px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--foreground); }
-  .all-link { font-size: 13px; color: var(--primary); text-decoration: none; }
-  .scroller { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: none; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-head h2 { margin: 0; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--foreground); letter-spacing: 0.02em; }
+  .all-link { font-size: 12px; color: var(--primary); text-decoration: none; }
+  .scroller { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
   .scroller::-webkit-scrollbar { display: none; }
-  .venue { position: relative; flex: 0 0 300px; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; scroll-snap-align: start; box-shadow: var(--shadow-card); background: #ccc; }
+  .venue { position: relative; flex: 0 0 280px; aspect-ratio: 4/3; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(42,35,32,.08), 0 12px 28px rgba(42,35,32,.08); background: #ccc; }
   .venue img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .venue .grad { position: absolute; inset: auto 0 0 0; height: 96px; background: linear-gradient(to top, rgba(0,0,0,.6), transparent); }
-  .venue .badge { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.4); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(6px); display: flex; gap: 4px; align-items: center; }
-  .venue .badge .star { color: var(--gold-warm); }
-  .venue .name { position: absolute; left: 16px; right: 16px; bottom: 16px; color: #fff; }
-  .venue .name h3 { font-family: var(--mincho); font-weight: 400; font-size: 16px; margin: 0; letter-spacing: .05em; }
+  .venue .grad { position: absolute; inset: auto 0 0 0; height: 100px; background: linear-gradient(to top, rgba(0,0,0,.62), transparent); }
+  .venue .badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.4); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(6px); display: flex; gap: 4px; align-items: center; }
+  .venue .star { color: var(--gold-warm); }
+  .venue .name { position: absolute; left: 14px; right: 14px; bottom: 14px; color: #fff; }
+  .venue .name h3 { font-family: var(--mincho); font-weight: 400; font-size: 15px; margin: 0; letter-spacing: .04em; }
   .venue .name p { margin: 2px 0 0; font-size: 11px; opacity: .85; }
 
-  /* AI Insight */
-  .insight {
-    background: var(--gold-subtle);
-    border-left: 3px solid var(--gold-warm);
-    padding: 20px 20px 20px 20px;
-    border-radius: 16px;
-  }
-  .insight .title { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-warm); }
-  .insight .title .icon { width: 24px; height: 24px; border-radius: 999px; background: color-mix(in oklab, var(--gold-warm) 10%, transparent); display: inline-flex; align-items: center; justify-content: center; }
-  .insight p { margin: 12px 0 16px; font-size: 14px; line-height: 1.6; }
-  .insight .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pill { padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--border); font-size: 13px; text-decoration: none; color: var(--foreground); }
-
-  /* Decide stage variant */
-  .device.decide .eyebrow .dot, .device.decide h1.head { }
+  /* Insight */
+  .insight { background: var(--gold-subtle); border-left: 3px solid var(--gold-warm); padding: 18px 18px 18px 18px; border-radius: 18px; }
+  .insight .title { display: flex; align-items: center; gap: 8px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-warm); }
+  .insight .title .ic { width: 22px; height: 22px; border-radius: 999px; background: color-mix(in oklab, var(--gold-warm) 15%, transparent); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+  .insight p { margin: 10px 0 14px; font-size: 13.5px; line-height: 1.6; }
+  .insight .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { padding: 7px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--border); font-size: 12.5px; color: var(--foreground); text-decoration: none; }
 </style>
 </head>
 <body>
 <div class="stage">
-  <h2>Sprint 2 · ①ホーム (F-14 / F-21) — editorial 刷新</h2>
+<h2>Sprint 2 · ①ホーム (refined) — モダン × やわらかい</h2>
 
-  <div class="frames">
-    <div>
-      <div class="label">Stage: adding (初期)</div>
-      <div class="device">
-        <div class="page stack">
+<!-- shared gradient def -->
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="ringg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="oklch(0.70 0.13 80)" />
+    <stop offset="100%" stop-color="oklch(0.62 0.12 45)" stop-opacity="0.9" />
+  </linearGradient>
+</defs></svg>
 
-          <section>
-            <div class="eyebrow">
-              <svg viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 1 0 0-9 6 6 0 0 0-11.5 2 4 4 0 0 0 1 8h10.5z"/></svg>
-              <span>2026 · APR · 15</span>
-              <span class="dot">·</span>
-              <span>おはようございます、ゆうすけさん</span>
+<div class="frames">
+
+  <!-- Stage: start -->
+  <div class="col">
+    <div class="label">Stage · はじめる</div>
+    <div class="device">
+      <div class="page stack">
+        <section>
+          <div class="top">
+            <div class="meta">
+              <div class="eyebrow">
+                <span>2026 APR 15</span>
+                <span class="dot">·</span>
+                <span class="tod">朝</span>
+                <span class="pill">はじめる</span>
+              </div>
+              <p class="greeting">おはようございます、<strong>ゆうすけ</strong>さん</p>
             </div>
-            <h1 class="head">気になる式場を置く。</h1>
-            <p class="sub">URL を貼るだけで、自動で情報を集めます</p>
-            <div class="hairline"></div>
+            <div class="sky">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="12" cy="17" r="5" fill="oklch(0.98 0.01 75)" opacity="0.95"/>
+                <circle cx="19" cy="15" r="6" fill="oklch(0.98 0.01 75)" opacity="0.95"/>
+                <ellipse cx="15" cy="20" rx="9" ry="4" fill="oklch(0.98 0.01 75)" opacity="0.95"/>
+              </svg>
+            </div>
+          </div>
+          <h1 class="head">まだ見ぬ、あの一日へ。</h1>
+          <p class="sub">URL を貼るだけ。あとは晴れ時がそっと集めます</p>
+          <div class="hairline"></div>
+          <div class="metrics-block">
             <div class="metrics">
               <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 36 36">
-                  <circle class="track" cx="18" cy="18" r="16.5" />
-                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="93.3" />
+                <svg class="ring" viewBox="0 0 40 40">
+                  <circle class="track" cx="20" cy="20" r="18.5"/>
+                  <circle class="arc" cx="20" cy="20" r="18.5" stroke-dasharray="116.24" stroke-dashoffset="104.6"/>
                 </svg>
-                <span class="ring-label">決定まで <span class="pct">10%</span></span>
+                <div class="ring-label">
+                  <div class="pk">Progress</div>
+                  <div class="pv">10%</div>
+                </div>
               </div>
               <div class="right">
-                <div class="metric"><span class="v">0</span><span class="k">候補</span></div>
-                <div class="metric"><span class="v">0</span><span class="k">評価済</span></div>
-                <div class="metric"><span class="v">0</span><span class="k">お気に入り</span></div>
+                <div class="metric"><span class="v">0</span><span class="k">気になる</span></div>
+                <div class="metric"><span class="v">0</span><span class="k">印象メモ</span></div>
+                <div class="metric"><span class="v">0</span><span class="k">本命</span></div>
               </div>
             </div>
-            <a href="#" class="cta">URL から追加</a>
-            <a href="#" class="sub-cta">式場を探してみる</a>
-          </section>
-
-          <section>
-            <div class="section-head">
-              <h2>先日ご覧になった式場</h2>
-            </div>
-            <div class="scroller">
-              <div class="venue" style="background:#e0d8c8;">
-                <div style="width:100%;height:100%;background:linear-gradient(135deg,#dcc9a8,#b29866);"></div>
-                <div class="grad"></div>
-                <div class="name"><h3>まだ式場はありません</h3><p>気になる式場を追加しましょう</p></div>
-              </div>
-            </div>
-          </section>
-
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="label">Stage: comparing (候補 3 件)</div>
-      <div class="device">
-        <div class="page stack">
-
-          <section>
-            <div class="eyebrow">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-              <span>2026 · APR · 15</span>
-              <span class="dot">·</span>
-              <span>こんにちは、ゆうすけさん</span>
-            </div>
-            <h1 class="head">並べて、見比べてみる。</h1>
-            <p class="sub">候補 3 件、比べるほど輪郭が見えてきます</p>
-            <div class="hairline"></div>
-            <div class="metrics">
-              <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 36 36">
-                  <circle class="track" cx="18" cy="18" r="16.5" />
-                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="20.7" />
-                </svg>
-                <span class="ring-label">決定まで <span class="pct">80%</span></span>
-              </div>
-              <div class="right">
-                <div class="metric"><span class="v">5</span><span class="k">候補</span></div>
-                <div class="metric"><span class="v">2</span><span class="k">評価済</span></div>
-                <div class="metric"><span class="v">3</span><span class="k">お気に入り</span></div>
-              </div>
-            </div>
-            <a href="#" class="cta">比べる</a>
-          </section>
-
-          <section>
-            <div class="section-head">
-              <h2>先日ご覧になった式場</h2>
-              <a href="#" class="all-link">すべて →</a>
-            </div>
-            <div class="scroller">
-              <div class="venue"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.6</span></div><div class="name"><h3>ザ・リッツ・カールトン東京</h3><p>東京・六本木</p></div></div>
-              <div class="venue"><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.3</span></div><div class="name"><h3>アマン東京</h3><p>東京・大手町</p></div></div>
-              <div class="venue"><img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=600" alt="" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.1</span></div><div class="name"><h3>パレスホテル東京</h3><p>東京・丸の内</p></div></div>
-            </div>
-          </section>
-
-          <section>
-            <div class="insight">
-              <div class="title">
-                <span class="icon">✦</span>
-                <span>AI の気づき</span>
-              </div>
-              <p>リッツとアマンは料理評価が近い一方、アクセス面でパレスホテルが抜けています。決め手を 1 つ仮置きしてみませんか？</p>
-              <div class="actions">
-                <a href="#" class="pill">決め手を決める</a>
-                <a href="#" class="pill">比較表を見る</a>
-              </div>
-            </div>
-          </section>
-
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="label">Stage: decided</div>
-      <div class="device decide">
-        <div class="page stack">
-          <section>
-            <div class="eyebrow">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg>
-              <span>2026 · APR · 15</span>
-              <span class="dot">·</span>
-              <span>こんにちは、ゆうすけさん</span>
-            </div>
-            <h1 class="head">晴れの日へ、ふたりで。</h1>
-            <p class="sub">決めた式場の準備をゆっくり進めていきましょう</p>
-            <div class="hairline"></div>
-            <div class="metrics">
-              <div class="ring-wrap">
-                <svg class="ring" viewBox="0 0 36 36">
-                  <circle class="track" cx="18" cy="18" r="16.5" />
-                  <circle class="arc" cx="18" cy="18" r="16.5" stroke-dasharray="103.67" stroke-dashoffset="0" />
-                </svg>
-                <span class="ring-label">決定まで <span class="pct">100%</span></span>
-              </div>
-              <div class="right">
-                <div class="metric"><span class="v">5</span><span class="k">候補</span></div>
-                <div class="metric"><span class="v">3</span><span class="k">評価済</span></div>
-                <div class="metric"><span class="v">1</span><span class="k">決定</span></div>
-              </div>
-            </div>
-            <a href="#" class="cta">決めた式場を見る</a>
-          </section>
-        </div>
+          </div>
+          <a href="#" class="cta">URL から追加</a>
+          <a href="#" class="sub-cta">式場を探してみる</a>
+        </section>
       </div>
     </div>
   </div>
 
-  <p style="margin-top:48px; color:#555; font-size:13px;">
-    ※ これは <strong>静的モックアップ</strong> です。実装側 (<code>src/components/home/editorial-hero.tsx</code>) と揃えた editorial 方針のビジュアル確認用。
-    実際の配色・フォント・画像ロードはビルド後に Next.js 側で最終確認します。
-  </p>
+  <!-- Stage: comparing -->
+  <div class="col">
+    <div class="label">Stage · 比較中</div>
+    <div class="device">
+      <div class="page stack">
+        <section>
+          <div class="top">
+            <div class="meta">
+              <div class="eyebrow">
+                <span>2026 APR 15</span>
+                <span class="dot">·</span>
+                <span class="tod">昼</span>
+                <span class="pill">比較中</span>
+              </div>
+              <p class="greeting">こんにちは、<strong>ゆうすけ</strong>さん</p>
+            </div>
+            <div class="sky">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="6" fill="oklch(0.80 0.16 80)"/>
+                <circle cx="16" cy="16" r="9" fill="none" stroke="oklch(0.80 0.16 80)" stroke-opacity="0.35" stroke-width="1"/>
+              </svg>
+            </div>
+          </div>
+          <h1 class="head">ふたりで、並べてみよう。</h1>
+          <p class="sub">本命 3 件。比べるほど、輪郭が見えてきます</p>
+          <div class="hairline"></div>
+          <div class="metrics-block">
+            <div class="metrics">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 40 40">
+                  <circle class="track" cx="20" cy="20" r="18.5"/>
+                  <circle class="arc" cx="20" cy="20" r="18.5" stroke-dasharray="116.24" stroke-dashoffset="23.25"/>
+                </svg>
+                <div class="ring-label">
+                  <div class="pk">Progress</div>
+                  <div class="pv">80%</div>
+                </div>
+              </div>
+              <div class="right">
+                <div class="metric"><span class="v">5</span><span class="k">気になる</span></div>
+                <div class="metric"><span class="v">2</span><span class="k">印象メモ</span></div>
+                <div class="metric"><span class="v">3</span><span class="k">本命</span></div>
+              </div>
+            </div>
+          </div>
+          <a href="#" class="cta">比べてみる</a>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <h2>先日ご覧になった式場</h2>
+            <a href="#" class="all-link">すべて →</a>
+          </div>
+          <div class="scroller">
+            <div class="venue"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.6</span></div><div class="name"><h3>ザ・リッツ・カールトン東京</h3><p>東京・六本木</p></div></div>
+            <div class="venue"><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.3</span></div><div class="name"><h3>アマン東京</h3><p>東京・大手町</p></div></div>
+            <div class="venue"><img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=600" onerror="this.style.display='none'"><div class="grad"></div><div class="badge"><span class="star">★</span><span>4.1</span></div><div class="name"><h3>パレスホテル東京</h3><p>東京・丸の内</p></div></div>
+          </div>
+        </section>
+
+        <section>
+          <div class="insight">
+            <div class="title"><span class="ic">✦</span><span>AI の気づき</span></div>
+            <p>リッツとアマンは料理の評価が近い一方、アクセス面ではパレスホテルが抜けています。決め手を 1 つ、仮で置いてみませんか？</p>
+            <div class="chips">
+              <a href="#" class="chip">決め手を決める</a>
+              <a href="#" class="chip">比較表を見る</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage: decided -->
+  <div class="col">
+    <div class="label">Stage · 晴れの日へ</div>
+    <div class="device">
+      <div class="page stack">
+        <section>
+          <div class="top">
+            <div class="meta">
+              <div class="eyebrow">
+                <span>2026 APR 15</span>
+                <span class="dot">·</span>
+                <span class="tod">夕</span>
+                <span class="pill">晴れの日へ</span>
+              </div>
+              <p class="greeting">こんばんは、<strong>ゆうすけ</strong>さん</p>
+            </div>
+            <div class="sky">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="5" fill="oklch(0.78 0.17 80)"/>
+                <g stroke="oklch(0.78 0.17 80)" stroke-width="1.4" stroke-linecap="round">
+                  <line x1="16" y1="3" x2="16" y2="6"/>
+                  <line x1="16" y1="26" x2="16" y2="29"/>
+                  <line x1="3" y1="16" x2="6" y2="16"/>
+                  <line x1="26" y1="16" x2="29" y2="16"/>
+                  <line x1="7" y1="7" x2="9" y2="9"/>
+                  <line x1="23" y1="23" x2="25" y2="25"/>
+                  <line x1="7" y1="25" x2="9" y2="23"/>
+                  <line x1="23" y1="9" x2="25" y2="7"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <h1 class="head">晴れの日が、近づいています。</h1>
+          <p class="sub">あとは準備を、ゆっくりと</p>
+          <div class="hairline"></div>
+          <div class="metrics-block">
+            <div class="metrics">
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 40 40">
+                  <circle class="track" cx="20" cy="20" r="18.5"/>
+                  <circle class="arc" cx="20" cy="20" r="18.5" stroke-dasharray="116.24" stroke-dashoffset="0"/>
+                </svg>
+                <div class="ring-label">
+                  <div class="pk">Progress</div>
+                  <div class="pv">100%</div>
+                </div>
+              </div>
+              <div class="right">
+                <div class="metric"><span class="v">5</span><span class="k">気になる</span></div>
+                <div class="metric"><span class="v">3</span><span class="k">印象メモ</span></div>
+                <div class="metric"><span class="v">1</span><span class="k">本命</span></div>
+              </div>
+            </div>
+          </div>
+          <a href="#" class="cta">決めた式場を見る</a>
+        </section>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:56px; color:#555; font-size:13px; text-align:center;">
+  <code>src/components/home/editorial-hero.tsx</code> と揃えた静的モック。
+  VSCode で右クリック → Open with Live Preview / Simple Browser でそのまま確認できます。
+</p>
 </div>
 </body>
 </html>
