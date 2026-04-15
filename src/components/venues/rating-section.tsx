@@ -164,8 +164,8 @@ export function RatingSection({
             showToast(
               "error",
               detail
-                ? `保存できませんでした: ${detail}。もう一度お試しください`
-                : "保存できませんでした。もう一度お試しください",
+                ? `うまく残せませんでした: ${detail}。もう一度お試しください`
+                : "うまく残せませんでした。もう一度お試しください",
             );
             return;
           }
@@ -176,7 +176,7 @@ export function RatingSection({
         } catch (err) {
           setSaving(false);
           console.error("[rating] save failed:", err);
-          showToast("error", "保存できませんでした。もう一度お試しください");
+          showToast("error", "うまく残せませんでした。もう一度お試しください");
         }
       }, 500);
     },
@@ -210,7 +210,7 @@ export function RatingSection({
             className="absolute top-0 right-0 text-xs text-muted-foreground flex items-center gap-1"
             aria-live="polite"
           >
-            保存中…
+            いま残しています…
           </motion.span>
         ) : justSaved ? (
           <motion.span

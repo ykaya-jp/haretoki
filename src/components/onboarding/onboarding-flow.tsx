@@ -371,7 +371,7 @@ export function OnboardingFlow() {
             }}
             className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
           >
-            条件を保存せず始める
+            条件なしでひとまず始める
           </button>
         </div>
       </div>
