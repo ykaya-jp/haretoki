@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprint 2 Mockups · Haretoki</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; font-family: "Noto Sans JP", sans-serif; background: #efeae0; color: #2a2320; padding: 48px 24px 64px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-family: "Shippori Mincho", serif; font-weight: 300; font-size: 28px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .sub { color: #6b5d4d; font-size: 14px; margin: 0 0 40px; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  li a {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 22px; text-decoration: none; color: inherit;
+    background: #fff; border-radius: 18px;
+    border: 1px solid oklch(0.90 0.01 70);
+    box-shadow: 0 1px 3px rgba(42,35,32,.04), 0 8px 24px rgba(42,35,32,.06);
+    transition: transform .2s;
+  }
+  li a:hover { transform: translateY(-1px); }
+  .num { font-family: "Shippori Mincho"; font-weight: 300; font-size: 28px; color: oklch(0.70 0.13 80); min-width: 32px; }
+  .meta h3 { margin: 0; font-size: 15px; font-weight: 500; }
+  .meta p { margin: 4px 0 0; font-size: 12.5px; color: #6b5d4d; letter-spacing: .02em; }
+  .note { margin-top: 40px; padding: 20px; background: oklch(0.70 0.13 80 / 0.12); border-left: 3px solid oklch(0.70 0.13 80); border-radius: 10px; font-size: 13px; color: #2a2320; line-height: 1.7; }
+</style></head>
+<body>
+<div class="wrap">
+  <h1>Sprint 2 — 5 画面刷新モックアップ</h1>
+  <p class="sub">Modern × やわらかい方向にリデザイン。各ファイルは <code>docs/mockups/</code> にも配置。</p>
+  <ul>
+    <li><a href="sprint2-home.html"><span class="num">①</span><div class="meta"><h3>ホーム (F-14 / F-21)</h3><p>editorial hero · sky chip · 気になる/印象メモ/本命</p></div></a></li>
+    <li><a href="sprint2-coach.html"><span class="num">②</span><div class="meta"><h3>コーチ (F-17 / F-18)</h3><p>sticky chip header · どんなこと、話そう？ · streaming</p></div></a></li>
+    <li><a href="sprint2-add-sheet.html"><span class="num">③</span><div class="meta"><h3>追加 Sheet (F-01 / B-12)</h3><p>URL 入力を主役に · gold hairline divider</p></div></a></li>
+    <li><a href="sprint2-compare.html"><span class="num">④</span><div class="meta"><h3>比較 (F-04 / F-05 / B-13)</h3><p>Crown 廃止 · bg tint + 2px band + dot · 観点ごとのベスト</p></div></a></li>
+    <li><a href="sprint2-decision.html"><span class="num">⑤</span><div class="meta"><h3>決定セレモニー (F-10)</h3><p>朝光 wash · 2px gold 記念カード · confetti 控えめ化</p></div></a></li>
+  </ul>
+  <div class="note">
+    <strong>VSCode での開き方:</strong><br>
+    エクスプローラで <code>docs/mockups/index.html</code> を右クリック → <em>Open with Live Preview</em> / <em>Simple Browser</em> で確認。<br>
+    Live Preview 拡張が無ければ、ブラウザで <code>file://...</code> 直接でも OK。
+  </div>
+</div></body></html>
