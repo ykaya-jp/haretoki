@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { VIBE_TAGS, type VibeTag } from "@/lib/vibe-tags";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeSet = new Set(activeVibes);
+  const activeSet = useMemo(() => new Set(activeVibes), [activeVibes]);
 
   const handleToggle = useCallback(
     (id: VibeTag) => {
