@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>E-5 Final Two Duel</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: oklch(0.97 0.01 80);
+    --foreground: oklch(0.22 0.02 50);
+    --muted-foreground: oklch(0.45 0.02 50);
+    --card: oklch(0.99 0.005 80);
+    --border: oklch(0.90 0.01 70);
+    --primary: oklch(0.62 0.12 45);
+    --gold-warm: oklch(0.70 0.13 80);
+    --gold-subtle: oklch(0.70 0.13 80 / 0.12);
+    --sans: "Noto Sans JP", system-ui, sans-serif;
+    --mincho: "Shippori Mincho", "Noto Serif JP", serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: linear-gradient(180deg, #efeae0, #e4ded2); padding: 32px 20px 80px; color: var(--foreground); -webkit-font-smoothing: antialiased; }
+  h1.t { text-align: center; font-weight: 300; font-size: 26px; font-family: var(--mincho); letter-spacing: -0.01em; margin: 0 0 8px; }
+  .lede { text-align: center; color: #6b5d4d; font-size: 13.5px; max-width: 600px; margin: 0 auto 40px; line-height: 1.7; }
+
+  .frames { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; }
+  .device { width: 390px; height: 800px; background: var(--background); border-radius: 38px; box-shadow: 0 20px 60px rgba(42,35,32,.18); border: 10px solid #2a2320; display: flex; flex-direction: column; overflow: hidden; }
+  .page { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+
+  /* Entry screen */
+  .entry { padding: 56px 28px 32px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 100%; background: radial-gradient(80% 60% at 50% 30%, color-mix(in oklab, var(--gold-warm) 12%, transparent), transparent); }
+  .entry .eye { font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-warm); }
+  .entry h1 { margin: 18px 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 28px; line-height: 1.35; }
+  .entry .sub { margin: 0 0 32px; font-size: 13.5px; color: var(--muted-foreground); line-height: 1.75; }
+  .entry .duo { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 0 40px; }
+  .entry .duo .venue-label { font-family: var(--mincho); font-size: 15px; font-weight: 400; letter-spacing: .02em; min-width: 80px; }
+  .entry .vs { font-family: var(--mincho); font-size: 14px; color: var(--gold-warm); letter-spacing: .24em; }
+  .entry .count { font-family: var(--mincho); font-size: 12px; color: var(--muted-foreground); margin: 0 0 16px; letter-spacing: .08em; }
+  .entry .cta { display: inline-block; margin: 0 auto; padding: 14px 32px; background: var(--primary); color: #fff; border-radius: 14px; font-size: 14.5px; font-weight: 500; letter-spacing: .02em; text-decoration: none; box-shadow: 0 1px 2px rgba(42,35,32,.08), 0 10px 24px color-mix(in oklab, var(--primary) 22%, transparent); }
+  .entry .back { margin-top: 18px; font-size: 12.5px; color: var(--muted-foreground); text-decoration: none; }
+
+  /* Question screen */
+  .q-hdr { padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .q-hdr .progress { display: flex; gap: 4px; flex: 1; margin-right: 16px; }
+  .q-hdr .dot { flex: 1; height: 3px; background: color-mix(in oklab, var(--foreground) 12%, transparent); border-radius: 3px; }
+  .q-hdr .dot.done { background: var(--gold-warm); }
+  .q-hdr .dot.current { background: var(--gold-warm); opacity: .6; }
+  .q-hdr .num { font-family: var(--mincho); font-size: 13px; font-weight: 300; color: var(--muted-foreground); letter-spacing: .06em; }
+
+  .q-body { flex: 1; padding: 24px 20px 16px; display: flex; flex-direction: column; }
+  .q-theme { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-warm); font-weight: 500; text-align: center; }
+  .q-title { font-family: var(--mincho); font-weight: 300; font-size: 21px; line-height: 1.45; text-align: center; margin: 12px 0 24px; letter-spacing: -0.005em; }
+
+  .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+  .q-card { border-radius: 20px; border: 1px solid var(--border); background: var(--card); overflow: hidden; display: flex; flex-direction: column; cursor: pointer; position: relative; }
+  .q-card.selected { border-color: color-mix(in oklab, var(--gold-warm) 55%, transparent); box-shadow: 0 1px 2px rgba(42,35,32,.06), 0 12px 28px color-mix(in oklab, var(--gold-warm) 18%, transparent); }
+  .q-card .photo { aspect-ratio: 4/3; background: #ccc; }
+  .q-card .body { padding: 12px 14px 16px; }
+  .q-card h3 { margin: 0; font-family: var(--mincho); font-size: 13px; font-weight: 400; line-height: 1.35; }
+  .q-card .caption { margin: 6px 0 0; font-size: 11.5px; color: var(--muted-foreground); line-height: 1.6; }
+  .q-card.selected::after { content: "✓"; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 999px; background: var(--gold-warm); color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+
+  .q-skip { text-align: center; margin-top: 16px; padding: 12px 0 20px; background: none; border: 0; font-size: 12.5px; color: var(--muted-foreground); min-height: 44px; cursor: pointer; }
+
+  /* Result screen */
+  .result { padding: 40px 24px 24px; display: flex; flex-direction: column; min-height: 100%; }
+  .result .eye { font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-warm); text-align: center; }
+  .result h1 { margin: 20px 0 6px; font-family: var(--mincho); font-weight: 300; font-size: 26px; letter-spacing: -0.005em; text-align: center; }
+  .result .sub { margin: 0 0 28px; font-size: 13px; color: var(--muted-foreground); text-align: center; line-height: 1.7; }
+
+  .result .chart {
+    background: color-mix(in oklab, var(--gold-warm) 8%, var(--background));
+    border-radius: 22px; padding: 24px;
+    border: 1px solid color-mix(in oklab, var(--gold-warm) 22%, transparent);
+  }
+  .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .score-row:last-child { margin-bottom: 0; }
+  .score-row .name { flex: 0 0 80px; font-family: var(--mincho); font-size: 14px; font-weight: 400; letter-spacing: .02em; }
+  .score-row .bar { flex: 1; height: 8px; background: color-mix(in oklab, var(--foreground) 8%, transparent); border-radius: 999px; overflow: hidden; }
+  .score-row .fill { height: 100%; background: var(--gold-warm); border-radius: 999px; }
+  .score-row .num { flex: 0 0 48px; text-align: right; font-family: var(--mincho); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 300; }
+
+  .insight {
+    margin-top: 24px; padding: 20px 20px; border-radius: 18px;
+    background: color-mix(in oklab, var(--primary) 5%, var(--background));
+    border-left: 3px solid var(--primary);
+  }
+  .insight .ic { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); font-weight: 500; }
+  .insight p { margin: 8px 0 0; font-size: 13px; line-height: 1.75; color: var(--foreground); }
+
+  .result .ctas { margin-top: auto; padding-top: 24px; }
+  .result .primary-cta { display: block; width: 100%; padding: 14px; border: 0; border-radius: 14px; background: var(--primary); color: #fff; font-size: 14.5px; font-weight: 500; letter-spacing: .02em; box-shadow: 0 1px 2px rgba(42,35,32,.06), 0 10px 24px color-mix(in oklab, var(--primary) 20%, transparent); cursor: pointer; }
+  .result .secondary-ctas { margin-top: 12px; display: flex; justify-content: center; gap: 24px; }
+  .result .secondary-ctas a { font-size: 12.5px; color: var(--muted-foreground); text-decoration: none; padding: 10px 0; }
+</style>
+</head>
+<body>
+
+<h1 class="t">E-5 Final Two Duel</h1>
+<p class="lede">
+  最後の 2 つで迷うふたりへ。<br />
+  <strong>10 問の情景</strong>で、感情を言語化する。
+</p>
+
+<div class="frames">
+
+  <!-- Screen 1: Entry -->
+  <div class="col">
+    <div class="label">1. 起点画面</div>
+    <div class="device">
+      <div class="entry">
+        <p class="eye">Final Two — 感情の答え合わせ</p>
+        <h1>ふたりで 10 問、<br/>答えてみませんか。</h1>
+        <p class="sub">決めかねている 2 件、<br/>情景を問う 10 問で感情を言語化します。<br/>5 分で終わります。</p>
+
+        <div class="duo">
+          <div class="venue-label">リッツ<br/>東京</div>
+          <div class="vs">VS</div>
+          <div class="venue-label">アマン<br/>東京</div>
+        </div>
+
+        <p class="count">迷いはじめて 10 日目</p>
+        <a href="#" class="cta">はじめる</a>
+        <a href="#" class="back">また今度</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Question (mid) -->
+  <div class="col">
+    <div class="label">2. 問題 (例: Q3 料理)</div>
+    <div class="device">
+      <div class="q-hdr">
+        <div class="progress">
+          <div class="dot done"></div><div class="dot done"></div><div class="dot current"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="num">3 / 10</div>
+      </div>
+      <div class="q-body">
+        <p class="q-theme">料理の提供</p>
+        <h2 class="q-title">食事中、<br/>一番記憶に残るのは？</h2>
+        <div class="q-options">
+          <div class="q-card selected">
+            <div class="photo" style="background:linear-gradient(135deg,#d0b87c,#a58143);"></div>
+            <div class="body">
+              <h3>シェフが席で仕上げる一皿</h3>
+              <p class="caption">目の前で火を入れる、香ばしいソース</p>
+            </div>
+          </div>
+          <div class="q-card">
+            <div class="photo" style="background:linear-gradient(135deg,#b89480,#7d5a45);"></div>
+            <div class="body">
+              <h3>伝統的な日本料理の<br/>おもてなし</h3>
+              <p class="caption">一汁三菜の美しさ、懐石の間</p>
+            </div>
+          </div>
+        </div>
+        <button class="q-skip">迷う、どちらも</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Question (Q10 final) -->
+  <div class="col">
+    <div class="label">3. 最後の問 (Q10)</div>
+    <div class="device">
+      <div class="q-hdr">
+        <div class="progress">
+          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot current"></div>
+        </div>
+        <div class="num">10 / 10</div>
+      </div>
+      <div class="q-body">
+        <p class="q-theme">最後に、あなた自身の声で</p>
+        <h2 class="q-title">今、どっちを選びたい気がしますか？</h2>
+        <div class="q-options">
+          <div class="q-card">
+            <div class="photo" style="background:linear-gradient(135deg,#c4a880,#8b6a47);"></div>
+            <div class="body">
+              <h3>リッツ東京</h3>
+              <p class="caption">六本木、緑の公園から差す光</p>
+            </div>
+          </div>
+          <div class="q-card selected">
+            <div class="photo" style="background:linear-gradient(135deg,#d0b87c,#a58143);"></div>
+            <div class="body">
+              <h3>アマン東京</h3>
+              <p class="caption">大手町、天井 12m、緑の中庭</p>
+            </div>
+          </div>
+        </div>
+        <button class="q-skip">まだ分からない</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Result -->
+  <div class="col">
+    <div class="label">4. 結果</div>
+    <div class="device">
+      <div class="result">
+        <p class="eye">— ふたりの答え合わせ —</p>
+        <h1>アマン東京が 7/10。</h1>
+        <p class="sub">特に <strong>朝の光</strong> と <strong>料理の提供</strong> の質問で選ばれていました。</p>
+
+        <div class="chart">
+          <div class="score-row">
+            <div class="name">アマン東京</div>
+            <div class="bar"><div class="fill" style="width: 70%;"></div></div>
+            <div class="num">7</div>
+          </div>
+          <div class="score-row">
+            <div class="name">リッツ東京</div>
+            <div class="bar"><div class="fill" style="width: 30%; background: color-mix(in oklab, var(--gold-warm) 60%, transparent);"></div></div>
+            <div class="num">3</div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <p class="ic">AI コーチから、ひとこと</p>
+          <p>どちらも素敵な選択です。ただ、おふたりは <strong>"光と料理の体験"</strong> を特に大切にしたい方なのかもしれません。もしこの結果に "しっくりきた" なら、次の一歩を踏んでみませんか。</p>
+        </div>
+
+        <div class="ctas">
+          <button class="primary-cta">アマン東京に、決める</button>
+          <div class="secondary-ctas">
+            <a href="#">コーチに話す</a>
+            <a href="#">もう少し考える</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="max-width:820px; margin:48px auto 0; padding: 32px; background: color-mix(in oklab, var(--gold-warm) 6%, var(--background)); border-radius: 20px; border: 1px solid color-mix(in oklab, var(--gold-warm) 25%, transparent); font-size: 14px; line-height: 1.8;">
+  <h3 style="margin: 0 0 12px; font-family: var(--mincho); font-weight: 300; font-size: 18px;">決め手は、数字じゃない</h3>
+  <p style="margin: 0 0 10px;">
+    比較マトリクスで数値スコアがほぼ同じなのに決めきれない — これが現実。
+    決め手は <strong>感情と想像力</strong> にある。Haretoki の AI は、その「感じる」を言語化する。
+  </p>
+  <p style="margin: 0 0 10px;">
+    設問は Claude が 2 会場の特徴から**生成**。毎 duel が違う情景。
+    最後の Q10 だけは AI に任せず、ふたりに直接問う（= 決めるのは人）。
+  </p>
+  <p style="margin: 0; color: var(--muted-foreground); font-size: 12.5px;">
+    発火条件: 本命 2-3 件 × 10 日以上決定なし。DailyRitual に組み込まれる。
+  </p>
+</div>
+
+</body>
+</html>
