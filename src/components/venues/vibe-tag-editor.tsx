@@ -1,9 +1,11 @@
 "use client";
 
 import { useOptimistic, useTransition, useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 import { updateVenueVibeTags } from "@/server/actions/venue-vibe";
+import { suggestVibeTagsForVenue } from "@/server/actions/vibe-suggest";
 import { showToast } from "@/lib/toast";
 
 interface VibeTagEditorProps {
@@ -24,6 +26,20 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
       setOptimisticTags(next);
     });
     setLocalTags(next);
+  };
+
+  const handleSuggest = () => {
+    startTransition(async () => {
+      const { tags } = await suggestVibeTagsForVenue(venueId);
+      if (tags.length === 0) {
+        showToast("error", "おまかせ候補が見つかりませんでした");
+        return;
+      }
+      const merged = Array.from(new Set([...localTags, ...tags]));
+      setOptimisticTags(merged);
+      setLocalTags(merged);
+      showToast("success", "AI が気分を見立てました");
+    });
   };
 
   const handleSave = () => {
@@ -72,14 +88,29 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={isPending}
-        className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-primary text-[13.5px] font-medium text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
-      >
-        {isPending ? "保存中…" : "保存する"}
-      </button>
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={handleSuggest}
+          disabled={isPending}
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] bg-[var(--gold-subtle)] px-3 text-[12.5px] text-[var(--gold-warm)] transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+          )}
+          AI におまかせ
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isPending}
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-primary text-[13.5px] font-medium text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {isPending ? "保存中…" : "保存する"}
+        </button>
+      </div>
     </section>
   );
 }

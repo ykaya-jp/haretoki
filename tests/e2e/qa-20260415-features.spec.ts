@@ -49,16 +49,42 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.waitForURL(/\/(home|onboarding)/, { timeout: 20000 });
 }
 
-// Set onboarding_completed cookie to bypass onboarding redirect
-async function setOnboardingCookie(page: Page) {
-  await page.context().addCookies([
-    {
-      name: "onboarding_completed",
-      value: "1",
-      domain: "localhost",
-      path: "/",
-    },
-  ]);
+// Complete onboarding flow: creates Project + sets cookie
+// Skips name input, answers all questions via スキップ
+async function completeOnboarding(page: Page) {
+  if (!page.url().includes("/onboarding")) return;
+  // Wait for intro (step -1) — skip name, click はじめる
+  const startBtn = await page.locator('button:has-text("はじめる")').first();
+  if (await startBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await startBtn.click();
+    await page.waitForTimeout(500);
+  }
+  // Skip through all 4 questions
+  for (let i = 0; i < 6; i++) {
+    const skip = page.locator('button:has-text("スキップ")').first();
+    const next = page.locator('button:has-text("次へ"), button:has-text("おすすめを見る")').first();
+    if (await skip.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await skip.click();
+    } else if (await next.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await next.click();
+    }
+    await page.waitForTimeout(600);
+    if (page.url().includes("/home")) break;
+    const homeBtn = page.locator('button:has-text("ホームへ進む"), button:has-text("条件なしでひとまず始める")').first();
+    if (await homeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await homeBtn.click();
+      break;
+    }
+  }
+  await page.waitForURL(/\/home/, { timeout: 15000 }).catch(() => {});
+}
+
+// Login + complete onboarding + set cookie
+async function loginAndOnboard(page: Page, email: string, password: string) {
+  await loginAs(page, email, password);
+  if (page.url().includes("/onboarding")) {
+    await completeOnboarding(page);
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -187,8 +213,7 @@ test.describe("R-2: VibeFilterChips", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("vibe chip tap updates URL with ?vibe= parameter", async ({ page }) => {
-    await loginAs(page, testEmail, testPassword);
-    await setOnboardingCookie(page);
+    await loginAndOnboard(page, testEmail, testPassword);
 
     await page.goto(`${BASE}/explore`);
     await page.waitForLoadState("domcontentloaded");
@@ -220,10 +245,7 @@ test.describe("R-2: VibeFilterChips", () => {
   });
 
   test("multiple vibe chips combine as comma-separated ?vibe=", async ({ page }) => {
-    await loginAs(page, testEmail, testPassword);
-    if (page.url().includes("/onboarding")) {
-      await page.goto(`${BASE}/home`);
-    }
+    await loginAndOnboard(page, testEmail, testPassword);
 
     await page.goto(`${BASE}/explore`);
     await page.waitForLoadState("domcontentloaded");
@@ -264,8 +286,7 @@ test.describe("E-10: SaveSearchButton", () => {
       }
     });
 
-    await loginAs(page, testEmail, testPassword);
-    await setOnboardingCookie(page);
+    await loginAndOnboard(page, testEmail, testPassword);
 
     // Navigate to explore with a search query to trigger hasAnyFilter=true
     await page.goto(`${BASE}/explore?q=テスト`);
@@ -312,8 +333,7 @@ test.describe("E-10: SaveSearchButton", () => {
   });
 
   test("save search: delete button removes item", async ({ page }) => {
-    await loginAs(page, testEmail, testPassword);
-    await setOnboardingCookie(page);
+    await loginAndOnboard(page, testEmail, testPassword);
 
     await page.goto(`${BASE}/mypage/saved-searches`);
     await page.waitForLoadState("domcontentloaded");
@@ -351,8 +371,7 @@ test.describe("E-7: Journey Timeline", () => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
-    await loginAs(page, testEmail, testPassword);
-    await setOnboardingCookie(page);
+    await loginAndOnboard(page, testEmail, testPassword);
 
     await page.goto(`${BASE}/journey`);
     await page.waitForLoadState("domcontentloaded");
@@ -399,8 +418,7 @@ test.describe("R-7: AgreementsSection on /coach", () => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
-    await loginAs(page, testEmail, testPassword);
-    await setOnboardingCookie(page);
+    await loginAndOnboard(page, testEmail, testPassword);
 
     await page.goto(`${BASE}/coach`);
     await page.waitForLoadState("domcontentloaded");
@@ -472,8 +490,7 @@ test.describe("Global: HTTP error & console check", () => {
         }
       });
 
-      await loginAs(page, testEmail, testPassword);
-      await setOnboardingCookie(page);
+      await loginAndOnboard(page, testEmail, testPassword);
 
       await page.goto(`${BASE}${route}`);
       await page.waitForLoadState("domcontentloaded");
