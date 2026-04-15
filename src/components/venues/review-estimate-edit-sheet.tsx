@@ -92,15 +92,15 @@ export function ReviewEstimateEditSheet({
       });
 
       if (!result.success) {
-        toast.error(result.error ?? "保存できませんでした");
+        toast.error(result.error ?? "うまく残せませんでした");
         return;
       }
 
-      toast.success("見積もり情報を更新しました");
+      toast.success("書き直しました");
       setOpen(false);
       router.refresh();
     } catch {
-      toast.error("保存できませんでした");
+      toast.error("うまく残せませんでした");
     } finally {
       setSubmitting(false);
     }

@@ -39,13 +39,13 @@ export function NameEdit({ currentName }: NameEditProps) {
     if (isPending) return;
     const trimmed = value.trim();
     if (!trimmed) {
-      toast.error("名前を入力してください");
+      toast.error("お名前を入れてください");
       return;
     }
     startTransition(async () => {
       const result = await updateDisplayName(trimmed);
       if (result.success) {
-        toast.success("お名前を更新しました");
+        toast.success("お名前を書き直しました");
         setIsEditing(false);
         router.refresh();
       } else {

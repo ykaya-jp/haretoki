@@ -226,6 +226,63 @@ export async function getVenueReviews(venueId: string) {
 }
 
 /**
+ * Batch-refresh AI summaries for every review of a venue. Skips reviews that
+ * already have an `aiSummary` unless `force` is true. Returns a per-review
+ * result list so the UI can surface partial failures without blocking the
+ * successful ones.
+ *
+ * Foundation for Sprint 4's "口コミ AI 要約 バッチ" — call from an admin UI
+ * or a future cron to re-run analysis after prompt improvements.
+ */
+export async function batchAnalyzeVenueReviews(
+  venueId: string,
+  opts: { force?: boolean } = {},
+): Promise<{
+  attempted: number;
+  succeeded: number;
+  skipped: number;
+  failed: Array<{ reviewId: string; error: string }>;
+}> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venue = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+    select: { id: true },
+  });
+  if (!venue) {
+    return { attempted: 0, succeeded: 0, skipped: 0, failed: [] };
+  }
+
+  const reviews = await prisma.review.findMany({
+    where: { venueId, venue: { projectId } },
+    select: { id: true, sourceUrl: true, source: true, aiSummary: true },
+    orderBy: { fetchedAt: "desc" },
+  });
+
+  const failed: Array<{ reviewId: string; error: string }> = [];
+  let succeeded = 0;
+  let skipped = 0;
+  let attempted = 0;
+
+  for (const r of reviews) {
+    if (r.aiSummary && !opts.force) {
+      skipped++;
+      continue;
+    }
+    attempted++;
+    const res = await analyzeVenueReviews(venueId, r.sourceUrl, r.source);
+    if (res.success) {
+      succeeded++;
+    } else {
+      failed.push({ reviewId: r.id, error: res.error ?? "unknown" });
+    }
+  }
+
+  return { attempted, succeeded, skipped, failed };
+}
+
+/**
  * Fetch the venue-level aggregated review-based estimate-increase
  * stats for a single venue (populated by recomputeVenueReviewEstimate).
  * Also computes standardDeviation of deltaYen across reviews (n>=3 required).

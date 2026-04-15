@@ -90,16 +90,16 @@ export function DimensionRatings({
 
       <div className="h-5 text-center text-xs">
         {saveStatus === "saving" && (
-          <span className="text-muted-foreground">保存中...</span>
+          <span className="text-muted-foreground">いま残しています…</span>
         )}
         {saveStatus === "saved" && (
           <span className="text-green-600 dark:text-green-400">
-            保存しました
+            残しました
           </span>
         )}
         {saveStatus === "error" && (
           <span className="text-destructive">
-            保存に失敗しました。もう一度お試しください。
+            うまく残せませんでした。もう一度お試しください。
           </span>
         )}
       </div>

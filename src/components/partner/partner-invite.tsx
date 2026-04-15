@@ -65,8 +65,8 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
       }
       toast.success(
         result.emailSent
-          ? "招待を作成しました。パートナーにメールもお送りしました"
-          : "招待を作成しました。リンクをパートナーに共有してください",
+          ? "招待を送りました。パートナーのメールもご確認ください"
+          : "招待を作りました。リンクをパートナーにお伝えください",
       );
       setEmail("");
     });
@@ -89,9 +89,9 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
               <span className="text-muted-foreground">+</span>
             </div>
             <div>
-              <p className="text-sm font-medium">パートナーを招待</p>
+              <p className="text-sm font-medium">パートナーを招く</p>
               <p className="text-xs text-muted-foreground">
-                パートナーのメールアドレスで紐付けます。パートナーは同じメールでアカウント登録すると、リンクから参加できます。
+                パートナーのメールアドレスで繋げます。同じメールでアカウントをはじめてもらえば、リンクから合流できます。
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "招待を作成"
+                "招く"
               )}
             </button>
           </form>
@@ -128,12 +128,12 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
         <>
           <div className="text-center space-y-1">
             <p className="text-sm">
-              {partnerStatus === "invited" && "招待を作成しました"}
+              {partnerStatus === "invited" && "招きました"}
               {partnerStatus === "viewed" && "パートナーがリンクを見てくれました"}
               {partnerStatus === "reacted" && "パートナーが反応してくれました"}
             </p>
             <p className="text-xs text-muted-foreground">
-              同じメールアドレスで登録してもらい、このリンクから参加してもらってください。
+              同じメールアドレスではじめてもらい、このリンクから合流してもらってください。
             </p>
           </div>
           <div className="flex gap-2">

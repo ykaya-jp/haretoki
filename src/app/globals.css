@@ -77,6 +77,26 @@
   --shadow-card-hover: 0 4px 12px rgba(42,35,32,0.06), 0 20px 40px rgba(42,35,32,0.10);
   --shadow-modal: 0 8px 32px rgba(42,35,32,0.12), 0 2px 8px rgba(42,35,32,0.06);
   --shadow-gold: 0 0 20px rgba(201,164,76,0.15);
+
+  /* ── Motion budget (D-04 motion-budget token system) ──────────────────── */
+  /* Canonical easing: Apple-like luxe-out, gentle settle. Use for hero/page. */
+  --ease-out-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Standard ease — day-to-day transitions */
+  --ease-out-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Tight tap feedback (≤150ms) */
+  --dur-tap: 150ms;
+  /* Micro transitions — bg color, border, opacity */
+  --dur-micro: 200ms;
+  /* Standard fade, list item swap */
+  --dur-fade: 300ms;
+  /* Sheet open, drawer slide */
+  --dur-sheet: 400ms;
+  /* Page enter, card reveal */
+  --dur-page: 600ms;
+  /* Hero / editorial card fade-in */
+  --dur-hero: 900ms;
+  /* Stagger step for list reveal (apply × index) */
+  --stagger: 50ms;
 }
 
 /* ═══ Haretoki "Morning Light" Theme ═══ */

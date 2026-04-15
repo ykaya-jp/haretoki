@@ -149,11 +149,11 @@ export function EstimatePdfUpload({
       });
 
       if ("error" in result) {
-        toast.error("見積もりの保存に失敗しました");
+        toast.error("見積もりをうまく残せませんでした");
         return;
       }
 
-      toast.success("見積もりを保存しました ✨");
+      toast.success("見積もりを残しました");
       // Reset state
       setFile(null);
       setAnalysis(null);

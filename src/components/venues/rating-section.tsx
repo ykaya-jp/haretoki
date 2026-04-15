@@ -222,7 +222,7 @@ export function RatingSection({
             className="absolute top-0 right-0 text-xs text-green-600 dark:text-green-400 flex items-center gap-1"
             aria-live="polite"
           >
-            <Check className="h-3 w-3" /> 保存しました
+            <Check className="h-3 w-3" /> 残しました
           </motion.span>
         ) : null}
       </AnimatePresence>

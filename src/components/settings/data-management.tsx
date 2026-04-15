@@ -50,12 +50,12 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
           const data = (await res.json().catch(() => ({}))) as {
             error?: string;
           };
-          throw new Error(data.error ?? "削除に失敗しました");
+          throw new Error(data.error ?? "うまく消せませんでした");
         }
-        toast.success("アカウントを削除しました");
+        toast.success("アカウントを消しました");
         router.replace("/");
       } catch (error) {
-        const msg = error instanceof Error ? error.message : "削除に失敗しました";
+        const msg = error instanceof Error ? error.message : "うまく消せませんでした";
         toast.error(msg);
       }
     });
@@ -84,7 +84,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
           className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-destructive/20 px-4 py-3 text-sm text-destructive transition-colors hover:bg-destructive/5 active:scale-[0.98]"
         >
           <Trash2 className="h-4 w-4" />
-          アカウントを削除
+          アカウントを消す
         </button>
 
         <p className="text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
                   id="delete-dialog-title"
                   className="text-base font-medium"
                 >
-                  アカウントを削除しますか？
+                  アカウントを消しますか？
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   式場・見学記録・これまでの会話を含む、おふたりの式場さがしに関わるすべての中身が完全に消えます。この操作は戻せません。
