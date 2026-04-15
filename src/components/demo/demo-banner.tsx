@@ -26,7 +26,7 @@ export function DemoBanner() {
         <Link
           href="/signup"
           prefetch={true}
-          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.97] sm:text-sm"
+          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)] sm:text-sm"
         >
           はじめる
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />

@@ -465,10 +465,10 @@ export function AddVenueSheet({
                               <button
                                 type="button"
                                 onClick={() => removePhoto(i)}
-                                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
-                                aria-label="削除"
+                                className="group absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-background border border-border text-foreground shadow-sm active:scale-95 transition before:absolute before:inset-[-12px] before:content-['']"
+                                aria-label="写真を外す"
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-3 w-3" strokeWidth={2} />
                               </button>
                             </div>
                           ))}
@@ -563,14 +563,18 @@ function UrlSkeletonCard({ state, onManualFallback }: UrlSkeletonCardProps) {
           <Skeleton className="absolute inset-0 rounded-none" />
         )}
 
-        {/* Success badge */}
+        {/* Success badge — ブランド gold で「収まりました」の到着感 */}
         {status === "success" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-2 right-2 rounded-full bg-green-600/90 text-white text-xs px-2 py-0.5"
+            className="absolute top-2 right-2 rounded-full bg-[var(--gold-subtle)] text-[var(--gold-warm)] text-[11px] px-2.5 py-0.5 tracking-[0.08em] backdrop-blur-sm"
+            style={{
+              border:
+                "1px solid color-mix(in oklab, var(--gold-warm) 45%, transparent)",
+            }}
           >
-            追加済み
+            収まりました
           </motion.div>
         )}
       </div>
