@@ -16,6 +16,8 @@ export interface AIInsight {
   venueName?: string;
   actions: Array<{ label: string; href: string }>;
   priority: number;
+  /** R-4: days since generation — UI fades after 3, archives after 7. */
+  ageDays?: number;
 }
 
 /**
