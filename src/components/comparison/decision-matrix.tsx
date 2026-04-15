@@ -10,8 +10,51 @@ import { cn } from "@/lib/utils";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 
 const HIDDEN_DIMS_KEY = "haretoki:matrix:hidden-dims";
+const VENUE_FILTERS_KEY = "haretoki:matrix:venue-filters";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  credit_card: "カード",
+  cash: "現金",
+  bank_transfer: "振込",
+  installment: "分割",
+};
+
+interface VenueFilters {
+  /** Keep only venues whose dressBringIn is in this set. Empty = no filter. */
+  dressBringIn: string[];
+  /** Keep venues whose paymentMethodEnums include any of these. Empty = no filter. */
+  paymentMethods: string[];
+}
+
+function readPersistedVenueFilters(): VenueFilters {
+  const empty: VenueFilters = { dressBringIn: [], paymentMethods: [] };
+  if (typeof window === "undefined") return empty;
+  try {
+    const raw = window.localStorage.getItem(VENUE_FILTERS_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "dressBringIn" in parsed &&
+      "paymentMethods" in parsed
+    ) {
+      const p = parsed as { dressBringIn: unknown; paymentMethods: unknown };
+      const dressBringIn = Array.isArray(p.dressBringIn)
+        ? p.dressBringIn.filter((v): v is string => typeof v === "string")
+        : [];
+      const paymentMethods = Array.isArray(p.paymentMethods)
+        ? p.paymentMethods.filter((v): v is string => typeof v === "string")
+        : [];
+      return { dressBringIn, paymentMethods };
+    }
+  } catch {
+    // ignore
+  }
+  return empty;
+}
 
 function formatYen(amount: number | null): string {
   if (amount === null) return "—";
@@ -63,9 +106,40 @@ export function DecisionMatrix() {
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hiddenDims, setHiddenDims] = useState<Set<string>>(readPersistedHiddenDims);
+  const [venueFilters, setVenueFilters] = useState<VenueFilters>(readPersistedVenueFilters);
   const [filterOpen, setFilterOpen] = useState(false);
   const [insight, setInsight] = useState<MatrixInsight | null | undefined>(undefined);
   const prefersReduced = useReducedMotion();
+
+  const persistVenueFilters = (next: VenueFilters) => {
+    try {
+      if (next.dressBringIn.length === 0 && next.paymentMethods.length === 0) {
+        window.localStorage.removeItem(VENUE_FILTERS_KEY);
+      } else {
+        window.localStorage.setItem(VENUE_FILTERS_KEY, JSON.stringify(next));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const toggleVenueFilter = (kind: keyof VenueFilters, value: string) => {
+    setVenueFilters((prev) => {
+      const has = prev[kind].includes(value);
+      const nextValues = has
+        ? prev[kind].filter((v) => v !== value)
+        : [...prev[kind], value];
+      const next = { ...prev, [kind]: nextValues };
+      persistVenueFilters(next);
+      return next;
+    });
+  };
+
+  const clearVenueFilters = () => {
+    const empty: VenueFilters = { dressBringIn: [], paymentMethods: [] };
+    setVenueFilters(empty);
+    persistVenueFilters(empty);
+  };
 
   useEffect(() => {
     getMatrixData()
@@ -154,9 +228,27 @@ export function DecisionMatrix() {
     );
   }
 
-  const { venues, dimensions: allDimensions, winners } = data;
+  const { venues: allVenues, dimensions: allDimensions, winners } = data;
   const dimensions = allDimensions.filter((d) => !hiddenDims.has(d.id));
   const hiddenCount = allDimensions.length - dimensions.length;
+
+  const venues = allVenues.filter((v) => {
+    if (venueFilters.dressBringIn.length > 0) {
+      if (!v.dressBringIn || !venueFilters.dressBringIn.includes(v.dressBringIn)) {
+        return false;
+      }
+    }
+    if (venueFilters.paymentMethods.length > 0) {
+      const has = venueFilters.paymentMethods.some((m) =>
+        v.paymentMethodEnums.includes(m),
+      );
+      if (!has) return false;
+    }
+    return true;
+  });
+  const filteredOutCount = allVenues.length - venues.length;
+  const venueFilterActive =
+    venueFilters.dressBringIn.length + venueFilters.paymentMethods.length > 0;
 
   return (
     <motion.div
@@ -174,35 +266,38 @@ export function DecisionMatrix() {
             決定マトリクス
           </h3>
           <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-            {hiddenCount > 0
-              ? `${allDimensions.length - hiddenCount} / ${allDimensions.length} 観点を表示中`
-              : "ゴールドの背景が、各観点の 1 位です"}
+            {filteredOutCount > 0
+              ? `条件で ${filteredOutCount} 件を非表示中 · ${venues.length} 件を比較中`
+              : hiddenCount > 0
+                ? `${allDimensions.length - hiddenCount} / ${allDimensions.length} 観点を表示中`
+                : "ゴールドの背景が、各観点の 1 位です"}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
           aria-expanded={filterOpen}
-          aria-label="表示する観点を絞る"
+          aria-label="絞り込みを開く"
           className={cn(
             "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition active:scale-[0.98]",
-            hiddenCount > 0 || filterOpen
+            hiddenCount > 0 || venueFilterActive || filterOpen
               ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
               : "bg-background/60 text-foreground",
           )}
           style={{
             borderColor:
-              hiddenCount > 0 || filterOpen
+              hiddenCount > 0 || venueFilterActive || filterOpen
                 ? "color-mix(in oklab, var(--gold-warm) 55%, transparent)"
                 : "var(--border)",
           }}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.6} />
           <span>絞る</span>
-          {hiddenCount > 0 && (
-            <span className="tabular-nums">
-              ·{dimensions.length}
-            </span>
+          {(hiddenCount > 0 || venueFilterActive) && (
+            <span
+              aria-hidden="true"
+              className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[var(--gold-warm)]"
+            />
           )}
         </button>
       </div>
@@ -268,7 +363,100 @@ export function DecisionMatrix() {
                   );
                 })}
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground/80">
+
+              {/* Venue filters — F-08 */}
+              <div className="mt-5 border-t border-border/50 pt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                    条件で式場を絞る
+                  </p>
+                  {venueFilterActive && (
+                    <button
+                      type="button"
+                      onClick={clearVenueFilters}
+                      className="text-[11.5px] text-muted-foreground underline-offset-4 hover:underline"
+                    >
+                      条件をクリア
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <p className="mb-1.5 text-[11px] text-muted-foreground">
+                      ドレス持込
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "allowed", label: "可" },
+                        { value: "negotiable", label: "要相談" },
+                        { value: "not_allowed", label: "不可" },
+                      ].map((opt) => {
+                        const isOn = venueFilters.dressBringIn.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            role="switch"
+                            aria-checked={isOn}
+                            onClick={() => toggleVenueFilter("dressBringIn", opt.value)}
+                            className={cn(
+                              "inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[12px] transition active:scale-[0.98]",
+                              isOn
+                                ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+                                : "bg-background text-muted-foreground",
+                            )}
+                            style={{
+                              borderColor: isOn
+                                ? "color-mix(in oklab, var(--gold-warm) 40%, transparent)"
+                                : "var(--border)",
+                            }}
+                          >
+                            {isOn && <Check className="h-3 w-3" strokeWidth={2} />}
+                            <span>{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-1.5 text-[11px] text-muted-foreground">
+                      支払い方法
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => {
+                        const isOn = venueFilters.paymentMethods.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="switch"
+                            aria-checked={isOn}
+                            onClick={() => toggleVenueFilter("paymentMethods", value)}
+                            className={cn(
+                              "inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-[12px] transition active:scale-[0.98]",
+                              isOn
+                                ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+                                : "bg-background text-muted-foreground",
+                            )}
+                            style={{
+                              borderColor: isOn
+                                ? "color-mix(in oklab, var(--gold-warm) 40%, transparent)"
+                                : "var(--border)",
+                            }}
+                          >
+                            {isOn && <Check className="h-3 w-3" strokeWidth={2} />}
+                            <span>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-4 text-[11px] text-muted-foreground/80">
                 選択はこの端末のみ記憶されます。
               </p>
             </div>
@@ -276,10 +464,27 @@ export function DecisionMatrix() {
         )}
       </AnimatePresence>
 
+      {/* Empty-after-filter state: everything filtered out */}
+      {venues.length === 0 && venueFilterActive && (
+        <div className="rounded-2xl border border-dashed border-border/60 bg-card/50 p-6 text-center">
+          <p className="text-[13px] text-muted-foreground">
+            条件に合う候補がありません。
+          </p>
+          <button
+            type="button"
+            onClick={clearVenueFilters}
+            className="mt-2 text-[13px] font-medium text-[var(--gold-warm)] underline-offset-4 hover:underline"
+          >
+            条件をクリアする
+          </button>
+        </div>
+      )}
+
       {/* Scrollable table with right-edge fade to signal horizontal scroll.
           Note: The "別の式場を検討する / 決め直す" affordance for post-decision
           state belongs in candidates-view.tsx (where the decision screen is
           rendered at ~line 307-324), not in this matrix component. */}
+      {venues.length > 0 && (
       <div className="relative">
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
           <table className="w-full min-w-[560px]">
@@ -398,6 +603,7 @@ export function DecisionMatrix() {
           className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-2xl bg-gradient-to-l from-background to-transparent"
         />
       </div>
+      )}
 
       {/* Winners summary — "観点ごとのベスト" */}
       <div

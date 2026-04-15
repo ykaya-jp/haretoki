@@ -13,6 +13,11 @@ export interface MatrixVenue {
   costMin: number | null;
   costMax: number | null;
   latestEstimateTotal: number | null;
+  /** Filter fields (F-08) — see prisma/schema.prisma → Venue */
+  dressBringIn: "allowed" | "not_allowed" | "negotiable" | null;
+  dressBringInFee: number | null;
+  paymentMethodEnums: string[];
+  maxInstallments: number | null;
 }
 
 export interface MatrixData {
@@ -86,6 +91,10 @@ export async function getMatrixData(): Promise<MatrixData> {
       costMin: fav.venue.costMin,
       costMax: fav.venue.costMax,
       latestEstimateTotal: fav.venue.estimates[0]?.total ?? null,
+      dressBringIn: fav.venue.dressBringIn,
+      dressBringInFee: fav.venue.dressBringInFee,
+      paymentMethodEnums: fav.venue.paymentMethodEnums,
+      maxInstallments: fav.venue.maxInstallments,
     };
   });
 
