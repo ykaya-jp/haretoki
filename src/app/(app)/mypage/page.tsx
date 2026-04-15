@@ -26,7 +26,7 @@ async function getAppOrigin(): Promise<string> {
 
 export const metadata: Metadata = {
   title: "マイページ",
-  description: "プロフィール・パートナー招待・アプリ設定を管理します。",
+  description: "お名前・パートナー・アプリの整え方を、ここから。",
 };
 
 export default async function MyPage() {
@@ -65,7 +65,7 @@ export default async function MyPage() {
       <div>
         <h2 className="text-h1 font-serif font-extralight">マイページ</h2>
         <p className="mt-1 text-meta text-muted-foreground">
-          プロフィール・パートナー・設定をまとめて管理
+          お名前・パートナー・アプリの整え方を、ここから
         </p>
       </div>
       <div
@@ -141,8 +141,8 @@ export default async function MyPage() {
           <div className="flex items-center gap-3">
             <Settings className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="font-medium">設定</p>
-              <p className="text-xs text-muted-foreground">テーマ・通知・ログアウト</p>
+              <p className="font-medium">整える</p>
+              <p className="text-xs text-muted-foreground">見た目・通知・ログアウト</p>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
