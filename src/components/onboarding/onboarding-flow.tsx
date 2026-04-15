@@ -35,7 +35,7 @@ const QUESTIONS = [
   {
     id: "style",
     question: "どんな雰囲気がお好みですか？",
-    subtitle: "おふたりにぴったりの式場をご提案するために",
+    subtitle: "思い浮かぶ雰囲気を、いくつか選んでみてください",
     type: "pills" as const,
     options: [
       { id: "チャペル", label: "チャペル" },
@@ -49,13 +49,13 @@ const QUESTIONS = [
   {
     id: "guests",
     question: "ゲストは何名くらいをお考えですか？",
-    subtitle: "人数に合った会場をお探しします",
+    subtitle: "だいたいで大丈夫です。あとから変えられます",
     type: "number" as const,
   },
   {
     id: "area",
     question: "気になるエリアはありますか？",
-    subtitle: "通いやすい式場をお探しします",
+    subtitle: "ふたりの日常の、延長線にある街で",
     type: "pills" as const,
     options: [
       { id: "表参道", label: "表参道" },
@@ -69,7 +69,7 @@ const QUESTIONS = [
   {
     id: "budget",
     question: "ご予算の目安はありますか？",
-    subtitle: "おふたりに合った式場をご提案します",
+    subtitle: "おおよそで構いません。あとで見直せます",
     type: "pills" as const,
     options: [
       { id: "200", label: "〜200万" },
@@ -382,9 +382,9 @@ export function OnboardingFlow() {
 
   if (step === -1) {
     const introSteps = [
-      "好みを4問お伺いします",
-      "AIがおふたりに合う式場をご提案",
-      "気に入ったら評価・比較・決定まで、このアプリで",
+      "お好みを4問だけ、そっと伺います",
+      "おふたりに合う式場を、AI がいくつかご提案します",
+      "気になった場所は、このアプリで比べながら選べます",
     ];
     return (
       <motion.div
@@ -398,7 +398,7 @@ export function OnboardingFlow() {
             Haretoki
           </p>
           <h1 className="font-serif text-2xl font-light leading-snug text-foreground">
-            式場選びを、3ステップで。
+            晴れの日を、ふたりで描きはじめる。
           </h1>
         </div>
 
