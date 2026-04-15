@@ -9,6 +9,7 @@ import { ChatBubble } from "@/components/coach/chat-bubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/actions/onboarding";
+import { updateDisplayName } from "@/server/actions/profile";
 import { createVenue } from "@/server/actions/venues";
 import { Loader2, Sparkles, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -89,6 +90,7 @@ export function OnboardingFlow() {
   const [step, setStep] = useState(() =>
     Object.keys(answers).length > 0 ? 0 : -1,
   );
+  const [displayName, setDisplayName] = useState("");
   const [selectedPills, setSelectedPills] = useState<string[]>([]);
   const [guestCount, setGuestCount] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
@@ -416,9 +418,36 @@ export function OnboardingFlow() {
           ))}
         </ol>
 
+        <div className="w-full space-y-2 text-left">
+          <label
+            htmlFor="display-name"
+            className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground"
+          >
+            お名前 (任意)
+          </label>
+          <Input
+            id="display-name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="例: ゆうすけ"
+            maxLength={50}
+            className="h-11"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            ホームや見学メモで呼びかけに使わせていただきます。あとで変更できます。
+          </p>
+        </div>
+
         <div className="flex w-full flex-col items-center gap-4">
           <Button
-            onClick={() => setStep(0)}
+            onClick={async () => {
+              const trimmed = displayName.trim();
+              if (trimmed) {
+                // Fire and forget — フォールバック的に "(未設定)" を避けるための best-effort
+                updateDisplayName(trimmed).catch(() => {});
+              }
+              setStep(0);
+            }}
             className="h-11 min-h-11 w-full rounded-full"
           >
             はじめる

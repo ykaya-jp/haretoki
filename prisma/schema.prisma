@@ -153,6 +153,7 @@ model User {
   createdInvitations     ProjectInvitation[] @relation("ProjectInvitationCreator")
   consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
   agreements             CoupleAgreement[]
+  savedSearches          SavedSearch[]
 
   @@map("users")
 }
@@ -177,6 +178,7 @@ model Project {
   rituals          DailyRitual[]
   invitations      ProjectInvitation[]
   agreements       CoupleAgreement[]
+  savedSearches    SavedSearch[]
 
   @@map("projects")
 }
@@ -629,6 +631,25 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+/// E-10 Saved Search: ユーザーが保存した検索条件。マッチした式場を日次通知。
+model SavedSearch {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String    @map("project_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  label          String
+  filters        Json
+  lastNotifiedAt DateTime? @map("last_notified_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("saved_searches")
 }
 
 /// R-7 合意事項: カップルが話し合って決めたこと / 話し合い中のこと
