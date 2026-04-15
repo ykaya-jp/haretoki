@@ -66,11 +66,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://*.posthog.com https://eu.i.posthog.com https://*.sentry.io",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://*.posthog.com https://eu.i.posthog.com https://*.sentry.io",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "connect-src 'self' https://*.supabase.co https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
               "media-src 'self' blob: https://*.supabase.co",
               "frame-ancestors 'none'",
               "base-uri 'self'",

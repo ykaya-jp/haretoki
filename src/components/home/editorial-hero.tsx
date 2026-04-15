@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { buttonVariants } from "@/components/ui/button";
 import { HaloTap } from "@/components/ui/halo-tap";
@@ -17,6 +16,10 @@ interface EditorialHeroProps {
   hasDecision: boolean;
   upcomingVisits: number;
   percentage: number;
+  /** Server-rendered JST date label (eg. "2026 APR 15"). Avoids client clock
+   *  divergence and the previous useSyncExternalStore infinite-loop bug. */
+  dateLabel?: string;
+  timeOfDayLabel?: string;
   /**
    * When true, DailyRitual is shown above and already covers eyebrow +
    * headline + sub. EditorialHero collapses to metrics + primary CTA only.
@@ -84,19 +87,6 @@ function stageOf(p: EditorialHeroProps): StageContent {
   };
 }
 
-const subscribe = () => () => {};
-const getDateSnapshot = () => new Date().getTime();
-const getServerSnapshot = () => 0;
-
-function formatJaDate(ts: number) {
-  if (ts === 0) return { date: "", timeOfDay: "" };
-  const d = new Date(ts);
-  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-  const date = `${d.getFullYear()} ${months[d.getMonth()]} ${d.getDate()}`;
-  const h = d.getHours();
-  const timeOfDay = h < 5 ? "夜" : h < 11 ? "朝" : h < 15 ? "昼" : h < 18 ? "午後" : h < 22 ? "夕" : "夜";
-  return { date, timeOfDay };
-}
 
 /** Brand "sky chip" — a small circular illustration evoking 曇り→晴れ間→晴れ. */
 function SkyChip({ mood }: { mood: StageContent["sky"] }) {
@@ -189,8 +179,8 @@ function JourneyRingSm({ percentage }: { percentage: number }) {
 }
 
 export function EditorialHero(props: EditorialHeroProps) {
-  const ts = useSyncExternalStore(subscribe, getDateSnapshot, getServerSnapshot);
-  const { date, timeOfDay } = formatJaDate(ts);
+  const date = props.dateLabel ?? "";
+  const timeOfDay = props.timeOfDayLabel ?? "";
   const stage = stageOf(props);
   const prefersReduced = useReducedMotion();
 

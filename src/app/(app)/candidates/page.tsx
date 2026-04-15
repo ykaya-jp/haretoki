@@ -37,7 +37,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-h1 font-serif font-extralight">
+          <h2 className="text-h1 font-[family-name:var(--font-display)] font-extralight">
             {isRecentView ? "最近見た式場" : "候補"}
           </h2>
           <p className="mt-1 text-meta text-muted-foreground">

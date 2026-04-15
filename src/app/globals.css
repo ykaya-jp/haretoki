@@ -22,6 +22,10 @@
      venue names). Shippori Mincho brings more character than Noto Serif JP
      at very large sizes. Falls back to Noto Serif JP, then system mincho. */
   --font-display: var(--font-shippori-mincho, var(--font-noto-serif-jp, "Shippori Mincho", "Noto Serif JP", serif));
+  /* Tailwind `font-serif` utility maps to the display serif so legacy markup
+     keeps a real Japanese mincho instead of system serif (which renders 豆腐
+     for some kanji on Linux). */
+  --font-serif: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

@@ -80,6 +80,8 @@ export default async function HomePage() {
         upcomingVisits={progress.upcomingVisits}
         percentage={progress.percentage}
         compact={!!ritual}
+        dateLabel={dateLabel}
+        timeOfDayLabel={timeOfDayLabel}
       />
 
       <RecentVenues venues={homeData.recentVenues} />
