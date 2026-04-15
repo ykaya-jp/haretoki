@@ -119,13 +119,18 @@ export function AgreementsSection({ initialAgreements }: Props) {
 
   return (
     <section aria-label="ふたりの話し合い" className="space-y-3">
-      <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
-        ふたりの話し合い
-      </h2>
+      <div className="flex items-baseline gap-2">
+        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          Dialogue
+        </p>
+        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          ふたりの話し合い
+        </h2>
+      </div>
 
       {optimisticAgreements.length === 0 && !inputOpen ? (
         <p className="text-[12.5px] text-muted-foreground">
-          ふたりで話したことを残しておきましょう
+          話したことを、ひとつずつ残しておきましょう。「決めたこと」も「もう一度考えたいこと」も。
         </p>
       ) : (
         <div className="flex flex-wrap gap-2">
