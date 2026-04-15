@@ -40,11 +40,11 @@ export function ShareButton({ venueName, url }: ShareButtonProps) {
         toast.success("URLをコピーしました");
         return;
       }
-      toast.error("共有に対応していません");
+      toast.error("この端末ではシェアできません");
     } catch (err) {
       // User dismissing the share sheet raises AbortError — ignore silently.
       if (err instanceof Error && err.name === "AbortError") return;
-      toast.error("共有に失敗しました");
+      toast.error("うまくシェアできませんでした");
     }
   };
 

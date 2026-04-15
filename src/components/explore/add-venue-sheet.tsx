@@ -249,10 +249,10 @@ export function AddVenueSheet({
         resetForm();
         router.refresh();
       } else {
-        showToast("error", "追加できませんでした");
+        showToast("error", "うまく追加できませんでした");
       }
     } catch {
-      showToast("error", "追加できませんでした");
+      showToast("error", "うまく追加できませんでした");
     } finally {
       setManualLoading(false);
     }

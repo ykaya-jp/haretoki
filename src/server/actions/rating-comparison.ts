@@ -130,6 +130,6 @@ export async function generateRatingComparison(
 
     return { comment: response, cached: false };
   } catch {
-    return { comment: "比較コメントの生成に失敗しました。", cached: false };
+    return { comment: "比較コメントをうまく作れませんでした。", cached: false };
   }
 }

@@ -32,7 +32,7 @@ function LoginPageInner() {
   // Callback redirects here with ?error=auth on OAuth failure.
   useEffect(() => {
     if (searchParams.get("error") === "auth") {
-      setError("ログインに失敗しました。もう一度お試しください");
+      setError("ログインがうまくいきませんでした。もう一度お試しください");
     }
   }, [searchParams]);
 

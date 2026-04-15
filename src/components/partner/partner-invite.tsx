@@ -41,7 +41,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
       } catch {
         // fall through
       }
-      toast.error("コピーできませんでした。リンクを長押しで選択してください");
+      toast.error("うまくコピーできませんでした。リンクを長押しで選んでください");
     }
   };
 

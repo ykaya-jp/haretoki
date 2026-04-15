@@ -56,7 +56,7 @@ function ChecklistItemRow({
         startTransition(async () => {
           const result = await saveAnswer(venueId, item.id, patch);
           if (!result.success) {
-            toast.error("保存できませんでした");
+            toast.error("うまく残せませんでした");
           }
         });
       }, 500);

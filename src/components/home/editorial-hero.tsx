@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { buttonVariants } from "@/components/ui/button";
 import { HaloTap } from "@/components/ui/halo-tap";
 import { cn } from "@/lib/utils";
+
+const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 interface EditorialHeroProps {
   userName: string;
@@ -184,6 +187,7 @@ export function EditorialHero(props: EditorialHeroProps) {
   const ts = useSyncExternalStore(subscribe, getDateSnapshot, getServerSnapshot);
   const { date, timeOfDay } = formatJaDate(ts);
   const stage = stageOf(props);
+  const prefersReduced = useReducedMotion();
 
   const metrics = [
     { label: "気になる", value: props.totalVenues },
@@ -192,7 +196,13 @@ export function EditorialHero(props: EditorialHeroProps) {
   ];
 
   return (
-    <section aria-label="今日のおすすめアクション" className="relative">
+    <motion.section
+      aria-label="今日のおすすめアクション"
+      className="relative"
+      initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
+    >
       {/* Top row: eyebrow + sky chip */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-2.5">
@@ -302,6 +312,6 @@ export function EditorialHero(props: EditorialHeroProps) {
           </Link>
         )}
       </div>
-    </section>
+    </motion.section>
   );
 }

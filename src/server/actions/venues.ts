@@ -446,7 +446,7 @@ export async function addVenueFromUrl(url: string): Promise<{
     if (!response.ok) {
       console.error("addVenueFromUrl non-2xx:", { url, status: response.status });
       return {
-        error: `ページにアクセスできませんでした (HTTP ${response.status})。URLを確認するか、手動で入力してください。`,
+        error: `ページを開けませんでした (HTTP ${response.status})。URL を見直すか、手動で入力してみてください。`,
       };
     }
 
@@ -479,7 +479,7 @@ export async function addVenueFromUrl(url: string): Promise<{
       });
       return {
         error:
-          "ページの内容が読み取れませんでした（JavaScript必須の可能性があります）。手動で入力してください。",
+          "ページの中身を読めませんでした (JavaScript 必須のページかもしれません)。手動で入力してみてください。",
       };
     }
 
@@ -492,7 +492,7 @@ export async function addVenueFromUrl(url: string): Promise<{
     const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt);
 
     if (!claudeResponse) {
-      return { error: "AI解析に失敗しました。手動で入力してください。" };
+      return { error: "AI がうまく読めませんでした。手動で入力してみてください。" };
     }
 
     // Claude occasionally wraps JSON in markdown fences despite the system prompt.
@@ -506,7 +506,7 @@ export async function addVenueFromUrl(url: string): Promise<{
         snippet: claudeResponse.slice(0, 200),
       });
       return {
-        error: "ページ内容を構造化できませんでした。手動で入力してください。",
+        error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。",
       };
     }
 
@@ -517,7 +517,7 @@ export async function addVenueFromUrl(url: string): Promise<{
         issues: validated.error.issues,
       });
       return {
-        error: "ページ内容を構造化できませんでした。手動で入力してください。",
+        error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。",
       };
     }
 
@@ -540,10 +540,10 @@ export async function addVenueFromUrl(url: string): Promise<{
     captureError(error, { action: "addVenueFromUrl", url });
     if (isAbort) {
       return {
-        error: "読み込みに時間がかかりすぎました。手動で入力するか、URLを再確認してください。",
+        error: "読み込みに時間がかかりすぎました。手動で入力するか、URL を見直してください。",
       };
     }
-    return { error: "式場情報の取得に失敗しました。手動で入力してください。" };
+    return { error: "式場情報をうまく取れませんでした。手動で入力してみてください。" };
   }
 }
 

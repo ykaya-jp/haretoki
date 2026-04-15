@@ -106,7 +106,7 @@ export function EstimateForm({
       toast.success("見積もりを記録しました");
       onSaved?.();
     } catch {
-      setError("記録できませんでした");
+      setError("うまく記録できませんでした");
     } finally {
       setLoading(false);
     }

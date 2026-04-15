@@ -164,7 +164,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       } else if (skipped > 0 && succeeded === 0 && failed.length === 0) {
         toast.info("更新できる口コミがありませんでした");
       } else {
-        toast.error("要約の更新ができませんでした");
+        toast.error("要約の更新がうまくいきませんでした");
       }
       router.refresh();
     });

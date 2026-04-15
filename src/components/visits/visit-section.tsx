@@ -73,7 +73,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         setScheduleMemo("");
         router.refresh();
       } else {
-        toast.error(result.error ?? "追加できませんでした");
+        toast.error(result.error ?? "うまく追加できませんでした");
       }
     });
   };
@@ -100,7 +100,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
         setShowNoteForm(false);
         router.refresh();
       } else {
-        toast.error(result.error ?? "メモを保存できませんでした");
+        toast.error(result.error ?? "メモをうまく残せませんでした");
       }
     });
   };

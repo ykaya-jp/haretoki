@@ -253,7 +253,7 @@ export function AIRecommendations({
           router.refresh();
         }
       } catch {
-        toast.error("追加に失敗しました");
+        toast.error("うまく追加できませんでした");
       } finally {
         setAddingId(null);
       }

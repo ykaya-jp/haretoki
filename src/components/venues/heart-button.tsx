@@ -47,7 +47,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
       router.refresh();
     } catch {
       setFavorite(previous); // revert optimistic state on failure
-      toast.error("保存できませんでした", {
+      toast.error("うまく残せませんでした", {
         action: { label: "もう一度", onClick: () => void handleToggle() },
       });
     } finally {

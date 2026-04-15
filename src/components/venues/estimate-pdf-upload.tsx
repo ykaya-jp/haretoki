@@ -108,7 +108,7 @@ export function EstimatePdfUpload({
         toast.success("見積もりの分析が完了しました ✨");
       }
     } catch {
-      toast.error("見積もりの分析に失敗しました");
+      toast.error("見積もりをうまく読めませんでした");
     } finally {
       setUploading(false);
     }
@@ -162,7 +162,7 @@ export function EstimatePdfUpload({
       if (fileInputRef.current) fileInputRef.current.value = "";
       onSaved?.();
     } catch {
-      toast.error("見積もりの保存に失敗しました");
+      toast.error("見積もりをうまく残せませんでした");
     } finally {
       setSaving(false);
     }
