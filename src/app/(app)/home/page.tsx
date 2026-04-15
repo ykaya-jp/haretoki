@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
 import { getPendingInvitation } from "@/server/actions/invitations";
@@ -81,6 +83,22 @@ export default async function HomePage() {
       />
 
       <RecentVenues venues={homeData.recentVenues} />
+
+      <Link
+        href="/journey"
+        prefetch={false}
+        className="group flex items-center justify-between rounded-2xl border bg-card px-4 py-3.5 transition active:scale-[0.99]"
+      >
+        <span className="font-[family-name:var(--font-display)] text-[13.5px] font-light">
+          晴れまでの道をみる
+        </span>
+        <ArrowRight
+          aria-hidden="true"
+          className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          strokeWidth={1.6}
+        />
+      </Link>
+
 
       {showInsight && (
         <AIInsightCard
