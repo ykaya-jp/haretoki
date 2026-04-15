@@ -572,6 +572,40 @@ export function DecisionMatrix() {
                 })}
               </tr>
             ))}
+            {/* R-6: 見学後の気持ち (E-3 帰り道モード から集計) */}
+            {venues.some((v) => v.wayHomeMood !== null) && (
+              <tr>
+                <td className="sticky left-0 z-10 bg-card px-3 py-3 text-xs text-muted-foreground">
+                  見学後の気持ち
+                </td>
+                {venues.map((v) => {
+                  const m = v.wayHomeMood;
+                  const emoji =
+                    m === null
+                      ? "—"
+                      : m >= 4.5
+                        ? "☀️"
+                        : m >= 3.5
+                          ? "🌤"
+                          : m >= 2.5
+                            ? "☁️"
+                            : "🌫";
+                  return (
+                    <td
+                      key={v.id}
+                      className="relative px-2 py-3 text-center text-base"
+                      aria-label={
+                        m !== null
+                          ? `見学後の気持ち ${m.toFixed(1)} / 5`
+                          : "帰り道モード未記録"
+                      }
+                    >
+                      <span aria-hidden="true">{emoji}</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
             {/* Cost row */}
             <tr>
               <td className="sticky left-0 z-10 bg-card px-3 py-3 text-xs text-muted-foreground">
