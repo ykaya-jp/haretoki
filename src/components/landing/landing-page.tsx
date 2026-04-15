@@ -473,12 +473,20 @@ export function LandingPage() {
             >
               新規登録
             </Link>
-            <span className="inline-flex min-h-[44px] cursor-not-allowed items-center px-3 text-muted-foreground opacity-60">
-              利用規約（準備中）
-            </span>
-            <span className="inline-flex min-h-[44px] cursor-not-allowed items-center px-3 text-muted-foreground opacity-60">
-              プライバシーポリシー（準備中）
-            </span>
+            <Link
+              href="/terms"
+              prefetch={false}
+              className="inline-flex min-h-[44px] items-center px-3 text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              利用規約
+            </Link>
+            <Link
+              href="/privacy"
+              prefetch={false}
+              className="inline-flex min-h-[44px] items-center px-3 text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              プライバシーポリシー
+            </Link>
           </div>
           <div className="mt-12 h-px w-full bg-border/40" />
           <p className="mt-8 text-xs text-muted-foreground/40">

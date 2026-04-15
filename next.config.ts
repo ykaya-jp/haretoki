@@ -35,6 +35,53 @@ const nextConfig: NextConfig = {
       { source: "/venues", destination: "/explore", permanent: true },
     ];
   },
+  /**
+   * B-4 security headers. Applied to every response unless overridden by a
+   * route handler's own Response.headers. CSP is intentionally permissive
+   * for inline-style/script during the React 19 + next-intl migration; it
+   * can be tightened in a follow-up once hashes are generated.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(self), geolocation=(self), interest-cohort=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            // CSP — 最小限の allow-list。Supabase / Unsplash / PostHog /
+            // Sentry / Vercel-analytics を許可。inline は当面許可 (migration)
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://*.posthog.com https://eu.i.posthog.com https://*.sentry.io",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "connect-src 'self' https://*.supabase.co https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
+              "media-src 'self' blob: https://*.supabase.co",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "manifest-src 'self'",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
 };
 
 // Wrap order matters per next-intl docs: withNextIntl must be the OUTERMOST

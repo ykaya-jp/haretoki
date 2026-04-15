@@ -25,6 +25,15 @@ export default function robots(): MetadataRoute.Robots {
           "/venues",
           "/api",
           "/accept-invite",
+          "/invite", // E-11 招待リンク: token URLs should never be indexed
+          "/demo", // デモ環境 — SEO からは除外
+          "/visits",
+          "/checklist",
+          "/compare",
+          "/onboarding",
+          "/settings",
+          "/callback",
+          "/monitoring",
         ],
       },
     ],

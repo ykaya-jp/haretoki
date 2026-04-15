@@ -92,6 +92,49 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * B-19 Structured data (JSON-LD).
+ * Organization + WebSite + WebApplication. Emitted via <script type="application/ld+json">.
+ * Google / Bing read these on first crawl for Knowledge Panel, sitelinks,
+ * and rich result eligibility. Reuses the APP_URL constant declared above.
+ */
+const JSON_LD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Haretoki",
+    url: APP_URL,
+    logo: `${APP_URL}/icons/icon-512.png`,
+    description:
+      "結婚式場の比較・評価・最終決定を支援する中立ツール。見積もりの落とし穴を先回りで教え、ふたりの好みを見える化します。",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Haretoki",
+    url: APP_URL,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${APP_URL}/explore?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: "Haretoki",
+    url: APP_URL,
+    applicationCategory: "LifestyleApplication",
+    operatingSystem: "All",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "JPY" },
+    description:
+      "結婚式場の比較・評価・最終決定を支援する中立の AI パートナー。無料・カード不要。",
+  },
+];
+
 export default function RootLayout({
   children,
 }: {
@@ -100,6 +143,12 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans", geist.variable)}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
+        {/* B-19 JSON-LD — crawler-facing structured data */}
+        <script
+          type="application/ld+json"
+          // Static JSON string, no interpolation of user data — safe.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
