@@ -10,6 +10,7 @@ interface PhotoCarouselEmblaProps {
   photos: string[];
   alt: string;
   aspectRatio: "4/3" | "16/9" | "3/2";
+  onPhotoClick?: (index: number) => void;
 }
 
 // Multi-photo carousel. Split out from photo-carousel.tsx so that the
@@ -21,6 +22,7 @@ export function PhotoCarouselEmbla({
   photos,
   alt,
   aspectRatio,
+  onPhotoClick,
 }: PhotoCarouselEmblaProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -75,8 +77,18 @@ export function PhotoCarouselEmbla({
                   : aspectRatio === "3/2"
                     ? "aspect-[3/2]"
                     : "aspect-video",
+                onPhotoClick && "cursor-zoom-in",
               )}
               aria-label={`写真 ${index + 1}/${photos.length}`}
+              onClick={() => onPhotoClick?.(index)}
+              role={onPhotoClick ? "button" : undefined}
+              tabIndex={onPhotoClick ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (onPhotoClick && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  onPhotoClick(index);
+                }
+              }}
             >
               <VenueImage
                 src={photo}

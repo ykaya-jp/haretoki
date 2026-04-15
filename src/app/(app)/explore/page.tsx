@@ -127,7 +127,7 @@ export default async function ExplorePage({
     activeVibes.length > 0 ? filterVenuesByVibe(activeVibes) : Promise.resolve(null),
     getFavorites("mine"),
     getExploreAIRecommendationsSeed(),
-    listSavedSearches(),
+    listSavedSearches().catch(() => []),
   ]);
 
   // When vibe filter is active, intersect with vibe results (OR match across vibes,

@@ -22,7 +22,7 @@ export default async function JourneyPage() {
       {/* Header */}
       <header className="space-y-3">
         <Link
-          href="/dashboard"
+          href="/home"
           prefetch={false}
           className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] text-muted-foreground transition-opacity hover:opacity-70"
         >

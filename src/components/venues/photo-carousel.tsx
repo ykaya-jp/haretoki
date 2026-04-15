@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { Camera } from "lucide-react";
 import { VenueImage } from "@/components/ui/venue-image";
+import { PhotoLightbox } from "@/components/venues/photo-lightbox";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselProps {
@@ -35,6 +37,7 @@ export function PhotoCarousel({
   aspectRatio = "4/3",
   onAddPhotoClick,
 }: PhotoCarouselProps) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   if (photos.length === 0) {
     const baseClasses = cn(
       "flex flex-col items-center justify-center gap-3 rounded-2xl",
@@ -80,36 +83,58 @@ export function PhotoCarousel({
 
   if (photos.length === 1) {
     return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-[var(--r-lg)] border-b border-[var(--gold-subtle)]/40",
-          aspectRatio === "4/3"
-            ? "aspect-[4/3]"
-            : aspectRatio === "3/2"
-              ? "aspect-[3/2]"
-              : "aspect-video",
-        )}
-      >
-        <VenueImage
-          src={photos[0]}
-          alt={`${alt} - 写真`}
-          fill
-          priority
-          tone="hero"
-          className="rounded-[var(--r-lg)] object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      <>
+        <button
+          type="button"
+          onClick={() => setLightboxIndex(0)}
+          aria-label={`${alt} の写真を拡大表示`}
+          className={cn(
+            "group relative block w-full overflow-hidden rounded-[var(--r-lg)] border-b border-[var(--gold-subtle)]/40 transition active:scale-[0.995]",
+            aspectRatio === "4/3"
+              ? "aspect-[4/3]"
+              : aspectRatio === "3/2"
+                ? "aspect-[3/2]"
+                : "aspect-video",
+          )}
+        >
+          <VenueImage
+            src={photos[0]}
+            alt={`${alt} - 写真`}
+            fill
+            priority
+            tone="hero"
+            className="rounded-[var(--r-lg)] object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-[oklch(0_0_0_/_0.12)]"
+          />
+        </button>
+        <PhotoLightbox
+          photos={photos}
+          initialIndex={lightboxIndex ?? 0}
+          open={lightboxIndex !== null}
+          onClose={() => setLightboxIndex(null)}
         />
-        {/* Subtle bottom gradient — adds photographic richness and room
-            for future caption overlays. Kept low-intensity. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-[oklch(0_0_0_/_0.12)]"
-        />
-      </div>
+      </>
     );
   }
 
   return (
-    <PhotoCarouselEmbla photos={photos} alt={alt} aspectRatio={aspectRatio} />
+    <>
+      <PhotoCarouselEmbla
+        photos={photos}
+        alt={alt}
+        aspectRatio={aspectRatio}
+        onPhotoClick={(i) => setLightboxIndex(i)}
+      />
+      <PhotoLightbox
+        photos={photos}
+        initialIndex={lightboxIndex ?? 0}
+        open={lightboxIndex !== null}
+        onClose={() => setLightboxIndex(null)}
+      />
+    </>
   );
 }
