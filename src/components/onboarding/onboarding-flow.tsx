@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { PillOptions } from "@/components/ui/pill-options";
 import { ChatBubble } from "@/components/coach/chat-bubble";
+import { SkyChip } from "@/components/home/sky-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/actions/onboarding";
@@ -466,13 +467,31 @@ export function OnboardingFlow() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-4">
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>{step + 1} / {QUESTIONS.length}</span>
-        <div className="flex-1">
-          <div className="h-1 rounded-full bg-muted">
+      {/* Progress — SkyChip が 曇り→晴れ間→晴れ→太陽 と段階的に進む */}
+      <div className="flex items-center gap-3">
+        <SkyChip
+          mood={
+            step === 0
+              ? "cloudy"
+              : step === 1
+                ? "break"
+                : step === 2
+                  ? "clear"
+                  : "sunny"
+          }
+          size={40}
+        />
+        <div className="flex-1 space-y-1.5">
+          <p className="flex items-center gap-2 text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground tabular-nums">
+            <span className="font-medium text-[var(--gold-warm)]">
+              {step + 1}
+            </span>
+            <span aria-hidden="true" className="opacity-30">/</span>
+            <span>{QUESTIONS.length}</span>
+          </p>
+          <div className="h-px bg-[color-mix(in_oklab,var(--gold-warm)_15%,transparent)]">
             <div
-              className="h-1 rounded-full bg-primary transition-all duration-300"
+              className="h-full bg-gradient-to-r from-[var(--gold-warm)] to-[color-mix(in_oklab,var(--gold-warm)_60%,transparent)] transition-all duration-500"
               style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
             />
           </div>
