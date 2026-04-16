@@ -97,7 +97,7 @@ export function InviteLinkPanel({ initialLink }: InviteLinkPanelProps) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-7 items-center gap-1 rounded-full bg-foreground px-3 text-[10.5px] font-medium text-background transition active:scale-[0.96]"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-[12px] font-medium text-background transition active:scale-[0.96]"
               aria-label="リンクをコピー"
             >
               {copied ? (

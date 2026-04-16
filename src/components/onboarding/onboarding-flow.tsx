@@ -394,10 +394,10 @@ export function OnboardingFlow() {
         className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center gap-10 px-4 py-10 text-center"
       >
         <div className="space-y-5">
-          <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+          <p className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
             Haretoki
           </p>
-          <h1 className="font-serif text-2xl font-light leading-snug text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-extralight leading-snug tracking-[-0.005em] text-foreground">
             晴れの日を、ふたりで描きはじめる。
           </h1>
         </div>

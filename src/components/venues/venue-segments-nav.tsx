@@ -67,7 +67,7 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
   return (
     <nav
       aria-label="セクション切り替え"
-      className="sticky top-0 z-20 border-b border-white/40 bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-black/60"
+      className="sticky top-0 z-20 border-b border-border/40 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55"
     >
       <div className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
         <div className="flex gap-2 py-2" role="tablist">
@@ -81,7 +81,7 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
                 aria-controls={section.id}
                 onClick={() => handleClick(section.id)}
                 className={cn(
-                  "h-9 shrink-0 rounded-full border px-4 text-sm transition-colors active:scale-[0.97]",
+                  "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[13px] transition-colors active:scale-[0.97]",
                   isActive
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-transparent text-muted-foreground hover:border-foreground/40 hover:text-foreground",

@@ -14,7 +14,7 @@ async function AcceptInviteContent() {
   return (
     <div className="flex min-h-[60dvh] items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
+        <p className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
           Haretoki
         </p>
         <div>

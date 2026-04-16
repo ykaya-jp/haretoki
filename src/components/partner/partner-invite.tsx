@@ -89,7 +89,7 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
               <span className="text-muted-foreground">+</span>
             </div>
             <div>
-              <p className="text-sm font-medium">パートナーを招く</p>
+              <p className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em]">パートナーを招く</p>
               <p className="text-xs text-muted-foreground">
                 パートナーのメールアドレスで繋げます。同じメールでアカウントをはじめてもらえば、リンクから合流できます。
               </p>

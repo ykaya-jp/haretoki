@@ -81,13 +81,13 @@ export function BottomNav({ badges }: BottomNavProps) {
     <nav
       role="navigation"
       aria-label="メインナビゲーション"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/40 bg-white/60 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] dark:border-white/10 dark:bg-black/60"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55 pb-[env(safe-area-inset-bottom)]"
     >
       <div className="relative flex h-14 items-center justify-around">
         {activeIndex >= 0 && (
           <div
             aria-hidden
-            className="pointer-events-none absolute top-0 h-0.5 rounded-full bg-primary transition-[left,width] duration-300 ease-out"
+            className="pointer-events-none absolute top-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--gold-warm)] to-transparent transition-[left,width] duration-300 ease-out"
             style={{
               left: `${indicatorLeftPct}%`,
               width: `${indicatorWidthPct}%`,
