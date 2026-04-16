@@ -1,6 +1,7 @@
 /** Source weights for composite score calculation. user_rating is highest priority. */
 export const SCORE_SOURCE_WEIGHTS: Record<string, number> = {
   user_rating: 1.0,
+  checklist_derived: 0.6,
   zexy: 0.5,
   wedding_park: 0.5,
   hanayume: 0.4,

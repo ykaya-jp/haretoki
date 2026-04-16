@@ -57,7 +57,7 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
   const allVenues = await prisma.venue.findMany({
     where: { projectId },
     include: {
-      scores: { where: { source: { in: ["user_rating", "ai_analysis"] } } },
+      scores: { where: { source: { in: ["user_rating", "ai_analysis", "checklist_derived"] } } },
       estimates: { orderBy: { version: "desc" }, take: 1 },
     },
     orderBy: { createdAt: "desc" },
@@ -96,7 +96,8 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
       for (const key of keysToTry) {
         const userScore = v.scores.find((s) => s.dimension === key && s.source === "user_rating");
         const aiScore = v.scores.find((s) => s.dimension === key && s.source === "ai_analysis");
-        const match = userScore ?? aiScore;
+        const checklistScore = v.scores.find((s) => s.dimension === key && s.source === "checklist_derived");
+        const match = userScore ?? aiScore ?? checklistScore;
         if (match) { bestScore = Number(match.score); break; }
       }
       scoresByDimension[dimId] = bestScore;

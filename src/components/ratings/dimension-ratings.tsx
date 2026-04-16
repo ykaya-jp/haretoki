@@ -13,16 +13,21 @@ interface DimensionRatingsProps {
   venueId: string;
   visitId: string;
   initialRatings?: Record<string, number>;
+  /** source per dimension — used to show "チェックリストから算出" label */
+  initialSources?: Record<string, string>;
 }
 
 export function DimensionRatings({
   venueId,
   visitId,
   initialRatings,
+  initialSources,
 }: DimensionRatingsProps) {
   const [ratings, setRatings] = useState<Record<string, number>>(
     initialRatings ?? {},
   );
+  // Track which dimensions the user has manually edited in this session
+  const [manuallyEdited, setManuallyEdited] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -66,6 +71,7 @@ export function DimensionRatings({
   function handleChange(dimension: string, value: number) {
     const next = { ...ratings, [dimension]: value };
     setRatings(next);
+    setManuallyEdited((prev) => new Set(prev).add(dimension));
     setSaveStatus("idle");
 
     // Debounced auto-save after 500ms
@@ -87,6 +93,12 @@ export function DimensionRatings({
               disabled={isPending}
             />
           </div>
+          {initialSources?.[dimension] === "checklist_derived" &&
+            !manuallyEdited.has(dimension) && (
+              <span className="text-[10px] text-muted-foreground">
+                チェックリストから算出
+              </span>
+            )}
           {DIMENSION_HELP[dimension] && (
             <p className="text-xs text-muted-foreground">
               {DIMENSION_HELP[dimension]}

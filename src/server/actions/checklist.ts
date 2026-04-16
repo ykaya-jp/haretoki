@@ -5,7 +5,8 @@ import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/checklist-presets";
-import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
+import { getChecklistItemsForDimension, getDimensionForPreset, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
+import { calculateDimensionScore } from "@/lib/checklist-score-calculator";
 import type { Tier1Dimension } from "@/lib/constants";
 
 // ── Zod schemas ────────────────────────────────────────────────────────────────
@@ -216,8 +217,57 @@ export async function saveAnswer(
     },
   });
 
+  // --- Sync: recalculate checklist-derived score for the affected dimension ---
+  const dimension = getDimensionForPreset(itemId);
+  if (dimension !== "overall") {
+    // Fetch all yesno answers for this dimension's items
+    const dimItemIds = CHECKLIST_PRESETS
+      .filter((p) => p.type === "yesno" && (ITEM_TO_DIMENSION as Record<string, string>)[p.id] === dimension)
+      .map((p) => p.id);
+
+    const activeRows = await prisma.projectChecklist.findMany({
+      where: { projectId, itemId: { in: dimItemIds } },
+      select: { id: true, itemId: true },
+    });
+
+    const existingAnswers = await prisma.venueChecklistAnswer.findMany({
+      where: {
+        venueId,
+        projectChecklistId: { in: activeRows.map((r) => r.id) },
+      },
+      include: { projectChecklist: { select: { itemId: true } } },
+    });
+
+    const answerMap = new Map<string, string | null>();
+    for (const ans of existingAnswers) {
+      answerMap.set(ans.projectChecklist.itemId, ans.status);
+    }
+
+    const score = calculateDimensionScore(dimension as Tier1Dimension, answerMap);
+
+    if (score !== null) {
+      await prisma.venueScore.upsert({
+        where: {
+          venueId_dimension_source: {
+            venueId,
+            dimension,
+            source: "checklist_derived",
+          },
+        },
+        create: { venueId, dimension, source: "checklist_derived", score },
+        update: { score },
+      });
+    } else {
+      // Below threshold — remove stale derived score if exists
+      await prisma.venueScore.deleteMany({
+        where: { venueId, dimension, source: "checklist_derived" },
+      });
+    }
+  }
+
   revalidateTag(answerTag(venueId), { expire: 0 });
   revalidateTag(checklistTag(projectId), { expire: 0 });
+  revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${venueId}/checklist`);
   revalidatePath("/compare");
   return { success: true };

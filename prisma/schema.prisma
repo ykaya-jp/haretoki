@@ -52,6 +52,7 @@ enum ScoreSource {
   minna_no_wedding
   user_rating
   ai_analysis
+  checklist_derived
 }
 
 enum EstimateSourceType {
