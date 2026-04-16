@@ -5,6 +5,8 @@ import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/checklist-presets";
+import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
+import type { Tier1Dimension } from "@/lib/constants";
 
 // ── Zod schemas ────────────────────────────────────────────────────────────────
 
@@ -106,16 +108,16 @@ export async function applyStarterPreset(): Promise<{ success: boolean; added: n
   return { success: true, added: res.count };
 }
 
-// ── Bulk toggle (enable/disable all items in a category) ──────────────────────
+// ── Bulk toggle (enable/disable all items in a dimension) ─────────────────────
 
-export async function bulkToggleCategory(
-  category: string,
+export async function bulkToggleDimension(
+  dimension: string,
   active: boolean
 ): Promise<{ success: boolean; count: number }> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  const items = CHECKLIST_PRESETS.filter((p) => p.category === category);
+  const items = getChecklistItemsForDimension(dimension as Tier1Dimension);
   if (items.length === 0) return { success: false, count: 0 };
 
   if (active) {

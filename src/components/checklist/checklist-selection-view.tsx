@@ -1,11 +1,11 @@
 "use client";
 
 import { useOptimistic, useTransition, useState } from "react";
-import { toggleItem, bulkToggleCategory } from "@/server/actions/checklist";
-import type { ChecklistPresetItem, ChecklistCategory } from "@/lib/checklist-presets";
+import { toggleItem, bulkToggleDimension } from "@/server/actions/checklist";
+import type { ChecklistPresetItem } from "@/lib/checklist-presets";
 
-interface GroupedCategory {
-  category: ChecklistCategory;
+interface GroupedDimension {
+  dimension: string;
   label: string;
   subcategories: Array<{
     subcategory: string;
@@ -16,7 +16,7 @@ interface GroupedCategory {
 }
 
 interface ChecklistSelectionViewProps {
-  grouped: GroupedCategory[];
+  grouped: GroupedDimension[];
   activeItemIds: string[];
 }
 
@@ -34,9 +34,9 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
     }
   );
   const [, startTransition] = useTransition();
-  // Track which categories are open
+  // Track which dimensions are open
   const [openCategories, setOpenCategories] = useState<Set<string>>(
-    () => new Set(grouped.map((g) => g.category))
+    () => new Set(grouped.map((g) => g.dimension))
   );
 
   function handleToggle(itemId: string, active: boolean) {
@@ -46,16 +46,16 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
     });
   }
 
-  function handleBulkToggle(category: ChecklistCategory, active: boolean) {
+  function handleBulkToggle(dimension: string, active: boolean) {
     startTransition(async () => {
       const items =
         grouped
-          .find((g) => g.category === category)
+          .find((g) => g.dimension === dimension)
           ?.subcategories.flatMap((s) => s.items) ?? [];
       for (const item of items) {
         setOptimisticActive({ itemId: item.id, active });
       }
-      await bulkToggleCategory(category, active);
+      await bulkToggleDimension(dimension, active);
     });
   }
 
@@ -78,15 +78,15 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
         const catActive = allItems.filter((item) => optimisticActive.has(item.id)).length;
         const catTotal = allItems.length;
         const allSelected = catActive === catTotal;
-        const isOpen = openCategories.has(group.category);
+        const isOpen = openCategories.has(group.dimension);
 
         return (
-          <div key={group.category} className="rounded-lg border bg-card shadow-sm">
-            {/* Category header */}
+          <div key={group.dimension} className="rounded-lg border bg-card shadow-sm">
+            {/* Dimension header */}
             <div className="flex items-center gap-2 px-4 py-3">
               <button
                 className="flex flex-1 items-center gap-2 text-left active:opacity-70"
-                onClick={() => toggleOpen(group.category)}
+                onClick={() => toggleOpen(group.dimension)}
               >
                 <span className="font-medium">{group.label}</span>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
@@ -98,7 +98,7 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
               </button>
               <button
                 className="min-h-[36px] rounded-md border border-border px-3 text-xs text-muted-foreground active:bg-muted"
-                onClick={() => handleBulkToggle(group.category, !allSelected)}
+                onClick={() => handleBulkToggle(group.dimension, !allSelected)}
               >
                 {allSelected ? "すべて外す" : "すべて選ぶ"}
               </button>

@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { listActiveItems } from "@/server/actions/checklist";
-import { CHECKLIST_PRESETS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 import { ChecklistSelectionView } from "@/components/checklist/checklist-selection-view";
 import { ChecklistStarterCTA } from "@/components/checklist/starter-cta";
 import { ReflectionHint } from "@/components/checklist/reflection-hint";
+import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
+import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
 
 export const metadata: Metadata = {
   title: "チェックリスト設定",
@@ -16,26 +17,29 @@ export default async function ChecklistPage() {
   const { activeItemIds } = await listActiveItems();
   const activeSet = new Set(activeItemIds);
 
-  // Group presets by category × subcategory
-  const grouped = CATEGORY_ORDER.map((cat) => {
-    const items = CHECKLIST_PRESETS.filter((p) => p.category === cat);
-    const subcategoryMap = new Map<string, typeof items>();
-    for (const item of items) {
-      const key = item.subcategory ?? "その他";
-      if (!subcategoryMap.has(key)) subcategoryMap.set(key, []);
-      subcategoryMap.get(key)!.push(item);
-    }
-    return {
-      category: cat,
-      label: CATEGORY_LABELS[cat],
-      subcategories: Array.from(subcategoryMap.entries()).map(([sub, subItems]) => ({
-        subcategory: sub,
-        items: subItems,
-      })),
-      activeCount: items.filter((p) => activeSet.has(p.id)).length,
-      totalCount: items.length,
-    };
-  });
+  // Group presets by TIER1_DIMENSIONS (8 dimensions) — matches comparison view
+  const grouped = TIER1_DIMENSIONS
+    .filter((dim) => dim !== "overall") // overall has no checklist items
+    .map((dim) => {
+      const items = getChecklistItemsForDimension(dim);
+      // Sub-group by subcategory for readability
+      const subcategoryMap = new Map<string, typeof items>();
+      for (const item of items) {
+        const key = item.subcategory ?? "その他";
+        if (!subcategoryMap.has(key)) subcategoryMap.set(key, []);
+        subcategoryMap.get(key)!.push(item);
+      }
+      return {
+        dimension: dim,
+        label: DIMENSION_LABELS[dim] ?? dim,
+        subcategories: Array.from(subcategoryMap.entries()).map(([sub, subItems]) => ({
+          subcategory: sub,
+          items: subItems,
+        })),
+        activeCount: items.filter((p) => activeSet.has(p.id)).length,
+        totalCount: items.length,
+      };
+    });
 
   const totalActive = activeItemIds.length;
   const isEmpty = totalActive === 0;
