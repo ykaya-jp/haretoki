@@ -16,7 +16,13 @@ export function getAnthropicClient(): Anthropic {
 }
 
 export function isClaudeAvailable(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY?.trim();
+  const key = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!key) {
+    // Diagnostic: log which env vars are visible (key names only, no values)
+    console.warn("[isClaudeAvailable] ANTHROPIC_API_KEY is missing or empty. Env keys containing 'ANTHROPIC':",
+      Object.keys(process.env).filter(k => k.includes("ANTHROPIC")));
+  }
+  return !!key;
 }
 
 // --- Non-streaming call ---
