@@ -276,24 +276,36 @@ export function EditorialHero(props: EditorialHeroProps) {
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
         }}
       >
-        <div className="flex items-center gap-4">
-          {/* In compact mode the DailyRitual above already shows the weather
-              SkyChip; the percentage ring would be visually redundant
-              (R-1: 進捗リング → 天気アイコン化 = sky chip already covers it). */}
+        <div className={cn("space-y-4", compact && "space-y-0")}>
+          {/* Row 1: Progress (ring + %) — compact mode では DailyRitual が
+              SkyChip を出しているので省略。full mode だけ表示。 */}
           {!compact && (
-            <div className="flex items-center gap-2">
-              <JourneyRingSm percentage={props.percentage} />
-              <div className="leading-tight">
-                <div className="text-[10.5px] tracking-[0.12em] uppercase text-muted-foreground">Progress</div>
-                <div className="font-[family-name:var(--font-display)] tabular-nums text-[15px] text-foreground">
-                  {props.percentage}%
+            <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-4">
+              <div className="flex items-center gap-2.5">
+                <JourneyRingSm percentage={props.percentage} />
+                <div className="leading-tight">
+                  <div className="text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+                    Progress
+                  </div>
+                  <div className="font-[family-name:var(--font-display)] tabular-nums text-[17px] font-extralight text-foreground">
+                    {props.percentage}
+                    <span className="ml-0.5 text-[11px] text-muted-foreground">%</span>
+                  </div>
                 </div>
               </div>
+              <p className="max-w-[60%] text-right text-[11.5px] leading-relaxed text-muted-foreground/80">
+                {stage.stageLabel}
+              </p>
             </div>
           )}
-          <div className="ml-auto flex items-stretch divide-x divide-border/40 text-right">
+
+          {/* Row 2: 3 metrics — 均等 grid で余裕を持たせる */}
+          <div className="grid grid-cols-3 divide-x divide-border/40">
             {metrics.map((m) => (
-              <div key={m.label} className="flex flex-col items-end leading-tight px-3 first:pl-0 last:pr-0">
+              <div
+                key={m.label}
+                className="flex flex-col items-center leading-tight px-2 first:pl-0 last:pr-0"
+              >
                 <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-[22px] text-foreground">
                   {m.value}
                 </span>
