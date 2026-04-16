@@ -71,9 +71,14 @@ export function VisitQuestionsList({ questions: initial }: VisitQuestionsListPro
 
       {Object.entries(grouped).map(([category, items]) => (
         <section key={category} className="space-y-2">
-          <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            {category}
-          </h2>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              質問カテゴリ
+            </p>
+            <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em]">
+              {category}
+            </h2>
+          </div>
           <ul className="space-y-1.5">
             {items.map((q) => {
               const checked = q.status !== "unchecked";

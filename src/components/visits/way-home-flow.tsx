@@ -106,8 +106,10 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
             </button>
           )}
           <div className="flex-1 min-w-0">
-            <p className="truncate text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-              {venueName} · 帰り道モード
+            <p className="flex items-center gap-1.5 truncate text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+              <span aria-hidden="true" className="opacity-30">·</span>
+              <span className="truncate normal-case tracking-normal">After · {venueName}</span>
             </p>
           </div>
           <span className="text-[11px] text-muted-foreground tabular-nums">

@@ -119,8 +119,15 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base">見学のきろく</h2>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Visit
+          </p>
+          <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em]">
+            見学のきろく
+          </h2>
+        </div>
         {!scheduledVisit && (
           <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} className="gap-1">
             <Calendar className="h-4 w-4" />

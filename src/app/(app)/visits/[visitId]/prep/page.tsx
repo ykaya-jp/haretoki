@@ -38,27 +38,30 @@ export default async function VisitPrepPage({ params }: PageProps) {
     : null;
 
   return (
-    <div className="space-y-6 pb-24">
-      <Link
-        href={`/venues`}
-        prefetch={false}
-        className="-ml-2 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" /> 戻る
-      </Link>
-
-      <header>
-        <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
-          {dateLabel ? `${dateLabel} 見学` : "見学の準備"}
+    <div className="space-y-10 pb-24">
+      <div>
+        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <Link
+            href="/venues"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+          >
+            <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+            戻る
+          </Link>
+          <span aria-hidden="true" className="opacity-30">/</span>
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span>Prep</span>
         </p>
-        <h1 className="mt-1 font-[family-name:var(--font-display)] text-[24px] font-extralight leading-[1.35] tracking-[-0.005em]">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-[24px] font-extralight leading-[1.35] tracking-[-0.005em]">
           {data.venueName}、これだけは聞いて
         </h1>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          AI が厳選した {data.questions.length} 問。聞けたらタップでチェック。
+          {dateLabel ? `${dateLabel} 見学 · ` : ""}AI が厳選した {data.questions.length} 問。聞けたらタップでチェック。
           メモを添えるとあとで比較表に反映されます。
         </p>
-      </header>
+      </div>
 
       <VisitQuestionsList questions={data.questions} />
     </div>
