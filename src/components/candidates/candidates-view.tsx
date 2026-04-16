@@ -93,8 +93,8 @@ export function CandidatesView({
     getFavorites(filter).then(setFavorites);
   }, [filter]);
 
-  const canCompare = initialFavorites.length >= 2;
-  const canDecide = initialFavorites.length >= 1;
+  const canCompare = venueOptions.length >= 2;
+  const canDecide = venueOptions.length >= 1;
 
   useEffect(() => {
     if (initialTab && initialTab !== tab) {

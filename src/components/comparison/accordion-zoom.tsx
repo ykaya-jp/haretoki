@@ -56,14 +56,17 @@ export function AccordionZoom() {
   }
 
   if (!data || data.venues.length < 2) {
+    const hasVenuesButNoFavorites = data && data.venues.length < 2;
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center px-6">
         <p className="text-body text-muted-foreground">
-          比較するには候補が 2 件以上必要です。
+          {hasVenuesButNoFavorites
+            ? "式場カードの ♡ をタップして候補に追加すると、ここで並べて比べられます。"
+            : "比較するには式場を 2 件以上追加してください。"}
         </p>
         <Link
           href="/explore"
-          className="text-[var(--gold-warm)] text-sm underline-offset-4 hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground active:scale-[0.98]"
         >
           式場を探す
         </Link>
