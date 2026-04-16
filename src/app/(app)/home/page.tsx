@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
 import { getPendingInvitation } from "@/server/actions/invitations";
@@ -86,32 +85,15 @@ export default async function HomePage() {
 
       <RecentVenues venues={homeData.recentVenues} />
 
-      <Link
-        href="/journey"
-        prefetch={false}
-        className="group flex min-h-[64px] items-center justify-between gap-3 border-l-2 pl-4 pr-1 py-3.5 transition active:opacity-70"
-        style={{
-          borderLeftColor:
-            "color-mix(in oklab, var(--gold-warm) 50%, transparent)",
-        }}
-      >
-        <div className="min-w-0">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-[var(--gold-warm)]">
-            Journey
-          </p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em] text-foreground">
-            晴れまでの道をみる
-          </p>
-          <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">
-            ここまでの歩み、これからの 5 つの節目
-          </p>
-        </div>
-        <ArrowRight
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0 text-[var(--gold-warm)] transition-transform group-hover:translate-x-0.5"
-          strokeWidth={1.6}
-        />
-      </Link>
+      <div className="text-center">
+        <Link
+          href="/journey"
+          prefetch={false}
+          className="inline-flex min-h-[44px] items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+        >
+          晴れまでの道 →
+        </Link>
+      </div>
 
 
       {showInsight && (
@@ -119,7 +101,11 @@ export default async function HomePage() {
           type={topInsight.type}
           title={topInsight.title}
           body={topInsight.body}
-          actions={topInsight.actions}
+          actions={
+            topInsight.actions?.[0]?.href?.startsWith("/candidates")
+              ? []
+              : topInsight.actions
+          }
         />
       )}
     </div>

@@ -318,34 +318,36 @@ export function EditorialHero(props: EditorialHeroProps) {
         </div>
       </div>
 
-      {/* Primary CTA — rounded 14px, gentle gold halo */}
-      <div className="mt-6 flex flex-col gap-2.5">
-        <HaloTap className="w-full rounded-[14px]">
-          <Link
-            href={stage.primary.href}
-            prefetch={true}
-            className={cn(
-              buttonVariants({ variant: "default", size: "default" }),
-              "w-full justify-center rounded-[14px] text-[14.5px] font-medium tracking-wide",
-            )}
-            style={{
-              boxShadow:
-                "0 1px 2px rgba(42,35,32,0.08), 0 8px 24px color-mix(in oklab, var(--gold-warm) 18%, transparent)",
-            }}
-          >
-            {stage.primary.label}
-          </Link>
-        </HaloTap>
-        {stage.secondary && (
-          <Link
-            href={stage.secondary.href}
-            prefetch={true}
-            className="text-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
-          >
-            {stage.secondary.label}
-          </Link>
-        )}
-      </div>
+      {/* Primary CTA — only in full mode; DailyRitual already has one in compact */}
+      {!compact && (
+        <div className="mt-6 flex flex-col gap-2.5">
+          <HaloTap className="w-full rounded-[14px]">
+            <Link
+              href={stage.primary.href}
+              prefetch={true}
+              className={cn(
+                buttonVariants({ variant: "default", size: "default" }),
+                "w-full justify-center rounded-[14px] text-[14.5px] font-medium tracking-wide",
+              )}
+              style={{
+                boxShadow:
+                  "0 1px 2px rgba(42,35,32,0.08), 0 8px 24px color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+              }}
+            >
+              {stage.primary.label}
+            </Link>
+          </HaloTap>
+          {stage.secondary && (
+            <Link
+              href={stage.secondary.href}
+              prefetch={true}
+              className="text-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              {stage.secondary.label}
+            </Link>
+          )}
+        </div>
+      )}
     </motion.section>
   );
 }

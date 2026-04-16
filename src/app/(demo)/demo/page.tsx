@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { HeroNba } from "@/components/home/hero-nba";
 import { useDemoData } from "@/components/demo/demo-data-provider";
 
 // Demo index page — simplified "ホーム" showing the real HeroNba pre-filled
@@ -29,13 +28,14 @@ export default function DemoHomePage() {
         </p>
       </header>
 
-      <HeroNba
-        totalVenues={totalVenues}
-        visitedVenues={visitedVenues}
-        favoriteCount={favoriteCount}
-        hasDecision={false}
-        upcomingVisits={0}
-      />
+      <div className="rounded-xl border border-border/60 bg-card p-5 shadow-[var(--shadow-card)]">
+        <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground">デモ進捗</p>
+        <div className="mt-3 grid grid-cols-3 divide-x divide-border/40 text-center">
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{totalVenues}</span><span className="text-[10px] text-muted-foreground">気になる</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{visitedVenues}</span><span className="text-[10px] text-muted-foreground">印象メモ</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{favoriteCount}</span><span className="text-[10px] text-muted-foreground">本命</span></div>
+        </div>
+      </div>
 
       {/* Quick-tour CTAs */}
       <section aria-labelledby="demo-tour-heading" className="space-y-3">
