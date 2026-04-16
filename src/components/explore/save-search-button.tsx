@@ -135,7 +135,7 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
             onClick={handleSave}
             disabled={isPending || !label.trim()}
           >
-            {isPending ? "保存中..." : "保存する"}
+            {isPending ? "残しています…" : "保存する"}
           </Button>
         </SheetFooter>
       </SheetContent>

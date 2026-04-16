@@ -272,7 +272,7 @@ function PhotoUploadButton({ itemId }: { itemId: string }) {
       ) : (
         <Camera className="h-3.5 w-3.5" />
       )}
-      {uploading ? "送信中..." : "写真を撮る"}
+      {uploading ? "送っています…" : "写真を撮る"}
       <input
         type="file"
         accept="image/*"

@@ -294,7 +294,7 @@ export function EstimatePdfUpload({
             {saving ? (
               <>
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                保存中...
+                残しています…
               </>
             ) : (
               "この内容で保存"

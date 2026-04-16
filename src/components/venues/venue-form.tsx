@@ -117,7 +117,7 @@ export function VenueForm() {
       )}
 
       <Button type="submit" disabled={loading} className="w-full">
-        {loading ? "登録中..." : "この式場を追加する"}
+        {loading ? "追加しています…" : "この式場を追加する"}
       </Button>
     </form>
   );

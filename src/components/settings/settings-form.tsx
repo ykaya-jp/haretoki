@@ -154,7 +154,7 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
         {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            保存中...
+            残しています…
           </>
         ) : (
           <>
