@@ -19,13 +19,15 @@ interface Chip {
 
 interface VenuePersonalizedChipsProps {
   conditions: PersonalizedConditions;
+  /** When true, suppresses the section header and subtitle (used inside UnifiedFilterZone) */
+  hideHeader?: boolean;
 }
 
 /**
  * Non-dismissable style badge row showing onboarding-derived filters applied to /explore.
  * Each chip's "×" removes only that condition from the URL.
  */
-export function VenuePersonalizedChips({ conditions }: VenuePersonalizedChipsProps) {
+export function VenuePersonalizedChips({ conditions, hideHeader = false }: VenuePersonalizedChipsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -76,14 +78,16 @@ export function VenuePersonalizedChips({ conditions }: VenuePersonalizedChipsPro
       aria-label="パーソナライズフィルタ"
       data-testid="personalized-chips"
     >
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          絞り込み条件
-        </span>
-        <span className="text-[10px] text-muted-foreground/70">
-          オンボーディングの回答をもとに設定されています
-        </span>
-      </div>
+      {!hideHeader && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            絞り込み条件
+          </span>
+          <span className="text-[10px] text-muted-foreground/70">
+            オンボーディングの回答をもとに設定されています
+          </span>
+        </div>
+      )}
       {chips.map((chip, idx) => (
         <button
           key={`${chip.key}-${chip.value ?? idx}`}

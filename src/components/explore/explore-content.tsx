@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
+import { useState, useMemo, useCallback, useTransition, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueFilterSheet } from "@/components/explore/venue-filter-sheet";
 import { SaveSearchButton } from "@/components/explore/save-search-button";
 import { VenueCard } from "@/components/venues/venue-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
@@ -13,6 +14,7 @@ import type { VenueFilters } from "@/server/actions/venue-filters";
 import type { SavedSearchFilters } from "@/server/actions/saved-searches";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
+import Link from "next/link";
 
 type VenueWithRelations = Venue & {
   scores: VenueScore[];
@@ -30,6 +32,12 @@ interface ExploreContentProps {
   fitReasons?: Record<string, string | null>;
   /** Number of saved searches already stored (for limit check). */
   savedSearchCount?: number;
+  /** Server-rendered personalized condition chips to show inside the filter zone */
+  conditionChips?: ReactNode;
+  /** Server-rendered vibe filter chips to show inside the filter zone */
+  vibeChips?: ReactNode;
+  /** Active search query (from URL ?q=) for empty state messaging */
+  searchQuery?: string;
 }
 
 const validVibeIds: Set<string> = new Set(VIBE_TAGS.map((t) => t.id));
@@ -48,6 +56,9 @@ export function ExploreContent({
   baseFilters,
   fitReasons = {},
   savedSearchCount = 0,
+  conditionChips,
+  vibeChips,
+  searchQuery = "",
 }: ExploreContentProps) {
   const [venues, setVenues] = useState(initialVenues);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -137,11 +148,50 @@ export function ExploreContent({
 
   return (
     <>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 overflow-x-auto">
-          <FilterChips chips={chips} onToggle={handleToggle} />
+      {/* Unified filter zone — groups all filter controls in one container */}
+      <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-3.5">
+        {/* Zone header */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground">
+            条件で絞り込み
+          </span>
+          <span className="tabular-nums text-xs font-medium text-[var(--gold-warm)]">
+            {filteredVenues.length}件
+          </span>
         </div>
-        <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
+
+        {/* Personalized condition chips (server-rendered, passed from page) */}
+        {conditionChips && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
+              条件
+            </p>
+            {conditionChips}
+          </div>
+        )}
+
+        {/* Vibe emoji chips (server-rendered, passed from page) */}
+        {vibeChips && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
+              雰囲気
+            </p>
+            {vibeChips}
+          </div>
+        )}
+
+        {/* Status chips row */}
+        <div className="space-y-1.5">
+          <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
+            ステータス
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 overflow-x-auto">
+              <FilterChips chips={chips} onToggle={handleToggle} />
+            </div>
+            <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
+          </div>
+        </div>
       </div>
 
       {/* E-10 v2: Save Search — reflects live client filter state */}
@@ -160,7 +210,35 @@ export function ExploreContent({
         </div>
       )}
 
-      {!isPending && filteredVenues.length === 0 ? (
+      {!isPending && venues.length === 0 && !searchQuery && (
+        <EmptyState
+          icon={Search}
+          imageUrl="/images/empty-explore.png"
+          imageAlt="式場を探す"
+          title="式場さがしは、ここから"
+          description="画面右下の「＋」からURLを貼るだけ。AIが自動で情報を読み取ります。"
+        />
+      )}
+
+      {!isPending && venues.length === 0 && searchQuery && (
+        <div className="flex flex-col items-center gap-3">
+          <EmptyState
+            icon={Search}
+            title="該当する式場がありません"
+            description={`「${searchQuery}」に一致する式場は見つかりませんでした。キーワードを変えてお試しください。`}
+            action={{ href: "/explore", label: "検索をクリア" }}
+          />
+          <Link
+            href="/explore?addVenue=1"
+            prefetch={true}
+            className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4"
+          >
+            URLから式場を追加
+          </Link>
+        </div>
+      )}
+
+      {!isPending && venues.length > 0 && filteredVenues.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Search className="h-7 w-7 text-muted-foreground" />
@@ -184,7 +262,7 @@ export function ExploreContent({
           )}
         </div>
       ) : (
-        !isPending && (
+        !isPending && venues.length > 0 && (
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
               {filteredVenues.map((venue, i) => (

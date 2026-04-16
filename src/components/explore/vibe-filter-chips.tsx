@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 
 interface VibeFilterChipsProps {
   activeVibes: VibeTag[];
+  /** When true, suppresses the section header (used inside UnifiedFilterZone) */
+  hideHeader?: boolean;
 }
 
-export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
+export function VibeFilterChips({ activeVibes, hideHeader = false }: VibeFilterChipsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -38,11 +40,28 @@ export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
-          雰囲気でしぼる
-        </p>
-        {activeCount > 0 && (
+      {!hideHeader && (
+        <div className="flex items-baseline justify-between">
+          <p className="text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+            雰囲気でしぼる
+          </p>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("vibe");
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+              }}
+              className="text-[11px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+            >
+              すべて外す
+            </button>
+          )}
+        </div>
+      )}
+      {hideHeader && activeCount > 0 && (
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => {
@@ -54,8 +73,8 @@ export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
           >
             すべて外す
           </button>
-        )}
-      </div>
+        </div>
+      )}
       <div
         className="-mx-6 flex gap-2 overflow-x-auto px-6 py-1 scrollbar-hide"
         style={{ scrollSnapType: "x mandatory" }}

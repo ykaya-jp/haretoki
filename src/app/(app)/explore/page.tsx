@@ -17,9 +17,6 @@ import {
 } from "@/components/venues/venue-personalized-chips";
 import { VibeFilterChips } from "@/components/explore/vibe-filter-chips";
 import { listSavedSearches } from "@/server/actions/saved-searches";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Search } from "lucide-react";
-import Link from "next/link";
 import type { VibeTag } from "@/lib/vibe-tags";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 
@@ -164,12 +161,6 @@ export default async function ExplorePage({
       {/* Search bar */}
       <VenueSearchBar initialQuery={query} />
 
-      {/* Personalized filter chips from onboarding conditions */}
-      <VenuePersonalizedChips conditions={appliedConditions} />
-
-      {/* R-2 気分で探す — vibe tag chips */}
-      <VibeFilterChips activeVibes={activeVibes} />
-
       {/* AI Recommendations — always renders a stable container.
           Server-fetched seed (venueCount + conditions) is passed so the
           initial paint matches the final state and avoids the "appears
@@ -180,45 +171,30 @@ export default async function ExplorePage({
         shouldRequest={aiSeed.shouldRequest}
       />
 
-      {/* Venue list with filters */}
-      {venues.length === 0 ? (
-        query ? (
-          <div className="flex flex-col items-center gap-3">
-            <EmptyState
-              icon={Search}
-              title="該当する式場がありません"
-              description={`「${query}」に一致する式場は見つかりませんでした。キーワードを変えてお試しください。`}
-              action={{ href: "/explore", label: "検索をクリア" }}
-            />
-            {/* Secondary CTA: let the user add a brand-new venue from URL when
-                their search returned nothing. Reuses the AddVenueSheet auto-open
-                pattern (?addVenue=1) already wired up in the header. */}
-            <Link
-              href="/explore?addVenue=1"
-              prefetch={true}
-              className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline underline-offset-4"
-            >
-              URLから式場を追加
-            </Link>
-          </div>
-        ) : (
-          <EmptyState
-            icon={Search}
-            imageUrl="/images/empty-explore.png"
-            imageAlt="式場を探す"
-            title="式場さがしは、ここから"
-            description="画面右下の「＋」からURLを貼るだけ。AIが自動で情報を読み取ります。"
-          />
-        )
-      ) : (
-        <ExploreContent
-          venues={venues}
-          favoriteIds={favoriteIds}
-          baseFilters={hasAnyFilter ? venueFilters : undefined}
-          fitReasons={fitReasons}
-          savedSearchCount={savedSearches.length}
-        />
-      )}
+      {/* Venue list with unified filter zone.
+          ExploreContent renders the filter zone even when the list is empty,
+          so users can always adjust filters after getting zero results. */}
+      <ExploreContent
+        venues={venues}
+        favoriteIds={favoriteIds}
+        baseFilters={hasAnyFilter ? venueFilters : undefined}
+        fitReasons={fitReasons}
+        savedSearchCount={savedSearches.length}
+        conditionChips={
+          (appliedConditions.styles?.length ||
+            appliedConditions.areas?.length ||
+            appliedConditions.guestCount !== undefined ||
+            appliedConditions.budgetMax !== undefined) ? (
+            <VenuePersonalizedChips conditions={appliedConditions} hideHeader />
+          ) : undefined
+        }
+        vibeChips={
+          activeVibes.length > 0 ? (
+            <VibeFilterChips activeVibes={activeVibes} hideHeader />
+          ) : undefined
+        }
+        searchQuery={query}
+      />
     </div>
   );
 }
