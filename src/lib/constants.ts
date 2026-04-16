@@ -49,6 +49,24 @@ export const LEGACY_DIMENSION_MAP: Record<string, Tier1Dimension> = {
   access: "logistics",
   cost: "cost_contract",
   reviews: "overall",
+  // These old keys map to their closest new equivalent
+  dress: "attire_items",
+  staff_continuity: "hospitality",
+  capacity: "logistics",
+  cancellation: "cost_contract",
+  flowers: "banquet_space",
+  photo_video: "ceremony_space",
+};
+
+export const NEW_TO_DB_DIMENSION: Record<Tier1Dimension, string> = {
+  ceremony_space: "ceremony_space",
+  banquet_space: "banquet_space",
+  cuisine: "cuisine",
+  attire_items: "attire_items",
+  hospitality: "hospitality",
+  cost_contract: "cost_contract",
+  logistics: "logistics",
+  overall: "overall",
 };
 
 export const SCORE_COLORS = {

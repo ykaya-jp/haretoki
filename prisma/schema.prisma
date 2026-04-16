@@ -35,6 +35,13 @@ enum ScoreDimension {
   capacity
   cancellation
   way_home_mood
+  // v2 MECE dimensions (added 2026-04-17)
+  ceremony_space
+  banquet_space
+  attire_items
+  cost_contract
+  logistics
+  overall
 }
 
 enum ScoreSource {
