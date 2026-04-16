@@ -313,7 +313,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           <AIInsightCard
             type="comparison"
             title={`${SOURCE_OPTIONS.find(s => s.value === review.source)?.label ?? review.source} のまとめ`}
-            body={review.aiSummary!}
+            body={review.aiSummary ?? ""}
             actions={[{ label: "口コミ元を読む", href: review.sourceUrl }]}
           />
 

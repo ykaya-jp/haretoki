@@ -71,7 +71,7 @@ export function SegmentedControl({ segments, activeId, onChange }: SegmentedCont
             onChange(segment.id);
           }}
           className={cn(
-            "relative z-10 flex min-h-11 flex-1 items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-200",
+            "relative z-10 flex min-h-11 flex-1 items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-200 active:scale-[0.97]",
             // Subtle gold "ink" underline that expands only on the active tab.
             // Purely decorative (no ARIA role); the motion pill + aria-selected
             // remain the source of truth for state.

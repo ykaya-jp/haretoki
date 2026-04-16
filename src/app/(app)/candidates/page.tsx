@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 interface CandidatesPageProps {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; tab?: string }>;
 }
 
 export default async function CandidatesPage({ searchParams }: CandidatesPageProps) {
@@ -32,6 +32,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   // ?view=recent: surface a note that "最近見た" is in the list below.
   // Full "recently viewed" sub-tab is deferred to Tier 2.
   const isRecentView = params.view === "recent";
+  const initialTab = params.tab as "shortlist" | "matrix" | "focus" | "checklist" | "decision" | undefined;
 
   return (
     <div className="space-y-10">
@@ -81,6 +82,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
             : null
         }
         userName={userName}
+        initialTab={initialTab}
       />
     </div>
   );

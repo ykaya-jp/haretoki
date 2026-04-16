@@ -28,21 +28,28 @@ export function DimensionRatings({
     "idle" | "saving" | "saved" | "error"
   >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
 
   const doSave = useCallback(
     (currentRatings: Record<string, number>) => {
       if (Object.keys(currentRatings).length === 0) return;
+      if (inFlightRef.current) return;
 
+      inFlightRef.current = true;
       setSaveStatus("saving");
       startTransition(async () => {
-        const result = await saveRatings(venueId, visitId, {
-          ratings: currentRatings,
-        });
-        if (result.success) {
-          setSaveStatus("saved");
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        } else {
-          setSaveStatus("error");
+        try {
+          const result = await saveRatings(venueId, visitId, {
+            ratings: currentRatings,
+          });
+          if (result.success) {
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          } else {
+            setSaveStatus("error");
+          }
+        } finally {
+          inFlightRef.current = false;
         }
       });
     },

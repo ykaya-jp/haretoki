@@ -47,7 +47,7 @@ function stageOf(p: EditorialHeroProps): StageContent {
       headline: "晴れの日が、近づいています。",
       sub: () => "あとは準備を、ゆっくりと",
       sky: "sun-rays",
-      primary: { label: "決めた式場を見る", href: "/candidates" },
+      primary: { label: "決めた式場を見る", href: "/candidates?tab=decision" },
     };
   if (p.favoriteCount >= 2)
     return {
@@ -56,7 +56,7 @@ function stageOf(p: EditorialHeroProps): StageContent {
       headline: "ふたりで、並べてみよう。",
       sub: (x) => `本命 ${x.favoriteCount} 件。比べるほど、輪郭が見えてきます`,
       sky: "sun",
-      primary: { label: "比べてみる", href: "/candidates" },
+      primary: { label: "比べてみる", href: "/candidates?tab=matrix" },
     };
   if (p.visitedVenues >= 1)
     return {

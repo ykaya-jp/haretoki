@@ -29,22 +29,24 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
 
   let decision;
   try {
-    await prisma.venue.update({
-      where: { id: validation.data.selectedVenueId, projectId },
-      data: { status: "selected" },
-    });
+    decision = await prisma.$transaction(async (tx) => {
+      await tx.venue.update({
+        where: { id: validation.data.selectedVenueId, projectId },
+        data: { status: "selected" },
+      });
 
-    decision = await prisma.decision.upsert({
-      where: { projectId },
-      update: {
-        selectedVenueId: validation.data.selectedVenueId,
-        rationale: validation.data.rationale ?? null,
-      },
-      create: {
-        projectId,
-        selectedVenueId: validation.data.selectedVenueId,
-        rationale: validation.data.rationale ?? null,
-      },
+      return tx.decision.upsert({
+        where: { projectId },
+        update: {
+          selectedVenueId: validation.data.selectedVenueId,
+          rationale: validation.data.rationale ?? null,
+        },
+        create: {
+          projectId,
+          selectedVenueId: validation.data.selectedVenueId,
+          rationale: validation.data.rationale ?? null,
+        },
+      });
     });
   } catch (err) {
     // Report-and-rethrow: the route's error boundary still shows the ceremony

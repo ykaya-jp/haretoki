@@ -36,7 +36,7 @@ function getHeroContent(props: HeroNbaProps): HeroContent {
       // Route to candidates' 決める tab (already selected in
       // /candidates page) so the user lands on the summary of the
       // decided venue, not an unrelated mypage screen.
-      primaryCta: { label: "決めた式場を見る", href: "/candidates" },
+      primaryCta: { label: "決めた式場を見る", href: "/candidates?tab=decision" },
     };
   }
 
@@ -45,7 +45,7 @@ function getHeroContent(props: HeroNbaProps): HeroContent {
       stage: "comparing",
       weatherIcon: Sun,
       body: "ふたりで並べて、見比べてみましょう",
-      primaryCta: { label: "比べる", href: "/candidates" },
+      primaryCta: { label: "比べる", href: "/candidates?tab=matrix" },
     };
   }
 

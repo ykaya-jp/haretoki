@@ -55,7 +55,7 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
       type: "reminder",
       title: "おめでとうございます",
       body: "式場が決定しました！次のステップに進みましょう。",
-      actions: [{ label: "決定を見る", href: "/candidates" }],
+      actions: [{ label: "決定を見る", href: "/candidates?tab=decision" }],
       priority: 1,
     }];
   }
@@ -87,7 +87,7 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
       type: "comparison",
       title: "比較してみましょう",
       body: `${favorites}件の候補があります。比較ボードで並べて見てみませんか？`,
-      actions: [{ label: "比べる", href: "/candidates" }],
+      actions: [{ label: "比べる", href: "/candidates?tab=matrix" }],
       priority: 3,
     });
   }

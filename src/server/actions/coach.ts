@@ -26,7 +26,7 @@ const FAQ_PATTERNS: Array<{
   {
     keywords: ["比較", "どっち", "どちら", "違い", "選べない"],
     answer: "比較ボードで候補の式場を並べて見てみましょう。6つの評価軸でスコアを比較できます。",
-    actions: [{ label: "比べる", href: "/candidates" }],
+    actions: [{ label: "比べる", href: "/candidates?tab=matrix" }],
   },
   {
     keywords: ["見学", "ブライダルフェア", "フェア", "予約"],
@@ -41,7 +41,7 @@ const FAQ_PATTERNS: Array<{
   {
     keywords: ["決め", "決定", "最終", "選ぶ"],
     answer: "候補の式場を比較して、二人で納得できたら「この式場に決める」ボタンで決定できます。決め手の理由も記録できますよ。",
-    actions: [{ label: "候補を見る", href: "/candidates" }],
+    actions: [{ label: "候補を見る", href: "/candidates?tab=decision" }],
   },
 ];
 

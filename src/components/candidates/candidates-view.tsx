@@ -76,6 +76,7 @@ interface CandidatesViewProps {
   venueOptions: Array<{ id: string; name: string }>;
   initialDecision?: DecisionData | null;
   userName?: string;
+  initialTab?: Tab;
 }
 
 export function CandidatesView({
@@ -83,6 +84,7 @@ export function CandidatesView({
   venueOptions,
   initialDecision,
   userName,
+  initialTab,
 }: CandidatesViewProps) {
   const [tab, setTab] = useState<Tab>("shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
@@ -101,6 +103,14 @@ export function CandidatesView({
 
   const canCompare = favorites.length >= 2;
   const canDecide = favorites.length >= 1;
+
+  useEffect(() => {
+    if (initialTab && initialTab !== tab) {
+      setTab(initialTab);
+    }
+    // Only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
@@ -180,18 +190,16 @@ export function CandidatesView({
         onChange={(id) => setTab(id as Tab)}
       />
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {tab === "shortlist" && (
           <motion.div
             key="shortlist"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
-            {favorites.length > 0 && (
-              <FavoriteFilter active={filter} onChange={setFilter} />
-            )}
+            <FavoriteFilter active={filter} onChange={setFilter} />
 
             {favorites.length === 0 ? (
               <motion.div
@@ -295,8 +303,8 @@ export function CandidatesView({
             key="matrix"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
               <DecisionMatrix />
@@ -320,8 +328,8 @@ export function CandidatesView({
             key="focus"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
               <DimensionFocus />
@@ -341,8 +349,8 @@ export function CandidatesView({
             key="checklist"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
               <ChecklistComparison
@@ -365,8 +373,8 @@ export function CandidatesView({
             key="decision"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {!canDecide ? (
               <EmptyState

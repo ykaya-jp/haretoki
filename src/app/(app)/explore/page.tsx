@@ -139,9 +139,6 @@ export default async function ExplorePage({
   }
 
   const favoriteIds = favorites.map((f) => f.venue.id);
-  // E-2 Fit Reasons — fetch after venues so we know which ids to ask for.
-  // If conditions aren't set (new user), returns {} so cards render without
-  // the gold italic line.
   const fitReasons = await getFitReasons(venues.map((v: { id: string }) => v.id));
 
   return (

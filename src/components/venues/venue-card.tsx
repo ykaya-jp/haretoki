@@ -34,7 +34,9 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
       ? `${(venue.costMin / 10000).toFixed(0)}〜${(venue.costMax / 10000).toFixed(0)}万円`
       : venue.costMax
         ? `〜${(venue.costMax / 10000).toFixed(0)}万円`
-        : `${(venue.costMin! / 10000).toFixed(0)}万円〜`
+        : venue.costMin
+          ? `${(venue.costMin / 10000).toFixed(0)}万円〜`
+          : null
     : venue.estimates?.[0]
       ? `¥${(venue.estimates[0].total / 10000).toFixed(0)}万〜`
       : null;
@@ -150,7 +152,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
 
         {/* Metadata — location · capacity, meta size, bullet separators */}
         {metaParts.length > 0 && (
-          <p className="mt-2 text-meta text-muted-foreground">
+          <p className="mt-2 truncate text-meta text-muted-foreground">
             {metaParts.join(" · ")}
           </p>
         )}

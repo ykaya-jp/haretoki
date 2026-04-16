@@ -491,7 +491,7 @@ export function DecisionMatrix() {
           <table className="w-full min-w-[560px]">
           <thead>
             <tr className="border-b border-border">
-              <th className="sticky left-0 z-10 bg-card px-3 py-3 text-left text-xs font-medium text-muted-foreground w-[100px]">
+              <th className="sticky left-0 z-10 bg-card px-3 py-3 text-left text-xs font-medium text-muted-foreground w-[80px] md:w-[100px]">
                 項目
               </th>
               {venues.map((v) => (
