@@ -28,10 +28,12 @@ export async function CoupleGapSection() {
 
       {overview.bothCount > 0 && (
         <div
-          className="rounded-2xl p-4"
+          className="rounded-2xl border bg-card p-4"
           style={{
-            background:
-              "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 8%, var(--background)) 0%, color-mix(in oklab, var(--primary) 5%, var(--background)) 100%)",
+            borderLeftWidth: "3px",
+            borderLeftColor: "var(--gold-warm)",
+            borderColor:
+              "color-mix(in oklab, var(--gold-warm) 22%, transparent)",
           }}
         >
           <div className="flex items-center gap-2">
