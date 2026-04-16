@@ -125,7 +125,7 @@ export function ReviewEstimateEditSheet({
         className="rounded-t-2xl max-h-[85vh] overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle className="font-serif font-normal">
+          <SheetTitle className="font-[family-name:var(--font-display)] font-normal">
             見積もり情報を編集
           </SheetTitle>
         </SheetHeader>

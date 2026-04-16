@@ -166,7 +166,7 @@ export function ExploreContent({
             <Search className="h-7 w-7 text-muted-foreground" />
           </div>
           <div className="max-w-[300px] space-y-2">
-            <h3 className="font-serif text-base font-light tracking-wide">
+            <h3 className="font-[family-name:var(--font-display)] text-base font-light tracking-wide">
               条件に合う式場が見つかりません
             </h3>
             <p className="text-sm leading-[1.8] text-muted-foreground">

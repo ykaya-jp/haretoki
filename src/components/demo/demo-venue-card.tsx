@@ -42,7 +42,7 @@ export function DemoVenueCard({ venue }: DemoVenueCardProps) {
                 aria-hidden="true"
                 className="absolute inset-0 flex items-center justify-center bg-[var(--gold-subtle)]/50 text-[var(--gold-warm)]"
               >
-                <span className="font-serif text-lg">{venue.name.slice(0, 2)}</span>
+                <span className="font-[family-name:var(--font-display)] text-lg">{venue.name.slice(0, 2)}</span>
               </div>
             )}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
@@ -90,7 +90,7 @@ export function DemoVenueCard({ venue }: DemoVenueCardProps) {
         <p className="text-eyebrow tabular-nums text-[var(--gold-warm)] mb-2">
           {priceLabel}
         </p>
-        <h3 className="truncate text-h2 font-serif font-extralight tracking-[-0.01em]">
+        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           {venue.name}
         </h3>
         <p className="mt-2 text-meta text-muted-foreground">{metaParts.join(" · ")}</p>

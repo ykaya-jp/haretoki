@@ -132,7 +132,7 @@ export function CoachQuickStart() {
                 strokeWidth={1.5}
               />
               <div className="space-y-1">
-                <h3 className="font-serif text-sm font-medium leading-snug text-foreground">
+                <h3 className="font-[family-name:var(--font-display)] text-sm font-medium leading-snug text-foreground">
                   {uc.title}
                 </h3>
                 <p className="text-xs leading-relaxed text-muted-foreground">

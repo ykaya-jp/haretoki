@@ -101,7 +101,7 @@ export function HeroNba(props: HeroNbaProps) {
       </div>
 
       {/* Editorial body copy */}
-      <p className="mb-5 font-serif font-light leading-snug text-fluid-lg">
+      <p className="mb-5 font-[family-name:var(--font-display)] font-light leading-snug text-fluid-lg">
         {content.body}
       </p>
 

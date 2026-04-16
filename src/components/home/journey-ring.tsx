@@ -72,7 +72,7 @@ export function JourneyRing(props: JourneyRingProps) {
       </svg>
       {/* Stage label centered inside ring */}
       <span
-        className="absolute inset-0 flex items-center justify-center font-serif font-extralight tracking-tight text-muted-foreground"
+        className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-display)] font-extralight tracking-tight text-muted-foreground"
         style={{ fontSize: 11, lineHeight: 1.2 }}
       >
         {stage.label}

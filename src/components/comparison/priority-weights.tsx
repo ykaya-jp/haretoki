@@ -95,7 +95,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
       className="space-y-6"
     >
       <div className="space-y-1">
-        <h3 className="font-serif text-lg font-light tracking-wide">
+        <h3 className="font-[family-name:var(--font-display)] text-lg font-light tracking-wide">
           あなたにとって、何が大事？
         </h3>
         <p className="text-xs text-muted-foreground">
@@ -164,7 +164,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-serif text-sm font-extralight tracking-[-0.005em] truncate">{v.name}</p>
+              <p className="font-[family-name:var(--font-display)] text-sm font-extralight tracking-[-0.005em] truncate">{v.name}</p>
               <p className="text-xs text-muted-foreground tabular-nums">
                 重み付きスコア {v.weightedScore.toFixed(2)}
               </p>

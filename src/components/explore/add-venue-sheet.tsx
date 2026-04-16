@@ -591,7 +591,7 @@ function UrlSkeletonCard({ state, onManualFallback }: UrlSkeletonCardProps) {
                   key="name"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="font-serif text-sm font-normal truncate"
+                  className="font-[family-name:var(--font-display)] text-sm font-normal truncate"
                 >
                   {extracted.name}
                 </motion.p>

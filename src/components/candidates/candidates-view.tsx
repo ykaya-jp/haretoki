@@ -396,7 +396,7 @@ export function CandidatesView({
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
                   <PartyPopper className="h-9 w-9 text-[var(--gold-warm)]" aria-hidden />
                 </div>
-                <h3 className="font-serif text-xl font-light tracking-wide">{decision.venueName}</h3>
+                <h3 className="font-[family-name:var(--font-display)] text-xl font-light tracking-wide">{decision.venueName}</h3>
                 <p className="text-sm text-muted-foreground">に決まりました</p>
                 {decision.rationale && (
                   <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">

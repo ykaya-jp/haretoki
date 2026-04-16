@@ -54,7 +54,7 @@ export function SwipeCard({ venue, onSwipe, isTop }: SwipeCardProps) {
 
       <div className="p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-lg font-medium">{venue.name}</h3>
+          <h3 className="font-[family-name:var(--font-display)] text-lg font-medium">{venue.name}</h3>
           <CircularProgressScore score={venue.totalScore} size={64} />
         </div>
         {venue.location && <p className="text-sm text-muted-foreground">{venue.location}</p>}

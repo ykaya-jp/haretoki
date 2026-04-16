@@ -231,7 +231,7 @@ export function PlanEditorSheet({
         className="rounded-t-2xl max-h-[90vh] overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle className="font-serif font-normal">
+          <SheetTitle className="font-[family-name:var(--font-display)] font-normal">
             {initialPlan ? "プランを編集" : "新しいプラン"}
           </SheetTitle>
         </SheetHeader>

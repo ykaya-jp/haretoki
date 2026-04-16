@@ -49,7 +49,7 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
           <span className="text-xs text-muted-foreground">初期見積もり</span>
           <span className="flex items-baseline gap-0.5">
             <span className="text-[11px] text-muted-foreground">¥</span>
-            <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
+            <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
               {(totalEstimate / 10000).toFixed(0)}
             </span>
             <span className="text-[11px] text-muted-foreground">万</span>
@@ -60,7 +60,7 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
             <span className="text-xs text-muted-foreground">予測最終額</span>
             <span className="flex items-baseline gap-0.5">
               <span className="text-[11px] text-muted-foreground">¥</span>
-              <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
+              <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-3xl leading-none tracking-tight text-foreground">
                 {(predictedFinal / 10000).toFixed(0)}
               </span>
               <span className="text-[11px] text-muted-foreground">万</span>
@@ -72,7 +72,7 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
             <span className="text-xs text-amber-600">予測上昇額</span>
             <span className="flex items-baseline gap-0.5 text-amber-600">
               <span className="text-[11px]">+¥</span>
-              <span className="font-serif font-extralight tabular-nums text-3xl leading-none tracking-tight">
+              <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-3xl leading-none tracking-tight">
                 {(difference / 10000).toFixed(0)}
               </span>
               <span className="text-[11px]">万</span>

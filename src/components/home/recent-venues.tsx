@@ -80,7 +80,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
                   )}
                   {/* Venue name on photo */}
                   <div className="absolute inset-x-0 bottom-0 p-4">
-                    <h3 className="truncate font-serif text-base font-medium tracking-[0.05em] text-white">
+                    <h3 className="truncate font-[family-name:var(--font-display)] text-base font-medium tracking-[0.05em] text-white">
                       {venue.name}
                     </h3>
                     {venue.location && (
@@ -94,7 +94,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
                     <span className="text-muted-foreground text-sm">写真はまだありません</span>
                   </div>
                   <div className="p-4">
-                    <h3 className="truncate font-serif text-base font-medium tracking-[0.05em]">
+                    <h3 className="truncate font-[family-name:var(--font-display)] text-base font-medium tracking-[0.05em]">
                       {venue.name}
                     </h3>
                     <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

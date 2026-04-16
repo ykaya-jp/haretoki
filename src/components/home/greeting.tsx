@@ -43,7 +43,7 @@ export function Greeting({ userName, weddingDate }: GreetingProps) {
       {daysUntilWedding !== null && daysUntilWedding > 0 && (
         <p className="mt-1 flex items-baseline gap-1 text-muted-foreground">
           <span className="text-[11px]">晴れの日まで あと</span>
-          <span className="font-serif font-extralight tabular-nums text-5xl leading-none tracking-tight text-foreground">
+          <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-5xl leading-none tracking-tight text-foreground">
             {daysUntilWedding}
           </span>
           <span className="text-[11px]">日</span>

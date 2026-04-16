@@ -96,7 +96,7 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
                   <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">写真</div>
                 )}
                 <CircularProgressScore score={venue.totalScore} size={64} />
-                <p className="text-center font-serif text-sm font-extralight tracking-[-0.005em]">{venue.name}</p>
+                <p className="text-center font-[family-name:var(--font-display)] text-sm font-extralight tracking-[-0.005em]">{venue.name}</p>
                 <div className="flex flex-wrap justify-center gap-1">
                   {venue.topStrengths.map((s) => (
                     <span key={s} className="text-xs text-muted-foreground">{s}◎</span>
@@ -123,7 +123,7 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
           {/* Score bars */}
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-serif text-sm font-light tracking-wide">カテゴリ別スコア</h3>
+              <h3 className="font-[family-name:var(--font-display)] text-sm font-light tracking-wide">カテゴリ別スコア</h3>
               <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-xs text-muted-foreground">
                 差分のみ表示
                 <input

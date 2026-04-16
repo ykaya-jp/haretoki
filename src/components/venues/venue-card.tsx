@@ -144,7 +144,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
         )}
 
         {/* Venue name — bigger, serif, extralight */}
-        <h3 className="truncate text-h2 font-serif font-extralight tracking-[-0.01em]">
+        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           {venue.name}
         </h3>
 

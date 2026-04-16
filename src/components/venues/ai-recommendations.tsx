@@ -542,7 +542,7 @@ function RecommendationCard({
     <div className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1.5">
-          <h4 className="font-serif text-sm font-medium tracking-[0.03em]">{rec.name}</h4>
+          <h4 className="font-[family-name:var(--font-display)] text-sm font-medium tracking-[0.03em]">{rec.name}</h4>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" aria-hidden="true" />
             {rec.location}

@@ -315,7 +315,7 @@ function CardStep({ show }: { show: boolean }) {
         </div>
 
         <div className="space-y-2 p-3">
-          <p className="font-serif text-[15px] font-light leading-snug tracking-wide text-foreground">
+          <p className="font-[family-name:var(--font-display)] text-[15px] font-light leading-snug tracking-wide text-foreground">
             アーカンジェル青山
           </p>
           <div className="flex items-center gap-3 text-[10.5px] text-muted-foreground">
@@ -361,7 +361,7 @@ function RatingStep({ progress }: { progress: number }) {
     <div className="flex h-full flex-col gap-3 p-5">
       <div className="flex items-baseline justify-between">
         <p className="text-[12px] font-medium text-foreground">評価</p>
-        <p className="font-serif text-[22px] font-light text-[var(--gold-warm)] tabular-nums">
+        <p className="font-[family-name:var(--font-display)] text-[22px] font-light text-[var(--gold-warm)] tabular-nums">
           {avg.toFixed(1)}
         </p>
       </div>
@@ -421,10 +421,10 @@ function CompareStep({ show }: { show: boolean }) {
 
       <div className="grid grid-cols-[64px_1fr_1fr] gap-1 text-center">
         <div />
-        <p className="truncate font-serif text-[11px] font-light tracking-wide text-foreground">
+        <p className="truncate font-[family-name:var(--font-display)] text-[11px] font-light tracking-wide text-foreground">
           青山
         </p>
-        <p className="truncate font-serif text-[11px] font-light tracking-wide text-foreground">
+        <p className="truncate font-[family-name:var(--font-display)] text-[11px] font-light tracking-wide text-foreground">
           表参道
         </p>
 
@@ -499,7 +499,7 @@ function Cell({
       initial={{ opacity: 0, y: 6 }}
       animate={show ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
       transition={{ duration: 0.5, delay }}
-      className={`relative rounded-lg border px-2 py-1.5 font-serif text-[13px] font-light tabular-nums ${
+      className={`relative rounded-lg border px-2 py-1.5 font-[family-name:var(--font-display)] text-[13px] font-light tabular-nums ${
         isWinner
           ? "border-[var(--gold-warm)]/40 bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
           : "border-border/50 bg-card text-muted-foreground"

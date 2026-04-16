@@ -65,7 +65,7 @@ export function DimensionFocus() {
       className="space-y-6"
     >
       <div className="space-y-1">
-        <h3 className="font-serif text-lg font-light tracking-wide">
+        <h3 className="font-[family-name:var(--font-display)] text-lg font-light tracking-wide">
           観点で比べる
         </h3>
         <p className="text-xs text-muted-foreground">
@@ -146,7 +146,7 @@ export function DimensionFocus() {
                   <Link
                     href={`/venues/${v.id}`}
                     prefetch={true}
-                    className="block font-serif text-base font-light tracking-[-0.005em] truncate hover:underline"
+                    className="block font-[family-name:var(--font-display)] text-base font-light tracking-[-0.005em] truncate hover:underline"
                   >
                     {v.name}
                   </Link>

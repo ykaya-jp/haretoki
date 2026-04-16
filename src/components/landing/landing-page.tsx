@@ -251,7 +251,7 @@ export function LandingPage() {
                 viewport={{ once: true, margin: "-50px" }}
                 className="rounded-2xl bg-card/60 p-8 text-center shadow-[var(--shadow-card)] backdrop-blur-sm"
               >
-                <p className="font-serif text-3xl font-light tracking-tight text-[var(--gold-warm)] sm:text-4xl">
+                <p className="font-[family-name:var(--font-display)] text-3xl font-light tracking-tight text-[var(--gold-warm)] sm:text-4xl">
                   {stat.value}
                 </p>
                 <p className="mt-4 text-sm leading-[1.9] text-foreground">
@@ -276,7 +276,7 @@ export function LandingPage() {
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="mb-20 text-center"
           >
-            <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
+            <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
               不安を、安心に変える
             </h2>
             <p className="mt-4 text-sm leading-[1.8] text-muted-foreground">
@@ -322,7 +322,7 @@ export function LandingPage() {
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="mb-16 text-center"
           >
-            <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
+            <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
               はじめかた
             </h2>
           </motion.div>
@@ -402,7 +402,7 @@ export function LandingPage() {
             <Sparkles className="h-4 w-4" />
             AIコーチ
           </div>
-          <h2 className="mb-6 font-serif text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-[1.4] tracking-[0.06em] text-foreground">
+          <h2 className="mb-6 font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.5rem)] font-light leading-[1.4] tracking-[0.06em] text-foreground">
             好みを話すだけで、
             <br />
             候補が見えてくる
@@ -436,7 +436,7 @@ export function LandingPage() {
             <Shield className="h-4 w-4" />
             私たちの約束
           </div>
-          <h2 className="mb-6 font-serif text-[clamp(1.25rem,2.5vw,2rem)] font-light leading-[1.4] tracking-[0.06em]">
+          <h2 className="mb-6 font-[family-name:var(--font-display)] text-[clamp(1.25rem,2.5vw,2rem)] font-light leading-[1.4] tracking-[0.06em]">
             広告のない、
             <br />
             ふたりだけの判断材料

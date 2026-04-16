@@ -70,7 +70,7 @@ export default function DemoVenueDetailPage({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-[var(--gold-subtle)]/50 text-[var(--gold-warm)]">
-            <span className="font-serif text-2xl">{venue.name}</span>
+            <span className="font-[family-name:var(--font-display)] text-2xl">{venue.name}</span>
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
@@ -105,7 +105,7 @@ export default function DemoVenueDetailPage({
       {/* Header */}
       <header className="space-y-2">
         <p className="text-eyebrow tabular-nums text-[var(--gold-warm)]">{priceLabel}</p>
-        <h1 className="font-serif text-3xl font-extralight tracking-[-0.01em]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">
           {venue.name}
         </h1>
         <p className="text-meta text-muted-foreground">
@@ -153,7 +153,7 @@ export default function DemoVenueDetailPage({
           aria-labelledby="estimate-heading"
           className="rounded-[var(--r-lg)] border border-border/60 bg-card p-6 shadow-[var(--shadow-card)]"
         >
-          <h2 id="estimate-heading" className="mb-4 font-serif text-xl font-extralight">
+          <h2 id="estimate-heading" className="mb-4 font-[family-name:var(--font-display)] text-xl font-extralight">
             見積もり
           </h2>
           <div className="mb-4 flex items-baseline justify-between border-b border-border/40 pb-3">
@@ -199,7 +199,7 @@ export default function DemoVenueDetailPage({
           aria-labelledby="visit-heading"
           className="rounded-[var(--r-lg)] border border-border/60 bg-card p-6 shadow-[var(--shadow-card)]"
         >
-          <h2 id="visit-heading" className="mb-1 font-serif text-xl font-extralight">
+          <h2 id="visit-heading" className="mb-1 font-[family-name:var(--font-display)] text-xl font-extralight">
             見学記録
           </h2>
           <p className="mb-4 text-xs text-muted-foreground">{visit.visitedAt}</p>
@@ -240,7 +240,7 @@ export default function DemoVenueDetailPage({
           aria-labelledby="reviews-heading"
           className="rounded-[var(--r-lg)] border border-border/60 bg-card p-6 shadow-[var(--shadow-card)]"
         >
-          <h2 id="reviews-heading" className="mb-4 font-serif text-xl font-extralight">
+          <h2 id="reviews-heading" className="mb-4 font-[family-name:var(--font-display)] text-xl font-extralight">
             口コミ
           </h2>
           <ul className="space-y-4">

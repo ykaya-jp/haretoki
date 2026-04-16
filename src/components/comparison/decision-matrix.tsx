@@ -507,7 +507,7 @@ export function DecisionMatrix() {
                     <Link
                       href={`/venues/${v.id}`}
                       prefetch={true}
-                      className="block font-serif text-xs font-extralight tracking-[-0.005em] leading-tight truncate max-w-[100px] hover:underline"
+                      className="block font-[family-name:var(--font-display)] text-xs font-extralight tracking-[-0.005em] leading-tight truncate max-w-[100px] hover:underline"
                     >
                       {v.name}
                     </Link>

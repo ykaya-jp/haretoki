@@ -309,7 +309,7 @@ export function OnboardingFlow() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-serif font-medium text-foreground">{rec.name}</p>
+                    <p className="font-[family-name:var(--font-display)] font-medium text-foreground">{rec.name}</p>
                     <p className="text-xs text-muted-foreground">{rec.location}</p>
                   </div>
                   {rec.estimatedPrice && (
