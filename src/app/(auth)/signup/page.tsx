@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ChevronRight } from "lucide-react";
+import { SkyChip } from "@/components/home/sky-chip";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
@@ -119,17 +120,20 @@ export default function SignupPage() {
       {/* Right: Form */}
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm space-y-10">
-          {/* Mobile header */}
-          <div className="text-center lg:hidden">
-            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
-              Haretoki
-            </Link>
-            <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">
-              式場探し、はじめましょう
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              おふたりの理想の式場を見つける旅のスタートです
-            </p>
+          {/* Mobile header + SkyChip */}
+          <div className="flex flex-col items-center gap-4 text-center lg:hidden">
+            <SkyChip mood="break" size={40} />
+            <div>
+              <Link href="/" className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
+                Haretoki
+              </Link>
+              <h2 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">
+                式場探し、はじめましょう
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                おふたりの理想の式場を、ここから描きはじめます。
+              </p>
+            </div>
           </div>
 
           {/* Desktop heading */}

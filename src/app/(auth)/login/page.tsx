@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
+import { SkyChip } from "@/components/home/sky-chip";
 import { isSameOriginRedirectPath } from "@/lib/url-guard";
 
 export default function LoginPage() {
@@ -113,12 +114,15 @@ function LoginPageInner() {
       {/* Right: Form */}
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm space-y-10">
-          {/* Mobile logo */}
-          <div className="text-center lg:hidden">
-            <Link href="/" className="text-xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
-              Haretoki
-            </Link>
-            <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">ログイン</h2>
+          {/* Mobile logo + SkyChip */}
+          <div className="flex flex-col items-center gap-4 text-center lg:hidden">
+            <SkyChip mood="sunny" size={40} />
+            <div>
+              <Link href="/" className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
+                Haretoki
+              </Link>
+              <h2 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">ログイン</h2>
+            </div>
           </div>
 
           {/* Desktop heading */}
