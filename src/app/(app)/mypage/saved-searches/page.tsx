@@ -60,8 +60,8 @@ async function SavedSearchCard({
 
   return (
     <div className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
-      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background">
-        <Bookmark className="h-4 w-4 text-muted-foreground" strokeWidth={1.6} />
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-background">
+        <Bookmark className="h-4 w-4 text-[color-mix(in_oklab,var(--gold-warm)_70%,var(--muted-foreground))]" strokeWidth={1.6} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-[family-name:var(--font-display)] font-extralight text-base leading-snug tracking-wide">
@@ -95,10 +95,10 @@ export default async function SavedSearchesPage() {
           <Link
             href="/mypage"
             prefetch={false}
-            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+            className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
             <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-            戻る
+            Back
           </Link>
           <span aria-hidden="true" className="opacity-30">/</span>
           <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>

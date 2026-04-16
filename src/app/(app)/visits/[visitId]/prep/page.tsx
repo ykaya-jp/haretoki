@@ -44,10 +44,10 @@ export default async function VisitPrepPage({ params }: PageProps) {
           <Link
             href="/venues"
             prefetch={false}
-            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+            className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
             <ChevronLeft className="h-3 w-3" aria-hidden="true" />
-            戻る
+            Back
           </Link>
           <span aria-hidden="true" className="opacity-30">/</span>
           <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>

@@ -49,20 +49,29 @@ export default async function VenueChecklistPage({
   }).filter((g) => g.subcategories.some((s) => s.items.length > 0));
 
   return (
-    <div className="space-y-4 pb-24">
-      {/* Back link */}
-      <Link
-        href={`/venues/${id}`}
-        className="flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground active:opacity-70"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        {venue.name} に戻る
-      </Link>
-
-      {/* Venue header */}
+    <div className="space-y-10 pb-24">
+      {/* Header — breadcrumb eyebrow + editorial title */}
       <div>
-        <h2 className="font-serif text-xl font-extralight">{venue.name}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">チェックリスト</p>
+        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <Link
+            href={`/venues/${id}`}
+            prefetch={false}
+            className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
+          >
+            <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+            Back
+          </Link>
+          <span aria-hidden="true" className="opacity-30">/</span>
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span>Checklist</span>
+        </p>
+        <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+          {venue.name}
+        </h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          見学で確かめたい項目を、ふたりの視点で。
+        </p>
       </div>
 
       {grouped.length === 0 ? (
