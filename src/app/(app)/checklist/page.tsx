@@ -49,7 +49,7 @@ export default async function ChecklistPage() {
   const isEmpty = totalActive === 0;
 
   return (
-    <div className="space-y-5 pb-24">
+    <div className="space-y-10 pb-24">
       {/* Compact header */}
       <div className="flex items-start gap-2">
         <Link

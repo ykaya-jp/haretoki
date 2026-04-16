@@ -9,17 +9,26 @@ export default async function SettingsPage() {
   const user = await requireUser();
 
   return (
-    <div className="space-y-8 pb-[env(safe-area-inset-bottom)]">
-      <Link
-        href="/mypage"
-        prefetch
-        className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm text-muted-foreground transition-opacity duration-200 hover:opacity-70"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        マイページ
-      </Link>
-
-      <h2 className="font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.02em]">整える</h2>
+    <div className="space-y-10 pb-[env(safe-area-inset-bottom)]">
+      <div>
+        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <Link
+            href="/mypage"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+          >
+            <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+            戻る
+          </Link>
+          <span aria-hidden="true" className="opacity-30">/</span>
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span>Settings</span>
+        </p>
+        <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+          整える
+        </h2>
+      </div>
 
       {/* Theme */}
       <section className="space-y-3">

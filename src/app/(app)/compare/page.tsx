@@ -32,13 +32,20 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   const matrix = await getComparisonMatrix(venueIds);
 
   return (
-    <div className="pb-24">
-      <div className="mb-4 space-y-1">
-        <h2 className="text-h1 font-serif font-extralight">式場横比較</h2>
-        <p className="text-sm text-muted-foreground">
+    <div className="space-y-10 pb-24">
+      <div>
+        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span>Compare</span>
+        </p>
+        <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+          式場横比較
+        </h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
           {matrix.venues.length > 0
-            ? `${matrix.venues.length}件の式場を比較中`
-            : "候補に式場を追加すると比較できます"}
+            ? `${matrix.venues.length} 件の式場を、同じ目線で並べてみましょう。`
+            : "候補を並べると、ここに横比較が現れます。"}
         </p>
       </div>
 
