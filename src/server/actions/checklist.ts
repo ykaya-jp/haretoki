@@ -217,59 +217,123 @@ export async function saveAnswer(
     },
   });
 
-  // --- Sync: recalculate checklist-derived score for the affected dimension ---
-  const dimension = getDimensionForPreset(itemId);
-  if (dimension !== "overall") {
-    // Fetch all yesno answers for this dimension's items
-    const dimItemIds = CHECKLIST_PRESETS
-      .filter((p) => p.type === "yesno" && (ITEM_TO_DIMENSION as Record<string, string>)[p.id] === dimension)
-      .map((p) => p.id);
+  revalidateTag(answerTag(venueId), { expire: 0 });
+  revalidateTag(checklistTag(projectId), { expire: 0 });
+  revalidatePath(`/venues/${venueId}/checklist`);
+  revalidatePath("/compare");
+  return { success: true };
+}
 
-    const activeRows = await prisma.projectChecklist.findMany({
-      where: { projectId, itemId: { in: dimItemIds } },
-      select: { id: true, itemId: true },
-    });
+// ── Suggested scores from checklist answers (proposal, not auto-saved) ────────
 
-    const existingAnswers = await prisma.venueChecklistAnswer.findMany({
-      where: {
-        venueId,
-        projectChecklistId: { in: activeRows.map((r) => r.id) },
-      },
-      include: { projectChecklist: { select: { itemId: true } } },
-    });
+export interface SuggestedScore {
+  dimension: string;
+  suggestedScore: number;
+  currentScore: number | null;
+  answeredCount: number;
+  totalYesnoItems: number;
+}
 
-    const answerMap = new Map<string, string | null>();
-    for (const ans of existingAnswers) {
-      answerMap.set(ans.projectChecklist.itemId, ans.status);
-    }
+/**
+ * Calculate suggested dimension scores from checklist answers.
+ * Does NOT save to DB — returns proposals for user to accept/dismiss.
+ */
+export async function getSuggestedScores(
+  venueId: string,
+): Promise<SuggestedScore[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
 
-    const score = calculateDimensionScore(dimension as Tier1Dimension, answerMap);
+  // Get all active checklist rows for this project
+  const activeRows = await prisma.projectChecklist.findMany({
+    where: { projectId },
+    select: { id: true, itemId: true },
+  });
 
-    if (score !== null) {
-      await prisma.venueScore.upsert({
-        where: {
-          venueId_dimension_source: {
-            venueId,
-            dimension,
-            source: "checklist_derived",
-          },
-        },
-        create: { venueId, dimension, source: "checklist_derived", score },
-        update: { score },
-      });
-    } else {
-      // Below threshold — remove stale derived score if exists
-      await prisma.venueScore.deleteMany({
-        where: { venueId, dimension, source: "checklist_derived" },
+  // Get all answers for this venue
+  const answers = await prisma.venueChecklistAnswer.findMany({
+    where: {
+      venueId,
+      projectChecklistId: { in: activeRows.map((r) => r.id) },
+    },
+    include: { projectChecklist: { select: { itemId: true } } },
+  });
+
+  const answerMap = new Map<string, string | null>();
+  for (const ans of answers) {
+    answerMap.set(ans.projectChecklist.itemId, ans.status);
+  }
+
+  // Get current user_rating scores for comparison
+  const currentScores = await prisma.venueScore.findMany({
+    where: { venueId, source: "user_rating" },
+    select: { dimension: true, score: true },
+  });
+  const currentMap = new Map(
+    currentScores.map((s) => [s.dimension, Number(s.score)])
+  );
+
+  // Calculate suggestion for each dimension (except overall)
+  const { TIER1_DIMENSIONS } = await import("@/lib/constants");
+  const suggestions: SuggestedScore[] = [];
+
+  for (const dim of TIER1_DIMENSIONS) {
+    if (dim === "overall") continue;
+
+    const score = calculateDimensionScore(dim, answerMap);
+    if (score === null) continue;
+
+    const current = currentMap.get(dim) ?? null;
+
+    // Only suggest if different from current (or no current score)
+    if (current === null || Math.abs(current - score) >= 0.5) {
+      const yesnoItems = CHECKLIST_PRESETS.filter(
+        (p) => p.type === "yesno" && (ITEM_TO_DIMENSION as Record<string, string>)[p.id] === dim
+      );
+      const answered = yesnoItems.filter((p) => {
+        const s = answerMap.get(p.id);
+        return s === "yes" || s === "no" || s === "unknown";
+      }).length;
+
+      suggestions.push({
+        dimension: dim,
+        suggestedScore: score,
+        currentScore: current,
+        answeredCount: answered,
+        totalYesnoItems: yesnoItems.length,
       });
     }
   }
 
-  revalidateTag(answerTag(venueId), { expire: 0 });
-  revalidateTag(checklistTag(projectId), { expire: 0 });
-  revalidateTag(`project:${projectId}`, { expire: 0 });
-  revalidatePath(`/venues/${venueId}/checklist`);
-  revalidatePath("/compare");
+  return suggestions;
+}
+
+/**
+ * Accept a suggested score — saves it as user_rating (user-approved).
+ */
+export async function acceptSuggestedScore(
+  venueId: string,
+  dimension: string,
+  score: number,
+): Promise<{ success: boolean }> {
+  const user = await requireUser();
+  await requireVenueAccess(user.id, venueId);
+
+  const dim = dimension as import("@/generated/prisma/client").ScoreDimension;
+  await prisma.venueScore.upsert({
+    where: {
+      venueId_dimension_source: {
+        venueId,
+        dimension: dim,
+        source: "user_rating",
+      },
+    },
+    create: { venueId, dimension: dim, source: "user_rating", score },
+    update: { score },
+  });
+
+  revalidateTag(`project:${(await requireProjectMembership(user.id)).projectId}`, { expire: 0 });
+  revalidatePath(`/venues/${venueId}`);
   return { success: true };
 }
 
