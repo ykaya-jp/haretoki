@@ -45,7 +45,7 @@ function getHeroContent(props: HeroNbaProps): HeroContent {
       stage: "comparing",
       weatherIcon: Sun,
       body: "ふたりで並べて、見比べてみましょう",
-      primaryCta: { label: "比べる", href: "/candidates?tab=matrix" },
+      primaryCta: { label: "比べる", href: "/candidates?tab=compare" },
     };
   }
 

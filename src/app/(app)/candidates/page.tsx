@@ -32,7 +32,15 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   // ?view=recent: surface a note that "最近見た" is in the list below.
   // Full "recently viewed" sub-tab is deferred to Tier 2.
   const isRecentView = params.view === "recent";
-  const initialTab = params.tab as "shortlist" | "matrix" | "focus" | "checklist" | "decision" | undefined;
+  // Tab compatibility mapping for old URLs
+  const TAB_COMPAT: Record<string, string> = {
+    matrix: "compare",
+    focus: "compare",
+    checklist: "compare",
+  };
+  const rawTab = params.tab;
+  const resolvedTab = rawTab ? (TAB_COMPAT[rawTab] ?? rawTab) : undefined;
+  const initialTab = resolvedTab as "shortlist" | "compare" | "decision" | undefined;
 
   return (
     <div className="space-y-10">

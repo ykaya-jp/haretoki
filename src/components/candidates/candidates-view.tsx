@@ -9,7 +9,7 @@ import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Heart, BarChart3, Trophy, PartyPopper, ClipboardCheck, Loader2, Sparkles } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
@@ -27,16 +27,8 @@ const TabFallback = () => (
   </div>
 );
 
-const DecisionMatrix = dynamic(
-  () => import("@/components/comparison/decision-matrix").then((m) => m.DecisionMatrix),
-  { loading: TabFallback },
-);
-const DimensionFocus = dynamic(
-  () => import("@/components/comparison/dimension-focus").then((m) => m.DimensionFocus),
-  { loading: TabFallback },
-);
-const ChecklistComparison = dynamic(
-  () => import("@/components/comparison/checklist-comparison").then((m) => m.ChecklistComparison),
+const AccordionZoom = dynamic(
+  () => import("@/components/comparison/accordion-zoom").then((m) => m.AccordionZoom),
   { loading: TabFallback },
 );
 const PriorityWeights = dynamic(
@@ -52,7 +44,7 @@ const DecisionCeremony = dynamic(
   { loading: TabFallback },
 );
 
-type Tab = "shortlist" | "matrix" | "focus" | "checklist" | "decision";
+type Tab = "shortlist" | "compare" | "decision";
 
 interface FavoriteVenue {
   venue: {
@@ -76,7 +68,7 @@ interface CandidatesViewProps {
   venueOptions: Array<{ id: string; name: string }>;
   initialDecision?: DecisionData | null;
   userName?: string;
-  initialTab?: Tab;
+  initialTab?: "shortlist" | "compare" | "decision";
 }
 
 export function CandidatesView({
@@ -115,22 +107,10 @@ export function CandidatesView({
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
     {
-      id: "matrix" as const,
+      id: "compare" as const,
       label: "比べる",
       disabled: !canCompare,
-      disabledHint: "候補を2件以上追加すると使えます",
-    },
-    {
-      id: "focus" as const,
-      label: "観点別",
-      disabled: !canCompare,
-      disabledHint: "候補を2件以上追加すると使えます",
-    },
-    {
-      id: "checklist" as const,
-      label: "チェック差分",
-      disabled: !canCompare,
-      disabledHint: "候補を2件以上追加するとチェック差分を比較できます",
+      disabledHint: "候補を2件以上追加すると比べられます",
     },
     {
       id: "decision" as const,
@@ -270,7 +250,7 @@ export function CandidatesView({
                       // compare board — otherwise just re-render the shortlist
                       // with left-swiped venues now removed.
                       if (compareIds.length >= 2 && canCompare) {
-                        setTab("matrix");
+                        setTab("compare");
                       }
                     }}
                   />
@@ -298,70 +278,21 @@ export function CandidatesView({
           </motion.div>
         )}
 
-        {tab === "matrix" && (
+        {tab === "compare" && (
           <motion.div
-            key="matrix"
+            key="compare"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
-              <DecisionMatrix />
+              <AccordionZoom />
             ) : (
               <EmptyState
                 icon={BarChart3}
-                title="候補を2件以上集めると比較できます"
-                description={
-                  favorites.length === 0
-                    ? "まず気になる式場を2つ以上候補に入れてください。"
-                    : "あと1件以上候補に入れると、比較ボードが使えます。"
-                }
-                action={{ label: "式場を探す", href: "/explore" }}
-              />
-            )}
-          </motion.div>
-        )}
-
-        {tab === "focus" && (
-          <motion.div
-            key="focus"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {canCompare ? (
-              <DimensionFocus />
-            ) : (
-              <EmptyState
-                icon={BarChart3}
-                title="観点別の比較には2件必要です"
-                description="候補を2件以上入れると、雰囲気や料理などの観点ごとに比べられます。"
-                action={{ label: "式場を探す", href: "/explore" }}
-              />
-            )}
-          </motion.div>
-        )}
-
-        {tab === "checklist" && (
-          <motion.div
-            key="checklist"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12, pointerEvents: "none" as const }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {canCompare ? (
-              <ChecklistComparison
-                venueIds={favorites.map((f) => f.venue.id)}
-                venueNames={favorites.map((f) => f.venue.name)}
-              />
-            ) : (
-              <EmptyState
-                icon={ClipboardCheck}
-                title="チェック差分の比較には2件必要です"
-                description="候補を2件以上追加するとチェック差分を比較できます。"
+                title="候補を2件以上集めると比べられます"
+                description="式場を候補に入れると、ここで並べて見比べられます。"
                 action={{ label: "式場を探す", href: "/explore" }}
               />
             )}

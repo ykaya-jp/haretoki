@@ -24,7 +24,7 @@ export function ReflectionHint({ activeCount }: ReflectionHintProps) {
 
       <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Link
-          href="/candidates?tab=checklist"
+          href="/candidates?tab=compare"
           prefetch={true}
           className="group flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 px-3.5 py-3 transition hover:bg-background/80 active:scale-[0.99]"
         >
