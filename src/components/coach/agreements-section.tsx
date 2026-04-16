@@ -133,6 +133,8 @@ export function AgreementsSection({ initialAgreements }: Props) {
         <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
           Dialogue
         </p>
+        {/* Coach intra-card h2 — 外部 page の text-h1 (28px) とは別のローカル
+            スケール。Coach 画面内だけの section 見出しなので 15px extralight で統一。 */}
         <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
           ふたりの話し合い
         </h2>

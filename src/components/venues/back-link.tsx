@@ -3,11 +3,15 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
-/**
- * Venue 詳細の breadcrumb masthead。戻るボタン + HARETOKI · Venue prefix。
- * 戻るは native history を優先し、無ければ /explore にフォールバック。
- */
-export function VenueDetailBackLink() {
+interface VenueDetailBackLinkProps {
+  /**
+   * "breadcrumb" (default): `Back / HARETOKI · Venue` の editorial masthead。
+   * "compact": `← Back` だけの軽量戻るリンク。写真を画面上部に近づけたいときに使う。
+   */
+  variant?: "breadcrumb" | "compact";
+}
+
+export function VenueDetailBackLink({ variant = "breadcrumb" }: VenueDetailBackLinkProps) {
   const router = useRouter();
 
   const handleBack = () => {
@@ -17,6 +21,20 @@ export function VenueDetailBackLink() {
       router.push("/explore");
     }
   };
+
+  if (variant === "compact") {
+    return (
+      <button
+        type="button"
+        onClick={handleBack}
+        className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground hover:opacity-70"
+        aria-label="戻る"
+      >
+        <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+        Back
+      </button>
+    );
+  }
 
   return (
     <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">

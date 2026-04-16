@@ -35,12 +35,6 @@ export function VenueHeader({
         <h1 className="font-[family-name:var(--font-display)] text-fluid-lg font-extralight tracking-[-0.01em]">{name}</h1>
         <VenueStatusBadge status={status} />
       </div>
-      {/* Subtle gold hairline under venue name — Morning Light detail. */}
-      <div
-        aria-hidden="true"
-        className="h-px w-16 bg-gradient-to-r from-[var(--gold-warm)]/60 to-transparent"
-      />
-
       {/* Definition list — basic info grid */}
       <dl className="grid grid-cols-[80px_1fr] gap-x-4 gap-y-2">
         {location && (

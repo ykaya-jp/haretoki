@@ -73,7 +73,7 @@ export default async function VenueDetailPage({
     <div className="space-y-10 pb-20">
       {/* Back link — uses router.back() to preserve filter/scroll state on
           the referrer page (Explore, Candidates, Home all link here). */}
-      <VenueDetailBackLink />
+      <VenueDetailBackLink variant="compact" />
 
       {/* Photo Gallery — above the fold */}
       <VenuePhotoGallery
