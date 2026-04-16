@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { listActiveItems } from "@/server/actions/checklist";
-import { prisma } from "@/server/db";
-import { requireUser, requireProjectMembership } from "@/server/auth";
 import { CHECKLIST_PRESETS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 import { ChecklistSelectionView } from "@/components/checklist/checklist-selection-view";
 import { ChecklistStarterCTA } from "@/components/checklist/starter-cta";
@@ -15,14 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ChecklistPage() {
-  const { activeItemIds, projectId } = await listActiveItems();
+  const { activeItemIds } = await listActiveItems();
   const activeSet = new Set(activeItemIds);
-
-  // Count this project's venues so we can tell the couple where their
-  // checklist choices will actually appear (F-20 反映先不明 fix).
-  const user = await requireUser();
-  await requireProjectMembership(user.id);
-  const venueCount = await prisma.venue.count({ where: { projectId } });
 
   // Group presets by category × subcategory
   const grouped = CATEGORY_ORDER.map((cat) => {
@@ -81,7 +73,7 @@ export default async function ChecklistPage() {
       {isEmpty ? (
         <ChecklistStarterCTA />
       ) : (
-        <ReflectionHint activeCount={totalActive} venueCount={venueCount} />
+        <ReflectionHint activeCount={totalActive} />
       )}
 
       <div id="categories" className="scroll-mt-4">

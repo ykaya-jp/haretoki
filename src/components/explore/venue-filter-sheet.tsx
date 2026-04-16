@@ -34,7 +34,7 @@ const SORT_OPTIONS = [
   { value: "score_hospitality_desc", label: "サービスの評価順" },
   { value: "score_atmosphere_desc", label: "雰囲気の評価順" },
   { value: "score_cost_desc", label: "コスパの評価順" },
-  { value: "score_access_desc", label: "設備の評価順" },
+  { value: "score_access_desc", label: "アクセスの評価順" },
 ] as const;
 
 const REVIEW_DELTA_PCT_DEFAULT = 30;
