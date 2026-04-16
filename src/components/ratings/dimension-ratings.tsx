@@ -93,7 +93,7 @@ export function DimensionRatings({
           <span className="text-muted-foreground">いま残しています…</span>
         )}
         {saveStatus === "saved" && (
-          <span className="text-green-600 dark:text-green-400">
+          <span className="text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]">
             残しました
           </span>
         )}

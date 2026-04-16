@@ -10,11 +10,11 @@ const STATUS_CONFIG: Record<VenueStatus, { label: string; className: string }> =
     },
     visited: {
       label: "見学済み",
-      className: "bg-blue-50/90 text-blue-800",
+      className: "bg-[color-mix(in_oklab,var(--primary)_10%,var(--background))] text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
     },
     shortlisted: {
       label: "候補",
-      className: "bg-green-50/90 text-green-800",
+      className: "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))] text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]",
     },
     selected: {
       label: "決定",

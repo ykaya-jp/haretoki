@@ -109,16 +109,16 @@ export function SwipeCompare({ venues, onComplete }: SwipeCompareProps) {
         <button
           type="button"
           onClick={() => handleSwipe("up")}
-          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-blue-200 transition-transform active:scale-90"
+          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[color-mix(in_oklab,var(--primary)_35%,transparent)] transition-transform active:scale-90"
         >
-          <Scale className="h-5 w-5 text-blue-500" />
+          <Scale className="h-5 w-5 text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]" />
         </button>
         <button
           type="button"
           onClick={() => handleSwipe("right")}
-          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-green-200 transition-transform active:scale-90"
+          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color-mix(in_oklab,var(--success,#22c55e)_45%,transparent)] transition-transform active:scale-90"
         >
-          <Heart className="h-6 w-6 text-green-500" />
+          <Heart className="h-6 w-6 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
         </button>
       </div>
     </div>

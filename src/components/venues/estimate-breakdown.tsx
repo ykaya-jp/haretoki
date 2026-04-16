@@ -21,9 +21,9 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 const TIER_COLORS: Record<string, string> = {
-  minimum: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  minimum: "bg-[color-mix(in_oklab,var(--primary)_10%,var(--background))] text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
   standard:
-    "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+    "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))] text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]",
   premium:
     "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
 };

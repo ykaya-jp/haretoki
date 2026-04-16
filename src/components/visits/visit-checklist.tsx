@@ -124,7 +124,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                 <span className={cn(
                   "text-xs tabular-nums rounded-full px-2 py-0.5",
                   checkedCount === catItems.length && catItems.length > 0
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))] text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]"
                     : "bg-muted text-muted-foreground"
                 )}>
                   {checkedCount}/{catItems.length}
@@ -164,8 +164,8 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                             >
                               <div className={cn(
                                 "flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-200",
-                                item.status === "yes" ? "border-green-500 bg-green-500 text-white" :
-                                item.status === "no" ? "border-red-400 bg-red-50 text-red-500" :
+                                item.status === "yes" ? "border-[var(--success,#22c55e)] bg-[var(--success,#22c55e)] text-primary-foreground" :
+                                item.status === "no" ? "border-[color-mix(in_oklab,var(--destructive)_45%,transparent)] bg-[color-mix(in_oklab,var(--destructive)_10%,var(--background))] text-[color:var(--destructive)]" :
                                 "border-muted-foreground/30 bg-card"
                               )}>
                                 {item.status === "yes" && <Check className="h-4 w-4" />}

@@ -23,7 +23,7 @@ const LABEL_COL_W = "w-[132px]";
 const VENUE_COL_W = "w-[96px]";
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === "yes") return <Check className="h-4 w-4 text-green-600" aria-label="◯" />;
+  if (status === "yes") return <Check className="h-4 w-4 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" aria-label="◯" />;
   if (status === "no") return <X className="h-4 w-4 text-destructive" aria-label="×" />;
   return <Minus className="h-3.5 w-3.5 text-muted-foreground/40" aria-label="未確認" />;
 }
@@ -205,7 +205,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                                     className={cn(
                                       VENUE_COL_W,
                                       "shrink-0 flex flex-col items-center gap-1 rounded py-1",
-                                      v.status === "yes" && "bg-green-50",
+                                      v.status === "yes" && "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))]",
                                       v.status === "no" && "bg-destructive/10",
                                     )}
                                     title={v.memo ?? undefined}

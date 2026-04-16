@@ -154,14 +154,14 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                     {/* Included items */}
                     {plan.includedItems.length > 0 && (
                       <div>
-                        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-green-600">
+                        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]">
                           <Check className="h-3.5 w-3.5" />
                           プランに含まれるもの
                         </p>
                         <ul className="space-y-1">
                           {plan.includedItems.map((item, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm">
-                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
+                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
                               <span>{item}</span>
                             </li>
                           ))}
@@ -210,7 +210,7 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                               <span>{bi.item}</span>
                               <span className="text-center">
                                 {allowed ? (
-                                  <Check className="mx-auto h-3.5 w-3.5 text-green-500" />
+                                  <Check className="mx-auto h-3.5 w-3.5 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
                                 ) : (
                                   <X className="mx-auto h-3.5 w-3.5 text-destructive/70" />
                                 )}

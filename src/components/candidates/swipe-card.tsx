@@ -43,8 +43,8 @@ export function SwipeCard({ venue, onSwipe, isTop }: SwipeCardProps) {
       className="w-full overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]"
     >
       {/* Overlays */}
-      <motion.div style={{ opacity: rightOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-green-500/20">
-        <Heart className="h-16 w-16 text-green-500" />
+      <motion.div style={{ opacity: rightOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))]">
+        <Heart className="h-16 w-16 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
       </motion.div>
       <motion.div style={{ opacity: leftOpacity }} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-destructive/20">
         <X className="h-16 w-16 text-destructive" />
