@@ -5,10 +5,16 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
 import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
-import { getMatrixData } from "@/server/actions/matrix";
-import type { MatrixVenue } from "@/server/actions/matrix";
-
-export type { MatrixVenue };
+export interface ComparisonVenue {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  totalScore: number | null;
+  scoresByDimension: Record<string, number | null>;
+  costMin: number | null;
+  costMax: number | null;
+  latestEstimateTotal: number | null;
+}
 
 export interface ChecklistItemAnswer {
   status: string | null;
@@ -34,21 +40,30 @@ export interface DimensionWithChecklist {
 }
 
 export interface UnifiedComparisonData {
-  venues: MatrixVenue[];
+  venues: ComparisonVenue[];
   dimensions: DimensionWithChecklist[];
   totalScore: Record<string, number | null>;
   costWinnerId: string | null;
-  unmappedItems: ChecklistItemComparison[]; // dress_item etc.
+  unmappedItems: ChecklistItemComparison[];
 }
 
-/** Merges score matrix data with checklist answers into one unified response. */
+/** Merges score matrix data with checklist answers into one unified response.
+ *  Fetches ALL project venues (not just favorites) so comparison works
+ *  even when the user hasn't pressed ♡ yet. */
 export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  const matrixData = await getMatrixData();
+  const allVenues = await prisma.venue.findMany({
+    where: { projectId },
+    include: {
+      scores: { where: { source: { in: ["user_rating", "ai_analysis"] } } },
+      estimates: { orderBy: { version: "desc" }, take: 1 },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
-  if (matrixData.venues.length === 0) {
+  if (allVenues.length === 0) {
     return {
       venues: [],
       dimensions: TIER1_DIMENSIONS.map((id) => ({
@@ -66,7 +81,60 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     };
   }
 
-  const venueIds = matrixData.venues.map((v) => v.id);
+  const venues: ComparisonVenue[] = allVenues.map((v) => {
+    const scoresByDimension: Record<string, number | null> = {};
+    for (const dimId of TIER1_DIMENSIONS) {
+      const userScore = v.scores.find((s) => s.dimension === dimId && s.source === "user_rating");
+      const aiScore = v.scores.find((s) => s.dimension === dimId && s.source === "ai_analysis");
+      const match = userScore ?? aiScore;
+      scoresByDimension[dimId] = match ? Number(match.score) : null;
+    }
+    const validScores = Object.values(scoresByDimension).filter((s): s is number => s !== null);
+    const totalScore = validScores.length > 0
+      ? Math.round((validScores.reduce((a, b) => a + b, 0) / validScores.length) * 10) / 10
+      : null;
+    return {
+      id: v.id,
+      name: v.name,
+      photoUrl: v.photoUrls[0] ?? null,
+      totalScore,
+      scoresByDimension,
+      costMin: v.costMin,
+      costMax: v.costMax,
+      latestEstimateTotal: v.estimates[0]?.total ?? null,
+    };
+  });
+
+  const venueIds = venues.map((v) => v.id);
+
+  // Compute winners
+  const winners: Record<string, string> = {};
+  if (venues.length > 1) {
+    const topTotal = venues.reduce<ComparisonVenue | null>((acc, v) => {
+      if (v.totalScore === null) return acc;
+      if (!acc || acc.totalScore === null) return v;
+      return v.totalScore > acc.totalScore ? v : acc;
+    }, null);
+    if (topTotal) winners.total = topTotal.id;
+    for (const dimId of TIER1_DIMENSIONS) {
+      const top = venues.reduce<ComparisonVenue | null>((acc, v) => {
+        const s = v.scoresByDimension[dimId];
+        if (s === null) return acc;
+        const accS = acc?.scoresByDimension[dimId];
+        if (!acc || accS === null || accS === undefined) return v;
+        return s > accS ? v : acc;
+      }, null);
+      if (top) winners[dimId] = top.id;
+    }
+    const topCost = venues.reduce<ComparisonVenue | null>((acc, v) => {
+      const cost = v.latestEstimateTotal ?? v.costMax ?? v.costMin;
+      if (cost === null) return acc;
+      const accCost = acc ? (acc.latestEstimateTotal ?? acc.costMax ?? acc.costMin) : null;
+      if (!acc || accCost === null) return v;
+      return cost < accCost ? v : acc;
+    }, null);
+    if (topCost) winners.cost_value = topCost.id;
+  }
 
   // Fetch all checklist answers for these venues in one query
   const rawAnswers = await prisma.venueChecklistAnswer.findMany({
@@ -123,10 +191,10 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
   const dimensions: DimensionWithChecklist[] = TIER1_DIMENSIONS.map((dimId) => {
     const label = DIMENSION_LABELS[dimId] ?? dimId;
     const scores: Record<string, number | null> = {};
-    for (const v of matrixData.venues) {
+    for (const v of venues) {
       scores[v.id] = v.scoresByDimension[dimId] ?? null;
     }
-    const winnerId = matrixData.winners[dimId] ?? null;
+    const winnerId = winners[dimId] ?? null;
 
     const presets = getChecklistItemsForDimension(dimId);
     const checklistItems: ChecklistItemComparison[] = presets.map((preset) => {
@@ -157,15 +225,14 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     buildItemComparison(preset.id, preset.question, preset.type),
   );
 
-  // Build totalScore and costWinnerId maps from matrixData
   const totalScore: Record<string, number | null> = {};
-  for (const v of matrixData.venues) {
+  for (const v of venues) {
     totalScore[v.id] = v.totalScore;
   }
-  const costWinnerId = matrixData.winners.cost_value ?? null;
+  const costWinnerId = winners.cost_value ?? null;
 
   return {
-    venues: matrixData.venues,
+    venues,
     dimensions,
     totalScore,
     costWinnerId,

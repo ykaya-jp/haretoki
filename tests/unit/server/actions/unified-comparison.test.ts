@@ -4,7 +4,7 @@ import type {
   ChecklistItemComparison,
   DimensionWithChecklist,
   UnifiedComparisonData,
-  MatrixVenue,
+  ComparisonVenue,
 } from "@/server/actions/unified-comparison";
 
 describe("unified-comparison types", () => {
@@ -33,7 +33,7 @@ describe("unified-comparison types", () => {
   });
 
   it("UnifiedComparisonData has venues, dimensions, totalScore, costWinnerId, unmappedItems", () => {
-    expectTypeOf<UnifiedComparisonData["venues"]>().toMatchTypeOf<MatrixVenue[]>();
+    expectTypeOf<UnifiedComparisonData["venues"]>().toMatchTypeOf<ComparisonVenue[]>();
     expectTypeOf<UnifiedComparisonData["dimensions"]>().toMatchTypeOf<
       DimensionWithChecklist[]
     >();
