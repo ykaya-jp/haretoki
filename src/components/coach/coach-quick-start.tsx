@@ -105,11 +105,13 @@ export function CoachQuickStart() {
 
   return (
     <section className="space-y-5">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" aria-hidden="true" />
-        <span className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+      <div className="flex items-baseline gap-2">
+        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          Prompts
+        </p>
+        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
           どんなこと、話そう？
-        </span>
+        </h2>
       </div>
 
       {/* Primary: 3 use-case cards. Stack on mobile, 3-col grid on md+. */}
@@ -122,7 +124,7 @@ export function CoachQuickStart() {
               type="button"
               onClick={() => preFill(uc.prompt)}
               aria-label={`${uc.title}。チャット入力欄に質問文を入れます`}
-              className="flex min-h-[88px] w-full flex-col gap-2 rounded-2xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-5 text-left transition-all duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+              className="flex min-h-[88px] w-full flex-col gap-2 rounded-2xl border border-border/60 border-l-[3px] border-l-[var(--gold-warm)] bg-card p-5 text-left transition-all duration-150 hover:bg-[var(--gold-subtle)]/30 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
             >
               <Icon
                 aria-hidden="true"
