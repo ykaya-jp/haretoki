@@ -145,7 +145,7 @@ export default async function ExplorePage({
   const fitReasons = await getFitReasons(venues.map((v: { id: string }) => v.id));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Header — masthead + quiet tagline */}
       <div>
         <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">

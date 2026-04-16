@@ -2,6 +2,7 @@
 
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { MessageCircle, Check, RotateCw } from "lucide-react";
 import {
   createAgreement,
   deleteAgreement,
@@ -20,9 +21,18 @@ function nextStatus(current: AgreementStatus): AgreementStatus {
 }
 
 const STATUS_LABEL: Record<AgreementStatus, string> = {
-  discussing: "💭 話してる",
-  decided: "✅ 決めた",
-  revisit: "🔄 再検討",
+  discussing: "話してる",
+  decided: "決めた",
+  revisit: "再検討",
+};
+
+const STATUS_ICON: Record<
+  AgreementStatus,
+  React.ComponentType<{ className?: string; strokeWidth?: number }>
+> = {
+  discussing: MessageCircle,
+  decided: Check,
+  revisit: RotateCw,
 };
 
 function chipClass(status: AgreementStatus): string {
@@ -139,15 +149,25 @@ export function AgreementsSection({ initialAgreements }: Props) {
               <button
                 onClick={() => handleToggleStatus(item)}
                 className={cn(
-                  "inline-flex min-h-[44px] items-center rounded-full border px-3 py-1.5 text-[12.5px] transition-all active:scale-[0.97]",
+                  "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] transition-all active:scale-[0.97]",
                   chipClass(item.status),
                 )}
                 aria-label={`${item.text} — ${STATUS_LABEL[item.status]}（タップで変更）`}
                 disabled={isPending}
               >
-                <span className="mr-1.5 text-[11px]">
-                  {STATUS_LABEL[item.status].split(" ")[0]}
+                {(() => {
+                  const Icon = STATUS_ICON[item.status];
+                  return (
+                    <Icon
+                      className="h-3 w-3 shrink-0"
+                      strokeWidth={1.8}
+                    />
+                  );
+                })()}
+                <span className="text-[10.5px] uppercase tracking-[0.08em] opacity-80">
+                  {STATUS_LABEL[item.status]}
                 </span>
+                <span aria-hidden="true" className="opacity-30">·</span>
                 <span>{item.text}</span>
               </button>
               <button

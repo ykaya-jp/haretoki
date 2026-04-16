@@ -62,7 +62,7 @@ export default async function HomePage() {
   const { dateLabel, timeOfDayLabel } = jstTodayLabel();
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       {ritual && (
         <DailyRitual
           ritual={ritual}
@@ -89,12 +89,10 @@ export default async function HomePage() {
       <Link
         href="/journey"
         prefetch={false}
-        className="group relative flex items-center justify-between overflow-hidden rounded-2xl border px-5 py-4 transition active:scale-[0.99]"
+        className="group flex items-center justify-between gap-3 border-l-2 pl-4 pr-1 py-3 transition active:opacity-70"
         style={{
-          background:
-            "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 6%, var(--background)) 0%, color-mix(in oklab, var(--primary) 4%, var(--background)) 100%)",
-          borderColor:
-            "color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+          borderLeftColor:
+            "color-mix(in oklab, var(--gold-warm) 50%, transparent)",
         }}
       >
         <div className="min-w-0">

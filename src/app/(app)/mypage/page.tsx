@@ -71,7 +71,7 @@ export default async function MyPage() {
     null;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
@@ -95,9 +95,14 @@ export default async function MyPage() {
 
       {/* Profile */}
       <section className="space-y-4">
-        <h3 className="font-serif text-lg font-light tracking-wide">
-          プロフィール
-        </h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            Profile
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+            プロフィール
+          </h3>
+        </div>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] space-y-3">
           <div>
             <p className="text-xs text-muted-foreground">お名前</p>
@@ -114,9 +119,14 @@ export default async function MyPage() {
 
       {/* Partner */}
       <section className="space-y-4">
-        <h3 className="font-serif text-lg font-light tracking-wide">
-          パートナー
-        </h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            Partner
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+            パートナー
+          </h3>
+        </div>
         {hasPartner ? (
           <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
             <p className="text-xs text-muted-foreground">パートナー</p>
@@ -153,9 +163,14 @@ export default async function MyPage() {
 
       {/* Conditions */}
       <section className="space-y-4">
-        <h3 className="font-serif text-lg font-light tracking-wide">
-          おふたりの希望
-        </h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            Preferences
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+            おふたりの希望
+          </h3>
+        </div>
         <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
           <SettingsForm initialConditions={conditions} />
         </div>
@@ -163,9 +178,14 @@ export default async function MyPage() {
 
       {/* Link to Settings + Saved Searches */}
       <section className="space-y-4">
-        <h3 className="font-serif text-lg font-light tracking-wide">
-          その他
-        </h3>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            More
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+            その他
+          </h3>
+        </div>
         <div className="space-y-3">
           {/* Notification inbox */}
           <Link

@@ -18,7 +18,7 @@ export default async function JourneyPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Header */}
       <header className="space-y-3">
         <Link

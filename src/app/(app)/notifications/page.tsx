@@ -16,7 +16,7 @@ export default async function NotificationsPage() {
   const hasUnread = notifications.some((n) => !n.read);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
         <Link
           href="/mypage"
