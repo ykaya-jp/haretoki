@@ -112,6 +112,7 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
       askClaude({
         system: MATRIX_INSIGHT_PROMPT.system,
         userMessage: MATRIX_INSIGHT_PROMPT.buildUserMessage(input),
+        model: "claude-sonnet-4-6",
         maxTokens: MATRIX_INSIGHT_PROMPT.maxTokens,
       }),
     );

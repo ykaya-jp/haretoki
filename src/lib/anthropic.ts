@@ -28,7 +28,7 @@ export async function askClaude(options: {
 }): Promise<string> {
   const claude = getAnthropicClient();
   const response = await claude.messages.create({
-    model: options.model ?? "claude-sonnet-4-6",
+    model: options.model ?? "claude-haiku-4-5-20251001",
     max_tokens: options.maxTokens ?? 4096,
     system: options.system,
     messages: [{ role: "user", content: options.userMessage }],
@@ -52,7 +52,7 @@ export async function streamClaude(options: {
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
   const stream = await claude.messages.stream(
     {
-      model: options.model ?? "claude-sonnet-4-6",
+      model: options.model ?? "claude-haiku-4-5-20251001",
       max_tokens: options.maxTokens ?? 2048,
       system: options.system,
       messages: options.messages,

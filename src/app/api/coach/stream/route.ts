@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
     textStream = await streamClaude({
       system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
       messages: claudeMessages,
+      model: "claude-sonnet-4-6",
       maxTokens: 2048,
     });
   } catch (error) {

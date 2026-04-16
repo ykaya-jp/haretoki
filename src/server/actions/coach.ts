@@ -310,6 +310,7 @@ export async function sendCoachMessage(
         askClaude({
           system: COACH_CHAT_PROMPT.buildSystemPrompt(context),
           userMessage: stripPII(message) + historyText,
+          model: "claude-sonnet-4-6",
           maxTokens: 2048,
         }),
       );
