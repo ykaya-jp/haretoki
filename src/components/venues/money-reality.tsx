@@ -46,7 +46,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
               className="h-2 w-2 rounded-full"
               style={{ background: "oklch(0.82 0.12 75)" }}
             />
-            <h4 className="text-[13.5px] font-medium">抜けている項目</h4>
+            <h4 className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[-0.005em]">抜けている項目</h4>
             <span
               className="ml-auto rounded-full bg-card px-2 py-0.5 text-[11px] font-medium tabular-nums"
             >
@@ -99,7 +99,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
               className="h-2 w-2 rounded-full"
               style={{ background: "var(--destructive)" }}
             />
-            <h4 className="text-[13.5px] font-medium">上がりやすい項目</h4>
+            <h4 className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[-0.005em]">上がりやすい項目</h4>
             <span
               className="ml-auto rounded-full bg-card px-2 py-0.5 text-[11px] font-medium tabular-nums"
             >
@@ -141,7 +141,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
               className="h-2 w-2 rounded-full"
               style={{ background: "var(--gold-warm)" }}
             />
-            <h4 className="text-[13.5px] font-medium text-[var(--gold-warm)]">
+            <h4 className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[-0.005em] text-[var(--gold-warm)]">
               この式場の実績
             </h4>
           </div>

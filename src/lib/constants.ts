@@ -45,16 +45,17 @@ export function getScoreColor(score: number): string {
   return SCORE_COLORS.low;
 }
 
-/** Hex color values for score-based bar fills */
-export function getScoreColorHex(score: number): string {
-  if (score >= 4.0) return "#22c55e"; // green-500
-  if (score >= 3.0) return "#C9A84C"; // gold-warm
-  return "#ef4444"; // red-500
+/** CSS variable reference for score-based fills — dark mode対応済。
+ *  利用側は `style={{ color: getScoreColorVar(score) }}` のように使う。 */
+export function getScoreColorVar(score: number): string {
+  if (score >= 4.0) return "var(--success, #22c55e)";
+  if (score >= 3.0) return "var(--gold-warm)";
+  return "var(--destructive)";
 }
 
-/** Background tint (10% opacity) for score cells */
+/** Background tint (10% opacity) for score cells — token 経由 */
 export function getScoreBgClass(score: number): string {
-  if (score >= 4.0) return "bg-green-500/10";
-  if (score >= 3.0) return "bg-amber-500/10";
-  return "bg-destructive/10";
+  if (score >= 4.0) return "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,transparent)]";
+  if (score >= 3.0) return "bg-[color-mix(in_oklab,var(--gold-warm)_12%,transparent)]";
+  return "bg-[color-mix(in_oklab,var(--destructive)_12%,transparent)]";
 }

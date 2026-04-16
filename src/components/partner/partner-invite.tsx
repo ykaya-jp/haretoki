@@ -81,7 +81,15 @@ export function PartnerInvite({ inviteLink, partnerStatus }: PartnerInviteProps)
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+    <div
+      className="space-y-4 rounded-2xl border p-4"
+      style={{
+        background:
+          "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 6%, var(--background)) 0%, color-mix(in oklab, var(--primary) 3%, var(--background)) 100%)",
+        borderColor:
+          "color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+      }}
+    >
       {partnerStatus === "not_invited" ? (
         <>
           <div className="flex items-center gap-3">
