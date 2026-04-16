@@ -40,7 +40,7 @@ export function VibeFilterChips({ activeVibes }: VibeFilterChipsProps) {
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
         <p className="text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
-          気分で探す
+          雰囲気でしぼる
         </p>
         {activeCount > 0 && (
           <button

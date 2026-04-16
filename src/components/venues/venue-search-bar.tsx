@@ -54,7 +54,7 @@ export function VenueSearchBar({ initialQuery = "" }: VenueSearchBarProps) {
           type="search"
           inputMode="search"
           enterKeyHint="search"
-          placeholder="式場名・エリアで検索"
+          placeholder="登録した式場の中から探す"
           aria-label="式場を検索"
           value={value}
           onChange={(e) => setValue(e.target.value)}

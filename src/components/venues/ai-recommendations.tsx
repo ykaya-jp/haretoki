@@ -288,7 +288,7 @@ export function AIRecommendations({
     <section
       aria-label="AIおすすめ式場"
       aria-live="polite"
-      className="space-y-4 rounded-2xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-5 min-h-[240px]"
+      className="space-y-4 rounded-2xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-5"
     >
       {/* Heading row — always rendered */}
       <div className="flex items-start justify-between gap-2">
@@ -433,13 +433,7 @@ function UnavailableState() {
   return (
     <div className="space-y-2">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        今日のAIおすすめは準備中です。先日ご覧になった式場をどうぞ →{" "}
-        <a
-          href="/candidates?view=recent"
-          className="underline underline-offset-4 text-foreground"
-        >
-          最近見た式場
-        </a>
+        AIおすすめは現在準備中です。式場を追加すると、精度が高まります。
       </p>
     </div>
   );
@@ -449,13 +443,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="space-y-3">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        今日のAIおすすめは準備中です。先日ご覧になった式場をどうぞ →{" "}
-        <a
-          href="/candidates?view=recent"
-          className="underline underline-offset-4 text-foreground"
-        >
-          最近見た式場
-        </a>
+        おすすめの取得に失敗しました。しばらくしてからお試しください。
       </p>
       <Button
         type="button"

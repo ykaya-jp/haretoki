@@ -76,9 +76,14 @@ export function VenuePersonalizedChips({ conditions }: VenuePersonalizedChipsPro
       aria-label="パーソナライズフィルタ"
       data-testid="personalized-chips"
     >
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-        あなたの希望
-      </span>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          絞り込み条件
+        </span>
+        <span className="text-[10px] text-muted-foreground/70">
+          オンボーディングの回答をもとに設定されています
+        </span>
+      </div>
       {chips.map((chip, idx) => (
         <button
           key={`${chip.key}-${chip.value ?? idx}`}
