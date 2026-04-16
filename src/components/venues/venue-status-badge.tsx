@@ -3,7 +3,7 @@ import type { VenueStatus } from "@/generated/prisma/client";
 
 const STATUS_CONFIG: Record<VenueStatus, { label: string; className: string }> =
   {
-    researching: { label: "調査中", className: "" },
+    researching: { label: "調査中", className: "bg-slate-100/90 text-slate-600" },
     visit_scheduled: {
       label: "見学予定",
       className: "bg-amber-50/90 text-amber-800",

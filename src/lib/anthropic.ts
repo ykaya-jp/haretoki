@@ -5,17 +5,18 @@ import { createHash } from "crypto";
 let client: Anthropic | null = null;
 
 export function getAnthropicClient(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is not set");
+  const key = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!key) {
+    throw new Error("ANTHROPIC_API_KEY is not set or empty");
   }
   if (!client) {
-    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    client = new Anthropic({ apiKey: key });
   }
   return client;
 }
 
 export function isClaudeAvailable(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!process.env.ANTHROPIC_API_KEY?.trim();
 }
 
 // --- Non-streaming call ---

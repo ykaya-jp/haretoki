@@ -148,6 +148,13 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     if (topCost) winners.cost_value = topCost.id;
   }
 
+  // Fetch active checklist items (items the user turned ON in /checklist settings)
+  const activeChecklist = await prisma.projectChecklist.findMany({
+    where: { projectId },
+    select: { itemId: true },
+  });
+  const activeItemIds = new Set(activeChecklist.map((c) => c.itemId));
+
   // Fetch all checklist answers for these venues in one query
   const rawAnswers = await prisma.venueChecklistAnswer.findMany({
     where: {
@@ -208,7 +215,10 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     }
     const winnerId = winners[dimId] ?? null;
 
-    const presets = getChecklistItemsForDimension(dimId);
+    const allPresets = getChecklistItemsForDimension(dimId);
+    const presets = activeItemIds.size > 0
+      ? allPresets.filter((p) => activeItemIds.has(p.id))
+      : allPresets;
     const checklistItems: ChecklistItemComparison[] = presets.map((preset) => {
       mappedItemIds.add(preset.id);
       return buildItemComparison(preset.id, preset.question, preset.type);
@@ -229,9 +239,9 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     };
   });
 
-  // Collect unmapped preset items (e.g. dress_item category)
+  // Collect unmapped preset items (e.g. dress_item category), filtered by active
   const unmappedPresets = CHECKLIST_PRESETS.filter(
-    (preset) => !mappedItemIds.has(preset.id),
+    (preset) => !mappedItemIds.has(preset.id) && (activeItemIds.size === 0 || activeItemIds.has(preset.id)),
   );
   const unmappedItems: ChecklistItemComparison[] = unmappedPresets.map((preset) =>
     buildItemComparison(preset.id, preset.question, preset.type),
