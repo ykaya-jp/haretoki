@@ -202,7 +202,7 @@ export default async function MyPage() {
             </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-medium text-white tabular-nums">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--destructive)] px-1 text-[11px] font-medium text-primary-foreground tabular-nums">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}

@@ -219,7 +219,7 @@ export function RatingSection({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-0 right-0 text-xs text-green-600 dark:text-green-400 flex items-center gap-1"
+            className="absolute top-0 right-0 text-xs text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))] flex items-center gap-1"
             aria-live="polite"
           >
             <Check className="h-3 w-3" /> 残しました
