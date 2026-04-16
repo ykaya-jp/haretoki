@@ -246,7 +246,9 @@ export async function POST(request: NextRequest) {
               // reply' symptom).
               revalidatePath("/coach");
             })
-            .catch(() => {});
+            .catch((err) => {
+              console.error("[coach/stream] Failed to persist assistant message:", err);
+            });
         } else {
           // Claude returned nothing — still refresh so the user message
           // persisted at the start of the stream is visible in history.

@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion"],
+    optimizePackageImports: ["lucide-react", "framer-motion", "recharts"],
     // viewTransition disabled: both-page DOM coexistence during transition
     // caused net-negative latency on mobile tab switches (body thrash).
     viewTransition: false,

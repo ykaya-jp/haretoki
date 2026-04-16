@@ -1,4 +1,5 @@
 import { sanitizeForPrompt } from "@/lib/anthropic";
+import type { ProjectConditions } from "@/types";
 
 export type Weather = "cloudy" | "break" | "clear" | "sunny";
 
@@ -18,7 +19,7 @@ export interface RitualContext {
   /** Top 1-2 favorite names. */
   favoriteNames: string[];
   /** Project conditions JSON shorthand for personalization. */
-  conditions: Record<string, unknown> | null;
+  conditions: ProjectConditions | null;
 }
 
 export interface RitualOutput {

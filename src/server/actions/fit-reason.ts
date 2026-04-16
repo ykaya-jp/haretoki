@@ -14,6 +14,7 @@ import {
   cleanOneLineFit,
   type FitReasonVenueSummary,
 } from "@/lib/prompts/fit-reason";
+import { parseConditions } from "@/lib/schemas";
 
 export type FitReasonMap = Record<string, string | null>;
 
@@ -45,8 +46,7 @@ async function fetchFitReasons(
     where: { id: projectId },
     select: { conditions: true },
   });
-  const conditions =
-    (project?.conditions as Record<string, unknown> | null) ?? null;
+  const conditions = parseConditions(project?.conditions);
   if (!conditions || Object.keys(conditions).length === 0) {
     return {};
   }

@@ -11,6 +11,7 @@ import {
 } from "@/lib/anthropic";
 import { MATRIX_INSIGHT_PROMPT, type MatrixInsightInput } from "@/lib/prompts/matrix-insight";
 import { getMatrixData } from "@/server/actions/matrix";
+import { parseConditions } from "@/lib/schemas";
 
 export interface MatrixInsight {
   summary: string;
@@ -57,7 +58,7 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
     })),
     dimensionLabels: DIMENSION_LABELS,
     winners: winnerNameByKey,
-    conditions: (project?.conditions as Record<string, unknown> | null) ?? null,
+    conditions: parseConditions(project?.conditions),
   };
 
   if (!isClaudeAvailable()) {

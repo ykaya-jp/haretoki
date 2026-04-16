@@ -13,6 +13,7 @@ import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles } from "lucide
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
+import type { VenueStatus } from "@/generated/prisma/client";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4
@@ -52,7 +53,11 @@ interface FavoriteVenue {
     name: string;
     location: string | null;
     photoUrls: string[];
-    status: string;
+    status: VenueStatus;
+    costMin: number | null;
+    costMax: number | null;
+    capacityMin: number | null;
+    capacityMax: number | null;
     scores: Array<{ dimension: string; score: number; source: string }>;
   };
   favoritedBy: string[];
@@ -266,8 +271,7 @@ export function CandidatesView({
                       transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <VenueCard
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        venue={fav.venue as any}
+                        venue={fav.venue}
                         isFavorite={true}
                       />
                     </motion.div>

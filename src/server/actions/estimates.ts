@@ -115,18 +115,6 @@ If you cannot extract certain fields, use reasonable defaults. Always return val
 
 const PDF_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-type AnalysisResult = {
-  total: number;
-  items: Array<{
-    category: string;
-    itemName: string;
-    amount: number;
-    tier: string;
-  }>;
-  predictedFinal: number;
-  analysisNote: string;
-};
-
 export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   // Auth check
   const user = await requireUser();
@@ -188,20 +176,35 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       return { error: "AI がうまく読めませんでした。少し時間をおいてもう一度お試しください" };
     }
 
-    // Parse Claude's JSON response
-    let analysis: AnalysisResult;
+    // Parse and validate Claude's JSON response with zod
+    let rawJson: unknown;
     try {
-      analysis = JSON.parse(claudeResponse);
+      rawJson = JSON.parse(claudeResponse);
     } catch {
       return {
         error: "AI の応答をうまく読み取れませんでした。もう一度お試しください",
       };
     }
 
-    // Validate the analysis has required fields
-    if (!analysis.total || !Array.isArray(analysis.items)) {
+    const AnalysisResultSchema = z.object({
+      total: z.number(),
+      items: z.array(
+        z.object({
+          category: z.string(),
+          itemName: z.string(),
+          amount: z.number(),
+          tier: z.string(),
+        }),
+      ),
+      predictedFinal: z.number(),
+      analysisNote: z.string(),
+    });
+
+    const parsed = AnalysisResultSchema.safeParse(rawJson);
+    if (!parsed.success) {
       return { error: "AI の読み取りが途中で止まりました。もう一度お試しください" };
     }
+    const analysis = parsed.data;
 
     return {
       analysis,

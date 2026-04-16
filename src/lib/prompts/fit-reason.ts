@@ -1,4 +1,5 @@
 import { sanitizeForPrompt } from "@/lib/anthropic";
+import type { ProjectConditions } from "@/types";
 
 export interface FitReasonVenueSummary {
   name: string;
@@ -31,7 +32,7 @@ export const FIT_REASON_PROMPT = {
 - 絵文字・感嘆符
 - 複数文（句点 2 つ以上）`,
 
-  buildUserMessage(venue: FitReasonVenueSummary, conditions: Record<string, unknown> | null): string {
+  buildUserMessage(venue: FitReasonVenueSummary, conditions: ProjectConditions | null): string {
     const feat = [
       venue.location ? `location: ${sanitizeForPrompt(venue.location, 60)}` : null,
       venue.accessInfo ? `access: ${sanitizeForPrompt(venue.accessInfo, 100)}` : null,

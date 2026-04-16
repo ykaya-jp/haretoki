@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { buildVenueWhere } from "@/server/actions/venue-filters";
-import type { SavedSearchFilters } from "@/server/actions/saved-searches";
+import { parseSavedSearchFilters } from "@/lib/schemas";
 
 /**
  * GET/POST /api/cron/saved-search-notify
@@ -55,7 +55,11 @@ async function handleCron(request: Request) {
   let skipped = 0;
 
   for (const search of savedSearches) {
-    const f = search.filters as SavedSearchFilters;
+    const f = parseSavedSearchFilters(search.filters);
+    if (!f) {
+      skipped++;
+      continue;
+    }
     const since = search.lastNotifiedAt ?? new Date(0);
 
     // Build venue filter for this project + saved filter conditions

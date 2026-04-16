@@ -15,10 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  createSavedSearch,
-  type SavedSearchFilters,
-} from "@/server/actions/saved-searches";
+import { createSavedSearch } from "@/server/actions/saved-searches";
+import type { SavedSearchFilters } from "@/lib/schemas";
 
 interface SaveSearchButtonProps {
   /** Current active filters to be saved */

@@ -4,11 +4,23 @@ import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
 import { computeCompositeScore } from "@/lib/venue-score";
-import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
+import type { VenueStatus } from "@/generated/prisma/client";
 
-type VenueWithScores = Venue & {
-  scores: VenueScore[];
-  estimates?: Estimate[];
+/** Minimal venue shape VenueCard reads — compatible with full Prisma Venue and lean DTOs. */
+type VenueWithScores = {
+  id: string;
+  name: string;
+  location: string | null;
+  status: VenueStatus;
+  photoUrls: string[];
+  costMin: number | null;
+  costMax: number | null;
+  capacityMin: number | null;
+  capacityMax: number | null;
+  ceremonyStyles?: string[];
+  dressBringIn?: string | null;
+  scores: Array<{ dimension: string; score: number | unknown; source: string }>;
+  estimates?: Array<{ total: number }>;
 };
 
 interface VenueCardProps {

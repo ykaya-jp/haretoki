@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, stripPII, withRetry } from "@/lib/anthropic";
+import { parseConditions } from "@/lib/schemas";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
 import { captureError } from "@/lib/sentry";
 
@@ -76,7 +77,7 @@ async function loadUserContext(projectId: string): Promise<UserContext> {
   ]);
 
   return {
-    conditions: project?.conditions as Record<string, unknown> | null,
+    conditions: parseConditions(project?.conditions),
     venues: venues.map((v) => ({ name: v.name, status: v.status })),
     favorites: favorites.map((f) => f.venue.name),
     latestEstimate: latestEstimate

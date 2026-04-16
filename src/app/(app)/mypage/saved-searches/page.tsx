@@ -7,7 +7,7 @@ import {
 } from "@/server/actions/saved-searches";
 import { SavedSearchDeleteButton } from "@/components/mypage/saved-search-delete-button";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { SavedSearchFilters } from "@/server/actions/saved-searches";
+import type { SavedSearchFilters } from "@/lib/schemas";
 
 export const metadata: Metadata = {
   title: "保存した検索条件",

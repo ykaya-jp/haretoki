@@ -160,8 +160,7 @@ export function CoachClient({
               insights.map((insight) => (
                 <AIInsightCard
                   key={insight.id}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  type={insight.type as any}
+                  type={insight.type as "estimate" | "partner" | "visit" | "comparison" | "reminder"}
                   title={insight.title}
                   body={insight.body}
                   actions={insight.actions}

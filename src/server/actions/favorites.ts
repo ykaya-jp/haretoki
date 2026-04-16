@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
+import type { VenueStatus } from "@/generated/prisma/client";
 
 export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boolean }> {
   const user = await requireUser();
@@ -46,9 +47,13 @@ interface FavoriteVenue {
     name: string;
     location: string | null;
     photoUrls: string[];
-    status: string;
+    status: VenueStatus;
     ceremonyStyles: string[];
     dressBringIn: string | null;
+    costMin: number | null;
+    costMax: number | null;
+    capacityMin: number | null;
+    capacityMax: number | null;
     scores: Array<{ dimension: string; score: number; source: string }>;
   };
   favoritedBy: string[];
@@ -118,6 +123,10 @@ async function fetchFavorites(
           status: fav.venue.status,
           ceremonyStyles: fav.venue.ceremonyStyles ?? [],
           dressBringIn: fav.venue.dressBringIn ?? null,
+          costMin: fav.venue.costMin ?? null,
+          costMax: fav.venue.costMax ?? null,
+          capacityMin: fav.venue.capacityMin ?? null,
+          capacityMax: fav.venue.capacityMax ?? null,
           scores: fav.venue.scores.map((s) => ({
             dimension: s.dimension,
             score: Number(s.score),

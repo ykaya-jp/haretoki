@@ -39,7 +39,7 @@ const shipporiMincho = Shippori_Mincho({
   weight: ["400", "500", "600"],
   variable: "--font-shippori-mincho",
   display: "swap",
-  preload: false,
+  preload: true,
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
 

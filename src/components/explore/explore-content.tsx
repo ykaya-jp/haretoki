@@ -11,14 +11,14 @@ import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
-import type { SavedSearchFilters } from "@/server/actions/saved-searches";
+import type { SavedSearchFilters } from "@/lib/schemas";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
 import Link from "next/link";
 
 type VenueWithRelations = Venue & {
-  scores: VenueScore[];
-  estimates?: (Estimate & { items: unknown[] })[];
+  scores: Pick<VenueScore, "dimension" | "score" | "source">[];
+  estimates?: (Pick<Estimate, "id" | "venueId" | "total" | "version" | "createdAt"> & { items: { amount: unknown }[] })[];
 };
 
 interface ExploreContentProps {

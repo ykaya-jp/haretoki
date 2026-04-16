@@ -79,14 +79,24 @@ export async function getVenues(filters?: VenueFilters) {
   const venues = await prisma.venue.findMany({
     where,
     include: {
-      scores: true,
+      scores: {
+        select: { dimension: true, score: true, source: true },
+      },
       estimates: {
-        include: { items: true },
+        select: {
+          id: true,
+          venueId: true,
+          total: true,
+          version: true,
+          createdAt: true,
+          items: { select: { amount: true } },
+        },
         orderBy: { version: "desc" },
         take: 1,
       },
     },
     orderBy,
+    take: 100,
   });
 
   let filtered = venues;

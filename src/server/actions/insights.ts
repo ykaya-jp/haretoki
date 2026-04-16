@@ -152,7 +152,7 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
   }
 
   // 7. Partner Gap Finder: dimensions where user & partner disagree
-  const partnerGaps = await findPartnerGaps(userId, projectId);
+  const partnerGaps = await findPartnerGaps(userId, projectId, venues);
   for (const gap of partnerGaps.slice(0, 2)) {
     insights.push({
       id: `partner-gap-${gap.venueId}-${gap.dimension}`,
@@ -224,6 +224,7 @@ interface PartnerGap {
 async function findPartnerGaps(
   userId: string,
   projectId: string,
+  venueStubs: Array<{ id: string; name: string }>,
 ): Promise<PartnerGap[]> {
   // Get members of this project
   const members = await prisma.projectMember.findMany({
@@ -242,26 +243,42 @@ async function findPartnerGaps(
     reviews: "総合印象",
   };
 
-  // Get all ratings for both users on venues in this project
-  const venues = await prisma.venue.findMany({
-    where: { projectId },
-    include: {
-      visits: {
-        include: {
-          ratings: true,
-        },
+  if (venueStubs.length === 0) return [];
+
+  // Fetch only visits+ratings for the already-known venues — avoids a full venue re-fetch
+  const venueIds = venueStubs.map((v) => v.id);
+  const visits = await prisma.visit.findMany({
+    where: { venueId: { in: venueIds } },
+    select: {
+      venueId: true,
+      ratings: {
+        select: { userId: true, dimension: true, score: true },
       },
     },
   });
 
+  // Build a map from venueId → { id, name } for lookup
+  const venueMap = new Map(venueStubs.map((v) => [v.id, v.name]));
+
+  // Group visits by venue
+  const visitsByVenue = new Map<string, typeof visits>();
+  for (const visit of visits) {
+    const list = visitsByVenue.get(visit.venueId) ?? [];
+    list.push(visit);
+    visitsByVenue.set(visit.venueId, list);
+  }
+
   const gaps: PartnerGap[] = [];
 
-  for (const venue of venues) {
+  for (const venueId of venueIds) {
+    const venueName = venueMap.get(venueId) ?? venueId;
+    const venueVisits = visitsByVenue.get(venueId) ?? [];
+
     // Aggregate ratings by user and dimension
     const userRatings: Record<string, number> = {};
     const partnerRatings: Record<string, number> = {};
 
-    for (const visit of venue.visits) {
+    for (const visit of venueVisits) {
       for (const rating of visit.ratings) {
         if (rating.userId === userId) {
           userRatings[rating.dimension] = Number(rating.score);
@@ -277,8 +294,8 @@ async function findPartnerGaps(
       const p = partnerRatings[dim];
       if (u !== undefined && p !== undefined && Math.abs(u - p) >= 2) {
         gaps.push({
-          venueId: venue.id,
-          venueName: venue.name,
+          venueId,
+          venueName,
           dimension: dim,
           dimensionLabel: DIMENSION_LABELS[dim] ?? dim,
           diff: `${Math.abs(u - p)}点`,

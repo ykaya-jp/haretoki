@@ -1,4 +1,5 @@
 import { sanitizeForPrompt } from "@/lib/anthropic";
+import type { ProjectConditions } from "@/types";
 
 interface MatrixInsightInput {
   venues: Array<{
@@ -9,7 +10,7 @@ interface MatrixInsightInput {
   }>;
   dimensionLabels: Record<string, string>;
   winners: Record<string, string>; // dim or "total" or "cost_value" → venueName
-  conditions: Record<string, unknown> | null;
+  conditions: ProjectConditions | null;
 }
 
 function renderMatrixForPrompt(input: MatrixInsightInput): string {

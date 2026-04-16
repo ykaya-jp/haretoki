@@ -4,14 +4,11 @@ import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { revalidatePath } from "next/cache";
 import { buildVenueWhere } from "@/server/actions/venue-filters";
+import {
+  type SavedSearchFilters,
+  parseSavedSearchFilters,
+} from "@/lib/schemas";
 
-export interface SavedSearchFilters {
-  area?: string[];
-  budgetMax?: number;
-  capacityMin?: number;
-  vibeTags?: string[];
-  keyword?: string;
-}
 
 export interface SavedSearchRow {
   id: string;
@@ -59,12 +56,11 @@ export async function listSavedSearches(): Promise<SavedSearchRow[]> {
     select: { id: true, label: true, filters: true, createdAt: true },
   });
 
-  return rows.map((r) => ({
-    id: r.id,
-    label: r.label,
-    filters: r.filters as SavedSearchFilters,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  return rows.flatMap((r) => {
+    const filters = parseSavedSearchFilters(r.filters);
+    if (!filters) return [];
+    return [{ id: r.id, label: r.label, filters, createdAt: r.createdAt.toISOString() }];
+  });
 }
 
 /** Delete a saved search (membership + ownership check). */
@@ -92,7 +88,8 @@ export async function matchesSavedSearchCount(searchId: string): Promise<number>
   const row = await prisma.savedSearch.findUnique({ where: { id: searchId } });
   if (!row || row.projectId !== projectId) return 0;
 
-  const f = row.filters as SavedSearchFilters;
+  const f = parseSavedSearchFilters(row.filters);
+  if (!f) return 0;
   const where = buildVenueWhere(projectId, {
     areas: f.area,
     budgetMax: f.budgetMax,

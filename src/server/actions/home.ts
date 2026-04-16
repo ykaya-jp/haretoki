@@ -3,12 +3,14 @@
 import { cacheTag } from "next/cache";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
+import { parseConditions } from "@/lib/schemas";
+import type { ProjectConditions } from "@/types";
 
 interface HomeData {
   project: {
     id: string;
     name: string;
-    conditions: Record<string, unknown> | null;
+    conditions: ProjectConditions | null;
   };
   hasPartner: boolean;
   recentVenues: Array<{
@@ -63,7 +65,7 @@ async function fetchHomeData(
     select: { id: true, name: true, conditions: true },
   });
 
-  const [venues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits] = await Promise.all([
+  const [venues, totalVenues, visitedVenues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits] = await Promise.all([
     prisma.venue.findMany({
       where: { projectId },
       include: {
@@ -73,17 +75,16 @@ async function fetchHomeData(
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: 10,
+      take: 5,
     }),
+    prisma.venue.count({ where: { projectId } }),
+    prisma.venue.count({ where: { projectId, status: { in: ["visited", "selected"] } } }),
     prisma.estimate.count({ where: { projectId } }),
     prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
     prisma.decision.findUnique({ where: { projectId } }),
     prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
     prisma.visit.count({ where: { venue: { projectId }, status: "scheduled" } }),
   ]);
-
-  const totalVenues = venues.length;
-  const visitedVenues = venues.filter((v) => v.status === "visited" || v.status === "selected").length;
   const hasDecision = decision !== null;
 
   // Calculate progress
@@ -99,10 +100,10 @@ async function fetchHomeData(
     project: {
       id: project.id,
       name: project.name,
-      conditions: project.conditions as Record<string, unknown> | null,
+      conditions: parseConditions(project.conditions),
     },
     hasPartner: memberCount >= 2,
-    recentVenues: venues.slice(0, 5).map((v) => ({
+    recentVenues: venues.map((v) => ({
       id: v.id,
       name: v.name,
       location: v.location,

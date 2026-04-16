@@ -404,6 +404,7 @@ model VisitNote {
   visit Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
   media VisitNoteMedia[]
 
+  @@index([visitId])
   @@map("visit_notes")
 }
 
@@ -416,6 +417,7 @@ model VisitNoteMedia {
 
   visitNote VisitNote @relation(fields: [visitNoteId], references: [id], onDelete: Cascade)
 
+  @@index([visitNoteId])
   @@map("visit_note_media")
 }
 
@@ -541,6 +543,7 @@ model Review {
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
+  @@unique([venueId, source, sourceUrl])
   @@index([venueId])
   @@map("reviews")
 }
@@ -675,5 +678,6 @@ model CoupleAgreement {
   author  User    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+  @@index([createdBy])
   @@map("couple_agreements")
 }

@@ -1,7 +1,8 @@
 import { sanitizeForPrompt } from "@/lib/anthropic";
+import type { ProjectConditions } from "@/types";
 
 interface UserContext {
-  conditions: Record<string, unknown> | null;
+  conditions: ProjectConditions | null;
   venues: Array<{ name: string; status: string }>;
   favorites: string[];
   latestEstimate: { venueName: string; total: number } | null;

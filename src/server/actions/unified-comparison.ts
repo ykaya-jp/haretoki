@@ -176,7 +176,9 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     if (!answerIndex.has(itemId)) {
       answerIndex.set(itemId, new Map());
     }
-    answerIndex.get(itemId)!.set(row.venueId, {
+    const venueAnswerMap = answerIndex.get(itemId);
+    if (!venueAnswerMap) continue;
+    venueAnswerMap.set(row.venueId, {
       status: row.status ?? null,
       memo: row.memo ?? null,
     });

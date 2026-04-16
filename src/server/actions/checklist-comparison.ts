@@ -59,10 +59,13 @@ export async function getChecklistComparison(
     for (const item of visit.checklist) {
       const cat = item.category ?? "other";
       if (!categoryMap.has(cat)) categoryMap.set(cat, new Map());
-      const itemMap = categoryMap.get(cat)!;
+      const itemMap = categoryMap.get(cat);
+      if (!itemMap) continue;
       if (!itemMap.has(item.item)) itemMap.set(item.item, new Map());
+      const venueMap = itemMap.get(item.item);
+      if (!venueMap) continue;
       const urls = item.photoUrls ?? [];
-      itemMap.get(item.item)!.set(venue.id, {
+      venueMap.set(venue.id, {
         status: item.status,
         memo: item.memo,
         hasPhotos: urls.length > 0,

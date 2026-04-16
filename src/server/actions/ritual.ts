@@ -17,6 +17,7 @@ import {
   type RitualContext,
   type Weather,
 } from "@/lib/prompts/ritual";
+import { parseConditions } from "@/lib/schemas";
 
 export interface DailyRitualView {
   weather: Weather;
@@ -101,7 +102,7 @@ async function buildRitualContext(projectId: string): Promise<RitualContext> {
     favoriteNames: favorites.slice(0, 3).map((f) => f.venue.name),
     latestEstimateTotalYen: latestEstimate?.total ?? undefined,
     hasUnratedFavorite,
-    conditions: (project?.conditions as Record<string, unknown> | null) ?? null,
+    conditions: parseConditions(project?.conditions),
   };
 }
 
