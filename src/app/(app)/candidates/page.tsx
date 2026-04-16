@@ -60,8 +60,9 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
         }}
       />
       <CoupleGapSection />
-      {/* チェック項目の編集は副次的なので inline text link で静かに */}
-      <div className="-mt-6 text-right">
+      {/* チェック項目の編集は副次的なので inline text link で静かに。
+          -mt-6 を使わず CoupleGap 非表示時も hairline と安全に共存。 */}
+      <div className="text-right">
         <Link
           href="/checklist"
           prefetch={false}

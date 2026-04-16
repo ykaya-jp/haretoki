@@ -89,7 +89,7 @@ export default async function HomePage() {
       <Link
         href="/journey"
         prefetch={false}
-        className="group flex items-center justify-between gap-3 border-l-2 pl-4 pr-1 py-3 transition active:opacity-70"
+        className="group flex min-h-[64px] items-center justify-between gap-3 border-l-2 pl-4 pr-1 py-3.5 transition active:opacity-70"
         style={{
           borderLeftColor:
             "color-mix(in oklab, var(--gold-warm) 50%, transparent)",
