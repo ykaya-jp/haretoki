@@ -57,9 +57,19 @@ export default async function InvitePage({
     return (
       <div className="flex min-h-[70dvh] items-center justify-center px-6 py-10">
         <div className="w-full max-w-[360px] space-y-6 text-center">
-          <p className="text-[11.5px] uppercase tracking-[0.2em] text-[var(--gold-warm)]">
-            Invitation
+          <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+            <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+            <span>Invitation</span>
           </p>
+          <div
+            aria-hidden="true"
+            className="mx-auto h-px w-24"
+            style={{
+              background:
+                "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 45%, transparent) 50%, transparent 100%)",
+            }}
+          />
           <h1 className="font-[family-name:var(--font-display)] text-[24px] font-extralight leading-[1.35] tracking-[-0.005em]">
             {inviterName}さんから、
             <br />
@@ -111,10 +121,10 @@ function InvalidCard({
   reason: "invalid" | "expired" | "stale" | "self";
 }) {
   const messages = {
-    invalid: "このリンクはうまく読み取れませんでした。送ってくれた方に、もう一度お伝えください。",
-    expired: "このリンクは有効期限が切れました。新しい招待リンクを送ってもらってください。",
-    stale: "このリンクはすでに使われています。別の人が先に合流した可能性があります。",
-    self: "ご自身で作ったリンクはご自身では使えません。パートナーにお渡しください。",
+    invalid: "このリンクは、うまく読み取れませんでした。送ってくれた方に、もう一度お伝えください。",
+    expired: "このリンクは、有効期限が切れてしまいました。新しい招待リンクをお待ちください。",
+    stale: "先にお相手が合流したようです。よかったらホームで、そっとお迎えください。",
+    self: "ご自身で作ったリンクは、ご自身ではお使いになれません。パートナーにお渡しください。",
   };
 
   return (

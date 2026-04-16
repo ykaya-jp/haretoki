@@ -16,7 +16,17 @@ async function AcceptInviteContent() {
       <div className="w-full max-w-md space-y-6 text-center">
         <p className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
           Haretoki
+          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span className="text-muted-foreground">Invitation</span>
         </p>
+        <div
+          aria-hidden="true"
+          className="mx-auto h-px w-24"
+          style={{
+            background:
+              "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 45%, transparent) 50%, transparent 100%)",
+          }}
+        />
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.01em]">
             ふたりの式場さがしに、招待が届いています
