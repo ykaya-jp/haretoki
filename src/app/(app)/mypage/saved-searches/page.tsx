@@ -91,7 +91,7 @@ export default async function SavedSearchesPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
           <Link
             href="/mypage"
             prefetch={false}
@@ -105,9 +105,9 @@ export default async function SavedSearchesPage() {
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Saved</span>
         </p>
-        <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           保存した検索条件
-        </h2>
+        </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
           条件にあう新しい式場が出会ったら、そっとお知らせします。
         </p>

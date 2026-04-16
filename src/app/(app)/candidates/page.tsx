@@ -36,14 +36,14 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
           <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
           <span>{isRecentView ? "Recent" : "Candidates"}</span>
         </p>
-        <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           {isRecentView ? "最近見た式場" : "候補"}
-        </h2>
+        </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
           {isRecentView
             ? "先日ご覧になった式場を、そっとまとめました。"

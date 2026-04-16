@@ -73,9 +73,9 @@ export function CoachClient({
           <SessionHistorySheet sessions={sessions} currentSessionId={sessionId} />
 
           <div className="min-w-0 flex-1 text-center">
-            <p className="text-[9.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            <p className="flex flex-wrap items-center justify-center gap-1.5 text-[10.5px] tracking-[0.2em] uppercase text-muted-foreground">
               <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-              <span aria-hidden="true" className="mx-1.5 opacity-30">·</span>
+              <span aria-hidden="true" className="opacity-30">·</span>
               <span>Coach</span>
             </p>
             <h1
@@ -90,7 +90,8 @@ export function CoachClient({
             type="button"
             onClick={handleNewChat}
             aria-label="新しい会話を始める"
-            className="inline-flex h-11 items-center gap-1 rounded-full border px-3 text-[12.5px] font-medium transition active:scale-[0.98]"
+            title="新しい会話"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition active:scale-[0.95]"
             style={{
               background: "var(--gold-subtle)",
               borderColor: "color-mix(in oklab, var(--gold-warm) 55%, transparent)",
@@ -99,8 +100,7 @@ export function CoachClient({
                 "0 1px 2px rgba(42,35,32,0.04), 0 6px 16px color-mix(in oklab, var(--gold-warm) 18%, transparent)",
             }}
           >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            <span className="tracking-wide">新しい会話</span>
+            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </div>

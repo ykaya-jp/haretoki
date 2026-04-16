@@ -19,7 +19,7 @@ export function VenueDetailBackLink() {
   };
 
   return (
-    <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
+    <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
       <button
         type="button"
         onClick={handleBack}

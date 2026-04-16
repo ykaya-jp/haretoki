@@ -52,7 +52,7 @@ export default async function VenueChecklistPage({
     <div className="space-y-10 pb-24">
       {/* Header — breadcrumb eyebrow + editorial title */}
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
           <Link
             href={`/venues/${id}`}
             prefetch={false}
@@ -66,9 +66,9 @@ export default async function VenueChecklistPage({
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Checklist</span>
         </p>
-        <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
           {venue.name}
-        </h2>
+        </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
           見学で確かめたい項目を、ふたりの視点で。
         </p>
