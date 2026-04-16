@@ -54,7 +54,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           <p className="text-sm text-muted-foreground">比較する式場がありません</p>
           <Link
             href="/explore"
-            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground active:scale-[0.98]"
+            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
           >
             式場を探す
           </Link>
@@ -64,7 +64,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           <p className="text-sm text-muted-foreground">チェック項目が選ばれていません</p>
           <Link
             href="/checklist"
-            className="mt-3 inline-block min-h-[44px] rounded-lg bg-primary px-4 py-2.5 text-sm text-primary-foreground active:scale-[0.98]"
+            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
           >
             項目を選ぶ
           </Link>

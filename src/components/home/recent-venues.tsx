@@ -90,8 +90,9 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
                 </div>
               ) : (
                 <>
-                  <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted">
-                    <span className="text-muted-foreground text-sm">写真はまだありません</span>
+                  <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 bg-muted rounded-t-xl">
+                    <Building2 className="h-8 w-8 text-muted-foreground/40" strokeWidth={1.2} />
+                    <span className="text-xs text-muted-foreground/70">タップして詳細を見る</span>
                   </div>
                   <div className="p-4">
                     <h3 className="truncate font-[family-name:var(--font-display)] text-base font-medium tracking-[0.05em]">

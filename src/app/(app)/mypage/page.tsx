@@ -103,7 +103,7 @@ export default async function MyPage() {
             プロフィール
           </h3>
         </div>
-        <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] space-y-3">
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] space-y-3">
           <div>
             <p className="text-xs text-muted-foreground">お名前</p>
             <div className="mt-1">
@@ -128,7 +128,7 @@ export default async function MyPage() {
           </h3>
         </div>
         {hasPartner ? (
-          <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+          <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
             <p className="text-xs text-muted-foreground">パートナー</p>
             <p className="mt-1 font-medium">{partner?.user?.name ?? partner?.user?.email ?? "—"}</p>
             <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2.5 py-0.5 text-xs text-[var(--gold-warm)]">
@@ -171,7 +171,7 @@ export default async function MyPage() {
             おふたりの希望
           </h3>
         </div>
-        <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+        <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
           <SettingsForm initialConditions={conditions} />
         </div>
       </section>
@@ -191,7 +191,7 @@ export default async function MyPage() {
           <Link
             href="/notifications"
             prefetch
-            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
           >
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-[var(--gold-warm)]" />
@@ -214,7 +214,7 @@ export default async function MyPage() {
           <Link
             href="/mypage/saved-searches"
             prefetch
-            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
           >
             <div className="flex items-center gap-3">
               <Bookmark className="h-5 w-5 text-[var(--gold-warm)]" />
@@ -229,7 +229,7 @@ export default async function MyPage() {
           <Link
             href="/settings"
             prefetch
-            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
           >
             <div className="flex items-center gap-3">
               <Settings className="h-5 w-5 text-muted-foreground" />

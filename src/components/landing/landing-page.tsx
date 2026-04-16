@@ -299,7 +299,7 @@ export function LandingPage() {
                   <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--gold-subtle)]">
                     <Icon className="h-7 w-7 text-[var(--gold-warm)]" />
                   </div>
-                  <h3 className="mb-3 text-lg font-medium tracking-wide">
+                  <h3 className="mb-3 text-lg font-normal tracking-wide">
                     {feature.title}
                   </h3>
                   <p className="text-sm leading-[1.9] text-muted-foreground">
@@ -345,7 +345,7 @@ export function LandingPage() {
                   className="text-center md:text-left"
                 >
                   <p className="text-3xl font-light text-[var(--gold-warm)] sm:text-4xl">{item.step}</p>
-                  <h3 className="mt-4 text-base font-medium tracking-wide">{item.title}</h3>
+                  <h3 className="mt-4 text-base font-normal tracking-wide">{item.title}</h3>
                   <p className="mt-2 text-sm leading-[1.8] text-muted-foreground">{item.desc}</p>
                 </motion.li>
               ))}

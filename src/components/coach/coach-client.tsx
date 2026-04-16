@@ -67,7 +67,7 @@ export function CoachClient({
     <div className="pb-20">
       {/* Sticky header: history chip + title + new-chat chip */}
       <div
-        className="sticky top-0 z-20 -mx-6 border-b border-border/40 bg-background/75 px-6 py-3 backdrop-blur-xl"
+        className="sticky top-0 z-20 -mx-5 border-b border-border/40 bg-background/75 px-5 py-3 backdrop-blur-xl sm:-mx-8 sm:px-8"
       >
         <div className="flex items-center gap-2">
           <SessionHistorySheet sessions={sessions} currentSessionId={sessionId} />
@@ -109,7 +109,7 @@ export function CoachClient({
         {/* Segmented Control: チャット / インサイト */}
         <div className="mb-5 flex rounded-xl bg-muted p-1">
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-light transition-all ${
+            className={`flex-1 min-h-[44px] rounded-lg py-3 text-sm font-light transition-all active:scale-[0.97] ${
               activeTab === "chat"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -119,7 +119,7 @@ export function CoachClient({
             チャット
           </button>
           <button
-            className={`flex-1 rounded-lg py-2 text-sm font-light transition-all ${
+            className={`flex-1 min-h-[44px] rounded-lg py-3 text-sm font-light transition-all active:scale-[0.97] ${
               activeTab === "insights"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -141,14 +141,12 @@ export function CoachClient({
                 {nightQuestion && <NightQuestionCard question={nightQuestion} />}
                 <AgreementsSection initialAgreements={agreements} />
                 <CoachQuickStart />
-                <div className="opacity-70">
-                  <EmptyState
-                    icon={Search}
-                    title="式場がふえると、もう少しそばに"
-                    description="気になる式場を一つ入れてくれたら、おふたりの歩幅に合わせた声かけができます。"
-                    action={{ label: "式場を見てみる", href: "/explore" }}
-                  />
-                </div>
+                <EmptyState
+                  icon={Search}
+                  title="式場がふえると、もう少しそばに"
+                  description="気になる式場を一つ入れてくれたら、おふたりの歩幅に合わせた声かけができます。"
+                  action={{ label: "式場を見てみる", href: "/explore" }}
+                />
               </div>
             )}
           </div>

@@ -195,7 +195,7 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
         </div>
       )}
       <div
-        className="fixed left-0 right-0 border-t border-border bg-card/95 py-3 backdrop-blur-sm"
+        className="fixed left-0 right-0 z-40 border-t border-border/40 bg-card/80 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60"
         style={{
           bottom: "calc(56px + env(safe-area-inset-bottom))",
           paddingLeft: "max(1rem, env(safe-area-inset-left))",

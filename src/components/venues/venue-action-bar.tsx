@@ -12,7 +12,7 @@ interface VenueActionBarProps {
 
 export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBarProps) {
   return (
-    <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 border-t border-border bg-card px-4 py-3">
+    <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t border-border/40 bg-card/80 px-4 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60">
       <div className="mx-auto flex max-w-5xl items-center gap-3">
         <HeartButton venueId={venueId} initialFavorite={isFavorite} />
         <ShareButton venueName={venueName} />

@@ -70,7 +70,7 @@ export default async function VenueDetailPage({
   }
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-10 pb-36">
       {/* Back link — uses router.back() to preserve filter/scroll state on
           the referrer page (Explore, Candidates, Home all link here). */}
       <VenueDetailBackLink variant="compact" />
@@ -100,7 +100,7 @@ export default async function VenueDetailPage({
       <section id="overview" className="space-y-4">
         <div
           aria-hidden="true"
-          className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+          className="h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent"
         />
 
         {/* Rating Section — needs synchronous userRatings, partner fetch streams */}

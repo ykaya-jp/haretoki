@@ -133,7 +133,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                 "relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1",
                 "min-h-[48px] rounded-lg transition-colors duration-200 active:bg-muted",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                isActive ? "text-primary" : "text-muted-foreground"
+                isActive ? "text-[var(--gold-warm)]" : "text-muted-foreground"
               )}
             >
               <div className="relative">
