@@ -7,8 +7,8 @@ import {
 } from "@/lib/constants";
 
 describe("TIER1_DIMENSIONS", () => {
-  it("contains exactly 6 dimensions", () => {
-    expect(TIER1_DIMENSIONS).toHaveLength(6);
+  it("contains exactly 8 dimensions", () => {
+    expect(TIER1_DIMENSIONS).toHaveLength(8);
   });
 
   it("all have Japanese labels", () => {

@@ -1,136 +1,86 @@
 import { describe, it, expect } from "vitest";
-import {
-  DIMENSION_CHECKLIST_MAP,
-  getChecklistItemsForDimension,
-  getDimensionForPreset,
-} from "../../../src/lib/dimension-checklist-map";
-import { TIER1_DIMENSIONS } from "../../../src/lib/constants";
-import { CHECKLIST_PRESETS } from "../../../src/lib/checklist-presets";
+import { getChecklistItemsForDimension, getDimensionForPreset, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
+import { TIER1_DIMENSIONS } from "@/lib/constants";
+import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 
-describe("DIMENSION_CHECKLIST_MAP", () => {
-  it("covers all TIER1_DIMENSIONS", () => {
-    for (const dim of TIER1_DIMENSIONS) {
-      expect(DIMENSION_CHECKLIST_MAP).toHaveProperty(dim);
+describe("ITEM_TO_DIMENSION (MECE item-level mapping)", () => {
+  it("every CHECKLIST_PRESETS item is mapped to exactly one dimension", () => {
+    for (const preset of CHECKLIST_PRESETS) {
+      const dim = ITEM_TO_DIMENSION[preset.id];
+      expect(dim, `${preset.id} is not mapped to any dimension`).toBeDefined();
+      expect(TIER1_DIMENSIONS as readonly string[]).toContain(dim);
     }
   });
 
-  it("every mapped preset ID exists in CHECKLIST_PRESETS", () => {
-    const allIds = new Set(CHECKLIST_PRESETS.map((item) => item.id));
-    for (const [, mapping] of Object.entries(DIMENSION_CHECKLIST_MAP)) {
-      for (const id of mapping.presetIds) {
-        expect(allIds.has(id), `preset ID not found: ${id}`).toBe(true);
-      }
-    }
-  });
-
-  it("no preset ID is mapped to more than one dimension", () => {
+  it("no item is mapped to two dimensions (mutual exclusivity)", () => {
     const seen = new Map<string, string>();
-    for (const [dim, mapping] of Object.entries(DIMENSION_CHECKLIST_MAP)) {
-      for (const id of mapping.presetIds) {
-        if (seen.has(id)) {
-          throw new Error(`Preset "${id}" mapped to both "${seen.get(id)}" and "${dim}"`);
-        }
-        seen.set(id, dim);
-      }
+    for (const [itemId, dim] of Object.entries(ITEM_TO_DIMENSION)) {
+      expect(seen.has(itemId), `${itemId} appears twice`).toBe(false);
+      seen.set(itemId, dim);
     }
   });
 
-  it("dress_item presets are not mapped to any dimension", () => {
-    const dressIds = new Set(
-      CHECKLIST_PRESETS.filter((item) => item.category === "dress_item").map((item) => item.id),
-    );
-    for (const [, mapping] of Object.entries(DIMENSION_CHECKLIST_MAP)) {
-      for (const id of mapping.presetIds) {
-        expect(dressIds.has(id), `dress_item preset "${id}" should not be mapped`).toBe(false);
-      }
-    }
+  it("mapped item count equals CHECKLIST_PRESETS count (collective exhaustiveness)", () => {
+    const presetIds = new Set(CHECKLIST_PRESETS.map((p) => p.id));
+    const mappedIds = new Set(Object.keys(ITEM_TO_DIMENSION));
+    const unmapped = [...presetIds].filter((id) => !mappedIds.has(id));
+    expect(unmapped, `Unmapped items: ${unmapped.join(", ")}`).toEqual([]);
   });
 });
 
 describe("getChecklistItemsForDimension", () => {
-  it("reviews returns empty array", () => {
-    const items = getChecklistItemsForDimension("reviews");
-    expect(items).toEqual([]);
+  it("overall returns empty (no checklist items)", () => {
+    expect(getChecklistItemsForDimension("overall")).toEqual([]);
   });
 
-  it("cuisine maps to cuisine_drink items only", () => {
-    const items = getChecklistItemsForDimension("cuisine");
+  it("ceremony_space contains chapel items but NOT chapel.guest.capacity", () => {
+    const items = getChecklistItemsForDimension("ceremony_space");
     expect(items.length).toBeGreaterThan(0);
-    for (const item of items) {
-      expect(item.category).toBe("cuisine_drink");
-    }
+    expect(items.some((i) => i.id === "chapel.interior.decor-style")).toBe(true);
+    expect(items.some((i) => i.id === "chapel.guest.capacity")).toBe(false);
   });
 
-  it("hospitality maps only to staff_estimate items with スタッフ subcategory", () => {
+  it("logistics contains capacity items and date availability", () => {
+    const items = getChecklistItemsForDimension("logistics");
+    expect(items.some((i) => i.id === "chapel.guest.capacity")).toBe(true);
+    expect(items.some((i) => i.id === "banquet.layout.capacity")).toBe(true);
+    expect(items.some((i) => i.id === "staff_estimate.estimate.availability")).toBe(true);
+  });
+
+  it("hospitality contains service-staff (moved from cuisine)", () => {
     const items = getChecklistItemsForDimension("hospitality");
-    expect(items.length).toBeGreaterThan(0);
-    for (const item of items) {
-      expect(item.category).toBe("staff_estimate");
-      expect(item.subcategory).toBe("スタッフ");
-    }
+    expect(items.some((i) => i.id === "cuisine_drink.cuisine.service-staff")).toBe(true);
   });
 
-  it("cost maps only to staff_estimate items with 見積り subcategory", () => {
-    const items = getChecklistItemsForDimension("cost");
-    expect(items.length).toBeGreaterThan(0);
-    for (const item of items) {
-      expect(item.category).toBe("staff_estimate");
-      expect(item.subcategory).toBe("見積り");
-    }
+  it("attire_items contains all dress_item presets", () => {
+    const items = getChecklistItemsForDimension("attire_items");
+    const dressPresets = CHECKLIST_PRESETS.filter((p) => p.category === "dress_item");
+    expect(items.length).toBe(dressPresets.length);
   });
 
-  it("atmosphere maps to chapel and banquet items", () => {
-    const items = getChecklistItemsForDimension("atmosphere");
-    expect(items.length).toBeGreaterThan(0);
-    const categories = new Set(items.map((item) => item.category));
-    expect(categories.has("chapel")).toBe(true);
-    expect(categories.has("banquet")).toBe(true);
+  it("cost_contract does NOT contain date availability", () => {
+    const items = getChecklistItemsForDimension("cost_contract");
+    expect(items.some((i) => i.id === "staff_estimate.estimate.availability")).toBe(false);
   });
 
-  it("access maps to facility items", () => {
-    const items = getChecklistItemsForDimension("access");
-    expect(items.length).toBeGreaterThan(0);
-    for (const item of items) {
-      expect(item.category).toBe("facility");
-    }
-  });
-
-  it("returned items are actual ChecklistPresetItem objects", () => {
+  it("cuisine does NOT contain service-staff", () => {
     const items = getChecklistItemsForDimension("cuisine");
-    for (const item of items) {
-      expect(item).toHaveProperty("id");
-      expect(item).toHaveProperty("question");
-      expect(item).toHaveProperty("type");
-    }
+    expect(items.some((i) => i.id === "cuisine_drink.cuisine.service-staff")).toBe(false);
   });
 });
 
 describe("getDimensionForPreset", () => {
-  it("returns the correct dimension for a chapel preset", () => {
-    expect(getDimensionForPreset("chapel.interior.decor-style")).toBe("atmosphere");
+  it("returns correct dimension for moved items", () => {
+    expect(getDimensionForPreset("chapel.guest.capacity")).toBe("logistics");
+    expect(getDimensionForPreset("cuisine_drink.cuisine.service-staff")).toBe("hospitality");
+    expect(getDimensionForPreset("staff_estimate.estimate.availability")).toBe("logistics");
   });
 
-  it("returns the correct dimension for a cuisine_drink preset", () => {
-    expect(getDimensionForPreset("cuisine_drink.cuisine.taste")).toBe("cuisine");
+  it("returns correct dimension for attire items", () => {
+    expect(getDimensionForPreset("dress_item.dress.variety")).toBe("attire_items");
   });
 
-  it("returns the correct dimension for a staff スタッフ preset", () => {
-    expect(getDimensionForPreset("staff_estimate.staff.planner")).toBe("hospitality");
-  });
-
-  it("returns the correct dimension for a staff 見積り preset", () => {
-    expect(getDimensionForPreset("staff_estimate.estimate.total-amount")).toBe("cost");
-  });
-
-  it("returns the correct dimension for a facility preset", () => {
-    expect(getDimensionForPreset("facility.general.no-overlap")).toBe("access");
-  });
-
-  it("returns atmosphere as fallback for unmapped presets (dress_item)", () => {
-    expect(getDimensionForPreset("dress_item.dress.variety")).toBe("atmosphere");
-  });
-
-  it("returns atmosphere as fallback for unknown preset IDs", () => {
-    expect(getDimensionForPreset("nonexistent.item.id")).toBe("atmosphere");
+  it("returns overall for unknown items", () => {
+    expect(getDimensionForPreset("nonexistent.item")).toBe("overall");
   });
 });

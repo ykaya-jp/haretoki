@@ -1,18 +1,27 @@
 export const TIER1_DIMENSIONS = [
-  "atmosphere",
-  "hospitality",
+  "ceremony_space",
+  "banquet_space",
   "cuisine",
-  "cost",
-  "access",
-  "reviews",
+  "attire_items",
+  "hospitality",
+  "cost_contract",
+  "logistics",
+  "overall",
 ] as const;
 
 export type Tier1Dimension = (typeof TIER1_DIMENSIONS)[number];
 
 export const DIMENSION_LABELS: Record<string, string> = {
+  ceremony_space: "挙式会場",
+  banquet_space: "披露宴会場",
+  cuisine: "料理・飲み物",
+  attire_items: "衣裳・アイテム",
+  hospitality: "スタッフ・対応",
+  cost_contract: "費用・契約",
+  logistics: "利便性・設備",
+  overall: "総合印象",
+  // Legacy keys (kept for existing VenueScore data compatibility)
   atmosphere: "雰囲気",
-  hospitality: "ホスピタリティ",
-  cuisine: "料理",
   cost: "費用",
   access: "アクセス",
   reviews: "総合印象",
@@ -25,12 +34,21 @@ export const DIMENSION_LABELS: Record<string, string> = {
 };
 
 export const DIMENSION_HELP: Record<string, string> = {
-  atmosphere: "チャペルや会場全体の雰囲気",
-  hospitality: "プランナーやスタッフの対応",
-  cuisine: "試食の味・量・プレゼンテーション",
-  cost: "見積もりの納得感・コスパ",
-  access: "駅からの距離・交通の便",
-  reviews: "全体を通しての満足度",
+  ceremony_space: "チャペルや挙式スペースの雰囲気・演出",
+  banquet_space: "披露宴会場のレイアウト・装飾・演出設備",
+  cuisine: "料理の味・柔軟性、ドリンク、ケーキ",
+  attire_items: "衣裳、アクセサリー、ペーパーアイテム",
+  hospitality: "プランナーやスタッフの対応品質",
+  cost_contract: "見積もり内容・支払い条件・キャンセル料",
+  logistics: "収容人数・動線・設備・日取り・アクセス",
+  overall: "全体を通しての満足度",
+};
+
+export const LEGACY_DIMENSION_MAP: Record<string, Tier1Dimension> = {
+  atmosphere: "ceremony_space",
+  access: "logistics",
+  cost: "cost_contract",
+  reviews: "overall",
 };
 
 export const SCORE_COLORS = {

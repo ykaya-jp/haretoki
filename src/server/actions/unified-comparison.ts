@@ -2,7 +2,7 @@
 
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
+import { TIER1_DIMENSIONS, DIMENSION_LABELS, LEGACY_DIMENSION_MAP } from "@/lib/constants";
 import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 export interface ComparisonVenue {
@@ -83,11 +83,23 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
 
   const venues: ComparisonVenue[] = allVenues.map((v) => {
     const scoresByDimension: Record<string, number | null> = {};
+    // Build reverse map: new dimension → legacy keys that map to it
+    const legacyKeys: Record<string, string[]> = {};
+    for (const [oldKey, newKey] of Object.entries(LEGACY_DIMENSION_MAP)) {
+      if (!legacyKeys[newKey]) legacyKeys[newKey] = [];
+      legacyKeys[newKey].push(oldKey);
+    }
     for (const dimId of TIER1_DIMENSIONS) {
-      const userScore = v.scores.find((s) => s.dimension === dimId && s.source === "user_rating");
-      const aiScore = v.scores.find((s) => s.dimension === dimId && s.source === "ai_analysis");
-      const match = userScore ?? aiScore;
-      scoresByDimension[dimId] = match ? Number(match.score) : null;
+      // Try new key first, then fall back to legacy keys
+      const keysToTry = [dimId, ...(legacyKeys[dimId] ?? [])];
+      let bestScore: number | null = null;
+      for (const key of keysToTry) {
+        const userScore = v.scores.find((s) => s.dimension === key && s.source === "user_rating");
+        const aiScore = v.scores.find((s) => s.dimension === key && s.source === "ai_analysis");
+        const match = userScore ?? aiScore;
+        if (match) { bestScore = Number(match.score); break; }
+      }
+      scoresByDimension[dimId] = bestScore;
     }
     const validScores = Object.values(scoresByDimension).filter((s): s is number => s !== null);
     const totalScore = validScores.length > 0
