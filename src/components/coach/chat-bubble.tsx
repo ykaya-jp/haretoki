@@ -45,7 +45,7 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
       className={cn("flex gap-2.5", role === "user" ? "justify-end" : "justify-start")}
     >
       {role === "assistant" && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)] shadow-[0_1px_4px_rgba(201,168,76,0.2)]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)] shadow-[0_1px_4px_color-mix(in_oklab,var(--gold-warm)_22%,transparent)]">
           <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
         </div>
       )}
@@ -54,7 +54,7 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
           "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
           role === "user"
             ? "rounded-br-sm bg-primary text-primary-foreground"
-            : "rounded-bl-sm border border-[var(--gold-warm)]/10 bg-[var(--gold-subtle)] text-foreground"
+            : "rounded-bl-sm border border-border/60 bg-card text-foreground"
         )}
         // Announce streaming chunks to screen readers, but only on the
         // assistant's text container — NOT the whole bubble — so the

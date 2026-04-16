@@ -120,7 +120,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                 key={venueIds[i]}
                 className={cn(
                   VENUE_COL_W,
-                  "shrink-0 text-center text-[11px] font-medium text-muted-foreground truncate leading-tight",
+                  "shrink-0 text-center font-serif text-[11.5px] font-extralight tracking-[-0.005em] text-foreground/80 truncate leading-tight",
                 )}
                 title={name}
               >

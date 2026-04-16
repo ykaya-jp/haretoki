@@ -96,7 +96,7 @@ export function ComparisonBoard({ venueOptions, onDecide }: ComparisonBoardProps
                   <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">写真</div>
                 )}
                 <CircularProgressScore score={venue.totalScore} size={64} />
-                <p className="text-center font-serif text-sm font-medium">{venue.name}</p>
+                <p className="text-center font-serif text-sm font-extralight tracking-[-0.005em]">{venue.name}</p>
                 <div className="flex flex-wrap justify-center gap-1">
                   {venue.topStrengths.map((s) => (
                     <span key={s} className="text-xs text-muted-foreground">{s}◎</span>

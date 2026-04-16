@@ -121,7 +121,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
     <section className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
             Visit
           </p>
           <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em]">
@@ -173,8 +173,11 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
             </div>
             <span className={cn(
               "rounded-full px-2 py-0.5 text-xs",
-              visit.status === "scheduled" ? "bg-blue-50 text-blue-700" :
-              visit.status === "completed" ? "bg-green-50 text-green-700" : "bg-muted text-muted-foreground"
+              visit.status === "scheduled"
+                ? "bg-[color-mix(in_oklab,var(--primary)_10%,var(--background))] text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]"
+                : visit.status === "completed"
+                  ? "bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))] text-[color-mix(in_oklab,var(--gold-warm)_85%,var(--foreground))]"
+                  : "bg-muted text-muted-foreground",
             )}>
               {visit.status === "scheduled" ? "見学予定" : visit.status === "completed" ? "見学済み" : "取りやめ"}
             </span>

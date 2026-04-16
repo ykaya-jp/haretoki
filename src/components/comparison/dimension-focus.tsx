@@ -146,7 +146,7 @@ export function DimensionFocus() {
                   <Link
                     href={`/venues/${v.id}`}
                     prefetch={true}
-                    className="block font-serif text-base font-medium truncate hover:underline"
+                    className="block font-serif text-base font-light tracking-[-0.005em] truncate hover:underline"
                   >
                     {v.name}
                   </Link>
