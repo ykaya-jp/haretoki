@@ -91,7 +91,7 @@ export default async function SavedSearchesPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           <Link
             href="/mypage"
             prefetch={false}

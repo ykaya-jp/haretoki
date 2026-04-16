@@ -26,7 +26,7 @@ export function NightQuestionCard({ question }: { question: NightQuestion }) {
       {/* Large decorative quotation mark — editorial flourish */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -right-2 -top-4 select-none font-[family-name:var(--font-display)] text-[88px] font-light leading-none text-[color:var(--primary)] opacity-[0.08]"
+        className="pointer-events-none absolute -right-2 -top-4 select-none font-[family-name:var(--font-display)] text-[88px] font-light leading-none text-[color:var(--primary)] opacity-[0.05]"
       >
         “
       </span>

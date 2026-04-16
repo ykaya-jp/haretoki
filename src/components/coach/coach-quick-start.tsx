@@ -106,7 +106,7 @@ export function CoachQuickStart() {
   return (
     <section className="space-y-5">
       <div className="flex items-baseline gap-2">
-        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           Prompts
         </p>
         <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">

@@ -21,7 +21,7 @@ export default async function JourneyPage() {
     <div className="space-y-10">
       {/* Header — breadcrumb eyebrow + editorial title */}
       <header className="space-y-3">
-        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           <Link
             href="/home"
             prefetch={false}

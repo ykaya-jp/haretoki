@@ -34,7 +34,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   return (
     <div className="space-y-10 pb-24">
       <div>
-        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
           <span aria-hidden="true" className="mx-2 opacity-30">·</span>
           <span>Compare</span>

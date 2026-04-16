@@ -52,7 +52,7 @@ export default async function VenueChecklistPage({
     <div className="space-y-10 pb-24">
       {/* Header — breadcrumb eyebrow + editorial title */}
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           <Link
             href={`/venues/${id}`}
             prefetch={false}

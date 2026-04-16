@@ -74,7 +74,7 @@ export default async function MyPage() {
     <div className="space-y-10">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
             <span aria-hidden="true" className="mx-2 opacity-30">·</span>
             <span>My</span>
@@ -96,7 +96,7 @@ export default async function MyPage() {
       {/* Profile */}
       <section className="space-y-4">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Profile
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
@@ -120,7 +120,7 @@ export default async function MyPage() {
       {/* Partner */}
       <section className="space-y-4">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Partner
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
@@ -164,7 +164,7 @@ export default async function MyPage() {
       {/* Conditions */}
       <section className="space-y-4">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Preferences
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
@@ -179,7 +179,7 @@ export default async function MyPage() {
       {/* Link to Settings + Saved Searches */}
       <section className="space-y-4">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             More
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">

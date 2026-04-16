@@ -33,7 +33,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
     <section>
       <div className="mb-4 flex items-baseline justify-between">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Recent
           </p>
           <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">

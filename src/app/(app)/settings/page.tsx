@@ -11,7 +11,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-10 pb-[env(safe-area-inset-bottom)]">
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
           <Link
             href="/mypage"
             prefetch={false}
@@ -33,7 +33,7 @@ export default async function SettingsPage() {
       {/* Theme */}
       <section className="space-y-3">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Theme
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
@@ -54,7 +54,7 @@ export default async function SettingsPage() {
       {/* Data management (GDPR) */}
       <section className="space-y-3">
         <div className="flex items-baseline gap-2">
-          <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground">
             Data
           </p>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
