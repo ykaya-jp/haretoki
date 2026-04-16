@@ -43,7 +43,7 @@ export function AIInsightCard({
       role="article"
       aria-label={title}
       className={cn(
-        "rounded-2xl border-l-[3px] bg-[var(--gold-subtle)] p-6 transition-opacity",
+        "rounded-2xl border border-border/60 border-l-[3px] bg-card p-6 transition-opacity",
         config.borderColor,
         isAging && "opacity-70",
       )}
