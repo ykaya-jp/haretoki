@@ -18,18 +18,20 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-10">
       <div>
-        <Link
-          href="/mypage"
-          className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          マイページに戻る
-        </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+              <Link
+                href="/mypage"
+                prefetch={false}
+                className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+              >
+                <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                戻る
+              </Link>
+              <span aria-hidden="true" className="opacity-30">/</span>
               <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-              <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+              <span aria-hidden="true" className="opacity-30">·</span>
               <span>Inbox</span>
             </p>
             <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">

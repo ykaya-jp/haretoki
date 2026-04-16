@@ -48,7 +48,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
           すべて →
         </Link>
       </div>
-      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide">
+      <div className="-mx-5 flex gap-4 overflow-x-auto snap-x snap-mandatory px-5 pb-2 scrollbar-hide">
         {venues.map((venue) => {
           const avg = calcAvg(venue.scores);
           return (
@@ -56,7 +56,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
               key={venue.id}
               href={`/venues/${venue.id}`}
               prefetch={true}
-              className="relative min-w-[300px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
+              className="relative min-w-[280px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
             >
               {venue.photoUrls[0] ? (
                 <div className="relative aspect-[4/3] w-full">

@@ -156,7 +156,7 @@ export default async function ExplorePage({
         <h2 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
           式場を、見つける
         </h2>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground/80">
           まだ知らない、ふたりの一つへ。
         </p>
       </div>

@@ -60,8 +60,8 @@ async function SavedSearchCard({
 
   return (
     <div className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
-      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)]">
-        <Bookmark className="h-4 w-4 text-[var(--gold-warm)]" />
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background">
+        <Bookmark className="h-4 w-4 text-muted-foreground" strokeWidth={1.6} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-[family-name:var(--font-display)] font-extralight text-base leading-snug tracking-wide">
@@ -89,18 +89,20 @@ export default async function SavedSearchesPage() {
   const searches = await listSavedSearches();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <Link
-          href="/mypage"
-          className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          マイページに戻る
-        </Link>
-        <p className="text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <Link
+            href="/mypage"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+          >
+            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+            戻る
+          </Link>
+          <span aria-hidden="true" className="opacity-30">/</span>
           <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
           <span>Saved</span>
         </p>
         <h2 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">

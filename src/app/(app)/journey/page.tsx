@@ -19,26 +19,33 @@ export default async function JourneyPage() {
 
   return (
     <div className="space-y-10">
-      {/* Header */}
+      {/* Header — breadcrumb eyebrow + editorial title */}
       <header className="space-y-3">
-        <Link
-          href="/home"
-          prefetch={false}
-          className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] text-muted-foreground transition-opacity hover:opacity-70"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
-          ホームへ
-        </Link>
+        <p className="flex flex-wrap items-center gap-2 text-[10.5px] tracking-[0.18em] uppercase text-muted-foreground">
+          <Link
+            href="/home"
+            prefetch={false}
+            className="inline-flex min-h-11 items-center gap-0.5 normal-case tracking-normal text-[12px] hover:opacity-70"
+          >
+            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+            戻る
+          </Link>
+          <span aria-hidden="true" className="opacity-30">/</span>
+          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span>Journey</span>
+          <span aria-hidden="true" className="opacity-30">·</span>
+          <span className="tabular-nums normal-case tracking-normal text-[12px]">
+            {startYear}
+          </span>
+        </p>
 
         <div>
-          <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-            {startYear} — おふたりの記録
-          </p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-[26px] font-extralight leading-[1.22] tracking-[-0.01em] text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-[26px] font-extralight leading-[1.22] tracking-[-0.01em] text-foreground">
             晴れまでの道
           </h1>
           <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
-            おふたりのここまでと、これから
+            おふたりのここまでと、これから。
           </p>
         </div>
       </header>
