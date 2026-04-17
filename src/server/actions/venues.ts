@@ -7,7 +7,7 @@ import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
-import { askClaude, isClaudeAvailable } from "@/lib/claude";
+import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
 import { computeCompositeScore } from "@/lib/venue-score";
 import {
@@ -543,6 +543,11 @@ export async function addVenueFromUrl(url: string): Promise<{
 
     return { extracted: validated.data, warning };
   } catch (error) {
+    if (error instanceof ClaudeCreditsError) {
+      return {
+        error: "AI機能の利用枠を超えました。管理者にお問い合わせいただくか、手動で入力してください。",
+      };
+    }
     const isAbort =
       error instanceof Error &&
       (error.name === "AbortError" || error.name === "TimeoutError");
