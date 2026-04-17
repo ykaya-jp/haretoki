@@ -188,11 +188,7 @@ export default async function ExplorePage({
             <VenuePersonalizedChips conditions={appliedConditions} hideHeader />
           ) : undefined
         }
-        vibeChips={
-          activeVibes.length > 0 ? (
-            <VibeFilterChips activeVibes={activeVibes} hideHeader />
-          ) : undefined
-        }
+        vibeChips={<VibeFilterChips activeVibes={activeVibes} hideHeader />}
         searchQuery={query}
       />
     </div>

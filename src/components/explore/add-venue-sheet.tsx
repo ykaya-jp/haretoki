@@ -166,7 +166,7 @@ export function AddVenueSheet({
               i === index ? { ...s, status: "success" } : s
             )
           );
-          return { index, success: true, name: extracted.name };
+          return { index, success: true, name: extracted.name, venueId: confirmResult.venue.id };
         } catch {
           setUrlStates((prev) =>
             prev.map((s, i) =>
@@ -180,9 +180,11 @@ export function AddVenueSheet({
 
     setUrlLoading(false);
 
-    const successCount = results.filter(
-      (r) => r.status === "fulfilled" && r.value.success
-    ).length;
+    const successResults = results.filter(
+      (r): r is PromiseFulfilledResult<{ index: number; success: true; name: string; venueId: string }> =>
+        r.status === "fulfilled" && r.value.success
+    );
+    const successCount = successResults.length;
     const failCount = processing.length - successCount;
 
     if (successCount > 0) {
@@ -191,7 +193,12 @@ export function AddVenueSheet({
       } else {
         showToast("success", `${successCount}件追加、${failCount}件失敗`);
       }
-      router.refresh();
+      // Navigate to the new venue page when exactly one URL succeeded
+      if (successCount === 1 && successResults[0].value.venueId) {
+        router.push(`/venues/${successResults[0].value.venueId}`);
+      } else {
+        router.refresh();
+      }
     } else if (failCount > 0) {
       showToast("error", "URLから読み取れませんでした");
     }

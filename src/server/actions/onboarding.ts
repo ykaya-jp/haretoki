@@ -210,24 +210,55 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       ? `\n\n注意: 以下の式場は既に登録済みなので、それ以外をおすすめしてください: ${names.join("、")}`
       : "";
 
-    const response = await withRetry(() =>
-      askClaude({
-        system: ONBOARDING_RECOMMENDATION_PROMPT.system,
-        userMessage: ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote,
-      }),
+    // 20s hard timeout so a hung API call doesn't block the page indefinitely.
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Claude request timed out after 20s")), 20_000),
     );
+
+    let response: string;
+    try {
+      response = await Promise.race([
+        withRetry(() =>
+          askClaude({
+            system: ONBOARDING_RECOMMENDATION_PROMPT.system,
+            userMessage: ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote,
+          }),
+        ),
+        timeoutPromise,
+      ]);
+    } catch (apiError) {
+      // Log credit/billing and other API errors so they're diagnosable without
+      // surfacing the raw error to the user.
+      if (apiError instanceof Error) {
+        const msg = apiError.message;
+        if (msg.includes("credit") || msg.includes("billing") || msg.includes("402")) {
+          console.error("[fetchClaudeRecommendations] Billing/credit error:", msg);
+        } else if (msg.includes("timed out")) {
+          console.warn("[fetchClaudeRecommendations] Request timed out");
+        } else {
+          console.error("[fetchClaudeRecommendations] API error:", msg);
+        }
+      }
+      return null;
+    }
+
+    // Strip markdown code fences in case Claude wraps the JSON.
+    const cleaned = response.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
 
     let result;
     try {
-      result = JSON.parse(response);
+      result = JSON.parse(cleaned);
     } catch {
+      console.warn("[fetchClaudeRecommendations] Failed to parse Claude response as JSON");
       return null;
     }
     if (!result.recommendations || !Array.isArray(result.recommendations)) {
+      console.warn("[fetchClaudeRecommendations] Unexpected response shape:", Object.keys(result ?? {}));
       return null;
     }
     return result;
-  } catch {
+  } catch (err) {
+    console.error("[fetchClaudeRecommendations] Unexpected error:", err);
     return null;
   }
 }
