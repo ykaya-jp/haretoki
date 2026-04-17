@@ -25,6 +25,9 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
       const result = await deleteVenue(venueId);
       if (result.success) {
         toast.success(`${venueName} を削除しました`);
+        // Force full refresh to clear cached DOM (cacheComponents soft-nav
+        // can leave stale venue data/photos in the client cache).
+        router.refresh();
         router.push("/explore");
       } else {
         toast.error(result.error ?? "削除に失敗しました");
