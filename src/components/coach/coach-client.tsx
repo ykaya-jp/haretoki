@@ -10,7 +10,6 @@ import { SessionHistorySheet } from "@/components/coach/session-history-sheet";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NightQuestionCard } from "@/components/coach/night-question-card";
-import { AgreementsSection } from "@/components/coach/agreements-section";
 import type { SessionListItem, SessionDetail } from "@/server/actions/coach";
 import type { AIInsight } from "@/server/actions/insights";
 import type { NightQuestion } from "@/lib/night-questions";
@@ -35,7 +34,6 @@ export function CoachClient({
   currentSessionId,
   insights,
   nightQuestion,
-  agreements,
 }: CoachClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("chat");
@@ -136,17 +134,9 @@ export function CoachClient({
             {hasMessages ? (
               <ChatHistory messages={messages} />
             ) : (
-              <div className="space-y-8">
-                {/* R-5 今夜の一問 — day-of-year × stage で 1 問だけ */}
+              <div className="space-y-6">
                 {nightQuestion && <NightQuestionCard question={nightQuestion} />}
-                <AgreementsSection initialAgreements={agreements} />
                 <CoachQuickStart />
-                <EmptyState
-                  icon={Search}
-                  title="式場がふえると、もう少しそばに"
-                  description="気になる式場を一つ入れてくれたら、おふたりの歩幅に合わせた声かけができます。"
-                  action={{ label: "式場を見てみる", href: "/explore" }}
-                />
               </div>
             )}
           </div>

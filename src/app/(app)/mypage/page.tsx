@@ -30,7 +30,7 @@ async function getAppOrigin(): Promise<string> {
 
 export const metadata: Metadata = {
   title: "マイページ",
-  description: "お名前・パートナー・アプリの整え方を、ここから。",
+  description: "プロフィールや設定をここから。",
 };
 
 export default async function MyPage() {
@@ -71,7 +71,7 @@ export default async function MyPage() {
     null;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
@@ -83,7 +83,7 @@ export default async function MyPage() {
             マイページ
           </h1>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-            お名前・パートナー・アプリの整え方を、ここから。
+            プロフィールや設定をここから。
           </p>
         </div>
         <NotificationBadge initialCount={unreadCount} />
@@ -234,8 +234,8 @@ export default async function MyPage() {
             <div className="flex items-center gap-3">
               <Settings className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">整える</p>
-                <p className="text-xs text-muted-foreground">見た目・通知・ログアウト</p>
+                <p className="font-medium">設定</p>
+                <p className="text-xs text-muted-foreground">見た目・ログアウト</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />

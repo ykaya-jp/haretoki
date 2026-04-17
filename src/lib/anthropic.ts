@@ -15,10 +15,17 @@ export function getAnthropicClient(): Anthropic {
   return client;
 }
 
+/**
+ * Check if Claude AI features are available.
+ * Developers can disable AI via DISABLE_AI=1 env var for testing without credits.
+ */
 export function isClaudeAvailable(): boolean {
+  // Developer kill-switch: set DISABLE_AI=1 to disable all AI features
+  if (process.env.DISABLE_AI === "1" || process.env.DISABLE_AI === "true") {
+    return false;
+  }
   const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) {
-    // Diagnostic: log which env vars are visible (key names only, no values)
     console.warn("[isClaudeAvailable] ANTHROPIC_API_KEY is missing or empty. Env keys containing 'ANTHROPIC':",
       Object.keys(process.env).filter(k => k.includes("ANTHROPIC")));
   }
