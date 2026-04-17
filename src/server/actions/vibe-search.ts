@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import type { VibeTag } from "@/lib/vibe-tags";
 import type { Venue, VenueScore, Estimate } from "@/generated/prisma/client";
@@ -15,11 +14,8 @@ type VenueWithRelations = Venue & {
 export async function filterVenuesByVibe(
   tags: VibeTag[],
 ): Promise<VenueWithRelations[]> {
-  "use cache";
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
-
-  cacheTag(`project:${projectId}:vibe`);
 
   if (tags.length === 0) {
     return [];

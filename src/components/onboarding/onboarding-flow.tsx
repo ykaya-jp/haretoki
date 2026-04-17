@@ -358,7 +358,6 @@ export function OnboardingFlow() {
             className="w-full max-w-sm"
             onClick={() => {
               router.push("/home");
-              router.refresh();
             }}
           >
             ホームへ進む
@@ -370,7 +369,6 @@ export function OnboardingFlow() {
               // wipe any conditions already saved by the question flow above.
               // Just navigate; the cookie was set when answers were saved.
               router.push("/home");
-              router.refresh();
             }}
             className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
           >

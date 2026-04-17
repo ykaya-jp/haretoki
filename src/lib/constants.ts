@@ -1,3 +1,18 @@
+/** Maps raw ceremony style keys (English or mixed) to Japanese display labels. */
+export const CEREMONY_STYLE_LABELS: Record<string, string> = {
+  chapel: "チャペル",
+  christian: "教会式",
+  shinto: "神前式",
+  jinzen: "人前式",
+  western: "洋式",
+  japanese: "和式",
+  outdoor: "ガーデン",
+  garden: "ガーデン",
+  hotel: "ホテル",
+  restaurant: "レストラン",
+  house: "ハウスウェディング",
+};
+
 export const TIER1_DIMENSIONS = [
   "ceremony_space",
   "banquet_space",

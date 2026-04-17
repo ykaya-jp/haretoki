@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteSavedSearch } from "@/server/actions/saved-searches";
@@ -11,12 +12,14 @@ interface SavedSearchDeleteButtonProps {
 
 export function SavedSearchDeleteButton({ id }: SavedSearchDeleteButtonProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   function handleDelete() {
     startTransition(async () => {
       const result = await deleteSavedSearch(id);
       if (result.ok) {
         toast.success("削除しました");
+        router.refresh();
       } else {
         toast.error("削除に失敗しました");
       }

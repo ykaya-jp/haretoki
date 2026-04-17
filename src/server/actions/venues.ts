@@ -18,6 +18,24 @@ import {
 import { captureServerEvent } from "@/lib/analytics/server";
 import { captureError } from "@/lib/sentry";
 import { guardExternalUrl } from "@/lib/url-guard";
+import type { ReviewSource } from "@/generated/prisma/client";
+
+// --- Helpers ---
+
+/** Infer ReviewSource from URL hostname, or return null if unrecognised. */
+function reviewSourceFromUrl(url: string): ReviewSource | null {
+  try {
+    const { hostname } = new URL(url);
+    if (hostname.includes("zexy.net")) return "zexy";
+    if (hostname.includes("weddingpark.net")) return "wedding_park";
+    if (hostname.includes("hana-yume.net")) return "hanayume";
+    if (hostname.includes("mynavi.jp")) return "mynavi";
+    if (hostname.includes("mwed.jp")) return "minna_no_wedding";
+  } catch {
+    // malformed URL — fall through
+  }
+  return null;
+}
 
 // --- Server actions ---
 
@@ -594,6 +612,18 @@ export async function confirmVenueFromUrl(
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
+
+  // After venue creation, trigger review collection (fire-and-forget)
+  const reviewSource = reviewSourceFromUrl(sourceUrl);
+  if (reviewSource) {
+    import("@/server/actions/reviews")
+      .then(({ analyzeVenueReviews }) =>
+        analyzeVenueReviews(venue.id, sourceUrl, reviewSource),
+      )
+      .catch((err) => {
+        console.error("[confirmVenueFromUrl] auto-review-fetch failed:", err);
+      });
+  }
 
   return { success: true as const, venue };
 }

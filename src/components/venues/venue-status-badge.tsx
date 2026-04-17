@@ -1,25 +1,38 @@
 import { cn } from "@/lib/utils";
 import type { VenueStatus } from "@/generated/prisma/client";
 
+/** Maps DB status → 3-stage display label + color */
 const STATUS_CONFIG: Record<VenueStatus, { label: string; className: string }> =
   {
-    researching: { label: "調査中", className: "bg-slate-100/90 text-slate-600" },
-    visit_scheduled: {
-      label: "見学予定",
-      className: "bg-amber-50/90 text-amber-800",
+    // Stage 1: 気になる (interested)
+    researching: {
+      label: "気になる",
+      className:
+        "bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))] text-[color-mix(in_oklab,var(--gold-warm)_80%,var(--foreground))]",
     },
+    visit_scheduled: {
+      label: "気になる",
+      className:
+        "bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))] text-[color-mix(in_oklab,var(--gold-warm)_80%,var(--foreground))]",
+    },
+    // Stage 2: 検討中 (considering)
     visited: {
-      label: "見学済み",
-      className: "bg-[color-mix(in_oklab,var(--primary)_10%,var(--background))] text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
+      label: "検討中",
+      className:
+        "bg-[color-mix(in_oklab,#3b82f6_10%,var(--background))] text-[color-mix(in_oklab,#3b82f6_75%,var(--foreground))]",
     },
     shortlisted: {
-      label: "候補",
-      className: "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))] text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]",
+      label: "検討中",
+      className:
+        "bg-[color-mix(in_oklab,#3b82f6_10%,var(--background))] text-[color-mix(in_oklab,#3b82f6_75%,var(--foreground))]",
     },
+    // Stage 3: 決定 (decided)
     selected: {
       label: "決定",
-      className: "bg-primary text-primary-foreground",
+      className:
+        "bg-[color-mix(in_oklab,var(--gold-warm)_20%,var(--background))] text-[color-mix(in_oklab,var(--gold-warm)_90%,var(--foreground))] ring-1 ring-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)]",
     },
+    // 見送り — kept as-is, muted
     rejected: {
       label: "見送り",
       className: "bg-destructive/10 text-destructive",

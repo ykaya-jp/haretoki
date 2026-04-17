@@ -15,7 +15,6 @@ export function OnboardingGate() {
     checkAndSetOnboardingCookie().then(({ completed }) => {
       if (completed) {
         router.push("/home");
-        router.refresh();
       } else {
         setNeedsOnboarding(true);
         setChecking(false);

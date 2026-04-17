@@ -176,6 +176,9 @@ export function ExploreContent({
             <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
               雰囲気
             </p>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              気になる雰囲気で絞り込む
+            </p>
             {vibeChips}
           </div>
         )}

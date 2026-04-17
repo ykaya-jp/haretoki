@@ -4,6 +4,7 @@ import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
 import { computeCompositeScore } from "@/lib/venue-score";
+import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
 import type { VenueStatus } from "@/generated/prisma/client";
 
 /** Minimal venue shape VenueCard reads — compatible with full Prisma Venue and lean DTOs. */
@@ -180,7 +181,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
                 key={style}
                 className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground"
               >
-                {style}
+                {CEREMONY_STYLE_LABELS[style.toLowerCase()] ?? style}
               </span>
             ))}
             {venue.dressBringIn && (

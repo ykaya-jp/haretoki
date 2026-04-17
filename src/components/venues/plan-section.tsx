@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Check, X, ShirtIcon, PartyPopper, Pencil } from "lucide-react";
+import { ChevronDown, Check, X, ShirtIcon, PartyPopper, Pencil, FileText } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlanEditorSheet } from "@/components/venues/plan-editor-sheet";
@@ -67,10 +67,32 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
         <h2 className="text-base">プランの詳細</h2>
         <PlanEditorSheet venueId={venueId} />
       </div>
+      <p className="text-[12px] text-muted-foreground mb-3">
+        式場のプランを記録して、見積もりと比較できます
+      </p>
       {plans.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          プランはまだ登録されていません
-        </p>
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ boxShadow: "0 0 0 0.5px var(--gold-subtle)" }}>
+            <FileText className="h-6 w-6 text-[var(--gold-warm)]" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-light">プランはまだありません</p>
+            <p className="text-xs text-muted-foreground">
+              見学時にもらったプランを記録すると、費用の比較に役立ちます
+            </p>
+          </div>
+          <PlanEditorSheet
+            venueId={venueId}
+            trigger={
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
+              >
+                プランを記録する
+              </button>
+            }
+          />
+        </div>
       )}
       {plans.map((plan) => {
         const isExpanded = expandedPlan === plan.id;

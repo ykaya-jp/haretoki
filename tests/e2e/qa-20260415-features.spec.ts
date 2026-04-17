@@ -18,6 +18,11 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 
+// All tests share one user created in beforeAll — must run serially to avoid
+// cross-test interference (login sessions, cookie state, DB state).
+// NOTE: top-level test.describe.configure is unreliable with nested describes.
+// Serial mode + lifecycle hooks are managed via the outer describe block below.
+
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -49,54 +54,63 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.waitForURL(/\/(home|onboarding)/, { timeout: 20000 });
 }
 
-// Complete onboarding: calls saveOnboardingAnswers (empty) directly via
-// the "スキップして式場を追加" link, which triggers the server action and
-// sets the httpOnly onboarding_completed cookie.
+// Complete onboarding: skips through all 4 questions so saveOnboardingAnswers
+// sets the httpOnly onboarding_completed cookie, then navigates to /home.
 async function completeOnboarding(page: Page) {
   if (!page.url().includes("/onboarding")) return;
 
-  // Wait for intro (step -1)
-  const skipLink = page.locator('a:has-text("スキップして式場を追加"), a[href="/explore?addVenue=1"]').first();
+  // Wait for the intro screen (はじめる button) or for the gate to auto-redirect
+  // returning users to /home (whichever comes first).
   const startBtn = page.locator('button:has-text("はじめる")').first();
-
-  if (await skipLink.isVisible({ timeout: 4000 }).catch(() => false)) {
-    // Use the skip link — it navigates to /explore without calling saveOnboardingAnswers.
-    // We need the cookie though, so click はじめる first then スキップ through questions.
-    if (await startBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await startBtn.click();
-      await page.waitForTimeout(400);
-    }
+  try {
+    await Promise.race([
+      startBtn.waitFor({ state: "visible", timeout: 6000 }),
+      page.waitForURL(/\/home/, { timeout: 6000 }),
+    ]);
+  } catch {
+    // Neither condition met — proceed anyway
   }
 
-  // Skip through all 4 questions
+  if (!page.url().includes("/onboarding")) return;
+
+  // Click はじめる to proceed past the intro screen
+  if (await startBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await startBtn.click();
+    await page.waitForTimeout(400);
+  }
+
+  // Loop: click スキップ on each question, then wait for ホームへ進む.
+  // 4 questions + up to 4 safety iterations = 8 max.
   for (let i = 0; i < 8; i++) {
-    const currentUrl = page.url();
-    if (!currentUrl.includes("/onboarding")) break;
+    if (!page.url().includes("/onboarding")) break;
 
-    const skip = page.locator('button:has-text("スキップ")').first();
-    const next = page.locator('button:has-text("次へ")').first();
-    const seeRecs = page.locator('button:has-text("おすすめを見る")').first();
+    // First check if we reached the recommendations screen
     const homeBtn = page.locator('button:has-text("ホームへ進む")').first();
-    const skipCondition = page.locator('button:has-text("条件なしでひとまず始める")').first();
-
-    if (await homeBtn.isVisible({ timeout: 800 }).catch(() => false)) {
+    if (await homeBtn.isVisible({ timeout: 300 }).catch(() => false)) {
       await homeBtn.click();
       break;
-    } else if (await skipCondition.isVisible({ timeout: 800 }).catch(() => false)) {
-      await skipCondition.click();
-      break;
-    } else if (await skip.isVisible({ timeout: 800 }).catch(() => false)) {
-      await skip.click();
-    } else if (await seeRecs.isVisible({ timeout: 800 }).catch(() => false)) {
-      await seeRecs.click();
-    } else if (await next.isVisible({ timeout: 800 }).catch(() => false)) {
-      await next.click();
     }
-    await page.waitForTimeout(800);
+
+    const skip = page.locator('button:has-text("スキップ")').first();
+    if (await skip.isVisible({ timeout: 1200 }).catch(() => false)) {
+      await skip.click();
+      await page.waitForTimeout(400);
+    } else {
+      // No skip button and no home button — wait briefly and retry
+      await page.waitForTimeout(800);
+    }
   }
 
-  // Wait for landing on /home or /explore (onboarding done)
-  await page.waitForURL(/\/(home|explore)/, { timeout: 20000 }).catch(() => {});
+  // If still on onboarding, wait up to 15s for ホームへ進む (server action may be slow)
+  if (page.url().includes("/onboarding")) {
+    const homeBtn = page.locator('button:has-text("ホームへ進む")').first();
+    if (await homeBtn.isVisible({ timeout: 15000 }).catch(() => false)) {
+      await homeBtn.click();
+    }
+  }
+
+  // Wait for /home navigation
+  await page.waitForURL(/\/home/, { timeout: 20000 }).catch(() => {});
 }
 
 // Login + complete onboarding + set cookie
@@ -108,33 +122,39 @@ async function loginAndOnboard(page: Page, email: string, password: string) {
 }
 
 // ─────────────────────────────────────────────
-// Setup: create test user once for the file
+// Outer suite — serial mode ensures beforeAll/afterAll scope covers all tests
 // ─────────────────────────────────────────────
-test.beforeAll(async () => {
-  if (!SUPABASE_URL || !SERVICE_ROLE) {
-    throw new Error("Missing SUPABASE env vars — check .env.local");
-  }
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false },
-  });
-  const { data, error } = await admin.auth.admin.createUser({
-    email: testEmail,
-    password: testPassword,
-    email_confirm: true,
-  });
-  if (error) throw error;
-  testUserId = data.user.id;
-  console.log(`[QA] Test user created: ${testEmail} (${testUserId})`);
-});
+test.describe("QA-2026-04-15 Suite", () => {
+  test.describe.configure({ mode: "serial" });
 
-test.afterAll(async () => {
-  if (!testUserId || !SUPABASE_URL || !SERVICE_ROLE) return;
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false },
+  // ─────────────────────────────────────────────
+  // Setup: create test user once for the suite
+  // ─────────────────────────────────────────────
+  test.beforeAll(async () => {
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      throw new Error("Missing SUPABASE env vars — check .env.local");
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false },
+    });
+    const { data, error } = await admin.auth.admin.createUser({
+      email: testEmail,
+      password: testPassword,
+      email_confirm: true,
+    });
+    if (error) throw error;
+    testUserId = data.user.id;
+    console.log(`[QA] Test user created: ${testEmail} (${testUserId})`);
   });
-  await admin.auth.admin.deleteUser(testUserId).catch(() => {});
-  console.log(`[QA] Test user deleted: ${testUserId}`);
-});
+
+  test.afterAll(async () => {
+    if (!testUserId || !SUPABASE_URL || !SERVICE_ROLE) return;
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false },
+    });
+    await admin.auth.admin.deleteUser(testUserId).catch(() => {});
+    console.log(`[QA] Test user deleted: ${testUserId}`);
+  });
 
 // ─────────────────────────────────────────────
 // 1. Onboarding: お名前 input → はじめる → /mypage name反映
@@ -242,11 +262,11 @@ test.describe("R-2: VibeFilterChips", () => {
 
     // Find vibe chip buttons (e.g. 自然光, ガーデン)
     // Chips use min-h-11 rounded-full with emoji + text
-    const chip = page.locator('button:has-text("自然光"), button:has-text("ガーデン")').first();
-    await expect(chip).toBeVisible({ timeout: 5000 });
+    const chipSelector = 'button:has-text("自然光"), button:has-text("ガーデン")';
+    await expect(page.locator(chipSelector).first()).toBeVisible({ timeout: 5000 });
 
-    // Click the chip
-    await chip.click();
+    // Click the chip — router.replace updates the URL client-side
+    await page.locator(chipSelector).first().click();
     await page.waitForTimeout(800);
     await shot(page, "07-explore-vibe-active");
 
@@ -255,8 +275,10 @@ test.describe("R-2: VibeFilterChips", () => {
     console.log(`[R-2] URL after vibe click: ${currentUrl}`);
     expect(currentUrl).toContain("vibe=");
 
-    // Clicking again should deselect (remove vibe from URL)
-    await chip.click();
+    // Wait for DOM to settle after the server-component re-render triggered by
+    // the URL change, then re-acquire the chip and click to deselect.
+    await expect(page.locator(chipSelector).first()).toBeVisible({ timeout: 5000 });
+    await page.locator(chipSelector).first().click();
     await page.waitForTimeout(600);
     const urlAfterDeselect = page.url();
     console.log(`[R-2] URL after deselect: ${urlAfterDeselect}`);
@@ -359,8 +381,9 @@ test.describe("E-10: SaveSearchButton", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(1000);
 
-    const bodyText = await page.locator("body").textContent();
-    if (!bodyText?.includes("QA検索条件テスト")) {
+    // Check if saved search exists in visible page content
+    const hasSavedSearch = await page.locator('text=QA検索条件テスト').first().isVisible({ timeout: 2000 }).catch(() => false);
+    if (!hasSavedSearch) {
       // Nothing to delete — skip (depends on previous test)
       test.skip();
       return;
@@ -373,9 +396,10 @@ test.describe("E-10: SaveSearchButton", () => {
     await page.waitForTimeout(1500);
     await shot(page, "13-saved-search-deleted");
 
-    // Item should be gone
-    const updatedText = await page.locator("body").textContent();
-    expect(updatedText).not.toContain("QA検索条件テスト");
+    // Item should be gone from the visible page content.
+    // Use a specific element locator rather than body.textContent() which
+    // includes RSC inline script payloads and may contain stale encoded data.
+    await expect(page.locator('text=QA検索条件テスト').first()).not.toBeVisible({ timeout: 3000 });
   });
 });
 
@@ -522,3 +546,5 @@ test.describe("Global: HTTP error & console check", () => {
     });
   }
 });
+
+}); // end QA-2026-04-15 Suite

@@ -169,6 +169,9 @@ export function CandidatesView({
 
   return (
     <div className="space-y-5">
+      <p className="text-[12px] text-muted-foreground">
+        気になった式場を比べて、おふたりの一番を見つけましょう
+      </p>
       <SegmentedControl
         segments={SEGMENTS}
         activeId={tab}
