@@ -8,6 +8,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
   cacheComponents: true,
+  // Explicitly forward server-side env vars to the runtime.
+  // Vercel dashboard env vars are sometimes not picked up by server actions
+  // unless declared here or in serverRuntimeConfig.
+  env: {
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+  },
   images: {
     remotePatterns: [
       // Supabase Storage — venue photos, avatars, PDFs
