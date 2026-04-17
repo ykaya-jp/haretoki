@@ -104,7 +104,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
 
         {/* Score badge - top right of photo section, below heart button */}
         {avgScore !== null && (
-          <div className="absolute left-3 bottom-10 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
+          <div className="absolute left-3 bottom-14 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
             <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
             <span className="tabular-nums text-sm font-normal text-white">
               {avgScore.toFixed(1)}

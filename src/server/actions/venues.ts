@@ -216,6 +216,58 @@ export async function getVenue(id: string) {
   return venue;
 }
 
+/** Delete a venue and all related data (scores, estimates, visits, etc). */
+export async function deleteVenue(
+  venueId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  // Verify venue belongs to user's project
+  const venue = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+    select: { id: true },
+  });
+  if (!venue) {
+    return { success: false, error: "式場が見つかりません" };
+  }
+
+  // Cascade delete — Prisma schema should handle relations,
+  // but explicitly delete in order to be safe
+  await prisma.$transaction([
+    prisma.venueChecklistAnswer.deleteMany({ where: { venueId } }),
+    prisma.venueFavorite.deleteMany({ where: { venueId } }),
+    prisma.venueScore.deleteMany({ where: { venueId } }),
+    prisma.review.deleteMany({ where: { venueId } }),
+    prisma.estimateItem.deleteMany({
+      where: { estimate: { venueId } },
+    }),
+    prisma.estimate.deleteMany({ where: { venueId } }),
+    prisma.visitRating.deleteMany({
+      where: { visit: { venueId } },
+    }),
+    prisma.visitChecklistItem.deleteMany({
+      where: { visit: { venueId } },
+    }),
+    prisma.visitNoteMedia.deleteMany({
+      where: { visitNote: { visit: { venueId } } },
+    }),
+    prisma.visitNote.deleteMany({
+      where: { visit: { venueId } },
+    }),
+    prisma.visit.deleteMany({ where: { venueId } }),
+    prisma.venuePlan.deleteMany({ where: { venueId } }),
+    prisma.venue.delete({ where: { id: venueId } }),
+  ]);
+
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath("/explore");
+  revalidatePath("/home");
+  revalidatePath("/candidates");
+
+  return { success: true };
+}
+
 /** Above-the-fold fields: name, location, photos, status, scores. */
 export async function getVenueHeader(id: string) {
   const user = await requireUser();
