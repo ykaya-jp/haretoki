@@ -8,12 +8,11 @@
 ブランドメタファー: 曇り（不安）→ 晴れ間（見えてきた）→ 晴れの日（確信と喜び）
 
 ## Roadmap & Design Docs
-- IMPORTANT: [docs/myreview/remediation-master-plan.md](docs/myreview/remediation-master-plan.md) — 実ユーザー(妻)フィードバックに基づく改善計画。Phase 0 完了済み(2026-04-14)、Phase 1-4 進行中。次フェーズ着手時はここを参照
 - IMPORTANT: [docs/roadmap.md](docs/roadmap.md) — 統合ロードマップ（Release 1-4）。機能スコープとAI境界の判断はここを参照
-- IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム v3 "Morning Light"（Single Source of Truth）
-- [docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md](docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md) — 全画面UI仕様
-- [docs/superpowers/specs/2026-04-13-release1-technical-spec.md](docs/superpowers/specs/2026-04-13-release1-technical-spec.md) — Release 1 技術設計書（Prisma変更、Server Actions、worktree計画）
+- IMPORTANT: [DESIGN.md](DESIGN.md) — デザインシステム（Single Source of Truth）
 - IMPORTANT: [docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md](docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md) — 非機能要件（パフォーマンス予算、楽観的更新、バンドル管理）。実装時に必ず準拠すること
+- [docs/myreview/problems_02.md](docs/myreview/problems_02.md) — 最新ユーザー(妻)フィードバック。現行 audit 計画の原典
+- 過去 Release 技術仕様・v2 UI 仕様は [docs/archive/](docs/archive/) に移動済み。必要なときだけ参照
 
 ## Tech Stack
 - Framework: Next.js 16 (App Router) + TypeScript 5.x
@@ -98,7 +97,7 @@ IMPORTANT: 機能実装・バッチ修正など「一区切り」が完了した
 - Estimate / EstimateItem: 見積もり（バージョン管理、カテゴリ別項目）
 - Visit / VisitRating / VisitNote: 見学記録（チェックリスト、メモ、写真、評価）
 - Decision: 最終決定（プロジェクトにつき1件、理由記録付き）
-- 詳細は [docs/superpowers/specs/2026-04-12-venuelens-design.md](docs/superpowers/specs/2026-04-12-venuelens-design.md) のData Model参照
+- Data Model の詳細は `prisma/schema.prisma` と [docs/archive/2026-04-12-venuelens-design.md](docs/archive/2026-04-12-venuelens-design.md) を参照
 
 ## UI/UX Rules
 - IMPORTANT: デザインシステムの詳細は [DESIGN.md](DESIGN.md) を参照（Single Source of Truth — v2で全面刷新済み）

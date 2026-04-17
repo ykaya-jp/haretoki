@@ -9,15 +9,10 @@
 
 | ドキュメント | 内容 | 状態 |
 |------------|------|------|
-| [DESIGN.md](../DESIGN.md) | v2 デザインシステム（カラー、タイポ、画面仕様、Soul要素） | ✅ 完成 |
-| [v2-redesign spec](superpowers/specs/2026-04-13-venuelens-v2-redesign.md) | 11画面のUI仕様 + コンポーネントinterface | ✅ 完成 |
-| [Release 1 技術設計書](superpowers/specs/2026-04-13-release1-technical-spec.md) | Prisma変更、ルート、Server Actions、AI境界、worktree計画 | ✅ 完成 |
-| [Release 2 技術設計書](superpowers/specs/2026-04-13-release2-technical-spec.md) | Claude API アーキテクチャ、プロンプト設計、ストリーミング、コスト管理 | ✅ 完成 |
-| [Release 3 技術設計書](superpowers/specs/2026-04-13-release3-technical-spec.md) | Supabase Realtime、見学UI、パートナーLevel 2-3、写真アップロード | ✅ 完成 |
-| [Release 4 技術設計書](superpowers/specs/2026-04-13-release4-technical-spec.md) | ダークモード、PWA、スワイプ、通知、AIコスト最適化、OGP | ✅ 完成 |
-| [非機能要件書](superpowers/specs/2026-04-13-nonfunctional-requirements.md) | パフォーマンス予算、タッチ応答性、ネットワーク耐性、バンドル管理、監視 | ✅ 完成 |
-| [旧design spec](superpowers/specs/2026-04-12-venuelens-design.md) | 旧技術アーキテクチャ、データモデル | 参照のみ（v2で上書き） |
-| [CLAUDE.md](../CLAUDE.md) | プロジェクト設定・実装ルール | ✅ v2反映済み |
+| [DESIGN.md](../DESIGN.md) | デザインシステム（Single Source of Truth） | ✅ 運用中 |
+| [非機能要件書](superpowers/specs/2026-04-13-nonfunctional-requirements.md) | パフォーマンス予算、タッチ応答性、ネットワーク耐性、バンドル管理、監視 | ✅ 運用中 |
+| [CLAUDE.md](../CLAUDE.md) | プロジェクト設定・実装ルール | ✅ 運用中 |
+| [docs/archive/](archive/) | 過去 Release 技術仕様・v2 UI 仕様など歴史資料 | 参照のみ |
 
 ---
 
@@ -126,7 +121,7 @@ v2 UIへの全面移行。既存Phase 1機能を新4タブ構成で再実装。P
 ### 実装戦略
 
 Phase A（Foundation, 順次）→ Phase B（4 worktree並列）→ Phase C（4 worktree並列）→ Phase D（統合）
-詳細は [Release 1 技術設計書](superpowers/specs/2026-04-13-release1-technical-spec.md) 参照。
+詳細は [Release 1 技術設計書](../docs/archive/2026-04-13-release1-technical-spec.md) 参照（archive）。
 
 ---
 

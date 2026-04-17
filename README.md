@@ -113,12 +113,10 @@ docs/               # 設計ドキュメント
 |------------|------|
 | [DESIGN.md](DESIGN.md) | デザインシステム（カラー、タイポ、画面仕様） |
 | [docs/roadmap.md](docs/roadmap.md) | 統合ロードマップ（Release 1-4） |
-| [Release 1 技術設計書](docs/superpowers/specs/2026-04-13-release1-technical-spec.md) | Prisma/ルート/Server Actions/worktree計画 |
-| [Release 2 技術設計書](docs/superpowers/specs/2026-04-13-release2-technical-spec.md) | Claude APIアーキテクチャ/プロンプト設計 |
-| [Release 3 技術設計書](docs/superpowers/specs/2026-04-13-release3-technical-spec.md) | Realtime/見学/パートナーLevel 2-3 |
-| [Release 4 技術設計書](docs/superpowers/specs/2026-04-13-release4-technical-spec.md) | ダークモード/PWA/通知/スケール |
 | [非機能要件書](docs/superpowers/specs/2026-04-13-nonfunctional-requirements.md) | パフォーマンス予算/応答性/CI CD |
-| [v2 UI仕様](docs/superpowers/specs/2026-04-13-venuelens-v2-redesign.md) | 全画面のUI仕様/コンポーネントinterface |
+| [docs/copy-lexicon.md](docs/copy-lexicon.md) | UI コピー辞書 / Tone of Voice |
+| [docs/lessons.md](docs/lessons.md) | 実装で学んだ教訓集 |
+| [docs/archive/](docs/archive/) | 過去 Release 技術仕様・v2 UI 仕様など歴史資料 |
 
 ## ブランチ運用
 

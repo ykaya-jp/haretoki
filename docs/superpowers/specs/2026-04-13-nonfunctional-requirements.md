@@ -3,7 +3,7 @@
 > ユーザー要求: 「サクサク動くことはマスト。もっさりしていると全然ダメ」
 > ターゲット: 20-30代カップル、モバイルファースト (375px)
 > 技術スタック: Next.js 16 (App Router) + Prisma + Supabase + Tailwind + shadcn/ui + framer-motion
-> 参照: [DESIGN.md](../../../DESIGN.md) / [Release 1 技術仕様](./2026-04-13-release1-technical-spec.md) / [v2 画面仕様](./2026-04-13-venuelens-v2-redesign.md) / [UXガイドライン](../../ux-guidelines.md)
+> 参照: [DESIGN.md](../../../DESIGN.md) / [Release 1 技術仕様（archive）](../../archive/2026-04-13-release1-technical-spec.md) / [v2 画面仕様（archive）](../../archive/2026-04-13-venuelens-v2-redesign.md)
 > 作成日: 2026-04-13
 
 ---
@@ -740,7 +740,7 @@ export const getVenueById = cache(async (venueId: string) => {
 
 ```typescript
 // Sonner トースト — aria-live は Sonner が自動設定
-// ux-guidelines.md に記載: role="status" + aria-live="polite"
+// role="status" + aria-live="polite"
 <Toaster
   position="bottom-center"
   toastOptions={{
