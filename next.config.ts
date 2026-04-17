@@ -8,9 +8,10 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
   cacheComponents: true,
-  // Explicitly forward server-side env vars to the runtime.
-  // Vercel dashboard env vars are sometimes not picked up by server actions
-  // unless declared here or in serverRuntimeConfig.
+  // Inline server env vars at build time. ANTHROPIC_API_KEY is only imported
+  // by src/lib/anthropic.ts (server-only), so tree-shaking excludes it from
+  // client bundles. This fixes Vercel server-action runtime not seeing
+  // dashboard env vars in Next 16.2 + cacheComponents.
   env: {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
   },
