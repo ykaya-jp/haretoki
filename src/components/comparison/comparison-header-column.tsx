@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
-import type { ComparisonVenue } from "@/server/actions/checklist";
+import type { ComparisonVenue } from "@/lib/comparison-types";
 import { computeCompositeScore } from "@/lib/venue-score";
 
 /**

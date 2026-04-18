@@ -13,7 +13,7 @@ import {
   resolveHighlight,
   FIELD_GROUP_LABELS,
 } from "@/components/comparison/comparison-field-registry";
-import type { ComparisonVenue } from "@/server/actions/checklist";
+import type { ComparisonVenue } from "@/lib/comparison-types";
 
 function makeVenue(overrides: Partial<ComparisonVenue> = {}): ComparisonVenue {
   return {

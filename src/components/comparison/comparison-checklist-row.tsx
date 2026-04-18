@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Check, X, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ComparisonMatrix, ComparisonVenue } from "@/server/actions/checklist";
+import type { ComparisonMatrix, ComparisonVenue } from "@/lib/comparison-types";
 
 /**
  * Grid-aware version of the legacy yes/no/memo/photo/number cells. Same

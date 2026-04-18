@@ -9,7 +9,7 @@ import { computeCompositeScore } from "@/lib/venue-score";
 import type {
   ComparisonMatrix,
   ComparisonVenue,
-} from "@/server/actions/checklist";
+} from "@/lib/comparison-types";
 import {
   COMPARE_FIELDS,
   FIELD_GROUP_LABELS,

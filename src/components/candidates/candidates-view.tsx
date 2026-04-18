@@ -14,7 +14,7 @@ import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
-import { COMPARE_MAX_VENUES } from "@/server/actions/checklist";
+import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4

@@ -31,10 +31,8 @@ vi.mock("@/server/db", () => ({
   },
 }));
 
-import {
-  getComparisonMatrix,
-  COMPARE_MAX_VENUES,
-} from "@/server/actions/checklist";
+import { getComparisonMatrix } from "@/server/actions/checklist";
+import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 
 describe("getComparisonMatrix — Deep Extraction fields", () => {
   beforeEach(() => {

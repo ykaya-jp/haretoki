@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import {
   getComparisonMatrix,
   getFavoriteVenueIds,
-  COMPARE_MAX_VENUES,
 } from "@/server/actions/checklist";
+import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
 import { Info } from "lucide-react";

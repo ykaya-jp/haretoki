@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X, Minus, Star, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ComparisonVenue } from "@/server/actions/checklist";
+import type { ComparisonVenue } from "@/lib/comparison-types";
 import type { CompareField } from "./comparison-field-registry";
 import { resolveHighlight } from "./comparison-field-registry";
 

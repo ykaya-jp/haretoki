@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComparisonMatrix } from "@/server/actions/checklist";
+import type { ComparisonMatrix } from "@/lib/comparison-types";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 

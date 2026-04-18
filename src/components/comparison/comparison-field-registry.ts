@@ -15,7 +15,7 @@
  * Mirrors ハナユメ比較シート + Booking.com row hierarchy.
  */
 
-import type { ComparisonVenue } from "@/server/actions/checklist";
+import type { ComparisonVenue } from "@/lib/comparison-types";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
 import { computeCompositeScore } from "@/lib/venue-score";
 

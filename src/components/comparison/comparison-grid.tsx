@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import type { ComparisonMatrix } from "@/server/actions/checklist";
+import type { ComparisonMatrix } from "@/lib/comparison-types";
 import { ComparisonHeaderColumn } from "./comparison-header-column";
 import { ComparisonRow } from "./comparison-row";
 import { ChecklistAnswerRow } from "./comparison-checklist-row";
