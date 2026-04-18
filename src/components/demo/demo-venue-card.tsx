@@ -51,7 +51,7 @@ export function DemoVenueCard({ venue }: DemoVenueCardProps) {
 
         {venue.rating !== null && (
           <div className="absolute left-3 bottom-3 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
-            <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+            <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
             <span className="tabular-nums text-sm font-normal text-white">
               {venue.rating.toFixed(1)}
             </span>

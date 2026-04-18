@@ -246,7 +246,7 @@ function UrlPasteStep({
           </>
         ) : (
           <>
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
             読み取る
           </>
         )}

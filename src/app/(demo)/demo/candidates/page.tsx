@@ -136,7 +136,7 @@ export default function DemoCandidatesPage() {
                   <td key={v.id} className="p-4">
                     {v.rating !== null ? (
                       <span className="inline-flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+                        <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
                         {v.rating.toFixed(1)}
                       </span>
                     ) : (

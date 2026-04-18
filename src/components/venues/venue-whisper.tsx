@@ -81,7 +81,7 @@ export function VenueWhisper({
       <div className="flex items-center gap-2">
         <Sparkles
           aria-hidden="true"
-          className="h-3.5 w-3.5 text-[var(--gold-warm)]"
+          className="h-4 w-4 text-[var(--gold-warm)]"
           strokeWidth={1.6}
         />
         <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">

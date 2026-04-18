@@ -79,16 +79,16 @@ export function EstimateSection({
 
           {/* Predicted final highlight */}
           {latest.predictedFinal && (
-            <div className="rounded-md bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
+            <div className="rounded-md bg-tint-gold px-3 py-2 dark:bg-tint-gold">
               <div className="flex items-baseline justify-between">
-                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                <span className="text-sm font-medium text-tone-gold dark:text-tone-gold">
                   最終予測額
                 </span>
-                <span className="text-lg font-medium tabular-nums text-amber-800 dark:text-amber-200">
+                <span className="text-lg font-medium tabular-nums text-tone-gold dark:text-tone-gold">
                   {formatYen(latest.predictedFinal)}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+              <p className="mt-1 text-xs text-tone-gold dark:text-tone-gold">
                 準備として把握しておくと安心です
               </p>
             </div>

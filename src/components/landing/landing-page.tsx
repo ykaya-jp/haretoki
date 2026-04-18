@@ -212,7 +212,7 @@ export function LandingPage() {
               className="inline-flex min-h-[44px] items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground underline decoration-[var(--gold-warm)]/40 decoration-dotted underline-offset-[6px] transition-colors duration-200 hover:text-foreground hover:decoration-[var(--gold-warm)]"
             >
               まずは体験してみる
-              <ChevronRight className="h-3.5 w-3.5 text-[var(--gold-warm)]" aria-hidden="true" />
+              <ChevronRight className="h-4 w-4 text-[var(--gold-warm)]" aria-hidden="true" />
             </Link>
           </motion.div>
 

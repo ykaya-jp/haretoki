@@ -17,7 +17,7 @@ export default function DemoHomePage() {
     <div className="space-y-6">
       <header className="space-y-2 pt-2">
         <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--gold-warm)]">
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.75} />
+          <Sparkles className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
           デモモード
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">
@@ -54,7 +54,7 @@ export default function DemoHomePage() {
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--gold-warm)]">
               見る
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </Link>
 
@@ -69,7 +69,7 @@ export default function DemoHomePage() {
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--gold-warm)]">
               比べる
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </Link>
 
@@ -84,7 +84,7 @@ export default function DemoHomePage() {
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--gold-warm)]">
               読む
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </Link>
         </div>
@@ -109,7 +109,7 @@ export default function DemoHomePage() {
                 className="rounded-xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-4"
               >
                 <p className="mb-1 flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--gold-warm)]">
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
                   ヒント
                 </p>
                 <p className="text-sm font-medium leading-snug text-foreground">

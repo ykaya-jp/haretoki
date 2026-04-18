@@ -153,7 +153,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
               ) : i === 1 ? (
                 <Medal className="h-4 w-4 text-muted-foreground" aria-label="2位" />
               ) : i === 2 ? (
-                <Medal className="h-4 w-4 text-amber-700/70" aria-label="3位" />
+                <Medal className="h-4 w-4 text-tone-gold" aria-label="3位" />
               ) : (
                 i + 1
               )}
@@ -175,7 +175,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
                 onClick={() => onDecide(v.id)}
                 className="inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-all duration-200 active:scale-95"
               >
-                <Trophy className="h-3.5 w-3.5" />
+                <Trophy className="h-4 w-4" />
                 決める
               </button>
             )}

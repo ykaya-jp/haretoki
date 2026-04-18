@@ -25,7 +25,7 @@ const TIER_COLORS: Record<string, string> = {
   standard:
     "bg-[color-mix(in_oklab,var(--success,#22c55e)_12%,var(--background))] text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]",
   premium:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+    "bg-tint-gold text-tone-gold dark:bg-tint-gold dark:text-tone-gold",
 };
 
 type EstimateItem = {

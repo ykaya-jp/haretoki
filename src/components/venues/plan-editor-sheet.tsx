@@ -489,7 +489,7 @@ function FieldArraySection({
           className="gap-1"
           aria-label={`${title}を追加`}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
           追加
         </Button>
       </div>

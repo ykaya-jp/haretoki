@@ -362,7 +362,7 @@ function WinnerResult({
       >
         <div className="flex items-start gap-2">
           <Sparkles
-            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--gold-warm)]"
+            className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--gold-warm)]"
             strokeWidth={1.8}
           />
           <div>

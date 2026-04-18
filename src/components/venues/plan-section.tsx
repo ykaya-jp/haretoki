@@ -177,13 +177,13 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                     {plan.includedItems.length > 0 && (
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]">
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-4 w-4" />
                           プランに含まれるもの
                         </p>
                         <ul className="space-y-1">
                           {plan.includedItems.map((item, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm">
-                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
+                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
                               <span>{item}</span>
                             </li>
                           ))}
@@ -195,13 +195,13 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                     {plan.excludedItems.length > 0 && (
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-destructive">
-                          <X className="h-3.5 w-3.5" />
+                          <X className="h-4 w-4" />
                           別途必要なもの
                         </p>
                         <ul className="space-y-1">
                           {plan.excludedItems.map((item, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                              <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive/70" />
+                              <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive/70" />
                               <span>{item}</span>
                             </li>
                           ))}
@@ -212,7 +212,7 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                     {/* Bring-in items — 3-column table: 品目 / 可否 / 料金 */}
                     {plan.bringInItems.length > 0 && (
                       <div>
-                        <p className="mb-2 text-xs font-medium text-amber-600">
+                        <p className="mb-2 text-xs font-medium text-tone-gold">
                           お持ち込みできるもの
                         </p>
                         {/* Header row */}
@@ -232,9 +232,9 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                               <span>{bi.item}</span>
                               <span className="text-center">
                                 {allowed ? (
-                                  <Check className="mx-auto h-3.5 w-3.5 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
+                                  <Check className="mx-auto h-4 w-4 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" />
                                 ) : (
-                                  <X className="mx-auto h-3.5 w-3.5 text-destructive/70" />
+                                  <X className="mx-auto h-4 w-4 text-destructive/70" />
                                 )}
                               </span>
                               <span className="tabular-nums text-right text-xs text-muted-foreground">
@@ -270,7 +270,7 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
                     {plan.campaigns.length > 0 && (
                       <div>
                         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
-                          <PartyPopper className="h-3.5 w-3.5" />
+                          <PartyPopper className="h-4 w-4" />
                           うれしい特典
                         </p>
                         <ul className="space-y-1.5">

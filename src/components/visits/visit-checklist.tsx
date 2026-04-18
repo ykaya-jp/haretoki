@@ -268,9 +268,9 @@ function PhotoUploadButton({ itemId }: { itemId: string }) {
   return (
     <label className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground cursor-pointer transition-colors duration-200 hover:bg-muted active:scale-95">
       {uploading ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Camera className="h-3.5 w-3.5" />
+        <Camera className="h-4 w-4" />
       )}
       {uploading ? "送っています…" : "写真を撮る"}
       <input

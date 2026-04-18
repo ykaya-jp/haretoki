@@ -69,8 +69,8 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
         )}
         {difference > 0 && (
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xs text-amber-600">予測上昇額</span>
-            <span className="flex items-baseline gap-0.5 text-amber-600">
+            <span className="text-xs text-tone-gold">予測上昇額</span>
+            <span className="flex items-baseline gap-0.5 text-tone-gold">
               <span className="text-[11px]">+¥</span>
               <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-3xl leading-none tracking-tight">
                 {(difference / 10000).toFixed(0)}
@@ -97,14 +97,14 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
                   <span className="tabular-nums text-sm">&yen;{item.amount.toLocaleString()}</span>
                 </div>
                 {item.tier === "minimum" && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-tone-gold">
                     最低ランク &rarr; +&yen;{(item.predictedUpgrade ?? 0).toLocaleString()}想定
                   </p>
                 )}
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 flex-1 rounded-full bg-muted">
                     <div
-                      className="h-1.5 rounded-full bg-amber-500"
+                      className="h-1.5 rounded-full bg-tint-gold"
                       style={{ width: `${Math.min(prob, 100)}%` }}
                     />
                   </div>

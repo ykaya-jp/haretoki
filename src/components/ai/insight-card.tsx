@@ -50,7 +50,7 @@ export function AIInsightCard({
     >
       <div className="mb-3 flex items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
-          <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-[var(--gold-warm)]" strokeWidth={1.5} />
+          <Sparkles aria-hidden="true" className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
         </div>
         <h3 className="text-eyebrow text-[var(--gold-warm)]">
           {isAging ? "少し前の気づき" : title}

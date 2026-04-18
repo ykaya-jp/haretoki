@@ -131,7 +131,7 @@ export function DimensionRatings({
             {/* Suggestion card from checklist answers */}
             {suggestion && (
               <div className="flex items-center gap-2 rounded-lg border border-[var(--gold-warm)]/20 bg-[var(--gold-subtle)] px-3 py-2">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--gold-warm)]" strokeWidth={1.5} />
+                <Sparkles className="h-4 w-4 shrink-0 text-[var(--gold-warm)]" strokeWidth={1.5} />
                 <p className="min-w-0 flex-1 text-[11px] leading-snug text-foreground/80">
                   チェックリストの回答からは
                   <span className="mx-0.5 font-medium tabular-nums text-[var(--gold-warm)]">
@@ -148,7 +148,7 @@ export function DimensionRatings({
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--gold-warm)]/10 text-[var(--gold-warm)] transition-colors active:bg-[var(--gold-warm)]/20"
                   aria-label="提案を反映"
                 >
-                  <Check className="h-3.5 w-3.5" strokeWidth={2} />
+                  <Check className="h-4 w-4" strokeWidth={2} />
                 </button>
                 <button
                   type="button"
@@ -156,7 +156,7 @@ export function DimensionRatings({
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-muted"
                   aria-label="提案を閉じる"
                 >
-                  <X className="h-3.5 w-3.5" strokeWidth={2} />
+                  <X className="h-4 w-4" strokeWidth={2} />
                 </button>
               </div>
             )}

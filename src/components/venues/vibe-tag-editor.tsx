@@ -96,9 +96,9 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
           className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] bg-[var(--gold-subtle)] px-3 text-[12.5px] text-[var(--gold-warm)] transition active:scale-[0.98] disabled:opacity-50"
         >
           {isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
           ) : (
-            <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+            <Sparkles className="h-4 w-4" strokeWidth={1.8} />
           )}
           AI におまかせ
         </button>

@@ -25,7 +25,7 @@ const VENUE_COL_W = "w-[96px]";
 function StatusIcon({ status }: { status: string }) {
   if (status === "yes") return <Check className="h-4 w-4 text-[color-mix(in_oklab,var(--success,#22c55e)_80%,var(--foreground))]" aria-label="◯" />;
   if (status === "no") return <X className="h-4 w-4 text-destructive" aria-label="×" />;
-  return <Minus className="h-3.5 w-3.5 text-muted-foreground/40" aria-label="未確認" />;
+  return <Minus className="h-4 w-4 text-muted-foreground/40" aria-label="未確認" />;
 }
 
 export function ChecklistComparison({ venueIds, venueNames }: ChecklistComparisonProps) {
