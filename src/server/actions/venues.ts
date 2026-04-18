@@ -301,9 +301,64 @@ export async function getVenueHeader(id: string) {
       status: true,
       scores: true,
       vibeTags: true,
+      // Deep extraction (v2) — JSON-LD derived. These feed the Fact Sheet /
+      // Amenities / Cost Breakdown / Cuisine sections in the venue detail
+      // page. Stored by confirmVenueFromUrl but never surfaced in UI until
+      // Phase B (v3). See plan: dapper-tinkering-quill.md.
+      externalRatingValue: true,
+      externalReviewCount: true,
+      postalCode: true,
+      streetAddress: true,
+      latitude: true,
+      longitude: true,
+      phoneNumber: true,
+      hasParking: true,
+      parkingCapacity: true,
+      hasShuttle: true,
+      hasAccommodation: true,
+      acceptsSecondParty: true,
+      barrierFree: true,
+      ceremonyFeeExact: true,
+      productionFeeMin: true,
+      productionFeeMax: true,
+      serviceFeeRate: true,
+      operatingHours: true,
+      closedDays: true,
+      cuisineTypes: true,
+      chefCredentials: true,
     },
   });
 }
+
+/**
+ * Deep-extraction field keys surfaced on `/venues/{id}` (Phase B).
+ * Exported for use in test assertions to guarantee the select stays in sync
+ * with the UI — if a field is added to the schema and rendered here but
+ * missing from `getVenueHeader`, this list lets tests fail fast.
+ */
+export const VENUE_DEEP_DETAIL_SELECT_KEYS = [
+  "externalRatingValue",
+  "externalReviewCount",
+  "postalCode",
+  "streetAddress",
+  "latitude",
+  "longitude",
+  "phoneNumber",
+  "hasParking",
+  "parkingCapacity",
+  "hasShuttle",
+  "hasAccommodation",
+  "acceptsSecondParty",
+  "barrierFree",
+  "ceremonyFeeExact",
+  "productionFeeMin",
+  "productionFeeMax",
+  "serviceFeeRate",
+  "operatingHours",
+  "closedDays",
+  "cuisineTypes",
+  "chefCredentials",
+] as const;
 
 /** Estimates + line items — below the fold, streamed via Suspense. */
 export async function getVenueEstimates(id: string) {
