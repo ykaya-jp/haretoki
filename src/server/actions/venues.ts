@@ -330,35 +330,9 @@ export async function getVenueHeader(id: string) {
   });
 }
 
-/**
- * Deep-extraction field keys surfaced on `/venues/{id}` (Phase B).
- * Exported for use in test assertions to guarantee the select stays in sync
- * with the UI — if a field is added to the schema and rendered here but
- * missing from `getVenueHeader`, this list lets tests fail fast.
- */
-export const VENUE_DEEP_DETAIL_SELECT_KEYS = [
-  "externalRatingValue",
-  "externalReviewCount",
-  "postalCode",
-  "streetAddress",
-  "latitude",
-  "longitude",
-  "phoneNumber",
-  "hasParking",
-  "parkingCapacity",
-  "hasShuttle",
-  "hasAccommodation",
-  "acceptsSecondParty",
-  "barrierFree",
-  "ceremonyFeeExact",
-  "productionFeeMin",
-  "productionFeeMax",
-  "serviceFeeRate",
-  "operatingHours",
-  "closedDays",
-  "cuisineTypes",
-  "chefCredentials",
-] as const;
+// Deep-extraction field-list contract lives in venue-detail-fields.ts — a
+// plain-module sibling. "use server" modules cannot export non-async values,
+// so the const had to move out. Tests should import from that file.
 
 /** Estimates + line items — below the fold, streamed via Suspense. */
 export async function getVenueEstimates(id: string) {

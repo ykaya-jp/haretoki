@@ -45,8 +45,9 @@ describe("getVenueHeader deep-detail select", () => {
   });
 
   it("selects all VENUE_DEEP_DETAIL_SELECT_KEYS keys", async () => {
-    const { getVenueHeader, VENUE_DEEP_DETAIL_SELECT_KEYS } = await import(
-      "@/server/actions/venues"
+    const { getVenueHeader } = await import("@/server/actions/venues");
+    const { VENUE_DEEP_DETAIL_SELECT_KEYS } = await import(
+      "@/server/actions/venue-detail-fields"
     );
     await getVenueHeader("venue-1");
 
@@ -69,7 +70,7 @@ describe("getVenueHeader deep-detail select", () => {
     // for new Venue fields under the /// Deep extraction / Facilities / Cost
     // breakdown / Operating / Cuisine comment blocks.
     const { VENUE_DEEP_DETAIL_SELECT_KEYS } = await import(
-      "@/server/actions/venues"
+      "@/server/actions/venue-detail-fields"
     );
     const expected = new Set([
       "externalRatingValue",
