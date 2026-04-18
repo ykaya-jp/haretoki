@@ -28,6 +28,10 @@ import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-c
 import { VenueDetailBackLink } from "@/components/venues/back-link";
 import { VenueUpdatedBanner } from "@/components/venues/venue-updated-banner";
 import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
+import { VenueFactSheet } from "@/components/venues/venue-fact-sheet";
+import { VenueAmenitiesSection } from "@/components/venues/venue-amenities-section";
+import { VenueCostBreakdown } from "@/components/venues/venue-cost-breakdown";
+import { VenueCuisineSection } from "@/components/venues/venue-cuisine-section";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const VENUE_SECTIONS = [
@@ -111,6 +115,19 @@ export default async function VenueDetailPage({
         <Suspense fallback={<RatingSkeleton />}>
           <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
         </Suspense>
+
+        {/* Fact Sheet — external rating ★, address, phone, map.
+            Each sub-field is null-safe; section hides itself when no data. */}
+        <VenueFactSheet
+          venueName={venue.name}
+          externalRatingValue={venue.externalRatingValue}
+          externalReviewCount={venue.externalReviewCount}
+          postalCode={venue.postalCode}
+          streetAddress={venue.streetAddress}
+          latitude={venue.latitude}
+          longitude={venue.longitude}
+          phoneNumber={venue.phoneNumber}
+        />
       </section>
 
       {/* ===== Estimate section ===== */}
@@ -119,11 +136,38 @@ export default async function VenueDetailPage({
         <Suspense fallback={<EstimatesSkeleton />}>
           <EstimatesContent venueId={venue.id} />
         </Suspense>
+
+        {/* Cost Breakdown — venue-published base fees (挙式料 / 演出料 /
+            サービス料率). Complements the user's own estimate above.
+            Hides when all three fields are null. */}
+        <VenueCostBreakdown
+          ceremonyFeeExact={venue.ceremonyFeeExact}
+          productionFeeMin={venue.productionFeeMin}
+          productionFeeMax={venue.productionFeeMax}
+          serviceFeeRate={
+            venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
+          }
+        />
       </section>
 
       <div
         aria-hidden="true"
         className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+      />
+
+      {/* Amenities — 設備と過ごし方 chip grid (parking / shuttle / lodging /
+          2nd-party / barrier-free / operating hours / closed days).
+          Sits above Visit so the user sees facility facts before planning
+          a tour. Returns null when zero chips build. */}
+      <VenueAmenitiesSection
+        hasParking={venue.hasParking}
+        parkingCapacity={venue.parkingCapacity}
+        hasShuttle={venue.hasShuttle}
+        hasAccommodation={venue.hasAccommodation}
+        acceptsSecondParty={venue.acceptsSecondParty}
+        barrierFree={venue.barrierFree}
+        operatingHours={venue.operatingHours}
+        closedDays={venue.closedDays}
       />
 
       {/* ===== Visit section ===== */}
@@ -144,6 +188,13 @@ export default async function VenueDetailPage({
           <ReviewsContent venueId={venue.id} />
         </Suspense>
       </section>
+
+      {/* Cuisine — 料理・シェフ. Sits just before AI Analysis so the
+          reader anchors the AI opinion to concrete cuisine data. Null-safe. */}
+      <VenueCuisineSection
+        cuisineTypes={venue.cuisineTypes}
+        chefCredentials={venue.chefCredentials}
+      />
 
       {/* ===== AI analysis section ===== */}
       <section id="ai" className="space-y-4">

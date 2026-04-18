@@ -309,9 +309,38 @@ export async function getVenueHeader(id: string) {
       status: true,
       scores: true,
       vibeTags: true,
+      // Deep extraction (v2) — JSON-LD derived. These feed the Fact Sheet /
+      // Amenities / Cost Breakdown / Cuisine sections in the venue detail
+      // page. Stored by confirmVenueFromUrl but never surfaced in UI until
+      // Phase B (v3). See plan: dapper-tinkering-quill.md.
+      externalRatingValue: true,
+      externalReviewCount: true,
+      postalCode: true,
+      streetAddress: true,
+      latitude: true,
+      longitude: true,
+      phoneNumber: true,
+      hasParking: true,
+      parkingCapacity: true,
+      hasShuttle: true,
+      hasAccommodation: true,
+      acceptsSecondParty: true,
+      barrierFree: true,
+      ceremonyFeeExact: true,
+      productionFeeMin: true,
+      productionFeeMax: true,
+      serviceFeeRate: true,
+      operatingHours: true,
+      closedDays: true,
+      cuisineTypes: true,
+      chefCredentials: true,
     },
   });
 }
+
+// Deep-extraction field-list contract lives in venue-detail-fields.ts — a
+// plain-module sibling. "use server" modules cannot export non-async values,
+// so the const had to move out. Tests should import from that file.
 
 /** Estimates + line items — below the fold, streamed via Suspense. */
 export async function getVenueEstimates(id: string) {
