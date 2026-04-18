@@ -51,7 +51,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
         </Link>
       </div>
 
-      {/* Horizontal carousel — 3:2 photo ratio per spec §2.3 */}
+      {/* Horizontal carousel — 4:5 portrait ratio (Phase 2 uplift from 3:2). */}
       <div className="-mx-5 flex gap-4 overflow-x-auto snap-x snap-mandatory px-5 pb-2 scrollbar-hide">
         {venues.map((venue) => {
           const avg = calcAvg(venue.scores);
@@ -60,17 +60,17 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
               key={venue.id}
               href={`/venues/${venue.id}`}
               prefetch={true}
-              className="min-w-[240px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
+              className="min-w-[260px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
             >
-              {/* Photo — 3:2 ratio, no gradient overlay on photo */}
+              {/* Photo — 4:5 portrait, no gradient overlay on photo */}
               {venue.photoUrls[0] ? (
-                <div className="relative aspect-[3/2] w-full overflow-hidden rounded-t-2xl">
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-t-2xl">
                   <Image
                     src={venue.photoUrls[0]}
                     alt={venue.name}
                     fill
                     className="object-cover"
-                    sizes="260px"
+                    sizes="280px"
                   />
                   {/* Score badge — top-right only */}
                   {avg !== null && (
@@ -83,7 +83,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
                   )}
                 </div>
               ) : (
-                <div className="flex aspect-[3/2] w-full flex-col items-center justify-center gap-2 rounded-t-2xl bg-muted">
+                <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 rounded-t-2xl bg-muted">
                   <Building2 className="h-8 w-8 text-muted-foreground/40" strokeWidth={1.2} />
                   <span className="text-xs text-muted-foreground/70">写真はこれから</span>
                 </div>

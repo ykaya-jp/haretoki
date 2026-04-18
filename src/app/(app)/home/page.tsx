@@ -5,10 +5,12 @@ import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
 import { getPendingInvitation } from "@/server/actions/invitations";
 import { getTodayRitual } from "@/server/actions/ritual";
-import { EditorialHero } from "@/components/home/editorial-hero";
+import { HomeCover } from "@/components/home/home-cover";
+import { HomePulse } from "@/components/home/home-pulse";
+import { HomeWhisper } from "@/components/home/home-whisper";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { RecentVenues } from "@/components/home/recent-venues";
-import { DailyRitual } from "@/components/home/daily-ritual";
+import { getHomeStage } from "@/components/home/home-stage";
 
 export const metadata: Metadata = {
   title: "ホーム",
@@ -29,7 +31,6 @@ function jstTodayLabel(): { dateLabel: string; timeOfDayLabel: string } {
   const day = parts.find((p) => p.type === "day")?.value ?? "";
   const dateLabel = `${year} ${month} ${day}`;
 
-  // JST hour for time-of-day label
   const hourFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tokyo",
     hour: "numeric",
@@ -54,40 +55,59 @@ export default async function HomePage() {
     redirect("/accept-invite");
   }
 
-  const topInsight = insights[0];
+  const { dateLabel, timeOfDayLabel } = jstTodayLabel();
+
   const progress = homeData.progress;
+  const firstVenue = homeData.recentVenues[0] ?? null;
+  const stage = getHomeStage({
+    totalVenues: progress.totalVenues,
+    visitedVenues: progress.visitedVenues,
+    favoriteCount: progress.favoriteCount,
+    hasDecision: progress.hasDecision,
+    firstVenueId: firstVenue?.id ?? null,
+  });
+
+  // Prefer AI-generated ritual copy + CTA, fall back to stage-derived.
+  const headline = ritual?.headline ?? stage.headline;
+  const sub = ritual?.mood ?? stage.sub;
+  const ctaLabel = ritual?.ctaLabel ?? stage.ctaLabel;
+  const ctaHref = ritual?.ctaHref ?? stage.ctaHref;
+  const isRitualCta = !!ritual?.ctaHref && !!ritual?.ctaLabel;
+  const weather = ritual?.weather ?? stage.fallbackWeather;
+
+  const topInsight = insights[0];
   const showInsight = topInsight && progress.totalVenues > 0;
 
-  const { dateLabel, timeOfDayLabel } = jstTodayLabel();
+  // Cover takes recentVenues[0] as hero photo — Recent carousel shows the rest.
+  const carouselVenues = homeData.recentVenues.slice(1);
 
   return (
     <div className="space-y-10">
-      {ritual && (
-        <DailyRitual
-          ritual={ritual}
-          todayLabel={dateLabel}
-          timeOfDayLabel={timeOfDayLabel}
-        />
-      )}
-
-      <EditorialHero
+      <HomeCover
+        dateLabel={dateLabel}
+        timeOfDayLabel={timeOfDayLabel}
         userName={homeData.userName}
+        headline={headline}
+        sub={sub}
+        weather={weather}
+        ctaLabel={ctaLabel}
+        ctaHref={ctaHref}
+        coverVenue={firstVenue}
+        isRitualCta={isRitualCta}
+      />
+
+      <HomePulse
         totalVenues={progress.totalVenues}
         visitedVenues={progress.visitedVenues}
         favoriteCount={progress.favoriteCount}
         hasDecision={progress.hasDecision}
         upcomingVisits={progress.upcomingVisits}
         percentage={progress.percentage}
-        compact={!!ritual}
-        dateLabel={dateLabel}
-        timeOfDayLabel={timeOfDayLabel}
-        firstVenueId={homeData.recentVenues[0]?.id ?? null}
       />
 
-      <RecentVenues venues={homeData.recentVenues} />
+      {carouselVenues.length > 0 && <RecentVenues venues={carouselVenues} />}
 
-      {/* Journey note — editorial hairline + eyebrow + link, not a floating CTA.
-          Viz Phase 1: gold border/背景を外して余白とタイポで区切る。 */}
+      {/* Journey note — editorial hairline + eyebrow + link. */}
       <div className="border-l border-border/60 pl-4 py-2">
         <p className="mb-1 text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
           Journey
@@ -105,7 +125,6 @@ export default async function HomePage() {
         </p>
       </div>
 
-
       {showInsight && (
         <AIInsightCard
           type={topInsight.type}
@@ -118,6 +137,8 @@ export default async function HomePage() {
           }
         />
       )}
+
+      {ritual && <HomeWhisper ritual={ritual} />}
     </div>
   );
 }
