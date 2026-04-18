@@ -2,17 +2,17 @@ import type { Weather } from "@/lib/prompts/ritual";
 
 interface SkyChipProps {
   mood: Weather;
-  /** 56 (default) | 64 (hero) | 40 (compact) */
-  size?: 40 | 56 | 64;
+  /** 40 (compact) | 56 (default) | 64 (hero) | 96 (cover) */
+  size?: 40 | 56 | 64 | 96;
 }
 
 /**
  * Brand "sky chip" — a small circular illustration evoking 曇り→晴れ間→晴れ.
- * Used in EditorialHero, DailyRitual, and (soon) anywhere we need to express
- * "ふたりの今日の空".
+ * Used in EditorialHero, DailyRitual, HomeCover, and anywhere we need to
+ * express "ふたりの今日の空".
  */
 export function SkyChip({ mood, size = 56 }: SkyChipProps) {
-  const iconSize = size === 64 ? 36 : size === 40 ? 24 : 32;
+  const iconSize = size === 96 ? 52 : size === 64 ? 36 : size === 40 ? 24 : 32;
 
   return (
     <div
