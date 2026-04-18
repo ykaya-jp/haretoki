@@ -1,3 +1,5 @@
+import { MODEL } from "@/lib/models";
+
 export const COMPARISON_PROMPT = {
   system: `You are a wedding venue comparison analyst. Provide natural-language tradeoff analysis.
 
@@ -19,6 +21,6 @@ Guidelines:
   buildUserMessage: (venueDescriptions: string, conditionsDesc: string) =>
     `以下の式場を比較分析してください:${venueDescriptions}${conditionsDesc}`,
 
-  model: "claude-sonnet-4-20250514",
+  model: MODEL.SONNET,
   maxTokens: 2048,
 };

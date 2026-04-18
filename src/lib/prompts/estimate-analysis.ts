@@ -1,3 +1,5 @@
+import { MODEL } from "@/lib/models";
+
 export const ESTIMATE_ANALYSIS_PROMPT = {
   system: `You are an expert at analyzing Japanese wedding venue estimates (見積書).
 Extract structured data from the provided PDF text content.
@@ -22,6 +24,6 @@ Return ONLY valid JSON:
   buildUserMessage: (pdfText: string) =>
     `以下は結婚式場の見積書のテキスト内容です。構造化データとして抽出してください:\n\n${pdfText}`,
 
-  model: "claude-sonnet-4-20250514",
+  model: MODEL.SONNET,
   maxTokens: 4096,
 };

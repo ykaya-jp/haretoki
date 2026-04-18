@@ -1,3 +1,5 @@
+import { MODEL } from "@/lib/models";
+
 export const ONBOARDING_RECOMMENDATION_PROMPT = {
   system: `You are a knowledgeable Japanese wedding venue advisor. Suggest 3 venues matching the couple's criteria.
 
@@ -40,6 +42,6 @@ Guidelines:
 - エリア: ${conditions.area?.join(", ") ?? "特になし"}
 - 予算: ${conditions.budget ? `${Math.round(conditions.budget.min / 10000)}〜${Math.round(conditions.budget.max / 10000)}万円` : "特になし"}`,
 
-  model: "claude-sonnet-4-20250514",
+  model: MODEL.SONNET,
   maxTokens: 2048,
 };
