@@ -148,44 +148,31 @@ export function ExploreContent({
 
   return (
     <>
-      {/* Unified filter zone — groups all filter controls in one container */}
-      <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-3.5">
-        {/* Zone header */}
+      {/* Unified filter zone — 3-tier: 必須条件 / 絞り込み / AI 提案 */}
+      <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-5">
+        {/* Zone header — eyebrow 11px + count 13px */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground">
-            条件で絞り込み
+          <span className="text-eyebrow text-muted-foreground">
+            絞り込み
           </span>
-          <span className="tabular-nums text-xs font-medium text-[var(--gold-warm)]">
+          <span className="tabular-nums text-[13px] font-normal text-[var(--gold-warm)]">
             {filteredVenues.length}件
           </span>
         </div>
 
-        {/* Personalized condition chips (server-rendered, passed from page) */}
+        {/* Tier 1: 必須条件 — personalized chips from onboarding */}
         {conditionChips && (
-          <div className="space-y-1.5">
-            <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
-              条件
+          <div className="space-y-2">
+            <p className="text-eyebrow text-muted-foreground/60">
+              必須条件
             </p>
             {conditionChips}
           </div>
         )}
 
-        {/* Vibe emoji chips (server-rendered, passed from page) */}
-        {vibeChips && (
-          <div className="space-y-1.5">
-            <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
-              雰囲気
-            </p>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              気になる雰囲気で絞り込む
-            </p>
-            {vibeChips}
-          </div>
-        )}
-
-        {/* Status chips row */}
-        <div className="space-y-1.5">
-          <p className="text-[10px] tracking-widest uppercase text-muted-foreground/60">
+        {/* Tier 2: 絞り込み — status + filter sheet */}
+        <div className="space-y-2">
+          <p className="text-eyebrow text-muted-foreground/60">
             ステータス
           </p>
           <div className="flex items-center gap-3">
@@ -195,6 +182,16 @@ export function ExploreContent({
             <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
           </div>
         </div>
+
+        {/* Tier 3: AI 提案 — vibe filter chips */}
+        {vibeChips && (
+          <div className="space-y-2">
+            <p className="text-eyebrow text-muted-foreground/60">
+              雰囲気
+            </p>
+            {vibeChips}
+          </div>
+        )}
       </div>
 
       {/* E-10 v2: Save Search — reflects live client filter state */}
@@ -218,8 +215,9 @@ export function ExploreContent({
           icon={Search}
           imageUrl="/images/empty-explore.png"
           imageAlt="式場を探す"
-          title="式場さがしは、ここから"
-          description="画面右下の「＋」からURLを貼るだけ。AIが自動で情報を読み取ります。"
+          title="まだ候補はありません"
+          description="気になる 1 件から始めましょう。画面右下の「＋」から URL を貼るだけで始まります。"
+          action={{ href: "/explore?addVenue=1", label: "式場を追加する" }}
         />
       )}
 

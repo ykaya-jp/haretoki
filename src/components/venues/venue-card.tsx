@@ -83,13 +83,13 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
           : undefined
       }
     >
-      {/* Photo section — 16:9 compact ratio, gold hairline below */}
+      {/* Photo section — 4:3 editorial ratio, gold hairline below */}
       <div className="relative border-b border-[var(--gold-subtle)]/40">
         <PrefetchLink href={`/venues/${venue.id}`}>
           <PhotoCarousel
             photos={venue.photoUrls}
             alt={venue.name}
-            aspectRatio="16/9"
+            aspectRatio="4/3"
           />
           {/* Gradient overlay at bottom of photo */}
           {venue.photoUrls.length > 0 && (
@@ -97,31 +97,16 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
           )}
         </PrefetchLink>
 
-        {/* Status badge - top left */}
-        <div className="absolute left-3 top-3">
-          <VenueStatusBadge status={venue.status} />
-        </div>
-
-        {/* Score badge - top right of photo section, below heart button */}
-        {avgScore !== null && (
-          <div className="absolute left-3 bottom-14 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
-            <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
-            <span className="tabular-nums text-sm font-normal text-white">
-              {avgScore.toFixed(1)}
-            </span>
-          </div>
-        )}
-
-        {/* Heart button - top right */}
-        <div className="absolute right-3 top-3">
+        {/* Heart button - top right only */}
+        <div className="absolute right-3 top-3 z-10">
           <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
         </div>
 
-        {/* "晴れの日" chip — decided venue only, bottom right */}
+        {/* "晴れの日" chip — decided venue only, top left */}
         {isDecided && (
           <div
             aria-label="決まった場所"
-            className="absolute right-3 bottom-3 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium tracking-[0.12em] uppercase text-white backdrop-blur-sm"
+            className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium tracking-[0.12em] uppercase text-white backdrop-blur-sm"
             style={{
               background:
                 "color-mix(in oklab, var(--gold-warm) 85%, transparent)",
@@ -132,6 +117,26 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
             晴れの日
           </div>
         )}
+      </div>
+
+      {/* Meta bar — status + score horizontal strip below photo */}
+      <div className="flex items-center gap-3 px-4 pt-3">
+        <VenueStatusBadge status={venue.status} />
+        <div className="ml-auto flex items-center gap-3">
+          {priceLabel && (
+            <p className="tabular-nums text-eyebrow text-[var(--gold-warm)]">
+              {priceLabel}
+            </p>
+          )}
+          {avgScore !== null && (
+            <div className="flex items-center gap-1">
+              <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" strokeWidth={0} />
+              <span className="tabular-nums text-[13px] font-normal text-foreground">
+                {avgScore.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* E-2 Fit Reason — AI 1-line match reason (optional, gold italic) */}
@@ -150,14 +155,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
       )}
 
       {/* Info section — generous padding, hotel-brochure typography */}
-      <PrefetchLink href={`/venues/${venue.id}`} className={fitReason ? "block px-6 pt-3 pb-6" : "block p-6"}>
-        {/* Price as eyebrow — gold, uppercase tracking, tabular */}
-        {priceLabel && (
-          <p className="text-eyebrow tabular-nums text-[var(--gold-warm)] mb-2">
-            {priceLabel}
-          </p>
-        )}
-
+      <PrefetchLink href={`/venues/${venue.id}`} className="block px-4 pt-2 pb-5">
         {/* Venue name — bigger, serif, extralight */}
         <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
           {venue.name}

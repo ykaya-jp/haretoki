@@ -290,19 +290,30 @@ export function AIRecommendations({
       aria-live="polite"
       className="space-y-4 rounded-2xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-5"
     >
-      {/* Heading row — always rendered */}
+      {/* Heading row — 2-tier: English eyebrow + 明朝 subheading */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
+        <div className="flex items-start gap-2.5">
+          {/* Gold circle with Sparkles */}
+          <div
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+            style={{ background: "color-mix(in oklab, var(--gold-warm) 14%, transparent)" }}
+          >
             <Sparkles
               aria-hidden="true"
               className="h-4 w-4 text-[var(--gold-warm)]"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="text-xs font-medium tracking-[0.04em] uppercase text-[var(--gold-warm)]">
-            AIおすすめ式場
-          </h3>
+          <div className="space-y-0.5">
+            {/* English eyebrow */}
+            <p className="text-eyebrow text-[var(--gold-warm)]">
+              AI Recommendations
+            </p>
+            {/* 明朝 subheading */}
+            <h3 className="font-[family-name:var(--font-display)] text-[14px] font-extralight tracking-[0.01em] text-foreground">
+              今日のおすすめ
+            </h3>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {view.kind === "ready" && (

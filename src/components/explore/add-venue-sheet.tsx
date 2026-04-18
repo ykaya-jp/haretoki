@@ -301,14 +301,17 @@ export function AddVenueSheet({
         </Button>
       )}
       <SheetContent side="bottom" className="rounded-t-3xl max-h-[92dvh] overflow-y-auto">
-        {/* Understated header — eyebrow + small title, input is the hero */}
+        {/* Editorial header — eyebrow + 明朝 title */}
         <SheetHeader className="px-1 pt-1 pb-2 mb-1">
-          <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground text-left">
-            気になる式場を、置く
+          <p className="text-eyebrow text-muted-foreground text-left">
+            HARETOKI · Venue
           </p>
-          <SheetTitle className="mt-1.5 font-[family-name:var(--font-display)] text-[17px] font-extralight tracking-[0.01em] text-foreground text-left">
-            URL を貼る、もしくは手動で追加
+          <SheetTitle className="mt-2 font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground text-left leading-[1.35]">
+            新しい式場を、迎える
           </SheetTitle>
+          <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
+            URL を貼るだけ
+          </p>
         </SheetHeader>
 
         <div className="space-y-5 pb-8">
@@ -544,6 +547,9 @@ function UrlSkeletonCard({ state, onManualFallback }: UrlSkeletonCardProps) {
           >
             手動で入力する →
           </button>
+        </p>
+        <p className="text-xs text-muted-foreground/70 mt-1">
+          URLの形式を確認するか、式場名を直接入力してください。
         </p>
         <p className="text-xs text-muted-foreground/60 mt-1 truncate">{url}</p>
         {error && <p className="text-xs text-destructive/70 mt-0.5">{error}</p>}
