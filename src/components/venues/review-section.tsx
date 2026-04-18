@@ -158,13 +158,13 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       const result = await batchAnalyzeVenueReviews(venueId, { force: true });
       const { succeeded, skipped, failed } = result;
       if (succeeded > 0 && failed.length === 0) {
-        toast.success(`${succeeded} 件の要約を書き直しました`);
+        toast.success(`${succeeded} 件の要約を再生成しました`);
       } else if (succeeded > 0 && failed.length > 0) {
-        toast.success(`${succeeded} 件を更新、${failed.length} 件はまたの機会に`);
+        toast.success(`${succeeded} 件を再生成、${failed.length} 件はまたの機会に`);
       } else if (skipped > 0 && succeeded === 0 && failed.length === 0) {
-        toast.info("更新できる口コミがありませんでした");
+        toast.info("再生成できる口コミがありませんでした");
       } else {
-        toast.error("要約の更新がうまくいきませんでした");
+        toast.error("要約の再生成がうまくいきませんでした");
       }
       router.refresh();
     });
@@ -191,9 +191,9 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base">口コミのまとめ</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {reviews.length > 0 && (
             <Button
               size="sm"
@@ -201,12 +201,13 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
               onClick={handleRefreshAll}
               disabled={isRefreshing}
               className="gap-1 text-muted-foreground"
-              aria-label="既存の口コミ要約を AI で書き直す"
+              aria-label="既に保存されている口コミを AI に渡し、まとめだけを書き直します"
+              title="既に保存されている口コミを AI に渡し、まとめだけを書き直します（新しい口コミは取り込みません）"
             >
               <RefreshCw
                 className={cn("h-4 w-4", isRefreshing && "animate-spin")}
               />
-              {isRefreshing ? "更新中…" : "AI 要約を更新"}
+              {isRefreshing ? "再生成中…" : "AI 要約を再生成"}
             </Button>
           )}
           <Button
@@ -214,9 +215,11 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             variant="outline"
             onClick={() => setShowForm(!showForm)}
             className="gap-1"
+            aria-label="別のサイト（ゼクシィ・ハナユメ等）の口コミ URL をこの式場に追加します"
+            title="別のサイト（ゼクシィ・ハナユメ等）の口コミ URL をこの式場に追加します（既存のまとめは残ります）"
           >
             <Plus className="h-4 w-4" />
-            追加
+            別サイトの口コミを追加
           </Button>
         </div>
       </div>

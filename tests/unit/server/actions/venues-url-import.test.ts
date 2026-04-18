@@ -52,11 +52,16 @@ vi.mock("@/lib/supabase/storage", () => ({
 // via `import("@/server/actions/reviews")`, which Vitest resolves to the
 // real module. We stub the module up-front so the fire-and-forget call
 // doesn't try to hit Claude or Prisma.
-// Mock returns the new Result shape ({ok:true}) so the confirm path
-// records reviewSummaryStatus === "completed" on the happy path.
-const mockAnalyzeVenueReviews = vi.fn(
-  async (..._args: unknown[]) => ({ ok: true as const }),
-);
+// Mock returns the new Result shape ({ok:true}) on the happy path so
+// the confirm action records reviewSummaryStatus === "completed".
+// Typed as the union so `.mockResolvedValueOnce` can return a failure
+// Result in the timeout/api-error tests below.
+type AnalyzeResult =
+  | { ok: true }
+  | { ok: false; reason: "timeout" | "api-error" | "no-reviews" };
+const mockAnalyzeVenueReviews = vi.fn<
+  (...args: unknown[]) => Promise<AnalyzeResult>
+>(async (..._args: unknown[]) => ({ ok: true }));
 vi.mock("@/server/actions/reviews", async () => {
   const actual =
     await vi.importActual<typeof import("@/server/actions/reviews")>(
