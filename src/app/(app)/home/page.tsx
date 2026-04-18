@@ -83,7 +83,7 @@ export default async function HomePage() {
   const carouselVenues = homeData.recentVenues.slice(1);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <HomeCover
         dateLabel={dateLabel}
         timeOfDayLabel={timeOfDayLabel}
