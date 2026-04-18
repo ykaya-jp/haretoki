@@ -157,8 +157,10 @@
   --radius: 0.75rem;
 
   /* Spacing rhythm — 3-level vertical cadence.
-     Apply via var(--space-section/heading/item) or the matching Tailwind
-     classes (space-y-8 / space-y-4 / space-y-3) to keep pages breathing. */
+     chapter: top-level page bands (Cover → Pulse → Whisper).
+     section: between content sections within a band.
+     item:    within a section (title → body → meta). */
+  --space-chapter: 96px;
   --space-section: 48px;
   --space-heading: 16px;
   --space-item: 12px;
