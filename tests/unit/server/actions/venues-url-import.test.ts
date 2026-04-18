@@ -52,8 +52,10 @@ vi.mock("@/lib/supabase/storage", () => ({
 // via `import("@/server/actions/reviews")`, which Vitest resolves to the
 // real module. We stub the module up-front so the fire-and-forget call
 // doesn't try to hit Claude or Prisma.
+// Mock returns the new Result shape ({ok:true}) so the confirm path
+// records reviewSummaryStatus === "completed" on the happy path.
 const mockAnalyzeVenueReviews = vi.fn(
-  async (..._args: unknown[]) => ({ success: true }),
+  async (..._args: unknown[]) => ({ ok: true as const }),
 );
 vi.mock("@/server/actions/reviews", async () => {
   const actual =
@@ -188,7 +190,20 @@ describe("confirmVenueFromUrl", () => {
       expect(result.photoRequestedCount).toBe(2);
       expect(result.photoUploadedCount).toBe(2);
       expect(result.individualReviewCount).toBe(2);
+      // Review summarization is now awaited inside confirmVenueFromUrl —
+      // with a happy-path analyzer mock that returns {ok:true}, the
+      // caller should receive reviewSummaryStatus === "completed" so the
+      // sheet can render the full success toast.
+      expect(result.reviewSummaryStatus).toBe("completed");
     }
+    // analyzeVenueReviews should have been invoked exactly once (no more
+    // fire-and-forget) with the venue id + source url.
+    expect(mockAnalyzeVenueReviews).toHaveBeenCalledTimes(1);
+    expect(mockAnalyzeVenueReviews).toHaveBeenCalledWith(
+      "venue-1",
+      "https://zexy.net/wedding/c_7770029193/",
+      "zexy",
+    );
   });
 
   it("creates venue even when every photo upload fails", async () => {
@@ -229,6 +244,65 @@ describe("confirmVenueFromUrl", () => {
     if (result.success) {
       expect(result.photoUploadedCount).toBe(0);
       expect(result.photoRequestedCount).toBe(1);
+      // No reviews extracted → summarization is skipped entirely and
+      // the UI shouldn't mention reviews in the toast.
+      expect(result.reviewSummaryStatus).toBe("skipped");
     }
+    expect(mockAnalyzeVenueReviews).not.toHaveBeenCalled();
+  });
+
+  it("surfaces reviewSummaryStatus='timeout' when the analyzer times out", async () => {
+    // Analyzer returns the {ok:false, reason:'timeout'} Result — simulates
+    // the 15s budget elapsing inside analyzeVenueReviews.
+    mockAnalyzeVenueReviews.mockResolvedValueOnce({
+      ok: false,
+      reason: "timeout",
+    });
+    const { confirmVenueFromUrl } = await import(
+      "@/server/actions/venues"
+    );
+    const extracted = {
+      name: "Timeout Venue",
+      location: null,
+      accessInfo: null,
+      capacityMin: null,
+      capacityMax: null,
+      ceremonyStyles: [],
+      estimatedPrice: null,
+      features: [],
+      photoUrls: [],
+      confidence: "medium" as const,
+      costMin: null,
+      costMax: null,
+      paymentMethodEnums: [],
+      dressBringIn: null,
+      dressBringInFee: null,
+      maxInstallments: null,
+      vibeTags: [],
+      reviews: [
+        {
+          title: null,
+          body: "This is a review body that will trigger the summary step.",
+          rating: 4,
+          author: null,
+          visitedAt: null,
+        },
+      ],
+    };
+
+    const result = await confirmVenueFromUrl(
+      extracted,
+      "https://zexy.net/wedding/c_slow/",
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.reviewSummaryStatus).toBe("timeout");
+      expect(result.individualReviewCount).toBe(1);
+    }
+    // Reviews were saved before the summary step so the UI can still
+    // render them — the "timeout" only affects the aggregate summary.
+    expect(mockReviewUpsert).toHaveBeenCalledTimes(1);
+    expect(mockAnalyzeVenueReviews).toHaveBeenCalledTimes(1);
   });
 });
