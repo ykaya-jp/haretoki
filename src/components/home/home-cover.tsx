@@ -3,12 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { SkyChip } from "@/components/home/sky-chip";
 import { buttonVariants } from "@/components/ui/button";
 import { HaloTap } from "@/components/ui/halo-tap";
 import { cn } from "@/lib/utils";
 import type { Weather } from "@/lib/prompts/ritual";
-import { markRitualActed } from "@/server/actions/ritual";
+import { markRitualActed, markRitualSeen } from "@/server/actions/ritual";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -36,6 +37,10 @@ export interface HomeCoverProps {
   coverVenue?: CoverVenue | null;
   /** Fire telemetry when user acts on the primary CTA (ritual-derived only). */
   isRitualCta?: boolean;
+  /** True when any ritual content (headline/mood/cta) flows into Cover.
+   *  Drives `markRitualSeen` on mount so we don't double-count on
+   *  stage-only fallbacks. */
+  hasRitual?: boolean;
 }
 
 /**
@@ -54,8 +59,16 @@ export function HomeCover({
   ctaHref,
   coverVenue,
   isRitualCta = false,
+  hasRitual = false,
 }: HomeCoverProps) {
   const prefersReduced = useReducedMotion();
+  const seenRef = useRef(false);
+  useEffect(() => {
+    if (seenRef.current) return;
+    if (!hasRitual) return;
+    seenRef.current = true;
+    void markRitualSeen();
+  }, [hasRitual]);
   const greeting =
     timeOfDayLabel === "朝"
       ? "おはようございます"
