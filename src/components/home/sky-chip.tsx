@@ -1,5 +1,3 @@
-"use client";
-
 import type { Weather } from "@/lib/prompts/ritual";
 
 interface SkyChipProps {

@@ -499,7 +499,7 @@ export function DecisionMatrix() {
                   <div className="flex flex-col items-center gap-1.5">
                     {v.photoUrl ? (
                       <div className="relative h-12 w-12 overflow-hidden rounded-full">
-                        <Image src={v.photoUrl} alt="" fill className="object-cover" />
+                        <Image src={v.photoUrl} alt="" fill sizes="48px" className="object-cover" />
                       </div>
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-muted" />

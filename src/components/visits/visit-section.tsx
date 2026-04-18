@@ -194,7 +194,6 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
               {/* E-8 Question Bank: 当日の質問リスト */}
               <Link
                 href={`/visits/${visit.id}/prep`}
-                prefetch={false}
                 className="inline-flex min-h-9 items-center gap-1 rounded-md px-3 text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
               >
                 質問を用意する →

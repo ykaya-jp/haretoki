@@ -36,10 +36,10 @@ const notoSerifJP = Noto_Serif_JP({
 // like the other Noto families.
 const shipporiMincho = Shippori_Mincho({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400"],
   variable: "--font-shippori-mincho",
-  display: "swap",
-  preload: true,
+  display: "optional",
+  preload: false,
   fallback: ["Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "MS Mincho", "serif"],
 });
 

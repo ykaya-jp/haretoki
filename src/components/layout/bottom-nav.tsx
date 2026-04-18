@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Home, Search, Heart, MessageSquare, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 interface NavItem {
   href: string;
@@ -137,21 +136,20 @@ export function BottomNav({ badges }: BottomNavProps) {
               )}
             >
               <div className="relative">
-                <motion.div
-                  animate={{ scale: isActive ? 1.12 : 1 }}
-                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                <div
+                  className={cn(
+                    "transition-transform duration-200 ease-out",
+                    isActive ? "scale-[1.12]" : "scale-100"
+                  )}
                 >
                   <Icon className="h-5 w-5" strokeWidth={1.75} />
-                </motion.div>
+                </div>
                 {badgeCount != null && badgeCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 120, damping: 18 }}
-                    className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
+                  <span
+                    className="absolute -right-2 -top-1 flex h-[18px] min-w-[18px] animate-in zoom-in-50 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground duration-200"
                   >
                     {badgeCount > 99 ? "99+" : badgeCount}
-                  </motion.span>
+                  </span>
                 )}
               </div>
               <span className={cn("text-xs whitespace-nowrap transition-colors duration-200", isActive && "font-medium")}>{item.label}</span>

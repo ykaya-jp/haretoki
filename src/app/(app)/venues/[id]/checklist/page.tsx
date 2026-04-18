@@ -55,7 +55,6 @@ export default async function VenueChecklistPage({
         <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
           <Link
             href={`/venues/${id}`}
-            prefetch={false}
             className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
             <ChevronLeft className="h-3 w-3" aria-hidden="true" />

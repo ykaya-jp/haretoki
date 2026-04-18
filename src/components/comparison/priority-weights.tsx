@@ -160,7 +160,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
             </div>
             {v.photoUrl && (
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
-                <Image src={v.photoUrl} alt="" fill className="object-cover" />
+                <Image src={v.photoUrl} alt="" fill sizes="48px" className="object-cover" />
               </div>
             )}
             <div className="flex-1 min-w-0">

@@ -74,7 +74,6 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
       <div className="text-right">
         <Link
           href="/checklist"
-          prefetch={false}
           className="inline-flex min-h-11 items-center gap-1 text-[11.5px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
         >
           <SlidersHorizontal className="h-3 w-3" aria-hidden="true" />

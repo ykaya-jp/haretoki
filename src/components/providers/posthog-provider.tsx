@@ -1,39 +1,43 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import posthog from "posthog-js";
+import type posthogType from "posthog-js";
 
-/**
- * PostHog provider.
- *
- * Initialises posthog-js on mount when NEXT_PUBLIC_POSTHOG_KEY is set, and
- * captures `$pageview` events on route changes. If the key is missing the
- * provider renders children untouched — this keeps local/dev environments
- * free of analytics calls and network errors.
- *
- * We intentionally disable posthog-js's built-in pageview capture
- * (`capture_pageview: false`) because Next.js App Router navigations don't
- * trigger full page reloads, so we fire `$pageview` ourselves via the
- * pathname/searchParams hooks.
- */
+type PostHog = typeof posthogType;
+
+async function loadPostHog(): Promise<PostHog | null> {
+  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  if (!key) return null;
+  if (typeof window !== "undefined") {
+    const existing = (window as unknown as { posthog?: PostHog }).posthog;
+    if (existing) return existing;
+  }
+  const mod = await import("posthog-js");
+  const posthog = mod.default;
+  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+  posthog.init(key, {
+    api_host: host,
+    capture_pageview: false,
+    capture_pageleave: true,
+    person_profiles: "identified_only",
+  });
+  (window as unknown as { posthog: PostHog }).posthog = posthog;
+  return posthog;
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    if (!key) return;
-
-    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
-
-    posthog.init(key, {
-      api_host: host,
-      capture_pageview: false,
-      capture_pageleave: true,
-      person_profiles: "identified_only",
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
+    const schedule = (cb: () => void) => {
+      const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
+        .requestIdleCallback;
+      if (typeof ric === "function") ric(cb);
+      else window.setTimeout(cb, 1500);
+    };
+    schedule(() => {
+      void loadPostHog();
     });
-
-    // Expose on window so the shared `track()` helper (which must stay
-    // framework-agnostic) can find the running instance.
-    (window as unknown as { posthog: typeof posthog }).posthog = posthog;
   }, []);
 
   return (
@@ -49,13 +53,22 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const posthogRef = useRef<PostHog | null>(null);
 
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    if (!key || !pathname) return;
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || !pathname) return;
     const qs = searchParams?.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
-    posthog.capture("$pageview", { $current_url: url });
+    const fire = (ph: PostHog) => ph.capture("$pageview", { $current_url: url });
+    if (posthogRef.current) {
+      fire(posthogRef.current);
+      return;
+    }
+    void loadPostHog().then((ph) => {
+      if (!ph) return;
+      posthogRef.current = ph;
+      fire(ph);
+    });
   }, [pathname, searchParams]);
 
   return null;

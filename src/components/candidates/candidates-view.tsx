@@ -220,7 +220,6 @@ export function CandidatesView({
                 {favorites.length === 2 && !showSwipe && (
                   <Link
                     href={`/candidates/duel?a=${favorites[0].venue.id}&b=${favorites[1].venue.id}`}
-                    prefetch={false}
                     className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-[var(--shadow-card)] transition-colors active:bg-muted"
                   >
                     <Sparkles
