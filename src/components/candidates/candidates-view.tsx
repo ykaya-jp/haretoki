@@ -169,9 +169,15 @@ export function CandidatesView({
 
   return (
     <div className="space-y-5">
-      <p className="text-[12px] text-muted-foreground">
-        気になった式場を比べて、おふたりの一番を見つけましょう
-      </p>
+      {/* C-3: editorial リード文 — Shippori 2 段 */}
+      <div className="space-y-1">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+          Three steps, gently
+        </p>
+        <p className="font-[family-name:var(--font-display)] text-[15px] font-extralight leading-relaxed tracking-[0.01em] text-muted-foreground">
+          集める → 並べる → 決める
+        </p>
+      </div>
       <SegmentedControl
         segments={SEGMENTS}
         activeId={tab}

@@ -14,14 +14,20 @@ export async function CoupleGapSection() {
   if (overview.gaps.length === 0 && overview.bothCount === 0) return null;
 
   return (
-    <section className="space-y-3">
-      <header className="flex items-baseline gap-2">
-        <Sparkles
-          aria-hidden="true"
-          className="h-4 w-4 text-[color:var(--gold-warm)]"
-          strokeWidth={1.8}
-        />
-        <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+    <section className="space-y-4">
+      {/* C-1: editorial eyebrow + 明朝 17px 2 段構造 */}
+      <header className="space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Sparkles
+            aria-hidden="true"
+            className="h-4 w-4 text-[color:var(--gold-warm)]"
+            strokeWidth={1.6}
+          />
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Couple Gap
+          </p>
+        </div>
+        <h2 className="font-[family-name:var(--font-display)] text-[17px] font-extralight leading-snug tracking-[0.01em]">
           ふたりの温度
         </h2>
       </header>
@@ -44,25 +50,28 @@ export async function CoupleGapSection() {
               fill="currentColor"
             />
             <p className="font-[family-name:var(--font-display)] text-[15px] font-light">
-              ふたりとも気になる {overview.bothCount} 件
+              ふたりとも気になる{" "}
+              <span className="tabular-nums">{overview.bothCount}</span> 件
             </p>
           </div>
-          <p className="mt-1.5 text-[11.5px] text-muted-foreground leading-relaxed">
+          <p className="mt-1.5 text-[12px] text-muted-foreground leading-relaxed">
             ここからスタートすれば、意見がぶつからずに進められます。
           </p>
         </div>
       )}
 
+      {/* C-2: gap カード typography 整理 */}
       {overview.gaps.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-            気持ちがずれている {overview.gaps.length} 件。
-            <span className="ml-0.5 text-foreground">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
+            気持ちがずれている{" "}
+            <span className="tabular-nums text-foreground">{overview.gaps.length}</span> 件。
+            <span className="ml-0.5">
               どこが違うかを話してみる
             </span>
             と、選びやすくなります。
           </p>
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {overview.gaps.slice(0, 5).map((g) => {
               const onlyMe = g.likedByMe && !g.likedByPartner;
               const whoLabel = onlyMe
@@ -73,9 +82,10 @@ export async function CoupleGapSection() {
                   <Link
                     href={`/venues/${g.venueId}`}
                     prefetch={false}
-                    className="flex items-center gap-3 rounded-xl border bg-card p-2.5 pr-3 transition active:scale-[0.99]"
+                    className="flex items-center gap-3 rounded-xl border bg-card p-3 pr-3.5 transition active:scale-[0.99]"
                   >
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {/* C-2: thumb 48→48 (維持), rounded-lg → rounded-xl */}
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-muted">
                       {g.photoUrl ? (
                         <Image
                           src={g.photoUrl}
@@ -87,24 +97,27 @@ export async function CoupleGapSection() {
                       ) : null}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-[family-name:var(--font-display)] text-[13.5px] font-light">
+                      {/* C-2: venue 名 Noto Serif JP 14px light */}
+                      <p className="truncate font-[family-name:var(--font-display)] text-[14px] font-light">
                         {g.venueName}
                       </p>
-                      <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+                      {/* C-2: location 11px */}
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                         {g.location ?? ""}
                       </p>
                     </div>
+                    {/* C-2: chip に面色追加 + HeartCrack 12px */}
                     <span
                       className={cn(
-                        "flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]",
+                        "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px]",
                         onlyMe
-                          ? "border-[color-mix(in_oklab,var(--primary)_35%,transparent)] text-[color:var(--primary)]"
-                          : "border-border text-muted-foreground",
+                          ? "bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] text-[color:var(--primary)]"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       <HeartCrack
                         aria-hidden="true"
-                        className="h-2.5 w-2.5"
+                        className="h-3 w-3"
                         strokeWidth={2}
                       />
                       {whoLabel}

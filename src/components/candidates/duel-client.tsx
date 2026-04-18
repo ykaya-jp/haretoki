@@ -93,7 +93,7 @@ export function DuelClient({ venueA, venueB }: DuelClientProps) {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             情景で決める
           </p>
           <h1 className="font-[family-name:var(--font-display)] text-[17px] font-extralight leading-snug">
@@ -122,36 +122,42 @@ export function DuelClient({ venueA, venueB }: DuelClientProps) {
         </span>
       </div>
 
-      {/* 問いかけ */}
+      {/* C-7: Scene eyebrow + 問いかけ */}
       <div className="mb-8 flex-1">
+        <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-[color:var(--gold-warm)]">
+          Scene {currentIndex + 1}
+        </p>
+        {/* gold gradient hairline */}
+        <div
+          aria-hidden="true"
+          className="mb-3 h-px w-10"
+          style={{
+            background:
+              "linear-gradient(to right, var(--gold-warm), color-mix(in oklab, var(--gold-warm) 20%, transparent))",
+          }}
+        />
         <p
-          className="font-[family-name:var(--font-display)] text-[19px] font-extralight leading-[1.65] tracking-[0.01em] text-foreground"
+          className="font-[family-name:var(--font-display)] text-[21px] font-extralight leading-[1.65] tracking-[0.01em] text-foreground"
           key={scene.id}
         >
           {scene.moment}
         </p>
       </div>
 
-      {/* 選択肢 */}
-      <div className="space-y-3 pb-6">
+      {/* C-6: photo-paired 2 択 */}
+      <div className="space-y-4 pb-6">
         {/* 式場 A */}
         <ChoiceButton
-          label={venueA.name}
+          venue={venueA}
           text={scene.choiceA}
           isSelected={selected === "a"}
           isOtherSelected={selected === "b"}
           onClick={() => handleSelect("a")}
         />
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 border-t border-border" />
-          <span className="text-[11px] text-muted-foreground">または</span>
-          <div className="flex-1 border-t border-border" />
-        </div>
-
         {/* 式場 B */}
         <ChoiceButton
-          label={venueB.name}
+          venue={venueB}
           text={scene.choiceB}
           isSelected={selected === "b"}
           isOtherSelected={selected === "a"}
@@ -162,41 +168,88 @@ export function DuelClient({ venueA, venueB }: DuelClientProps) {
   );
 }
 
-// ─── 選択肢ボタン ───────────────────────────────────────────────────────────
+// ─── C-6 photo-paired 選択肢ボタン ────────────────────────────────────────
 
 interface ChoiceButtonProps {
-  label: string;
+  venue: DuelVenue;
   text: string;
   isSelected: boolean;
   isOtherSelected: boolean;
   onClick: () => void;
 }
 
-function ChoiceButton({ label, text, isSelected, isOtherSelected, onClick }: ChoiceButtonProps) {
+function ChoiceButton({ venue, text, isSelected, isOtherSelected, onClick }: ChoiceButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={isSelected || isOtherSelected}
       className={cn(
-        "w-full min-h-24 rounded-2xl border px-5 py-4 text-left transition-all duration-200",
+        "w-full min-h-[88px] rounded-2xl border text-left transition-all duration-200",
         "active:scale-[0.98]",
         isSelected
-          ? "border-[color:var(--primary)] bg-[color-mix(in_oklab,var(--primary)_8%,var(--background))] shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_20%,transparent)]"
+          ? "border-[color:var(--primary)] shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_20%,transparent)]"
           : isOtherSelected
-            ? "border-border/40 bg-muted/40 opacity-50"
-            : "border-border bg-card hover:border-[color-mix(in_oklab,var(--primary)_30%,var(--border))] hover:bg-[color-mix(in_oklab,var(--primary)_3%,var(--card))]",
+            ? "border-border/40 opacity-50"
+            : "border-border bg-card hover:border-[color-mix(in_oklab,var(--primary)_30%,var(--border))]",
       )}
     >
-      <p
-        className={cn(
-          "mb-1.5 font-[family-name:var(--font-display)] text-[12px] font-light tracking-[0.08em]",
-          isSelected ? "text-[color:var(--primary)]" : "text-muted-foreground",
-        )}
-      >
-        {label}
-      </p>
-      <p className="text-[14.5px] font-light leading-relaxed text-foreground">{text}</p>
+      <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl">
+        {/* 96×96 photo */}
+        <div className="relative h-[88px] w-24 shrink-0 overflow-hidden bg-muted">
+          {venue.photoUrl ? (
+            <Image
+              src={venue.photoUrl}
+              alt={venue.name}
+              fill
+              sizes="96px"
+              className={cn(
+                "object-cover transition-all duration-300",
+                isSelected
+                  ? "brightness-90 saturate-[0.85] sepia-[0.15]"
+                  : isOtherSelected
+                    ? "opacity-50 grayscale"
+                    : "",
+              )}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-muted-foreground/30 text-[28px]">◎</span>
+            </div>
+          )}
+          {/* primary overlay when selected */}
+          {isSelected && (
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "color-mix(in oklab, var(--primary) 22%, transparent)",
+              }}
+            />
+          )}
+        </div>
+
+        {/* テキスト領域 */}
+        <div
+          className={cn(
+            "flex flex-1 flex-col justify-center px-4 py-3.5",
+            isSelected
+              ? "bg-[color-mix(in_oklab,var(--primary)_6%,var(--background))]"
+              : isOtherSelected
+                ? "bg-muted/30"
+                : "bg-card",
+          )}
+        >
+          <p
+            className={cn(
+              "mb-1 font-[family-name:var(--font-display)] text-[11px] font-light tracking-[0.1em]",
+              isSelected ? "text-[color:var(--primary)]" : "text-muted-foreground",
+            )}
+          >
+            {venue.name}
+          </p>
+          <p className="text-[13.5px] font-light leading-relaxed text-foreground">{text}</p>
+        </div>
+      </div>
     </button>
   );
 }
@@ -239,7 +292,7 @@ function ResultView({
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             情景で決める
           </p>
           <p className="font-[family-name:var(--font-display)] text-[17px] font-extralight">
@@ -363,7 +416,7 @@ function WinnerResult({
         <div className="flex items-start gap-2">
           <Sparkles
             className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--gold-warm)]"
-            strokeWidth={1.8}
+            strokeWidth={1.6}
           />
           <div>
             <p className="font-[family-name:var(--font-display)] text-[15px] font-light leading-snug">
