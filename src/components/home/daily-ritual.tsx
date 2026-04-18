@@ -40,7 +40,7 @@ export function DailyRitual({ ritual, todayLabel, timeOfDayLabel }: DailyRitualP
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[10.5px] tracking-[0.16em] uppercase text-muted-foreground">
+          <p className="flex items-center gap-2 text-eyebrow text-muted-foreground">
             <span className="tabular-nums">{todayLabel}</span>
             <span aria-hidden="true" className="opacity-30">
               ·
