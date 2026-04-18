@@ -102,11 +102,53 @@ export async function saveExtractedReviews(
   return { saved, skipped };
 }
 
+/**
+ * Result shape for `analyzeVenueReviews`. Callers get either `{ok:true}`
+ * with no throwing, or `{ok:false, reason}` describing why the summary
+ * could not be produced. Reasons are UI-actionable:
+ *   - "timeout"     — the 15s budget expired; partial progress may exist
+ *   - "api-error"   — Claude / network / DB error (not actionable by user)
+ *   - "no-reviews"  — no reviews available to summarise
+ *
+ * The legacy `{success, error}` shape was too generic for the confirm
+ * pipeline — we need to show different toast copy for timeout vs api-error
+ * vs no-reviews, so callers discriminate on `reason`.
+ */
+export type AnalyzeVenueReviewsResult =
+  | { ok: true }
+  | { ok: false; reason: "timeout" | "api-error" | "no-reviews"; message?: string };
+
+/**
+ * Analyze reviews for a venue. Returns a Result shape — never throws into
+ * the caller. Wrapped in a 15s timeout so the URL-import pipeline can
+ * degrade gracefully and show a "後で再生成できます" CTA instead of hanging.
+ */
 export async function analyzeVenueReviews(
   venueId: string,
   sourceUrl: string,
   source: ReviewSource,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<AnalyzeVenueReviewsResult> {
+  try {
+    return await Promise.race([
+      analyzeVenueReviewsInner(venueId, sourceUrl, source),
+      new Promise<AnalyzeVenueReviewsResult>((resolve) =>
+        setTimeout(
+          () => resolve({ ok: false, reason: "timeout" }),
+          15_000,
+        ),
+      ),
+    ]);
+  } catch (err) {
+    console.warn("[analyzeVenueReviews] unexpected error:", err);
+    return { ok: false, reason: "api-error" };
+  }
+}
+
+async function analyzeVenueReviewsInner(
+  venueId: string,
+  sourceUrl: string,
+  source: ReviewSource,
+): Promise<AnalyzeVenueReviewsResult> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
@@ -114,7 +156,7 @@ export async function analyzeVenueReviews(
   const venue = await prisma.venue.findFirst({
     where: { id: venueId, projectId },
   });
-  if (!venue) return { success: false, error: "式場が見つかりません" };
+  if (!venue) return { ok: false, reason: "api-error", message: "式場が見つかりません" };
 
   // Validate URL domain (allowlist)
   const ALLOWED_REVIEW_DOMAINS = [
@@ -130,8 +172,9 @@ export async function analyzeVenueReviews(
   const guard = guardExternalUrl(sourceUrl);
   if (!guard.ok) {
     return {
-      success: false,
-      error:
+      ok: false,
+      reason: "api-error",
+      message:
         guard.reason === "scheme"
           ? "HTTPS の URL のみ対応しています"
           : guard.reason === "invalid"
@@ -141,11 +184,16 @@ export async function analyzeVenueReviews(
   }
   const parsedUrl = guard.url;
   if (!ALLOWED_REVIEW_DOMAINS.some(d => parsedUrl.hostname === d || parsedUrl.hostname.endsWith("." + d))) {
-    return { success: false, error: "対応していないサイトです。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングの URL を入力してください" };
+    return {
+      ok: false,
+      reason: "api-error",
+      message:
+        "対応していないサイトです。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングの URL を入力してください",
+    };
   }
 
   if (!isClaudeAvailable()) {
-    return { success: false, error: "AI機能を利用するにはAPIキーを設定してください" };
+    return { ok: false, reason: "api-error", message: "AI機能を利用するにはAPIキーを設定してください" };
   }
 
   // Check if already analyzed (by inputHash)
@@ -154,7 +202,7 @@ export async function analyzeVenueReviews(
     where: { venueId, sourceUrl },
   });
   if (existing?.aiSummary) {
-    return { success: true }; // Already analyzed
+    return { ok: true }; // Already analyzed
   }
 
   try {
@@ -168,12 +216,13 @@ export async function analyzeVenueReviews(
     });
 
     if (!response.ok) {
-      return { success: false, error: "口コミページをうまく取れませんでした" };
+      return { ok: false, reason: "api-error", message: "口コミページをうまく取れませんでした" };
     }
 
     const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB
     const reader = response.body?.getReader();
-    if (!reader) return { success: false, error: "レスポンスを読み取れませんでした" };
+    if (!reader)
+      return { ok: false, reason: "api-error", message: "レスポンスを読み取れませんでした" };
 
     const chunks: Uint8Array[] = [];
     let totalSize = 0;
@@ -183,7 +232,7 @@ export async function analyzeVenueReviews(
       totalSize += value.length;
       if (totalSize > MAX_BODY_SIZE) {
         reader.cancel();
-        return { success: false, error: "ページサイズが大きすぎます" };
+        return { ok: false, reason: "api-error", message: "ページサイズが大きすぎます" };
       }
       chunks.push(value);
     }
@@ -194,6 +243,10 @@ export async function analyzeVenueReviews(
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+
+    if (textContent.length === 0) {
+      return { ok: false, reason: "no-reviews" };
+    }
 
     // Send to Claude for analysis
     const strippedContent = stripPII(textContent);
@@ -208,10 +261,10 @@ export async function analyzeVenueReviews(
     try {
       result = JSON.parse(claudeResponse) as ReviewSummary & { reviewCount: number };
     } catch {
-      return { success: false, error: "AI の応答をうまく読み取れませんでした" };
+      return { ok: false, reason: "api-error", message: "AI の応答をうまく読み取れませんでした" };
     }
     if (!result.summary) {
-      return { success: false, error: "AI の読み取りが途中で止まりました" };
+      return { ok: false, reason: "api-error", message: "AI の読み取りが途中で止まりました" };
     }
 
     // Build categorySummary from AI output
@@ -337,9 +390,15 @@ export async function analyzeVenueReviews(
 
     revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath(`/venues/${venueId}`);
-    return { success: true };
-  } catch {
-    return { success: false, error: "口コミをうまくまとめられませんでした" };
+    return { ok: true };
+  } catch (err) {
+    // AbortSignal.timeout throws a TimeoutError when the 15s fetch budget
+    // expires. Surface that distinctly so the UI can show "timeout" copy.
+    if (err instanceof Error && err.name === "TimeoutError") {
+      return { ok: false, reason: "timeout" };
+    }
+    console.warn("[analyzeVenueReviewsInner] error:", err);
+    return { ok: false, reason: "api-error", message: "口コミをうまくまとめられませんでした" };
   }
 }
 
@@ -400,10 +459,16 @@ export async function batchAnalyzeVenueReviews(
     }
     attempted++;
     const res = await analyzeVenueReviews(venueId, r.sourceUrl, r.source);
-    if (res.success) {
+    if (res.ok) {
       succeeded++;
     } else {
-      failed.push({ reviewId: r.id, error: res.error ?? "unknown" });
+      const errorLabel =
+        res.reason === "timeout"
+          ? "timeout"
+          : res.reason === "no-reviews"
+            ? "no-reviews"
+            : (res.message ?? "api-error");
+      failed.push({ reviewId: r.id, error: errorLabel });
     }
   }
 

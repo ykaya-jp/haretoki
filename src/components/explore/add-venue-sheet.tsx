@@ -41,10 +41,32 @@ interface ExtractedVenueData {
   reviews: ExtractedIndividualReview[];
 }
 
+/**
+ * Stage of the URL-import pipeline. Used for the caption under the
+ * skeleton card so the user sees *why* the import is still working
+ * (otherwise 15s of review summary feels like a hang).
+ *
+ *   extract  — fetching + parsing metadata
+ *   reviews  — saving individual review rows to DB
+ *   summary  — asking Claude to produce the venue-level summary
+ */
+type ImportStage = "extract" | "reviews" | "summary";
+
+const STAGE_CAPTIONS: Record<ImportStage, string> = {
+  extract: "ページから情報を読み取っています…",
+  reviews: "口コミを読み込んでいます…",
+  summary: "AI がまとめを作っています…",
+};
+
+/** Mirror of server-side ReviewSummaryStatus. Kept inline to avoid a client bundle pull of server types. */
+type ReviewSummaryStatus = "completed" | "timeout" | "skipped" | "failed";
+
 /** Per-URL processing state for skeleton fill animation */
 interface UrlProcessState {
   url: string;
   status: "pending" | "loading" | "success" | "error";
+  /** Where we are inside the pipeline while status === "loading". */
+  stage?: ImportStage;
   extracted?: ExtractedVenueData;
   error?: string;
   /** Which fields have resolved so far — used for progressive fill */
@@ -57,6 +79,10 @@ interface UrlProcessState {
   existingName?: string;
   /** True while a re-run with forceNew is in flight (escape hatch). */
   forcingNew?: boolean;
+  /** How the review summary finished. Used for post-import toast copy. */
+  reviewSummaryStatus?: ReviewSummaryStatus;
+  /** Number of individual reviews saved during this import. */
+  individualReviewCount?: number;
 }
 
 /** Japanese labels for updatedFields chips in the merged card. */
@@ -106,6 +132,33 @@ function dedupeFieldLabels(fields: string[]): string[] {
     if (label) out.add(label);
   }
   return Array.from(out);
+}
+
+/**
+ * Build the review-summary half of the success toast message. Kept
+ * separate so the toast copy stays co-located with the `ReviewSummaryStatus`
+ * variants and is easy to tweak.
+ *
+ *   completed → "口コミ N 件を取り込み、まとめを保存しました"
+ *   timeout   → "口コミは取り込みましたが、まとめは後ほど『AI 要約を再生成』ボタンで作成できます"
+ *   skipped   → null (no review mention — the venue-added line stands alone)
+ *   failed    → "口コミは取り込めましたが、まとめはまだ作れていません"
+ */
+function buildReviewSummaryToastLine(
+  status: ReviewSummaryStatus | undefined,
+  reviewCount: number | undefined,
+): string | null {
+  if (!status || status === "skipped") return null;
+  if (status === "completed") {
+    const n = reviewCount ?? 0;
+    if (n === 0) return "口コミのまとめを保存しました";
+    return `✨ 口コミ ${n} 件を取り込み、まとめを保存しました`;
+  }
+  if (status === "timeout") {
+    return "口コミは取り込みましたが、まとめは後ほど『AI 要約を再生成』ボタンで作成できます";
+  }
+  // "failed" — reviews saved (maybe), summary not. Don't blame the user.
+  return "口コミは取り込めましたが、まとめはまだ作れていません";
 }
 
 interface AddVenueSheetProps {
@@ -185,14 +238,30 @@ export function AddVenueSheet({
     const initial: UrlProcessState[] = processing.map((url) => ({
       url,
       status: "loading",
+      stage: "extract",
       filledFields: [],
     }));
     setUrlStates(initial);
     setUrlLoading(true);
 
+    type UrlSubmitResult =
+      | {
+          index: number;
+          success: true;
+          name: string;
+          venueId: string;
+          mode: "created" | "merged";
+          updatedFieldsCount: number;
+          photoUploadedCount: number;
+          photoRequestedCount: number;
+          reviewSummaryStatus: ReviewSummaryStatus | undefined;
+          individualReviewCount: number | undefined;
+        }
+      | { index: number; success: false };
+
     // Parallel processing with Promise.allSettled
-    const results = await Promise.allSettled(
-      processing.map(async (url, index) => {
+    const results = await Promise.allSettled<UrlSubmitResult>(
+      processing.map(async (url, index): Promise<UrlSubmitResult> => {
         try {
           const extractResult = await addVenueFromUrl(url);
           if (extractResult.error || !extractResult.extracted) {
@@ -224,6 +293,28 @@ export function AddVenueSheet({
           // Wait for animation then confirm
           await new Promise((r) => setTimeout(r, fieldsToFill.length * 200 + 100));
 
+          // Advance to the "reviews" stage before kicking off confirm —
+          // the server action will save individual reviews before the
+          // summary step, so this caption aligns with the expected first
+          // phase of backend work. The "summary" stage is surfaced right
+          // after to cover the ~5-15s Claude analysis window.
+          const hasExtractedReviews = extracted.reviews.length > 0;
+          if (hasExtractedReviews) {
+            setUrlStates((prev) =>
+              prev.map((s, i) =>
+                i === index ? { ...s, stage: "reviews" } : s,
+              ),
+            );
+            // Small nudge so the user *sees* the reviews caption before
+            // we flip to "summary" (rather than skipping past it).
+            await new Promise((r) => setTimeout(r, 350));
+            setUrlStates((prev) =>
+              prev.map((s, i) =>
+                i === index ? { ...s, stage: "summary" } : s,
+              ),
+            );
+          }
+
           const confirmResult = await confirmVenueFromUrl(extracted, url);
           if (!confirmResult.success) {
             setUrlStates((prev) =>
@@ -241,6 +332,8 @@ export function AddVenueSheet({
             mode === "merged" ? confirmResult.venue.name : undefined;
           const photoUploadedCount = confirmResult.photoUploadedCount ?? 0;
           const photoRequestedCount = confirmResult.photoRequestedCount ?? 0;
+          const reviewSummaryStatus = confirmResult.reviewSummaryStatus;
+          const individualReviewCount = confirmResult.individualReviewCount;
 
           setUrlStates((prev) =>
             prev.map((s, i) =>
@@ -248,10 +341,13 @@ export function AddVenueSheet({
                 ? {
                     ...s,
                     status: "success",
+                    stage: undefined,
                     mode,
                     updatedFields,
                     venueId,
                     existingName,
+                    reviewSummaryStatus,
+                    individualReviewCount,
                   }
                 : s,
             ),
@@ -265,6 +361,8 @@ export function AddVenueSheet({
             updatedFieldsCount: updatedFields.length,
             photoUploadedCount,
             photoRequestedCount,
+            reviewSummaryStatus,
+            individualReviewCount,
           };
         } catch {
           setUrlStates((prev) =>
@@ -282,16 +380,8 @@ export function AddVenueSheet({
     const successResults = results.filter(
       (
         r,
-      ): r is PromiseFulfilledResult<{
-        index: number;
-        success: true;
-        name: string;
-        venueId: string;
-        mode: "created" | "merged";
-        updatedFieldsCount: number;
-        photoUploadedCount: number;
-        photoRequestedCount: number;
-      }> => r.status === "fulfilled" && r.value.success,
+      ): r is PromiseFulfilledResult<Extract<UrlSubmitResult, { success: true }>> =>
+        r.status === "fulfilled" && r.value.success,
     );
     const successCount = successResults.length;
     const failCount = processing.length - successCount;
@@ -301,8 +391,8 @@ export function AddVenueSheet({
       // merged cases positively surface "added to existing venue".
       if (successCount === 1) {
         const only = successResults[0].value;
-        // Photo count fragment: "· 写真 N/M 枚". Shown on both created and
-        // merged toasts so the user sees how many photos actually landed.
+        // Photo count fragment: "· 写真 N/M 枚". Shown so the user sees
+        // how many photos actually landed (Phase A).
         const photoFragment =
           only.photoRequestedCount > 0
             ? ` · 写真 ${only.photoUploadedCount}/${only.photoRequestedCount} 枚`
@@ -313,15 +403,23 @@ export function AddVenueSheet({
           only.photoRequestedCount > 0 && only.photoUploadedCount === 0
             ? "写真の取り込みに失敗しました。『別サイトから追加』で再挑戦できます"
             : null;
-
+        // Review summary line (Phase C). Contains review count on completed,
+        // or fallback copy on timeout/failed. null when skipped.
+        const reviewLine = buildReviewSummaryToastLine(
+          only.reviewSummaryStatus,
+          only.individualReviewCount,
+        );
+        const toastLevel =
+          only.reviewSummaryStatus === "timeout" ? "info" : "success";
         if (only.mode === "merged") {
           const chipCount = only.updatedFieldsCount;
           const baseMessage =
             chipCount > 0
               ? `✨ ${only.name} に ${chipCount} 件の情報を追加${photoFragment}`
               : `✨ ${only.name} は既に最新の情報です${photoFragment}`;
-          showToast("success", baseMessage, {
-            duration: 6000,
+          const message = reviewLine ? `${baseMessage}・${reviewLine}` : baseMessage;
+          showToast(toastLevel, message, {
+            duration: 7000,
             action: {
               label: "見る",
               onClick: () => router.push(`/venues/${only.venueId}?updated=1`),
@@ -330,7 +428,9 @@ export function AddVenueSheet({
           if (zeroPhotoHint) showToast("info", zeroPhotoHint);
           router.push(`/venues/${only.venueId}?updated=1`);
         } else {
-          showToast("success", `✨ ${only.name} を追加しました${photoFragment}`);
+          const baseMessage = `✨ ${only.name} を追加しました${photoFragment}`;
+          const message = reviewLine ? `${baseMessage}・${reviewLine}` : baseMessage;
+          showToast(toastLevel, message, { duration: 7000 });
           if (zeroPhotoHint) showToast("info", zeroPhotoHint);
           router.push(`/venues/${only.venueId}`);
         }
@@ -339,7 +439,6 @@ export function AddVenueSheet({
           (r) => r.value.mode === "merged",
         ).length;
         const createdCount = successCount - mergedCount;
-        // Aggregate photo counts across all successes for the batch summary.
         const totalPhotosUploaded = successResults.reduce(
           (sum, r) => sum + r.value.photoUploadedCount,
           0,
@@ -348,6 +447,9 @@ export function AddVenueSheet({
           (sum, r) => sum + r.value.photoRequestedCount,
           0,
         );
+        const timeoutCount = successResults.filter(
+          (r) => r.value.reviewSummaryStatus === "timeout",
+        ).length;
         const parts: string[] = [];
         if (createdCount > 0) parts.push(`${createdCount}件追加`);
         if (mergedCount > 0) parts.push(`${mergedCount}件統合`);
@@ -355,7 +457,13 @@ export function AddVenueSheet({
         if (totalPhotosRequested > 0) {
           parts.push(`写真 ${totalPhotosUploaded}/${totalPhotosRequested} 枚`);
         }
-        showToast(failCount > 0 ? "info" : "success", parts.join(" · "));
+        if (timeoutCount > 0) {
+          parts.push(`${timeoutCount}件はまとめ作成が未完了`);
+        }
+        showToast(
+          failCount > 0 || timeoutCount > 0 ? "info" : "success",
+          parts.join(" · "),
+        );
         router.refresh();
       }
     } else if (failCount > 0) {
@@ -742,10 +850,15 @@ function UrlSkeletonCard({
   onManualFallback,
   onForceNew,
 }: UrlSkeletonCardProps) {
-  const { status, extracted, filledFields, error, url, mode, forcingNew } = state;
+  const { status, extracted, filledFields, error, url, mode, forcingNew, stage } = state;
   const isLoading = status === "loading" && !extracted;
   const isMerged = status === "success" && mode === "merged";
   const updatedFieldChips = dedupeFieldLabels(state.updatedFields ?? []);
+  // Show the stage caption while the server action is still running after
+  // the extracted metadata has painted. stage === "extract" is covered by
+  // the skeleton itself, so we only surface "reviews" / "summary".
+  const showStageCaption =
+    status === "loading" && (stage === "reviews" || stage === "summary");
 
   if (status === "error") {
     return (
@@ -887,6 +1000,30 @@ function UrlSkeletonCard({
             </AnimatePresence>
           )}
         </div>
+
+        {/*
+          Stage caption — visible only while the server action is still
+          working on reviews / summary (after metadata has painted). This
+          is the antidote to the v2 "silent 15s hang" feedback: users see
+          *which* step is in flight and that progress is intentional.
+        */}
+        <AnimatePresence>
+          {showStageCaption && stage && (
+            <motion.div
+              key={stage}
+              initial={{ opacity: 0, y: 2 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -2 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-1.5 pt-1 text-[11px] text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 className="h-3 w-3 animate-spin text-[var(--gold-warm)]" />
+              <span>{STAGE_CAPTIONS[stage]}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Merged footer — updatedFields chips + escape hatch ("別の式場として追加") */}

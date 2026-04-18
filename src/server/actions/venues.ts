@@ -1147,20 +1147,17 @@ export async function confirmVenueFromUrl(
       }
     }
 
+    const reviewSummaryStatus = await runReviewSummary(
+      existing.id,
+      sourceUrl,
+      reviewSource,
+      parsed.data.reviews.length,
+    );
+
     revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath("/explore");
     revalidatePath("/home");
     revalidatePath(`/venues/${existing.id}`);
-
-    if (reviewSource) {
-      import("@/server/actions/reviews")
-        .then(({ analyzeVenueReviews }) =>
-          analyzeVenueReviews(existing.id, sourceUrl, reviewSource),
-        )
-        .catch((err) => {
-          console.error("[confirmVenueFromUrl merge] auto-review-fetch failed:", err);
-        });
-    }
 
     return {
       success: true as const,
@@ -1172,6 +1169,7 @@ export async function confirmVenueFromUrl(
       photoRequestedCount: uniquePhotoUrls.length,
       photoFailedReasons,
       individualReviewCount: parsed.data.reviews.length,
+      reviewSummaryStatus,
     };
   }
 
@@ -1256,20 +1254,17 @@ export async function confirmVenueFromUrl(
     }
   }
 
+  const reviewSummaryStatus = await runReviewSummary(
+    venue.id,
+    sourceUrl,
+    reviewSource,
+    parsed.data.reviews.length,
+  );
+
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
   revalidatePath(`/venues/${venue.id}`);
-
-  if (reviewSource) {
-    import("@/server/actions/reviews")
-      .then(({ analyzeVenueReviews }) =>
-        analyzeVenueReviews(venue.id, sourceUrl, reviewSource),
-      )
-      .catch((err) => {
-        console.error("[confirmVenueFromUrl] auto-review-fetch failed:", err);
-      });
-  }
 
   return {
     success: true as const,
@@ -1280,6 +1275,7 @@ export async function confirmVenueFromUrl(
     photoRequestedCount: uniquePhotoUrls.length,
     photoFailedReasons,
     individualReviewCount: parsed.data.reviews.length,
+    reviewSummaryStatus,
   };
 }
 
@@ -1312,6 +1308,48 @@ function reportPhotoUploadFailure(
       detail: failure.detail,
     },
   });
+}
+
+/**
+ * Status of the post-import review summarization step. Returned in the
+ * `confirmVenueFromUrl` payload so the Add-Venue sheet can show distinct
+ * progress + toast copy for each outcome.
+ */
+export type ReviewSummaryStatus =
+  | "completed"   // Claude successfully returned a summary
+  | "timeout"    // 15s budget elapsed; reviews saved, summary TBD
+  | "skipped"    // no source / no extracted reviews → nothing to summarise
+  | "failed";    // API error; reviews saved, summary not produced
+
+/**
+ * Run AI review summarisation **synchronously** (bounded by analyze's
+ * own 15s timeout). Returns a ReviewSummaryStatus token so the caller
+ * can forward it through the server-action payload to the client.
+ *
+ * Why sync (not fire-and-forget like v2): users expect a single "取り込み
+ * 完了" toast that covers photos + reviews + summary. Fire-and-forget
+ * meant the toast fired before the summary landed, so `/venues/{id}`
+ * looked like "nothing happened" even though the pipeline had succeeded.
+ */
+async function runReviewSummary(
+  venueId: string,
+  sourceUrl: string,
+  reviewSource: ReviewSource | null,
+  extractedReviewCount: number,
+): Promise<ReviewSummaryStatus> {
+  if (!reviewSource) return "skipped";
+  if (extractedReviewCount === 0) return "skipped";
+  try {
+    const { analyzeVenueReviews } = await import("@/server/actions/reviews");
+    const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
+    if (result.ok) return "completed";
+    if (result.reason === "timeout") return "timeout";
+    if (result.reason === "no-reviews") return "skipped";
+    return "failed";
+  } catch (err) {
+    console.warn("[runReviewSummary] unexpected error:", err);
+    return "failed";
+  }
 }
 
 /**
