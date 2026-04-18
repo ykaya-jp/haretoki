@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { Home, Search, Heart, MessageSquare, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +35,6 @@ function matchesHref(pathname: string, href: string): boolean {
 export function BottomNav({ badges }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
   // Eagerly prefetch all tabs after mount so taps on any tab feel instant.
   // /home, /explore, /candidates already get link-level prefetch (undefined =
@@ -50,18 +49,19 @@ export function BottomNav({ badges }: BottomNavProps) {
     return () => clearTimeout(timer);
   }, [router]);
 
-  // Optimistic active href — set on tap so the gold highlight moves instantly,
-  // even while the Server Component for the target route is still resolving.
+  // Optimistic active href — set on tap so the gold highlight moves instantly
+  // AND loading.tsx can show immediately (we let <Link> do the navigation
+  // itself; no startTransition wrapper, which would keep the old page visible).
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  useEffect(() => {
+    if (pendingHref && matchesHref(pathname, pendingHref)) {
+      setPendingHref(null);
+    }
+  }, [pathname, pendingHref]);
 
-  // Derive active href: honor optimistic pendingHref only while a transition is
-  // still in flight and the real pathname hasn't caught up yet. Otherwise fall
-  // back to the real pathname so we always self-correct without effects.
   const showPending =
-    pendingHref !== null &&
-    isPending &&
-    !matchesHref(pathname, pendingHref);
-  const activeHref = showPending ? (pendingHref as string) : pathname;
+    pendingHref !== null && !matchesHref(pathname, pendingHref);
+  const activeHref = showPending ? pendingHref : pathname;
 
   // Indicator position as a single absolutely-positioned bar whose left/width
   // animate via CSS transition. Replaces framer-motion layoutId FLIP animation
@@ -122,11 +122,7 @@ export function BottomNav({ badges }: BottomNavProps) {
                   return;
                 }
                 if (matchesHref(pathname, item.href)) return;
-                e.preventDefault();
                 setPendingHref(item.href);
-                startTransition(() => {
-                  router.push(item.href);
-                });
               }}
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1",
