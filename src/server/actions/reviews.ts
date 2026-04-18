@@ -21,6 +21,87 @@ interface ReviewSummary {
   estimateIncrease?: unknown;
 }
 
+export interface ExtractedIndividualReview {
+  title: string | null;
+  body: string;
+  rating: number | null;
+  author: string | null;
+  visitedAt: string | null;
+}
+
+/**
+ * Persist a set of individual reviews extracted from the source listing page.
+ *
+ * Each review body gets a short content hash appended to the sourceUrl as a
+ * fragment (`#rev-{hash8}`) so the `(venueId, source, sourceUrl)` unique
+ * constraint naturally dedupes — re-importing the same page won't multiply
+ * rows, and the aggregate summary (same base URL, no fragment) stays in its
+ * own slot. Other review-aggregation paths (`analyzeVenueReviews`) keep
+ * running in parallel.
+ *
+ * The metadata (author / visitedAt / title) is stashed inside
+ * `categorySummary.individual` so no schema migration is needed. All fields
+ * are Claude-extracted and may be null.
+ */
+export async function saveExtractedReviews(
+  venueId: string,
+  reviews: ExtractedIndividualReview[],
+  baseSourceUrl: string,
+  source: ReviewSource,
+): Promise<{ saved: number; skipped: number }> {
+  if (reviews.length === 0) return { saved: 0, skipped: 0 };
+
+  let saved = 0;
+  let skipped = 0;
+  for (const r of reviews) {
+    const hash = computeInputHash(r.body).slice(0, 8);
+    // URL fragment never hits the wire but participates in the unique key,
+    // so we reuse the user's source URL + a stable per-body discriminator.
+    const rowSourceUrl = `${baseSourceUrl}#rev-${hash}`;
+    try {
+      await prisma.review.upsert({
+        where: {
+          venueId_source_sourceUrl: {
+            venueId,
+            source,
+            sourceUrl: rowSourceUrl,
+          },
+        },
+        update: {
+          aiSummary: r.body,
+          rating: r.rating,
+          categorySummary: {
+            individual: {
+              title: r.title,
+              author: r.author,
+              visitedAt: r.visitedAt,
+            },
+          },
+        },
+        create: {
+          venueId,
+          source,
+          sourceUrl: rowSourceUrl,
+          aiSummary: r.body,
+          rating: r.rating,
+          categorySummary: {
+            individual: {
+              title: r.title,
+              author: r.author,
+              visitedAt: r.visitedAt,
+            },
+          },
+        },
+      });
+      saved++;
+    } catch (err) {
+      console.warn("[saveExtractedReviews] upsert failed:", err);
+      skipped++;
+    }
+  }
+  return { saved, skipped };
+}
+
 export async function analyzeVenueReviews(
   venueId: string,
   sourceUrl: string,

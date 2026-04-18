@@ -12,6 +12,14 @@ import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } 
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 
+interface ExtractedIndividualReview {
+  title: string | null;
+  body: string;
+  rating: number | null;
+  author: string | null;
+  visitedAt: string | null;
+}
+
 interface ExtractedVenueData {
   name: string;
   location: string | null;
@@ -23,6 +31,14 @@ interface ExtractedVenueData {
   features: string[];
   photoUrls: string[];
   confidence: "high" | "medium" | "low";
+  costMin: number | null;
+  costMax: number | null;
+  paymentMethodEnums: ("credit_card" | "cash" | "bank_transfer" | "installment")[];
+  dressBringIn: "allowed" | "not_allowed" | "negotiable" | null;
+  dressBringInFee: number | null;
+  maxInstallments: number | null;
+  vibeTags: string[];
+  reviews: ExtractedIndividualReview[];
 }
 
 /** Per-URL processing state for skeleton fill animation */
