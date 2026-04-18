@@ -14,7 +14,7 @@ export function DemoBanner() {
         <p className="flex items-center gap-2 text-xs leading-relaxed text-foreground sm:text-sm">
           <Sparkles
             aria-hidden="true"
-            className="h-3.5 w-3.5 shrink-0 text-[var(--gold-warm)]"
+            className="h-4 w-4 shrink-0 text-[var(--gold-warm)]"
             strokeWidth={1.75}
           />
           <span>
@@ -29,7 +29,7 @@ export function DemoBanner() {
           className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground shadow-sm transition-[transform,box-shadow] duration-200 hover:shadow-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)] sm:text-sm"
         >
           はじめる
-          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
     </div>

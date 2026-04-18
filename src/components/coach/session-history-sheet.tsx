@@ -153,14 +153,14 @@ function RowMenu({ session, onClose }: RowMenuProps) {
               className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted active:bg-muted/70"
               onClick={handleRename}
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-4 w-4" />
               名前を変更
             </button>
             <button
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted active:bg-muted/70"
               onClick={handleDelete}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
               削除
             </button>
           </div>

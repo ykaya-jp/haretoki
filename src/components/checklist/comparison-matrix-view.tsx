@@ -24,8 +24,8 @@ function hasDiff(
 }
 
 function YesNoCell({ status }: { status: string | null }) {
-  if (status === "yes") return <span className="text-xl text-emerald-600">○</span>;
-  if (status === "no") return <span className="text-xl text-rose-500">×</span>;
+  if (status === "yes") return <span className="text-xl text-tone-success">○</span>;
+  if (status === "no") return <span className="text-xl text-tone-destructive">×</span>;
   return <span className="text-lg text-muted-foreground">—</span>;
 }
 
@@ -102,7 +102,7 @@ export function ComparisonMatrixView({ matrix }: ComparisonMatrixViewProps) {
                   {venue.name}
                 </p>
                 {overallScore !== undefined && (
-                  <p className="tabular-nums text-xs text-amber-500">
+                  <p className="tabular-nums text-xs text-tone-gold">
                     ★ {overallScore.toFixed(1)}
                   </p>
                 )}
@@ -128,12 +128,12 @@ export function ComparisonMatrixView({ matrix }: ComparisonMatrixViewProps) {
               return (
                 <div
                   key={item.id}
-                  className={`flex min-h-[56px] border-b ${diff ? "bg-amber-50/40" : ""}`}
+                  className={`flex min-h-[56px] border-b ${diff ? "bg-tint-gold" : ""}`}
                 >
                   {/* Sticky row header */}
                   <div
                     className={`sticky left-0 z-10 flex w-40 flex-shrink-0 items-start border-r px-2 py-2 ${
-                      diff ? "bg-amber-50/60" : "bg-background"
+                      diff ? "bg-tint-gold" : "bg-background"
                     }`}
                   >
                     <p className="text-xs leading-snug">{item.question}</p>
@@ -147,7 +147,7 @@ export function ComparisonMatrixView({ matrix }: ComparisonMatrixViewProps) {
                         key={venue.id}
                         style={{ minWidth: COL_MIN_W }}
                         className={`flex flex-1 items-start border-r px-2 py-2 ${
-                          diff ? "border-l border-l-amber-300/60" : ""
+                          diff ? "border-l border-l-tone-gold" : ""
                         }`}
                       >
                         {item.type === "yesno" && (

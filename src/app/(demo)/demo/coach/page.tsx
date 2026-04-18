@@ -14,7 +14,7 @@ export default function DemoCoachPage() {
     <div className="space-y-6 pb-24">
       <header className="space-y-1 pt-2">
         <p className="flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-[var(--gold-warm)]">
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.75} />
+          <Sparkles className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
           AIコーチ
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">

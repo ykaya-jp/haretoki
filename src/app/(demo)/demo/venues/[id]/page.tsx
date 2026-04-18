@@ -76,7 +76,7 @@ export default function DemoVenueDetailPage({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
         {venue.rating !== null && (
           <div className="absolute left-3 bottom-3 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
-            <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+            <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
             <span className="tabular-nums text-sm font-normal text-white">
               {venue.rating.toFixed(1)}
             </span>
@@ -132,7 +132,7 @@ export default function DemoVenueDetailPage({
           id="personalized-heading"
           className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.06em] text-[var(--gold-warm)]"
         >
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
           おふたりへのマッチ
         </h2>
         <div className="flex flex-wrap gap-1.5">
@@ -247,7 +247,7 @@ export default function DemoVenueDetailPage({
             {venue.reviews.map((r) => (
               <li key={r.id} className="border-b border-border/40 pb-4 last:border-0 last:pb-0">
                 <div className="mb-1 flex items-center gap-2">
-                  <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+                  <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
                   <span className="tabular-nums text-sm">{r.rating.toFixed(1)}</span>
                   <span className="text-xs uppercase tracking-[0.08em] text-muted-foreground">
                     · {r.source}

@@ -43,12 +43,12 @@ function StatusIcon({ status }: { status: string | null }) {
     return <span className="text-muted-foreground/40 text-xs">—</span>;
   }
   if (status === "yes") {
-    return <Check className="h-3.5 w-3.5 text-[var(--success)]" strokeWidth={2.5} />;
+    return <Check className="h-4 w-4 text-[var(--success)]" strokeWidth={2.5} />;
   }
   if (status === "no") {
-    return <X className="h-3.5 w-3.5 text-[var(--destructive)]" strokeWidth={2.5} />;
+    return <X className="h-4 w-4 text-[var(--destructive)]" strokeWidth={2.5} />;
   }
-  return <Minus className="h-3.5 w-3.5 text-muted-foreground/60" strokeWidth={2} />;
+  return <Minus className="h-4 w-4 text-muted-foreground/60" strokeWidth={2} />;
 }
 
 export function DimensionRow({

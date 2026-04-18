@@ -292,7 +292,7 @@ export function DecisionMatrix() {
                 : "var(--border)",
           }}
         >
-          <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.6} />
+          <SlidersHorizontal className="h-4 w-4" strokeWidth={1.6} />
           <span>絞る</span>
           {(hiddenCount > 0 || venueFilterActive) && (
             <span
@@ -699,7 +699,7 @@ export function DecisionMatrix() {
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
                 <Sparkles
                   aria-hidden="true"
-                  className="h-3.5 w-3.5 text-[var(--gold-warm)]"
+                  className="h-4 w-4 text-[var(--gold-warm)]"
                   strokeWidth={1.5}
                 />
               </div>

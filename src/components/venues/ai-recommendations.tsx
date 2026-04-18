@@ -296,7 +296,7 @@ export function AIRecommendations({
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
             <Sparkles
               aria-hidden="true"
-              className="h-3.5 w-3.5 text-[var(--gold-warm)]"
+              className="h-4 w-4 text-[var(--gold-warm)]"
               strokeWidth={1.5}
             />
           </div>
@@ -315,7 +315,7 @@ export function AIRecommendations({
               className="inline-flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
               aria-label="おすすめを更新"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-4 w-4" />
             </button>
           )}
           <button

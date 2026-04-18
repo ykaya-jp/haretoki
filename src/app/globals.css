@@ -571,6 +571,65 @@
   outline: none;
 }
 
+/* ── X-2: 金額 display スケール一本化 ──────────────────────────
+   Display: hero / 大金額 (32px Noto Serif JP extralight, tabular-nums)
+   Section: ¥/万 単位の中見出し (20px Inter, tabular-nums)
+   Inline: 文中・補足の金額 (14px Inter, tabular-nums)
+   全 estimate / money-reality / waterfall コンポーネントで本 utility 経由。
+   Spec: docs/myreview/audit-master-A.md §4.4 V-2 / §4.9 X-2 */
+.text-display-numeral {
+  font-family: var(--font-noto-serif-jp), serif;
+  font-weight: 200;
+  font-size: 2rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.text-section-numeral {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+}
+.text-inline-numeral {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── X-3: Morning Light パレット内 semantic alias ────────────────
+   amber/emerald/rose の Tailwind stock color を撲滅し、
+   ブランドトークン経由の薄色 tint に集約する。
+   Spec: docs/myreview/audit-master-A.md §4.9 X-3 */
+.bg-tint-gold {
+  background-color: color-mix(in oklab, var(--gold-warm) 12%, var(--background));
+}
+.bg-tint-success {
+  background-color: color-mix(in oklab, var(--success) 10%, var(--background));
+}
+.bg-tint-destructive {
+  background-color: color-mix(in oklab, var(--destructive) 10%, var(--background));
+}
+.text-tone-success {
+  color: color-mix(in oklab, var(--success) 80%, var(--foreground));
+}
+.text-tone-destructive {
+  color: color-mix(in oklab, var(--destructive) 80%, var(--foreground));
+}
+.text-tone-gold {
+  color: color-mix(in oklab, var(--gold-warm) 70%, var(--foreground));
+}
+.border-tone-gold {
+  border-color: color-mix(in oklab, var(--gold-warm) 50%, transparent);
+}
+.border-l-tone-gold {
+  border-left-color: color-mix(in oklab, var(--gold-warm) 60%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

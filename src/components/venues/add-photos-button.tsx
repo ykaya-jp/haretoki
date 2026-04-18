@@ -54,9 +54,9 @@ export function AddPhotosButton({ venueId }: { venueId: string }) {
         className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs text-muted-foreground transition-all duration-200 hover:text-foreground hover:border-foreground/30 active:scale-95 disabled:opacity-50"
       >
         {uploading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <Camera className="h-3.5 w-3.5" />
+          <Camera className="h-4 w-4" />
         )}
         {uploading ? "アップロード中..." : "写真を追加"}
       </button>

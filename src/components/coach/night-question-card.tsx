@@ -33,7 +33,7 @@ export function NightQuestionCard({ question }: { question: NightQuestion }) {
       <div className="flex items-center gap-2">
         <MessageCircle
           aria-hidden="true"
-          className="h-3.5 w-3.5 text-[color:var(--primary)]"
+          className="h-4 w-4 text-[color:var(--primary)]"
           strokeWidth={1.6}
         />
         <p className="text-[10.5px] uppercase tracking-[0.16em] text-[color:var(--primary)]">

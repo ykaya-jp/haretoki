@@ -105,7 +105,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
         {/* Score badge - top right of photo section, below heart button */}
         {avgScore !== null && (
           <div className="absolute left-3 bottom-14 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
-            <Star className="h-3.5 w-3.5 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
+            <Star className="h-4 w-4 fill-[var(--gold-warm)] text-[var(--gold-warm)]" />
             <span className="tabular-nums text-sm font-normal text-white">
               {avgScore.toFixed(1)}
             </span>
@@ -142,7 +142,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
         >
           <Sparkles
             aria-hidden="true"
-            className="mt-0.5 h-3.5 w-3.5 shrink-0"
+            className="mt-0.5 h-4 w-4 shrink-0"
             strokeWidth={1.6}
           />
           <span>{fitReason}</span>

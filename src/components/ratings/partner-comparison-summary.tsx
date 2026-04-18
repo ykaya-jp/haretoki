@@ -65,7 +65,7 @@ export function PartnerComparisonSummary({
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2",
                 isAgreed && "border-l-2 border-l-[var(--success)] bg-[var(--success)]/5",
-                isDisagreed && "border-l-2 border-l-amber-500 bg-amber-50"
+                isDisagreed && "border-l-2 border-l-tone-gold bg-tint-gold"
               )}
             >
               <div className="w-20 text-xs">{DIMENSION_LABELS[dim]}</div>
@@ -89,7 +89,7 @@ export function PartnerComparisonSummary({
                 <span className="w-6 text-right text-xs tabular-nums">{partner || "-"}</span>
               </div>
               {isAgreed && <Check className="h-4 w-4 text-[var(--success)]" />}
-              {isDisagreed && <MessageCircle className="h-4 w-4 text-amber-500" />}
+              {isDisagreed && <MessageCircle className="h-4 w-4 text-tone-gold" />}
             </div>
           );
         })}

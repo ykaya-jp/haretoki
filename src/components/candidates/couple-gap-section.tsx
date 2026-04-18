@@ -18,7 +18,7 @@ export async function CoupleGapSection() {
       <header className="flex items-baseline gap-2">
         <Sparkles
           aria-hidden="true"
-          className="h-3.5 w-3.5 text-[color:var(--gold-warm)]"
+          className="h-4 w-4 text-[color:var(--gold-warm)]"
           strokeWidth={1.8}
         />
         <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
