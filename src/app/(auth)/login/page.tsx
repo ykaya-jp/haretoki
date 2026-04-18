@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,16 +29,25 @@ function LoginPageInner() {
   const nextHref = isSameOriginRedirectPath(nextRaw) ? nextRaw : "/home";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [oauthPending, setOauthPending] = useState(false);
-
-  // Callback redirects here with ?error=auth on OAuth failure.
-  useEffect(() => {
-    if (searchParams.get("error") === "auth") {
+  // Callback redirects here with ?error=auth on OAuth failure — seed the
+  // error message from the URL param at mount instead of firing an effect.
+  const errorParam = searchParams.get("error");
+  const [error, setError] = useState<string | null>(
+    errorParam === "auth"
+      ? "ログインがうまくいきませんでした。もう一度お試しください"
+      : null,
+  );
+  // Re-sync if the param flips during client navigation (rare, but keeps
+  // the state model honest). React 19 render-phase pattern.
+  const [prevErrorParam, setPrevErrorParam] = useState(errorParam);
+  if (prevErrorParam !== errorParam) {
+    setPrevErrorParam(errorParam);
+    if (errorParam === "auth") {
       setError("ログインがうまくいきませんでした。もう一度お試しください");
     }
-  }, [searchParams]);
+  }
+  const [loading, setLoading] = useState(false);
+  const [oauthPending, setOauthPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

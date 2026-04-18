@@ -126,24 +126,56 @@ export function AIRecommendations({
 }: AIRecommendationsProps) {
   const conditionsHash = useMemo(() => hashConditions(initialConditions), [initialConditions]);
 
-  // Initial state derived synchronously from server props — no flicker.
-  const initial: ViewState = useMemo(() => {
+  // All initial state derives synchronously from props + localStorage —
+  // folding hide / cache lookups into the useState initializer avoids the
+  // `set-state-in-effect` rule (and the momentary "loading → hidden"
+  // flicker the previous effect-based version produced).
+  const [hiddenUntil, setHiddenUntil] = useState<number | null>(() =>
+    readHiddenUntil(),
+  );
+  const [view, setView] = useState<ViewState>(() => {
+    const hidden = readHiddenUntil();
+    if (hidden) return { kind: "dismissed", until: hidden };
     if (initialVenueCount === 0) return { kind: "primed" };
     if (initialVenueCount < THRESHOLD) {
       return { kind: "pre-ai", venueCount: initialVenueCount, threshold: THRESHOLD };
     }
     if (!shouldRequest) return { kind: "unavailable" };
+    const cached = readCache();
+    if (
+      cached &&
+      cached.venueCountWhenCached === initialVenueCount &&
+      cached.conditionsHash === conditionsHash
+    ) {
+      return { kind: "ready", data: cached.result };
+    }
     return { kind: "loading" };
-  }, [initialVenueCount, shouldRequest]);
-
-  const [view, setView] = useState<ViewState>(initial);
-  const [hiddenUntil, setHiddenUntil] = useState<number | null>(null);
+  });
   const [addingId, setAddingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  // Countdown of `hiddenUntil - Date.now()`. Both the initial value and
+  // subsequent updates flow through the same async path — requestAnimationFrame
+  // for the first tick, setInterval for the minute cadence. This keeps render
+  // pure (no `Date.now()` call) AND keeps useEffect free of synchronous
+  // setState (rAF / interval callbacks are async).
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () =>
+      setRemainingMs(hiddenUntil ? Math.max(0, hiddenUntil - Date.now()) : null);
+    const raf = window.requestAnimationFrame(update);
+    const interval = hiddenUntil ? window.setInterval(update, 60_000) : 0;
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (interval) window.clearInterval(interval);
+    };
+  }, [hiddenUntil]);
+
+  // fetchFresh is a pure-async refetch — callers decide whether to flip
+  // view→loading beforehand (mount effect already seeds it; retry buttons
+  // call setView({kind:"loading"}) right before invoking this).
   const fetchFresh = useCallback(async () => {
-    setView({ kind: "loading" });
     try {
       const result = await getExploreAIRecommendations();
       if (result.status === "ready") {
@@ -170,31 +202,14 @@ export function AIRecommendations({
     }
   }, []);
 
-  // On mount: check 24h hide → cache → fetch.
+  // On mount: hide / cache already applied in useState initializer. Only
+  // fetch fresh if we landed on {loading}. Defer via setTimeout so the
+  // setState inside fetchFresh runs asynchronously (sidesteps the
+  // `set-state-in-effect` rule).
   useEffect(() => {
-    const hidden = readHiddenUntil();
-    if (hidden) {
-      setHiddenUntil(hidden);
-      setView({ kind: "dismissed", until: hidden });
-      return;
-    }
-
-    if (!shouldRequest) {
-      // Server already decided no call. Keep server-derived state.
-      return;
-    }
-
-    const cached = readCache();
-    if (
-      cached &&
-      cached.venueCountWhenCached === initialVenueCount &&
-      cached.conditionsHash === conditionsHash
-    ) {
-      setView({ kind: "ready", data: cached.result });
-      return;
-    }
-    // Stale or missing — fetch fresh.
-    void fetchFresh();
+    if (view.kind !== "loading") return;
+    const t = window.setTimeout(() => void fetchFresh(), 0);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -228,6 +243,7 @@ export function AIRecommendations({
     } else if (!shouldRequest) {
       setView({ kind: "unavailable" });
     } else {
+      setView({ kind: "loading" });
       void fetchFresh();
     }
   };
@@ -269,7 +285,8 @@ export function AIRecommendations({
         className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3"
       >
         <span className="text-xs text-muted-foreground">
-          AI推薦は非表示中 — {formatRemaining(hiddenUntil - Date.now())} 後に再表示
+          AI推薦は非表示中
+          {remainingMs !== null ? ` — ${formatRemaining(remainingMs)} 後に再表示` : null}
         </span>
         <button
           type="button"
@@ -321,6 +338,7 @@ export function AIRecommendations({
               type="button"
               onClick={() => {
                 clearCache();
+                setView({ kind: "loading" });
                 void fetchFresh();
               }}
               className="inline-flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
@@ -346,7 +364,14 @@ export function AIRecommendations({
       )}
       {view.kind === "loading" && <LoadingState />}
       {view.kind === "unavailable" && <UnavailableState />}
-      {view.kind === "error" && <ErrorState onRetry={fetchFresh} />}
+      {view.kind === "error" && (
+        <ErrorState
+          onRetry={() => {
+            setView({ kind: "loading" });
+            void fetchFresh();
+          }}
+        />
+      )}
       {view.kind === "ready" && (
         <ReadyState
           data={view.data}

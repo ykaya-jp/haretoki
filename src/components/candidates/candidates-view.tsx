@@ -84,7 +84,7 @@ export function CandidatesView({
   userName,
   initialTab,
 }: CandidatesViewProps) {
-  const [tab, setTab] = useState<Tab>("shortlist");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
   const [favorites, setFavorites] = useState(initialFavorites);
   const [showSwipe, setShowSwipe] = useState(false);
@@ -136,14 +136,6 @@ export function CandidatesView({
 
   const canCompare = venueOptions.length >= 2;
   const canDecide = venueOptions.length >= 1;
-
-  useEffect(() => {
-    if (initialTab && initialTab !== tab) {
-      setTab(initialTab);
-    }
-    // Only on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },

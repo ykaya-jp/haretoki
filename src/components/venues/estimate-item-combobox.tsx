@@ -22,10 +22,13 @@ export function EstimateItemCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Keep query in sync when parent value changes externally
-  useEffect(() => {
+  // Keep query in sync when parent value changes externally — render-phase
+  // reset (React 19 "adjusting state based on props") instead of an effect.
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value) {
+    setPrevValue(value);
     setQuery(value);
-  }, [value]);
+  }
 
   // Close only on Escape key. A global pointer-down / outside-click
   // handler was too aggressive on mobile — any tap elsewhere in the form
