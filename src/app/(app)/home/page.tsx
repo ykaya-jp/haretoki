@@ -85,14 +85,29 @@ export default async function HomePage() {
 
       <RecentVenues venues={homeData.recentVenues} />
 
-      <div className="text-center">
+      {/* Journey note — editorial hairline + eyebrow + link, not a floating CTA */}
+      <div
+        className="rounded-xl px-4 py-3"
+        style={{
+          borderLeft: "2px solid var(--gold-warm)",
+          background:
+            "color-mix(in oklab, var(--gold-warm) 5%, var(--background))",
+        }}
+      >
+        <p className="mb-1 text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
+          HARETOKI · Journey
+        </p>
         <Link
           href="/journey"
-          prefetch={false}
-          className="inline-flex min-h-[44px] items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+          prefetch={true}
+          className="inline-flex min-h-[44px] items-center gap-1.5 font-[family-name:var(--font-display)] text-[14px] font-extralight text-foreground underline-offset-4 hover:text-[var(--gold-warm)] hover:underline"
         >
-          晴れまでの道 →
+          晴れまでの道
+          <span aria-hidden="true" className="text-[var(--gold-warm)]">→</span>
         </Link>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">
+          ふたりの歩みを、一筋の道に。
+        </p>
       </div>
 
 
