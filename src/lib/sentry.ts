@@ -21,3 +21,23 @@ export function captureError(
     Sentry.captureException(err);
   });
 }
+
+/**
+ * Capture a structured warning-level message (non-error, non-exception).
+ *
+ * Intended for counting recoverable failures that never throw (e.g. external
+ * photo hotlink 403). Same DSN guard as `captureError` — no-op in dev/CI.
+ */
+export function captureMessage(
+  message: string,
+  options?: {
+    level?: "info" | "warning" | "error";
+    extra?: Record<string, unknown>;
+  },
+) {
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
+  Sentry.withScope((scope) => {
+    if (options?.extra) scope.setExtras(options.extra);
+    Sentry.captureMessage(message, options?.level ?? "warning");
+  });
+}
