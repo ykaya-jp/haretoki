@@ -33,18 +33,34 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
   return (
     <div className="space-y-10 pb-24">
-      <div>
-        <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
-          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="opacity-30">·</span>
+      <div className="space-y-3">
+        {/* Eyebrow */}
+        <p className="flex items-center gap-1.5 text-eyebrow text-muted-foreground uppercase">
+          <span className="text-[var(--gold-warm)]">HARETOKI</span>
+          <span aria-hidden="true" className="text-muted-foreground/40">·</span>
           <span>Compare</span>
         </p>
-        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
-          式場横比較
-        </h1>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+
+        {/* gold hairline */}
+        <div
+          aria-hidden="true"
+          className="h-px bg-gradient-to-r from-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] via-[color-mix(in_oklab,var(--gold-warm)_15%,transparent)] to-transparent"
+        />
+
+        {/* h1: editorial 2-line 明朝 */}
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-extralight leading-[1.2] tracking-[-0.01em]">
+            Compare
+          </h1>
+          <p className="mt-0.5 font-[family-name:var(--font-display)] text-[clamp(14px,3.5vw,17px)] font-extralight leading-relaxed tracking-[0.01em] text-muted-foreground">
+            ふたつを、同じ目線で。
+          </p>
+        </div>
+
+        {/* Ledger copy */}
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
           {matrix.venues.length > 0
-            ? `${matrix.venues.length} 件の式場を、同じ目線で並べてみましょう。`
+            ? `${matrix.venues.length} 件の式場を、同じ観点で並べています`
             : "候補を並べると、ここに横比較が現れます。"}
         </p>
       </div>

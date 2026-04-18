@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EstimateForm } from "@/components/venues/estimate-form";
-import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { EstimateBreakdown } from "@/components/venues/estimate-breakdown";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
-import { formatYen, formatYenFull } from "@/lib/utils";
+import { formatYen } from "@/lib/utils";
 
 type EstimateItem = {
   id: string;
@@ -61,18 +60,17 @@ export function EstimateSection({
       {/* Latest estimate summary */}
       {latest && (
         <div className="space-y-4">
-          {/* Total prominently at top */}
-          <div className="flex items-baseline justify-between">
-            <div>
-              <span className="text-2xl font-light tabular-nums">
-                {formatYen(latest.total)}
+          {/* Total prominently at top — display-scale numeral (V-2) */}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="flex items-baseline gap-0.5">
+              <span className="text-[11px] text-muted-foreground">¥</span>
+              <span className="text-display-numeral">
+                {(latest.total / 10000).toFixed(0)}
               </span>
-              <span className="ml-2 text-sm text-muted-foreground">
-                ({formatYenFull(latest.total)})
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              v{latest.version}・
+              <span className="text-[11px] text-muted-foreground">万</span>
+            </span>
+            <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+              v{latest.version}&thinsp;·&thinsp;
               {latest.sourceType === "manual" ? "手入力" : latest.sourceType}
             </span>
           </div>
@@ -92,20 +90,6 @@ export function EstimateSection({
                 準備として把握しておくと安心です
               </p>
             </div>
-          )}
-
-          {/* Waterfall chart: show if predicted_final exists */}
-          {latest.predictedFinal && (
-            <EstimateWaterfallChart
-              initialTotal={latest.total}
-              predictedFinal={latest.predictedFinal}
-              items={latest.items.map((item) => ({
-                category: item.category,
-                itemName: item.itemName,
-                amount: item.amount,
-                predictedUpgrade: item.predictedUpgrade ?? null,
-              }))}
-            />
           )}
 
           {/* Collapsible category breakdown */}
