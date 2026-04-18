@@ -24,6 +24,8 @@ interface EditorialHeroProps {
    * headline + sub. EditorialHero collapses to metrics + Journey Ring + NBA.
    */
   compact?: boolean;
+  /** Forwarded to HeroNBA for single-venue deep-link to /venues/<id>#visit. */
+  firstVenueId?: string | null;
 }
 
 type StageKey = "start" | "adding" | "visiting" | "comparing" | "decided";
@@ -289,6 +291,7 @@ export function EditorialHero(props: EditorialHeroProps) {
             visitedVenues={props.visitedVenues}
             favoriteCount={props.favoriteCount}
             hasDecision={props.hasDecision}
+            firstVenueId={props.firstVenueId}
           />
         </div>
       )}

@@ -81,6 +81,7 @@ export default async function HomePage() {
         compact={!!ritual}
         dateLabel={dateLabel}
         timeOfDayLabel={timeOfDayLabel}
+        firstVenueId={homeData.recentVenues[0]?.id ?? null}
       />
 
       <RecentVenues venues={homeData.recentVenues} />

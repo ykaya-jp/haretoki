@@ -118,7 +118,9 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   // handleToggleCheck is now in VisitChecklist component
 
   return (
-    <section className="space-y-4">
+    // id="visit" は Home の「見学予定を入れる」CTA からこの section に直接
+    // scroll させるためのアンカー（/venues/<id>#visit）。
+    <section id="visit" className="scroll-mt-24 space-y-4">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">

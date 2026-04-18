@@ -10,6 +10,12 @@ interface HeroNBAProps {
   visitedVenues: number;
   favoriteCount: number;
   hasDecision: boolean;
+  /**
+   * 直近更新された venue の id。1 件しか登録されていないときは
+   * 「見学を入れる」「印象を残す」 CTA から `/venues/<id>#visit` に直接
+   * 飛ばして、候補一覧を経由せずに予定入力 UI まで届けるために使う。
+   */
+  firstVenueId?: string | null;
 }
 
 interface NBAContent {
@@ -39,17 +45,30 @@ function getNBA(p: HeroNBAProps): NBAContent {
     };
   }
   if (p.visitedVenues >= 1) {
+    // 「印象を残す」= venue 詳細の rating / 帰り道モード。式場が 1 件しか
+    // ない場合は迷わないので詳細直行。複数あるときは候補一覧で選ばせる。
+    const singleVenue = p.totalVenues === 1 && p.firstVenueId;
     return {
       body: "見学の印象を、忘れないうちに残しましょう",
       primaryLabel: "印象を残す",
-      primaryHref: "/candidates",
+      primaryHref: singleVenue
+        ? `/venues/${p.firstVenueId}`
+        : "/candidates",
     };
   }
   if (p.totalVenues >= 1) {
+    // 「見学を入れる」= VisitSection のスケジューラ。1 件しか無いなら
+    // /venues/<id>#visit で section まで scroll、複数あるなら候補画面で
+    // どの式場か選んでもらうため、コピーも「式場を選ぶ」に寄せる。
+    const singleVenue = p.totalVenues === 1 && p.firstVenueId;
     return {
-      body: "最初の見学を入れてみませんか。当日のメモも残せます",
-      primaryLabel: "見学を入れる",
-      primaryHref: "/candidates",
+      body: singleVenue
+        ? "最初の見学予定を入れてみませんか。日付とメモを残せます"
+        : "見学する式場を選んで、予定を入れましょう",
+      primaryLabel: singleVenue ? "見学予定を入れる" : "式場を選ぶ",
+      primaryHref: singleVenue
+        ? `/venues/${p.firstVenueId}#visit`
+        : "/candidates",
     };
   }
   return {
