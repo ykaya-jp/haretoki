@@ -54,11 +54,21 @@ describe("deriveRelatedUrls", () => {
     );
   });
 
-  it("derives hanayume sub-pages", () => {
-    const r = deriveRelatedUrls("https://hana-yume.net/wedding/hall/123456/");
+  it("derives hanayume sub-pages from root-level numeric id", () => {
+    const r = deriveRelatedUrls("https://hana-yume.net/726/?yclid=abc");
     expect(r.domain).toBe("hanayume");
-    expect(r.detail).toBe("https://hana-yume.net/wedding/hall/123456/");
-    expect(r.photos).toBe("https://hana-yume.net/wedding/hall/123456/photo/");
+    expect(r.detail).toBe("https://hana-yume.net/726/");
+    expect(r.photos).toBe("https://hana-yume.net/726/photo/");
+    expect(r.plans).toBe("https://hana-yume.net/726/plan/");
+    // /review/ is 404 on hana-yume live, must not be requested.
+    expect(r.reviews).toBeUndefined();
+  });
+
+  it("hanayume strips inrlead tracking param", () => {
+    const r = deriveRelatedUrls(
+      "https://hana-yume.net/726/photo/?inrlead=xxx&yclid=yyy",
+    );
+    expect(r.detail).toBe("https://hana-yume.net/726/");
   });
 
   it("derives mynavi sub-pages", () => {
@@ -68,10 +78,14 @@ describe("deriveRelatedUrls", () => {
     expect(r.reviews).toBe("https://wedding.mynavi.jp/hall/abc789/review/");
   });
 
-  it("derives mwed sub-pages", () => {
-    const r = deriveRelatedUrls("https://www.mwed.jp/wedding_halls/99999/");
+  it("derives mwed sub-pages from /hall/{id}/ path", () => {
+    const r = deriveRelatedUrls("https://www.mwed.jp/hall/10242/");
     expect(r.domain).toBe("minna_no_wedding");
-    expect(r.photos).toBe("https://www.mwed.jp/wedding_halls/99999/photo/");
+    expect(r.detail).toBe("https://www.mwed.jp/hall/10242/");
+    expect(r.photos).toBe("https://www.mwed.jp/hall/10242/photo/");
+    expect(r.plans).toBe("https://www.mwed.jp/hall/10242/plan/");
+    // Reviews 404 on mwed live, must not be requested.
+    expect(r.reviews).toBeUndefined();
   });
 
   it("falls back to detail-only for unknown domains", () => {

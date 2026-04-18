@@ -22,8 +22,28 @@ export function useCountUp(
     ).matches;
     if (prefersReduced) return target;
     const prev = Number(window.localStorage.getItem(storageKey) ?? "0");
-    return Number.isFinite(prev) ? prev : 0;
+    const start = Number.isFinite(prev) ? prev : 0;
+    if (target <= start) return target;
+    return start;
   });
+
+  // When target changes mid-lifecycle and no animation is warranted
+  // (reduced-motion OR target <= previous), commit the value during render
+  // instead of inside useEffect — avoids the set-state-in-effect cascade.
+  const [prevTarget, setPrevTarget] = useState(target);
+  if (prevTarget !== target) {
+    setPrevTarget(target);
+    if (typeof window !== "undefined") {
+      const prefersReduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const prev = Number(window.localStorage.getItem(storageKey) ?? "0");
+      const start = Number.isFinite(prev) ? prev : 0;
+      if (prefersReduced || target <= start) {
+        setValue(target);
+      }
+    }
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -35,7 +55,6 @@ export function useCountUp(
     const start = Number.isFinite(prev) ? prev : 0;
 
     if (prefersReduced || target <= start) {
-      setValue(target);
       window.localStorage.setItem(storageKey, String(target));
       return;
     }

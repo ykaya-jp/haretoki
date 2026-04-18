@@ -9,11 +9,12 @@ import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles, GitCompare, X } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
+import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4
@@ -83,7 +84,7 @@ export function CandidatesView({
   userName,
   initialTab,
 }: CandidatesViewProps) {
-  const [tab, setTab] = useState<Tab>("shortlist");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
   const [favorites, setFavorites] = useState(initialFavorites);
   const [showSwipe, setShowSwipe] = useState(false);
@@ -91,7 +92,42 @@ export function CandidatesView({
   const [ceremonyVenueName, setCeremonyVenueName] = useState("");
   const [decision, setDecision] = useState(initialDecision ?? null);
   const [isDeciding, setIsDeciding] = useState(false);
+  // Multi-select (比較モード): flip cards into tap-to-toggle, pick 2-10,
+  // jump to /compare?venueIds=a,b,c with the selection preserved.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  const toggleSelected = (venueId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(venueId)) {
+        next.delete(venueId);
+      } else if (next.size >= COMPARE_MAX_VENUES) {
+        // Fail loud: tell the user why the next tap didn't add.
+        toast.info(`比較は ${COMPARE_MAX_VENUES} 件までが見やすいです`);
+        return prev;
+      } else {
+        next.add(venueId);
+      }
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const launchCompare = () => {
+    if (selectedIds.size < 2) {
+      toast.info("比較には 2 件以上選んでください");
+      return;
+    }
+    // Preserve the order the user picked (Set iterates insertion order).
+    const ids = Array.from(selectedIds);
+    router.push(`/compare?venueIds=${ids.join(",")}`);
+  };
 
   useEffect(() => {
     // Refetch when filter changes
@@ -100,14 +136,6 @@ export function CandidatesView({
 
   const canCompare = venueOptions.length >= 2;
   const canDecide = venueOptions.length >= 1;
-
-  useEffect(() => {
-    if (initialTab && initialTab !== tab) {
-      setTab(initialTab);
-    }
-    // Only on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
@@ -195,6 +223,32 @@ export function CandidatesView({
           >
             <FavoriteFilter active={filter} onChange={setFilter} />
 
+            {/* 比較モード toggle — only surface when the user has >= 2
+                favorites, otherwise the feature is dead (nothing to compare). */}
+            {favorites.length >= 2 && (
+              <div className="mt-3 flex items-center justify-end">
+                {selectMode ? (
+                  <button
+                    type="button"
+                    onClick={exitSelectMode}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 text-[12px] text-muted-foreground transition-colors active:bg-muted"
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={2} />
+                    モードを終わる
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSelectMode(true)}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--background))] px-3 text-[12px] font-medium text-[var(--gold-warm)] transition-colors active:bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))]"
+                  >
+                    <GitCompare className="h-3.5 w-3.5" strokeWidth={2} />
+                    比較モード
+                  </button>
+                )}
+              </div>
+            )}
+
             {favorites.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
@@ -281,6 +335,9 @@ export function CandidatesView({
                       <VenueCard
                         venue={fav.venue}
                         isFavorite={true}
+                        selectMode={selectMode}
+                        isSelected={selectedIds.has(fav.venue.id)}
+                        onToggleSelect={toggleSelected}
                       />
                     </motion.div>
                   ))}
@@ -380,6 +437,43 @@ export function CandidatesView({
             ) : (
               <PriorityWeights onDecide={handleDecide} />
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 比較モード sticky CTA — lives above the bottom nav. Only renders
+          while selectMode is active, so normal browsing never sees it. */}
+      <AnimatePresence>
+        {selectMode && tab === "shortlist" && (
+          <motion.div
+            key="compare-cta"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4"
+          >
+            <div className="flex w-full max-w-sm items-center gap-2 rounded-full border border-border/50 bg-background/95 p-1.5 shadow-[var(--shadow-elevated)] backdrop-blur-md">
+              <span className="flex-1 pl-3 text-[12.5px] text-muted-foreground tabular-nums">
+                <span className="font-semibold text-foreground">{selectedIds.size}</span>
+                <span> / {COMPARE_MAX_VENUES} 件</span>
+              </span>
+              <button
+                type="button"
+                onClick={launchCompare}
+                disabled={selectedIds.size < 2}
+                className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-all ${
+                  selectedIds.size >= 2
+                    ? "bg-[var(--gold-warm)] text-background hover:brightness-105 active:scale-[0.98]"
+                    : "cursor-not-allowed bg-muted text-muted-foreground"
+                }`}
+              >
+                <GitCompare className="h-3.5 w-3.5" strokeWidth={2} />
+                {selectedIds.size >= 2
+                  ? `この ${selectedIds.size} 件を比較`
+                  : "2件以上選ぶ"}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

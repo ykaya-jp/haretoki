@@ -20,25 +20,26 @@ import { randomUUID } from "node:crypto";
 
 loadEnv({ path: ".env.local" });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const hasEnv = Boolean(SUPABASE_URL && SERVICE_ROLE);
 
-if (!SUPABASE_URL || !SERVICE_ROLE) {
-  test.skip(true, "Supabase env not set — skipping comprehensive smoke.");
-}
-
-const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-  auth: { persistSession: false },
-});
+// Lazy init — `createClient` throws when SERVICE_ROLE is empty, so we guard
+// at module load. Tests call `test.skip(!hasEnv, …)` in beforeAll to bail
+// out cleanly on CI where the service-role secret is intentionally absent.
+const admin = hasEnv
+  ? createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
+  : null;
 
 let testEmail: string;
 let testPassword: string;
 let userId: string;
 
 test.beforeAll(async () => {
+  test.skip(!hasEnv, "Supabase env not set — skipping comprehensive smoke.");
   testEmail = `smoke-${randomUUID().slice(0, 8)}@haretoki.test`;
   testPassword = "Test1234!smoke";
-  const { data, error } = await admin.auth.admin.createUser({
+  const { data, error } = await admin!.auth.admin.createUser({
     email: testEmail,
     password: testPassword,
     email_confirm: true,
@@ -48,7 +49,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  if (userId) {
+  if (userId && admin) {
     await admin.auth.admin.deleteUser(userId).catch(() => {});
   }
 });

@@ -75,9 +75,11 @@ jobs:
         run: npx prisma generate
 
       - name: Build Next.js
-        run: npm run build
+        # Use build:local — skips `prisma migrate deploy` which needs a
+        # reachable DB. Migrations run during Vercel production deploys, not
+        # in CI. Build-time env stubs only feed `next build`'s static checks.
+        run: npm run build:local
         env:
-          # Build-time env stubs (no real DB needed for build check)
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder

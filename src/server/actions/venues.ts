@@ -5,7 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
-import type { VenueStatus } from "@/generated/prisma/client";
+import type { Prisma, VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
@@ -16,13 +16,30 @@ import {
   buildMetadataPrompt,
 } from "@/server/actions/url-metadata";
 import { captureServerEvent } from "@/lib/analytics/server";
-import { captureError } from "@/lib/sentry";
+import { captureError, captureMessage } from "@/lib/sentry";
 import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
 import { deriveRelatedUrls } from "@/lib/url-import/domain-router";
-import { uploadVenuePhotoFromUrl } from "@/lib/supabase/storage";
+import { parseJsonLd } from "@/lib/url-import/jsonld-parser";
+import {
+  extractImagesFromHtml,
+  mergePhotoUrls,
+} from "@/lib/url-import/extract-images";
+import {
+  uploadVenuePhotoFromUrl,
+  type PhotoUploadReason,
+  type PhotoUploadResult,
+} from "@/lib/supabase/storage";
 import { saveExtractedReviews } from "@/server/actions/reviews";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
+import {
+  matchExistingVenue,
+  mergeVenueFields,
+  normalizeName,
+  type ExistingVenueSummary,
+  type VenueCandidate,
+  type VenueFieldBag,
+} from "@/lib/venue-dedupe";
 
 // --- Helpers ---
 
@@ -292,9 +309,38 @@ export async function getVenueHeader(id: string) {
       status: true,
       scores: true,
       vibeTags: true,
+      // Deep extraction (v2) — JSON-LD derived. These feed the Fact Sheet /
+      // Amenities / Cost Breakdown / Cuisine sections in the venue detail
+      // page. Stored by confirmVenueFromUrl but never surfaced in UI until
+      // Phase B (v3). See plan: dapper-tinkering-quill.md.
+      externalRatingValue: true,
+      externalReviewCount: true,
+      postalCode: true,
+      streetAddress: true,
+      latitude: true,
+      longitude: true,
+      phoneNumber: true,
+      hasParking: true,
+      parkingCapacity: true,
+      hasShuttle: true,
+      hasAccommodation: true,
+      acceptsSecondParty: true,
+      barrierFree: true,
+      ceremonyFeeExact: true,
+      productionFeeMin: true,
+      productionFeeMax: true,
+      serviceFeeRate: true,
+      operatingHours: true,
+      closedDays: true,
+      cuisineTypes: true,
+      chefCredentials: true,
     },
   });
 }
+
+// Deep-extraction field-list contract lives in venue-detail-fields.ts — a
+// plain-module sibling. "use server" modules cannot export non-async values,
+// so the const had to move out. Tests should import from that file.
 
 /** Estimates + line items — below the fold, streamed via Suspense. */
 export async function getVenueEstimates(id: string) {
@@ -452,7 +498,51 @@ interface ExtractedVenueData {
   maxInstallments: number | null;
   vibeTags: string[];
   reviews: ExtractedIndividualReviewData[];
+
+  // v2 deep extraction — populated from JSON-LD parser where available,
+  // falls back to Claude body inference for facility/cost-breakdown flags.
+  externalRatingValue?: number | null;
+  externalReviewCount?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  postalCode?: string | null;
+  streetAddress?: string | null;
+  phoneNumber?: string | null;
+  hasParking?: boolean | null;
+  parkingCapacity?: number | null;
+  hasShuttle?: boolean | null;
+  hasAccommodation?: boolean | null;
+  acceptsSecondParty?: boolean | null;
+  barrierFree?: boolean | null;
+  ceremonyFeeExact?: number | null;
+  productionFeeMin?: number | null;
+  productionFeeMax?: number | null;
+  serviceFeeRate?: number | null;
+  operatingHours?: string | null;
+  closedDays?: string[];
+  cuisineTypes?: string[];
+  chefCredentials?: string | null;
 }
+
+const CLOSED_DAY_IDS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+  "irregular",
+] as const;
+
+const CUISINE_TYPE_IDS = [
+  "french",
+  "japanese",
+  "italian",
+  "chinese",
+  "fusion",
+  "buffet",
+] as const;
 
 const VIBE_TAG_IDS = VIBE_TAGS.map((v) => v.id) as [string, ...string[]];
 
@@ -495,6 +585,29 @@ const extractedVenueSchema = z.object({
     .max(8)
     .optional()
     .default([]),
+
+  // v2 deep extraction
+  externalRatingValue: z.number().min(0).max(5).nullable().optional().default(null),
+  externalReviewCount: z.number().int().nonnegative().nullable().optional().default(null),
+  latitude: z.number().min(-90).max(90).nullable().optional().default(null),
+  longitude: z.number().min(-180).max(180).nullable().optional().default(null),
+  postalCode: z.string().max(16).nullable().optional().default(null),
+  streetAddress: z.string().max(200).nullable().optional().default(null),
+  phoneNumber: z.string().max(32).nullable().optional().default(null),
+  hasParking: z.boolean().nullable().optional().default(null),
+  parkingCapacity: z.number().int().positive().nullable().optional().default(null),
+  hasShuttle: z.boolean().nullable().optional().default(null),
+  hasAccommodation: z.boolean().nullable().optional().default(null),
+  acceptsSecondParty: z.boolean().nullable().optional().default(null),
+  barrierFree: z.boolean().nullable().optional().default(null),
+  ceremonyFeeExact: z.number().int().positive().nullable().optional().default(null),
+  productionFeeMin: z.number().int().positive().nullable().optional().default(null),
+  productionFeeMax: z.number().int().positive().nullable().optional().default(null),
+  serviceFeeRate: z.number().min(0).max(1).nullable().optional().default(null),
+  operatingHours: z.string().max(100).nullable().optional().default(null),
+  closedDays: z.array(z.enum(CLOSED_DAY_IDS)).max(7).optional().default([]),
+  cuisineTypes: z.array(z.enum(CUISINE_TYPE_IDS)).max(5).optional().default([]),
+  chefCredentials: z.string().max(500).nullable().optional().default(null),
 });
 
 const URL_EXTRACTION_SYSTEM_PROMPT = `You are an expert at extracting structured wedding venue information from Japanese web page content.
@@ -531,18 +644,47 @@ Return ONLY valid JSON (no markdown, no code fences):
   ]
 }
 
+Extra deep-extraction fields (all optional — emit null / [] when unsure):
+  "hasParking": <true|false|null>,
+  "parkingCapacity": <number of spaces or null>,
+  "hasShuttle": <true|false|null>,
+  "hasAccommodation": <true|false|null>,
+  "acceptsSecondParty": <true|false|null>,
+  "barrierFree": <true|false|null>,
+  "ceremonyFeeExact": <挙式料 yen or null>,
+  "productionFeeMin": <演出費 下限 yen or null>,
+  "productionFeeMax": <演出費 上限 yen or null>,
+  "serviceFeeRate": <0-1 decimal (0.1 for 10%) or null>,
+  "operatingHours": "<e.g. '11:00-20:00' or null>",
+  "closedDays": ["monday"|"tuesday"|...|"sunday"|"irregular"],
+  "cuisineTypes": ["french"|"japanese"|"italian"|"chinese"|"fusion"|"buffet"],
+  "chefCredentials": "<シェフ経歴 短文 or null, 500字以内>"
+
 Guidelines:
 - Use null (not empty string) when a field cannot be determined.
 - costMin / costMax: parse 見積もり例 / 挙式+披露宴 / 総額 / 参考費用 patterns. Convert "300万円" → 3000000. If only one value is visible put it in both costMin and costMax.
+- ceremonyFeeExact: parse 挙式料 金額, typically 300,000-500,000 yen range.
+- productionFeeMin / Max: 演出費 / プロデュース料 range.
+- serviceFeeRate: "サービス料 10%" → 0.1.
 - paymentMethodEnums: map "クレジットカード" → credit_card, "現金" → cash, "銀行振込" → bank_transfer, "分割" / "ローン" → installment.
 - dressBringIn: "持ち込み可" → allowed, "持ち込み不可" → not_allowed, "要相談" / "応相談" → negotiable.
 - dressBringInFee: fee in yen when dressBringIn=allowed with charge.
 - maxInstallments: payment installment max count when explicitly stated.
 - vibeTags: pick tags that clearly match from visible photo descriptions + body copy. Emit the enum id, not the Japanese label. Max 5.
 - ceremonyStyles: enum values チャペル / 神前 / 人前 / ガーデン.
+- hasParking: true if 駐車場 is advertised. parkingCapacity: 台数 when given.
+- hasShuttle: true if 送迎 / シャトル is offered.
+- hasAccommodation: true if 提携宿泊 / 宿泊施設 is mentioned.
+- acceptsSecondParty: true if 二次会 use is explicitly permitted.
+- barrierFree: true if バリアフリー / 車椅子 対応 is mentioned.
+- closedDays: emit enum ids. "火曜・水曜定休" → ["tuesday","wednesday"]. "不定休" → ["irregular"].
+- cuisineTypes: "フレンチ"→french, "和食"→japanese, "イタリアン"→italian, "中華"→chinese, "フュージョン"→fusion, "ビュッフェ"→buffet.
+- chefCredentials: brief one-sentence summary of head chef background. Professional only, no PII.
 - photoUrls: prefer large venue/ceremony/reception/chapel hero images. Skip thumbnails, icons, avatars, and marketing banners. Absolute URLs only.
 - confidence: "high" if most core fields are present, "medium" if some missing, "low" if minimal.
 - reviews: 3-8 件ていど。必ず Japanese で要約すること。原文の長文コピペは NG — 200-500 字程度の要約に書き直す。出典 URL は呼び出し側で付与するのでここでは不要。複数ページの重複する口コミは 1 件にまとめる。author はハンドル名のみ、本名や電話番号など PII を含めてはいけない。
+
+IMPORTANT: Fields derivable directly from JSON-LD (aggregateRating value/count, GeoCoordinates latitude/longitude, PostalAddress postalCode/streetAddress, telephone) are handled by a separate structured parser — OMIT them from your output. Do not guess or rewrite these.
 
 Note: The input may include OGP (og:title / og:description / og:image), Twitter Cards,
 and JSON-LD (Schema.org Venue / LocalBusiness / Organization / Event / Review) blocks in
@@ -735,6 +877,50 @@ export async function addVenueFromUrl(url: string): Promise<{
       };
     }
 
+    // Structured parser overrides Claude for JSON-LD-derived fields (zero
+    // hallucination, stable). Merge every page's JSON-LD blobs.
+    const jsonLdBlobs: unknown[] = [];
+    fetched.forEach((page) => {
+      if (!page) return;
+      for (const blob of page.metadata.jsonLd) jsonLdBlobs.push(blob);
+    });
+    const structured = parseJsonLd(jsonLdBlobs);
+
+    const enriched: ExtractedVenueData = {
+      ...validated.data,
+      // Canonical structured overrides (never let Claude fight these).
+      externalRatingValue:
+        structured.aggregateRating?.value ?? validated.data.externalRatingValue ?? null,
+      externalReviewCount:
+        structured.aggregateRating?.count ?? validated.data.externalReviewCount ?? null,
+      latitude: structured.geo?.lat ?? validated.data.latitude ?? null,
+      longitude: structured.geo?.lng ?? validated.data.longitude ?? null,
+      postalCode: structured.address?.postal ?? validated.data.postalCode ?? null,
+      streetAddress: structured.address?.street ?? validated.data.streetAddress ?? null,
+      phoneNumber: structured.phone ?? validated.data.phoneNumber ?? null,
+    };
+
+    // Union JSON-LD Organization images (usually higher-resolution CDN URLs)
+    // into Claude's photoUrls — dedupe preserves insertion order.
+    if (structured.images && structured.images.length > 0) {
+      const merged = [...enriched.photoUrls, ...structured.images];
+      enriched.photoUrls = Array.from(new Set(merged)).slice(0, 30);
+    }
+
+    // Scrape raw HTML for <img src|data-src>, <source srcset>, <picture>.
+    // Claude often misses lazy-loaded + srcset images — cheerio pulls them
+    // directly so the upload pipeline gets a richer candidate set.
+    const scrapedImages: string[] = [];
+    targets.forEach((t, i) => {
+      const page = fetched[i];
+      if (!page) return;
+      const imgs = extractImagesFromHtml(page.html, t.url, 30);
+      for (const u of imgs) scrapedImages.push(u);
+    });
+    if (scrapedImages.length > 0) {
+      enriched.photoUrls = mergePhotoUrls(enriched.photoUrls, scrapedImages, 30);
+    }
+
     // When the rendered body was empty, we only saw OGP/JSON-LD. Surface a warning
     // so the UI can nudge the user to verify or complete missing fields manually.
     const warning =
@@ -742,7 +928,7 @@ export async function addVenueFromUrl(url: string): Promise<{
         ? "部分的な情報のみ読み取れました。手動で補完してください。"
         : undefined;
 
-    return { extracted: validated.data, warning };
+    return { extracted: enriched, warning };
   } catch (error) {
     if (error instanceof ClaudeCreditsError) {
       return {
@@ -766,9 +952,66 @@ export async function addVenueFromUrl(url: string): Promise<{
   }
 }
 
+/**
+ * Build a `VenueFieldBag` from validated Claude + JSON-LD output. Shared by
+ * the create and merge branches below.
+ */
+function buildVenueFieldBag(
+  parsed: z.infer<typeof extractedVenueSchema>,
+  sourceUrl: string,
+): VenueFieldBag {
+  return {
+    name: parsed.name,
+    location: parsed.location,
+    accessInfo: parsed.accessInfo,
+    capacityMin: parsed.capacityMin,
+    capacityMax: parsed.capacityMax,
+    ceremonyStyles: parsed.ceremonyStyles,
+    sourceUrls: [sourceUrl],
+    photoUrls: [],
+    costMin: parsed.costMin,
+    costMax: parsed.costMax,
+    paymentMethodEnums: parsed.paymentMethodEnums,
+    dressBringIn: parsed.dressBringIn,
+    dressBringInFee: parsed.dressBringInFee,
+    maxInstallments: parsed.maxInstallments,
+    vibeTags: parsed.vibeTags,
+    externalRatingValue: parsed.externalRatingValue,
+    externalReviewCount: parsed.externalReviewCount,
+    latitude: parsed.latitude,
+    longitude: parsed.longitude,
+    postalCode: parsed.postalCode,
+    streetAddress: parsed.streetAddress,
+    phoneNumber: parsed.phoneNumber,
+    hasParking: parsed.hasParking,
+    parkingCapacity: parsed.parkingCapacity,
+    hasShuttle: parsed.hasShuttle,
+    hasAccommodation: parsed.hasAccommodation,
+    acceptsSecondParty: parsed.acceptsSecondParty,
+    barrierFree: parsed.barrierFree,
+    ceremonyFeeExact: parsed.ceremonyFeeExact,
+    productionFeeMin: parsed.productionFeeMin,
+    productionFeeMax: parsed.productionFeeMax,
+    serviceFeeRate: parsed.serviceFeeRate,
+    operatingHours: parsed.operatingHours,
+    closedDays: parsed.closedDays,
+    cuisineTypes: parsed.cuisineTypes,
+    chefCredentials: parsed.chefCredentials,
+  };
+}
+
+/**
+ * `confirmVenueFromUrl` creates a new Venue — OR merges additional info
+ * into an already-tracked one when the same venue is registered from a
+ * different site (cross-site dedupe).
+ *
+ * `forceNew=true` is the UI escape hatch ("別の式場として追加") to bypass
+ * dedupe when the matcher picked the wrong row.
+ */
 export async function confirmVenueFromUrl(
   extracted: ExtractedVenueData,
-  sourceUrl: string
+  sourceUrl: string,
+  options: { forceNew?: boolean } = {},
 ) {
   const parsed = extractedVenueSchema.safeParse(extracted);
   if (!parsed.success) {
@@ -778,14 +1021,7 @@ export async function confirmVenueFromUrl(
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Dedupe + cap raw photo URLs before upload. External sites sometimes list
-  // the same hero image across detail / photos pages — drop duplicates so
-  // we don't waste upload slots.
   const uniquePhotoUrls = Array.from(new Set(parsed.data.photoUrls)).slice(0, 15);
-
-  // Download external photos and re-upload to our Supabase bucket. Failures
-  // are logged but never block venue creation — the user can always add
-  // photos manually later.
   let origin: string | undefined;
   try {
     origin = new URL(sourceUrl).origin;
@@ -793,8 +1029,151 @@ export async function confirmVenueFromUrl(
     origin = undefined;
   }
 
-  // Create the venue first with an empty photoUrls so we have an id to
-  // scope upload paths to. We then patch photoUrls once uploads finish.
+  const candidateBag = buildVenueFieldBag(parsed.data, sourceUrl);
+  const candidateNormalizedName = normalizeName(parsed.data.name);
+  const candidate: VenueCandidate = {
+    name: parsed.data.name,
+    location: parsed.data.location,
+    postalCode: parsed.data.postalCode ?? null,
+    latitude: parsed.data.latitude ?? null,
+    longitude: parsed.data.longitude ?? null,
+    normalizedName: candidateNormalizedName,
+  };
+
+  // Cross-site dedupe: look for an already-tracked venue in the same project.
+  // Scoped query narrows to likely candidates only (same normalized name OR
+  // near-by geo) to keep payload small even for large projects.
+  let match: { venue: ExistingVenueSummary; tier: string } | null = null;
+  if (!options.forceNew) {
+    const nameMatchFilter = {
+      projectId,
+      normalizedName: candidateNormalizedName,
+    };
+    const geoFilter =
+      candidate.latitude !== null && candidate.longitude !== null
+        ? {
+            projectId,
+            latitude: {
+              gte: candidate.latitude - 0.002,
+              lte: candidate.latitude + 0.002,
+            },
+            longitude: {
+              gte: candidate.longitude - 0.002,
+              lte: candidate.longitude + 0.002,
+            },
+          }
+        : null;
+
+    const candidates = await prisma.venue.findMany({
+      where: geoFilter
+        ? { OR: [nameMatchFilter, geoFilter] }
+        : nameMatchFilter,
+      select: {
+        id: true,
+        name: true,
+        location: true,
+        postalCode: true,
+        latitude: true,
+        longitude: true,
+        normalizedName: true,
+      },
+      take: 20,
+    });
+
+    match = matchExistingVenue(candidate, candidates);
+  }
+
+  if (match) {
+    // ─── MERGE branch ────────────────────────────────────────────────
+    const existing = await prisma.venue.findUniqueOrThrow({
+      where: { id: match.venue.id },
+    });
+
+    // Upload any incoming photos first so `mergeVenueFields` can union the
+    // supabase URLs instead of external CDN ones. Result shape gives us
+    // per-reason failure counters without try/catch churn.
+    const uploadedPhotoUrls: string[] = [];
+    const photoFailedReasons: Record<PhotoUploadReason, number> = {
+      "403": 0,
+      timeout: 0,
+      "invalid-ct": 0,
+      "size-limit": 0,
+      network: 0,
+    };
+    if (uniquePhotoUrls.length > 0) {
+      const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
+        uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
+      );
+      for (const r of uploadResults) {
+        if (r.ok) {
+          uploadedPhotoUrls.push(r.url);
+        } else {
+          photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
+          reportPhotoUploadFailure(r);
+        }
+      }
+    }
+
+    const existingBag: VenueFieldBag = {
+      ...existing,
+      // prisma returns Decimal — normalise to number for the merger.
+      serviceFeeRate:
+        existing.serviceFeeRate !== null
+          ? Number(existing.serviceFeeRate)
+          : null,
+    };
+    const mergeInput: VenueFieldBag = {
+      ...candidateBag,
+      photoUrls: uploadedPhotoUrls,
+    };
+    const { data: patch, updatedFields } = mergeVenueFields(existingBag, mergeInput);
+
+    const updated = await prisma.venue.update({
+      where: { id: existing.id },
+      data: patch as Prisma.VenueUpdateInput,
+    });
+
+    const reviewSource = reviewSourceFromUrl(sourceUrl);
+    if (reviewSource && parsed.data.reviews.length > 0) {
+      try {
+        await saveExtractedReviews(
+          existing.id,
+          parsed.data.reviews,
+          sourceUrl,
+          reviewSource,
+        );
+      } catch (err) {
+        console.warn("[confirmVenueFromUrl merge] saveExtractedReviews failed:", err);
+      }
+    }
+
+    const reviewSummaryStatus = await runReviewSummary(
+      existing.id,
+      sourceUrl,
+      reviewSource,
+      parsed.data.reviews.length,
+    );
+
+    revalidateTag(`project:${projectId}`, { expire: 0 });
+    revalidatePath("/explore");
+    revalidatePath("/home");
+    revalidatePath(`/venues/${existing.id}`);
+
+    return {
+      success: true as const,
+      mode: "merged" as const,
+      matchTier: match.tier,
+      venue: updated,
+      updatedFields,
+      photoUploadedCount: uploadedPhotoUrls.length,
+      photoRequestedCount: uniquePhotoUrls.length,
+      photoFailedReasons,
+      individualReviewCount: parsed.data.reviews.length,
+      reviewSummaryStatus,
+    };
+  }
+
+  // ─── CREATE branch ─────────────────────────────────────────────────
   const venue = await prisma.venue.create({
     data: {
       projectId,
@@ -813,25 +1192,51 @@ export async function confirmVenueFromUrl(
       dressBringInFee: parsed.data.dressBringInFee,
       maxInstallments: parsed.data.maxInstallments,
       vibeTags: parsed.data.vibeTags,
+      externalRatingValue: parsed.data.externalRatingValue,
+      externalReviewCount: parsed.data.externalReviewCount,
+      latitude: parsed.data.latitude,
+      longitude: parsed.data.longitude,
+      postalCode: parsed.data.postalCode,
+      streetAddress: parsed.data.streetAddress,
+      phoneNumber: parsed.data.phoneNumber,
+      hasParking: parsed.data.hasParking,
+      parkingCapacity: parsed.data.parkingCapacity,
+      hasShuttle: parsed.data.hasShuttle,
+      hasAccommodation: parsed.data.hasAccommodation,
+      acceptsSecondParty: parsed.data.acceptsSecondParty,
+      barrierFree: parsed.data.barrierFree,
+      ceremonyFeeExact: parsed.data.ceremonyFeeExact,
+      productionFeeMin: parsed.data.productionFeeMin,
+      productionFeeMax: parsed.data.productionFeeMax,
+      serviceFeeRate: parsed.data.serviceFeeRate,
+      operatingHours: parsed.data.operatingHours,
+      closedDays: parsed.data.closedDays,
+      cuisineTypes: parsed.data.cuisineTypes,
+      chefCredentials: parsed.data.chefCredentials,
+      normalizedName: candidateNormalizedName,
     },
   });
 
-  let uploadedPhotoUrls: string[] = [];
+  const uploadedPhotoUrls: string[] = [];
+  const photoFailedReasons: Record<PhotoUploadReason, number> = {
+    "403": 0,
+    timeout: 0,
+    "invalid-ct": 0,
+    "size-limit": 0,
+    network: 0,
+  };
   if (uniquePhotoUrls.length > 0) {
-    const uploadResults = await limitedAll(uniquePhotoUrls, 3, async (src) => {
-      try {
-        const stored = await uploadVenuePhotoFromUrl(src, projectId, venue.id, origin);
-        return stored;
-      } catch (err) {
-        console.warn("[confirmVenueFromUrl] photo upload skipped:", {
-          src,
-          error: err instanceof Error ? err.message : err,
-        });
-        return null;
+    const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
+      uploadVenuePhotoFromUrl(src, projectId, venue.id, origin),
+    );
+    for (const r of uploadResults) {
+      if (r.ok) {
+        uploadedPhotoUrls.push(r.url);
+      } else {
+        photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
+        reportPhotoUploadFailure(r);
       }
-    });
-    uploadedPhotoUrls = uploadResults.filter((u): u is string => typeof u === "string");
-
+    }
     if (uploadedPhotoUrls.length > 0) {
       await prisma.venue.update({
         where: { id: venue.id },
@@ -840,7 +1245,6 @@ export async function confirmVenueFromUrl(
     }
   }
 
-  // Persist individual reviews synchronously (small DB batch, <500ms).
   const reviewSource = reviewSourceFromUrl(sourceUrl);
   if (reviewSource && parsed.data.reviews.length > 0) {
     try {
@@ -850,31 +1254,102 @@ export async function confirmVenueFromUrl(
     }
   }
 
+  const reviewSummaryStatus = await runReviewSummary(
+    venue.id,
+    sourceUrl,
+    reviewSource,
+    parsed.data.reviews.length,
+  );
+
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
   revalidatePath(`/venues/${venue.id}`);
 
-  // After venue creation, trigger aggregate review summary (fire-and-forget).
-  // This runs in parallel with individual reviews we already saved and
-  // produces a single aiSummary row under the base sourceUrl (no fragment).
-  if (reviewSource) {
-    import("@/server/actions/reviews")
-      .then(({ analyzeVenueReviews }) =>
-        analyzeVenueReviews(venue.id, sourceUrl, reviewSource),
-      )
-      .catch((err) => {
-        console.error("[confirmVenueFromUrl] auto-review-fetch failed:", err);
-      });
-  }
-
   return {
     success: true as const,
+    mode: "created" as const,
     venue: { ...venue, photoUrls: uploadedPhotoUrls },
+    updatedFields: [] as string[],
     photoUploadedCount: uploadedPhotoUrls.length,
     photoRequestedCount: uniquePhotoUrls.length,
+    photoFailedReasons,
     individualReviewCount: parsed.data.reviews.length,
+    reviewSummaryStatus,
   };
+}
+
+/**
+ * Warning-level Sentry event + console.warn for a single photo upload
+ * failure. Groups by host + reason so production noise is aggregable
+ * (e.g. "zexy.net 403 spike after CDN change").
+ */
+function reportPhotoUploadFailure(
+  failure: PhotoUploadResult & { ok: false },
+): void {
+  let host = "(unknown)";
+  try {
+    host = new URL(failure.srcUrl).host;
+  } catch {
+    // malformed URL — keep fallback host.
+  }
+  console.warn("[photo_upload_failed]", {
+    reason: failure.reason,
+    host,
+    srcUrl: failure.srcUrl,
+    detail: failure.detail,
+  });
+  captureMessage("photo_upload_failed", {
+    level: "warning",
+    extra: {
+      reason: failure.reason,
+      host,
+      srcUrl: failure.srcUrl,
+      detail: failure.detail,
+    },
+  });
+}
+
+/**
+ * Status of the post-import review summarization step. Returned in the
+ * `confirmVenueFromUrl` payload so the Add-Venue sheet can show distinct
+ * progress + toast copy for each outcome.
+ */
+export type ReviewSummaryStatus =
+  | "completed"   // Claude successfully returned a summary
+  | "timeout"    // 15s budget elapsed; reviews saved, summary TBD
+  | "skipped"    // no source / no extracted reviews → nothing to summarise
+  | "failed";    // API error; reviews saved, summary not produced
+
+/**
+ * Run AI review summarisation **synchronously** (bounded by analyze's
+ * own 15s timeout). Returns a ReviewSummaryStatus token so the caller
+ * can forward it through the server-action payload to the client.
+ *
+ * Why sync (not fire-and-forget like v2): users expect a single "取り込み
+ * 完了" toast that covers photos + reviews + summary. Fire-and-forget
+ * meant the toast fired before the summary landed, so `/venues/{id}`
+ * looked like "nothing happened" even though the pipeline had succeeded.
+ */
+async function runReviewSummary(
+  venueId: string,
+  sourceUrl: string,
+  reviewSource: ReviewSource | null,
+  extractedReviewCount: number,
+): Promise<ReviewSummaryStatus> {
+  if (!reviewSource) return "skipped";
+  if (extractedReviewCount === 0) return "skipped";
+  try {
+    const { analyzeVenueReviews } = await import("@/server/actions/reviews");
+    const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
+    if (result.ok) return "completed";
+    if (result.reason === "timeout") return "timeout";
+    if (result.reason === "no-reviews") return "skipped";
+    return "failed";
+  } catch (err) {
+    console.warn("[runReviewSummary] unexpected error:", err);
+    return "failed";
+  }
 }
 
 /**

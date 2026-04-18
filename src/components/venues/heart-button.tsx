@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,13 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
   const router = useRouter();
 
   // Keep in sync if the parent re-renders with a different value (e.g. after
-  // `router.refresh()` re-hydrates from the server).
-  useEffect(() => {
+  // `router.refresh()` re-hydrates from the server). Render-phase reset —
+  // React 19's "adjusting state based on props" pattern, no effect cascade.
+  const [prevInitial, setPrevInitial] = useState(initialFavorite);
+  if (prevInitial !== initialFavorite) {
+    setPrevInitial(initialFavorite);
     setFavorite(initialFavorite);
-  }, [initialFavorite]);
+  }
 
   const handleToggle = async () => {
     if (inFlightRef.current) return;

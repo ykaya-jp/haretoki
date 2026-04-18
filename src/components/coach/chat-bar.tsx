@@ -100,10 +100,20 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Prefill from ?prompt=... — split the sync state update (render-phase
+  // reset, avoids the set-state-in-effect cascade) from the DOM / router
+  // side-effects (effect).
+  const [prevPromptParam, setPrevPromptParam] = useState(promptParam);
+  if (prevPromptParam !== promptParam) {
+    setPrevPromptParam(promptParam);
+    if (promptParam) {
+      setMessage(promptParam);
+      setHasPrefill(true);
+    }
+  }
+
   useEffect(() => {
     if (!promptParam) return;
-    setMessage(promptParam);
-    setHasPrefill(true);
     const t = window.setTimeout(() => {
       inputRef.current?.focus();
       const el = inputRef.current;

@@ -1,14 +1,19 @@
 /**
  * Minna no Wedding (mwed.jp) URL handler.
  *
- * Venue URLs: /wedding_halls/{venueId}/ with sub-pages photo / review / plan.
- * The trailing segment naming is inconsistent across regions, so we only
- * derive the three sub-pages when the venue id is unambiguous.
+ * Real pattern (verified against https://www.mwed.jp/hall/10242/):
+ *   /hall/{venueId}/         — detail (JSON-LD Event)
+ *   /hall/{venueId}/photo/   — photo gallery
+ *   /hall/{venueId}/plan/    — plans
+ *
+ * The previous path `/wedding_halls/{id}/` returned 404; `/review/` and
+ * `/reviews/` also 404 on the current site. We intentionally skip the review
+ * sub-page and rely on the detail page's embedded 口コミ block for reviews.
  */
 
 import { stripTracking } from "./domain-router";
 
-const VENUE_ID_RE = /\/wedding_halls\/([^/]+)\/?/i;
+const VENUE_ID_RE = /^\/hall\/(\d+)(?:\/|$)/;
 
 export function deriveMwed(url: URL): {
   detail: string;
@@ -20,11 +25,10 @@ export function deriveMwed(url: URL): {
   if (!match) return { detail: stripTracking(url).toString() };
   const venueId = match[1];
   const origin = `${url.protocol}//${url.hostname}`;
-  const base = `${origin}/wedding_halls/${venueId}`;
+  const base = `${origin}/hall/${venueId}`;
   return {
     detail: `${base}/`,
     photos: `${base}/photo/`,
-    reviews: `${base}/review/`,
     plans: `${base}/plan/`,
   };
 }
