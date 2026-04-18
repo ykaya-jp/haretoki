@@ -12,6 +12,7 @@ import {
 const mockFindFirst = vi.fn();
 const mockUpdate = vi.fn();
 const mockFindMany = vi.fn();
+const mockVenueFindFirst = vi.fn();
 const mockVenueUpdate = vi.fn();
 const mockRevalidatePath = vi.fn();
 
@@ -23,6 +24,7 @@ vi.mock("@/server/db", () => ({
       findMany: (...args: unknown[]) => mockFindMany(...args),
     },
     venue: {
+      findFirst: (...args: unknown[]) => mockVenueFindFirst(...args),
       update: (...args: unknown[]) => mockVenueUpdate(...args),
     },
   },
@@ -39,6 +41,23 @@ vi.mock("@/server/auth", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
   revalidateTag: vi.fn(),
+}));
+
+// Avoid the real Claude SDK being imported; only the Result-shape / timeout
+// path matters for this test.
+vi.mock("@/lib/anthropic", () => ({
+  isClaudeAvailable: vi.fn(() => true),
+  askClaude: vi.fn(async () => "{}"),
+  withRetry: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  computeInputHash: vi.fn(() => "hash"),
+  stripPII: vi.fn((s: string) => s),
+}));
+
+vi.mock("@/lib/url-guard", () => ({
+  guardExternalUrl: vi.fn((u: string) => ({
+    ok: true,
+    url: new URL(u),
+  })),
 }));
 
 describe("estimateIncreaseSchema", () => {
@@ -199,5 +218,68 @@ describe("updateReviewEstimateIncrease (integration with mocked prisma)", () => 
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockVenueUpdate).not.toHaveBeenCalled();
     expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+// --- Result-shape contract for analyzeVenueReviews -----------------------
+// These tests pin down the new `{ok} | {ok:false, reason}` discriminated
+// union: callers (venues.confirmVenueFromUrl, ReviewSection) must be able
+// to branch on `reason`. No `{success, error}` shape must leak out.
+describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
+  beforeEach(() => {
+    mockFindFirst.mockReset();
+    mockVenueFindFirst.mockReset();
+    mockVenueUpdate.mockReset();
+    mockRevalidatePath.mockReset();
+  });
+
+  it("returns {ok:true} synchronously when an aiSummary is already cached", async () => {
+    mockVenueFindFirst.mockResolvedValueOnce({ id: "venue-1", name: "V" });
+    mockFindFirst.mockResolvedValueOnce({ aiSummary: "already summarised" });
+
+    const { analyzeVenueReviews } = await import("@/server/actions/reviews");
+    const result = await analyzeVenueReviews(
+      "venue-1",
+      "https://zexy.net/foo",
+      "zexy",
+    );
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("returns {ok:false, reason:'api-error'} when venue is not found", async () => {
+    mockVenueFindFirst.mockResolvedValueOnce(null);
+    const { analyzeVenueReviews } = await import("@/server/actions/reviews");
+    const result = await analyzeVenueReviews(
+      "missing",
+      "https://zexy.net/foo",
+      "zexy",
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe("api-error");
+    }
+  });
+
+  it("returns {ok:false, reason:'timeout'} when the 15s budget elapses", async () => {
+    vi.useFakeTimers();
+    try {
+      // Never resolves — forces the Promise.race to take the timer branch.
+      mockVenueFindFirst.mockReturnValueOnce(new Promise(() => {}));
+
+      const { analyzeVenueReviews } = await import("@/server/actions/reviews");
+      const pending = analyzeVenueReviews(
+        "venue-1",
+        "https://zexy.net/foo",
+        "zexy",
+      );
+      await vi.advanceTimersByTimeAsync(15_000);
+      const result = await pending;
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toBe("timeout");
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

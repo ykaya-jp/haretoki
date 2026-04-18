@@ -174,13 +174,17 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
     if (!url.trim()) return;
     startTransition(async () => {
       const result = await analyzeVenueReviews(venueId, url, source);
-      if (result.success) {
+      if (result.ok) {
         toast.success("口コミをまとめました");
         setUrl("");
         setShowForm(false);
         router.refresh();
+      } else if (result.reason === "timeout") {
+        toast.error("時間切れになりました。もう一度お試しください");
+      } else if (result.reason === "no-reviews") {
+        toast.info("このページでは口コミが見つかりませんでした");
       } else {
-        toast.error(result.error ?? "まとめられませんでした");
+        toast.error(result.message ?? "まとめられませんでした");
       }
     });
   };
