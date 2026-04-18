@@ -279,6 +279,41 @@ model Venue {
   reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
   /// R-2 気分で探す: 式場の雰囲気タグ (VibeTag[])
   vibeTags           String[]        @default([]) @map("vibe_tags")
+
+  /// Deep extraction (v2) — JSON-LD derived
+  externalRatingValue Float?    @map("external_rating_value")
+  externalReviewCount Int?      @map("external_review_count")
+  postalCode          String?   @map("postal_code") @db.VarChar(16)
+  streetAddress       String?   @map("street_address")
+  latitude            Float?
+  longitude           Float?
+  phoneNumber         String?   @map("phone_number") @db.VarChar(32)
+
+  /// Facilities
+  hasParking         Boolean? @map("has_parking")
+  parkingCapacity    Int?     @map("parking_capacity")
+  hasShuttle         Boolean? @map("has_shuttle")
+  hasAccommodation   Boolean? @map("has_accommodation")
+  acceptsSecondParty Boolean? @map("accepts_second_party")
+  barrierFree        Boolean? @map("barrier_free")
+
+  /// Cost breakdown (complements costMin/costMax)
+  ceremonyFeeExact   Int?     @map("ceremony_fee_exact")
+  productionFeeMin   Int?     @map("production_fee_min")
+  productionFeeMax   Int?     @map("production_fee_max")
+  serviceFeeRate     Decimal? @map("service_fee_rate") @db.Decimal(4, 3)
+
+  /// Operating
+  operatingHours     String?  @map("operating_hours") @db.VarChar(100)
+  closedDays         String[] @default([]) @map("closed_days")
+
+  /// Cuisine
+  cuisineTypes       String[] @default([]) @map("cuisine_types")
+  chefCredentials    String?  @map("chef_credentials") @db.VarChar(500)
+
+  /// Dedupe key (lowercased, punctuation-stripped name)
+  normalizedName     String?  @map("normalized_name") @db.VarChar(200)
+
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
@@ -296,6 +331,8 @@ model Venue {
 
   @@index([projectId])
   @@index([projectId, status])
+  @@index([projectId, normalizedName])
+  @@index([latitude, longitude])
   @@map("venues")
 }
 

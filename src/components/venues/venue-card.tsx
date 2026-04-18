@@ -1,4 +1,4 @@
-import { Star, Sparkles } from "lucide-react";
+import { Star, Sparkles, Layers } from "lucide-react";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
@@ -20,9 +20,26 @@ type VenueWithScores = {
   capacityMax: number | null;
   ceremonyStyles?: string[];
   dressBringIn?: string | null;
+  sourceUrls?: string[];
   scores: Array<{ dimension: string; score: number | unknown; source: string }>;
   estimates?: Array<{ total: number }>;
 };
+
+/** Map known host → human label for the "複数サイト統合" tooltip / suffix. */
+function siteLabelFromUrl(u: string): string | null {
+  try {
+    const h = new URL(u).hostname.toLowerCase();
+    if (h === "zexy.net" || h.endsWith(".zexy.net")) return "ゼクシィ";
+    if (h === "hana-yume.net" || h.endsWith(".hana-yume.net")) return "ハナユメ";
+    if (h === "weddingpark.net" || h.endsWith(".weddingpark.net"))
+      return "ウエディングパーク";
+    if (h === "wedding.mynavi.jp" || h.endsWith(".mynavi.jp")) return "マイナビ";
+    if (h === "mwed.jp" || h.endsWith(".mwed.jp")) return "みんなのウェディング";
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 interface VenueCardProps {
   venue: VenueWithScores;
@@ -70,6 +87,16 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
   );
 
   const isDecided = venue.status === "selected";
+
+  // Aggregation signal — "複数サイトの情報が集まっている" ポジティブサイン
+  const sourceLabels = Array.from(
+    new Set(
+      (venue.sourceUrls ?? [])
+        .map(siteLabelFromUrl)
+        .filter((s): s is string => Boolean(s)),
+    ),
+  );
+  const isAggregated = sourceLabels.length >= 2;
 
   return (
     <div
@@ -120,8 +147,22 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
       </div>
 
       {/* Meta bar — status + score horizontal strip below photo */}
-      <div className="flex items-center gap-3 px-4 pt-3">
+      <div className="flex items-center gap-2 px-4 pt-3">
         <VenueStatusBadge status={venue.status} />
+        {isAggregated && (
+          <span
+            aria-label={`${sourceLabels.slice(0, 2).join("・")} から情報を統合済み`}
+            title={`${sourceLabels.join("・")} から情報を統合しています`}
+            className="inline-flex items-center gap-1 rounded-full bg-primary/5 text-primary px-2 py-0.5 text-[10.5px] tracking-[0.04em]"
+            style={{
+              border:
+                "1px solid color-mix(in oklab, var(--primary) 30%, transparent)",
+            }}
+          >
+            <Layers className="h-3 w-3" strokeWidth={2} />
+            複数サイト統合
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-3">
           {priceLabel && (
             <p className="tabular-nums text-eyebrow text-[var(--gold-warm)]">

@@ -26,6 +26,7 @@ import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { VenueDetailBackLink } from "@/components/venues/back-link";
+import { VenueUpdatedBanner } from "@/components/venues/venue-updated-banner";
 import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -74,6 +75,9 @@ export default async function VenueDetailPage({
       {/* Back link — uses router.back() to preserve filter/scroll state on
           the referrer page (Explore, Candidates, Home all link here). */}
       <VenueDetailBackLink variant="compact" />
+
+      {/* Merged-import banner — present only when ?updated=1, self-scrubs. */}
+      <VenueUpdatedBanner />
 
       {/* Photo Gallery — above the fold */}
       <VenuePhotoGallery

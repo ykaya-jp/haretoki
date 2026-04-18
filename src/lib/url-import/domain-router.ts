@@ -106,6 +106,9 @@ export function stripTracking(url: URL): URL {
       k === "gclsrc" ||
       k === "fbclid" ||
       k === "msclkid" ||
+      k === "inrlead" ||
+      k === "cid" ||
+      k === "_bdld" ||
       k.startsWith("utm_") ||
       k.startsWith("sa_")
     ) {

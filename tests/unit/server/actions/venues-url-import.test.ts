@@ -6,6 +6,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockVenueCreate = vi.fn();
 const mockVenueUpdate = vi.fn();
+const mockVenueFindMany = vi.fn();
+const mockVenueFindUniqueOrThrow = vi.fn();
 const mockReviewUpsert = vi.fn();
 
 vi.mock("@/server/db", () => ({
@@ -13,6 +15,9 @@ vi.mock("@/server/db", () => ({
     venue: {
       create: (...args: unknown[]) => mockVenueCreate(...args),
       update: (...args: unknown[]) => mockVenueUpdate(...args),
+      findMany: (...args: unknown[]) => mockVenueFindMany(...args),
+      findUniqueOrThrow: (...args: unknown[]) =>
+        mockVenueFindUniqueOrThrow(...args),
     },
     review: {
       upsert: (...args: unknown[]) => mockReviewUpsert(...args),
@@ -47,7 +52,9 @@ vi.mock("@/lib/supabase/storage", () => ({
 // via `import("@/server/actions/reviews")`, which Vitest resolves to the
 // real module. We stub the module up-front so the fire-and-forget call
 // doesn't try to hit Claude or Prisma.
-const mockAnalyzeVenueReviews = vi.fn(async () => ({ success: true }));
+const mockAnalyzeVenueReviews = vi.fn(
+  async (..._args: unknown[]) => ({ success: true }),
+);
 vi.mock("@/server/actions/reviews", async () => {
   const actual =
     await vi.importActual<typeof import("@/server/actions/reviews")>(
@@ -76,6 +83,8 @@ describe("confirmVenueFromUrl", () => {
     vi.clearAllMocks();
     mockVenueCreate.mockResolvedValue({ id: "venue-1", photoUrls: [] });
     mockVenueUpdate.mockResolvedValue({ id: "venue-1" });
+    mockVenueFindMany.mockResolvedValue([]); // default: no dedupe match
+    mockVenueFindUniqueOrThrow.mockResolvedValue({ id: "venue-1" });
     mockReviewUpsert.mockResolvedValue({ id: "rev-1" });
     mockUploadVenuePhotoFromUrl.mockImplementation(async (src: string) =>
       src.replace("https://cdn.zexy.net", "https://supabase.co/storage"),
@@ -134,6 +143,10 @@ describe("confirmVenueFromUrl", () => {
     const result = await confirmVenueFromUrl(extracted, sourceUrl);
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.mode).toBe("created");
+      expect(result.updatedFields).toEqual([]);
+    }
     // Venue was created with every new field mapped through.
     expect(mockVenueCreate).toHaveBeenCalledTimes(1);
     const createArg = mockVenueCreate.mock.calls[0][0].data;
