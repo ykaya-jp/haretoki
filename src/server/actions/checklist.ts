@@ -8,6 +8,12 @@ import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/chec
 import { getChecklistItemsForDimension, getDimensionForPreset, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
 import { calculateDimensionScore } from "@/lib/checklist-score-calculator";
 import type { Tier1Dimension } from "@/lib/constants";
+import {
+  COMPARE_MAX_VENUES,
+  type ComparisonAnswer,
+  type ComparisonMatrix,
+  type ComparisonVenue,
+} from "@/lib/comparison-types";
 
 // ── Zod schemas ────────────────────────────────────────────────────────────────
 
@@ -338,41 +344,54 @@ export async function acceptSuggestedScore(
 }
 
 // ── Comparison matrix data ─────────────────────────────────────────────────────
-
-export interface ComparisonVenue {
-  id: string;
-  name: string;
-  photoUrls: string[];
-  scores: Array<{ dimension: string; score: number; source: string }>;
-}
-
-export interface ComparisonAnswer {
-  status: string | null;
-  memo: string | null;
-  numberValue: number | null;
-  photoUrls: string[];
-}
-
-export interface ComparisonMatrix {
-  venues: ComparisonVenue[];
-  items: Array<{ id: string; category: string; subcategory?: string; question: string; type: string }>;
-  answers: Record<string, Record<string, ComparisonAnswer>>; // [itemId][venueId] = answer
-}
+// Types + constants moved to `@/lib/comparison-types` so they can live
+// alongside the server action without violating Next.js's rule that
+// "use server" files expose only async functions. Everything below
+// re-exports through the types module so existing call sites continue
+// to import from `@/server/actions/checklist` unchanged.
 
 export async function getComparisonMatrix(venueIds: string[]): Promise<ComparisonMatrix> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Clamp to max 5 venues
-  const ids = venueIds.slice(0, 5);
+  // Clamp to max COMPARE_MAX_VENUES venues. Caller should trim + toast
+  // upstream so the user sees why — this is a defence-in-depth clamp.
+  const ids = venueIds.slice(0, COMPARE_MAX_VENUES);
 
-  // Verify all venues belong to project
+  // Verify all venues belong to project. Select the full Deep Extraction
+  // surface so comparison-field-registry.ts can show rows like 駐車場 /
+  // 送迎 / 提携宿泊 without a second round-trip.
   const venues = await prisma.venue.findMany({
     where: { id: { in: ids }, projectId },
     select: {
       id: true,
       name: true,
+      location: true,
+      accessInfo: true,
       photoUrls: true,
+      costMin: true,
+      costMax: true,
+      capacityMin: true,
+      capacityMax: true,
+      ceremonyStyles: true,
+      externalRatingValue: true,
+      externalReviewCount: true,
+      postalCode: true,
+      streetAddress: true,
+      hasParking: true,
+      parkingCapacity: true,
+      hasShuttle: true,
+      hasAccommodation: true,
+      acceptsSecondParty: true,
+      barrierFree: true,
+      ceremonyFeeExact: true,
+      productionFeeMin: true,
+      productionFeeMax: true,
+      serviceFeeRate: true,
+      operatingHours: true,
+      closedDays: true,
+      cuisineTypes: true,
+      chefCredentials: true,
       scores: { select: { dimension: true, score: true, source: true } },
     },
   });
@@ -380,11 +399,36 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
   // Restore requested order and convert Decimal to number
   const orderedVenues: ComparisonVenue[] = ids
     .map((id) => venues.find((v) => v.id === id))
-    .filter((v) => v != null)
+    .filter((v): v is NonNullable<typeof v> => v != null)
     .map((v) => ({
       id: v.id,
       name: v.name,
+      location: v.location,
+      accessInfo: v.accessInfo,
       photoUrls: v.photoUrls,
+      costMin: v.costMin,
+      costMax: v.costMax,
+      capacityMin: v.capacityMin,
+      capacityMax: v.capacityMax,
+      ceremonyStyles: v.ceremonyStyles,
+      externalRatingValue: v.externalRatingValue,
+      externalReviewCount: v.externalReviewCount,
+      postalCode: v.postalCode,
+      streetAddress: v.streetAddress,
+      hasParking: v.hasParking,
+      parkingCapacity: v.parkingCapacity,
+      hasShuttle: v.hasShuttle,
+      hasAccommodation: v.hasAccommodation,
+      acceptsSecondParty: v.acceptsSecondParty,
+      barrierFree: v.barrierFree,
+      ceremonyFeeExact: v.ceremonyFeeExact,
+      productionFeeMin: v.productionFeeMin,
+      productionFeeMax: v.productionFeeMax,
+      serviceFeeRate: v.serviceFeeRate === null ? null : Number(v.serviceFeeRate),
+      operatingHours: v.operatingHours,
+      closedDays: v.closedDays,
+      cuisineTypes: v.cuisineTypes,
+      chefCredentials: v.chefCredentials,
       scores: v.scores.map((s) => ({
         dimension: s.dimension as string,
         source: s.source as string,
@@ -450,7 +494,7 @@ export async function getFavoriteVenueIds(): Promise<string[]> {
     where: { userId: user.id, venue: { projectId } },
     select: { venueId: true },
     orderBy: { createdAt: "desc" },
-    take: 5,
+    take: COMPARE_MAX_VENUES,
   });
 
   return favorites.map((f) => f.venueId);
