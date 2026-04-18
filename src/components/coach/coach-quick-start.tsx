@@ -109,7 +109,7 @@ export function CoachQuickStart() {
         <p className="text-eyebrow text-muted-foreground">
           Prompts
         </p>
-        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
           どんなこと、話そう？
         </h2>
       </div>

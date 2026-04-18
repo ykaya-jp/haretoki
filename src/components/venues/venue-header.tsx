@@ -76,7 +76,7 @@ export function VenueHeader({
       />
 
       {/* Layer 2 — h1: venue name in Noto Serif JP extralight 24-32px */}
-      <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-extralight leading-[1.25] tracking-[-0.01em]">
+      <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-light leading-[1.25] tracking-[-0.01em]">
         {name}
       </h1>
 

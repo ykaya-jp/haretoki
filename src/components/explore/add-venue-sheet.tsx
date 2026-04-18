@@ -306,7 +306,7 @@ export function AddVenueSheet({
           <p className="text-eyebrow text-muted-foreground text-left">
             HARETOKI · Venue
           </p>
-          <SheetTitle className="mt-2 font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground text-left leading-[1.35]">
+          <SheetTitle className="mt-2 font-[family-name:var(--font-display)] text-[19px] font-light tracking-[0.01em] text-foreground text-left leading-[1.35]">
             新しい式場を、迎える
           </SheetTitle>
           <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">

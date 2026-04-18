@@ -157,7 +157,7 @@ export function VenueCard({ venue, isFavorite = false, fitReason = null }: Venue
       {/* Info section — generous padding, hotel-brochure typography */}
       <PrefetchLink href={`/venues/${venue.id}`} className="block px-4 pt-2 pb-5">
         {/* Venue name — bigger, serif, extralight */}
-        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
           {venue.name}
         </h3>
 

@@ -37,14 +37,14 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
           <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground">
             Recent
           </p>
-          <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h2 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             先日ご覧になった式場
           </h2>
         </div>
         <Link
           href="/candidates?view=recent"
           prefetch={true}
-          className="inline-flex items-center gap-0.5 text-[12px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+          className="inline-flex items-center gap-0.5 text-[12px] text-muted-foreground underline-offset-4 hover:underline hover:text-foreground"
         >
           View all
           <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
@@ -92,7 +92,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
               {/* Venue name below photo — Noto Serif JP per spec §2.3 */}
               <div className="px-3 py-2.5">
                 <h3
-                  className="truncate font-extralight leading-snug text-foreground"
+                  className="truncate font-light leading-snug text-foreground"
                   style={{
                     fontFamily: '"Noto Serif JP", serif',
                     fontSize: 17,

@@ -146,7 +146,7 @@ export function MoneyReality({ report }: { report: MoneyRealityReport }) {
             </h4>
           </div>
           <p
-            className="mt-2 font-[family-name:var(--font-display)] font-extralight tabular-nums"
+            className="mt-2 font-[family-name:var(--font-display)] font-light tabular-nums"
             style={{ fontSize: 28, color: "var(--gold-warm)", lineHeight: 1.1 }}
           >
             +¥{Math.round(Math.abs(report.reviewStats.avgDeltaYen ?? 0) / 10_000)}万

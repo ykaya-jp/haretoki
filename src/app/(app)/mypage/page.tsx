@@ -79,7 +79,7 @@ export default async function MyPage() {
             <span aria-hidden="true" className="opacity-30">·</span>
             <span>My</span>
           </p>
-          <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+          <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
             マイページ
           </h1>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
@@ -99,7 +99,7 @@ export default async function MyPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Profile
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             プロフィール
           </h3>
         </div>
@@ -123,7 +123,7 @@ export default async function MyPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Partner
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             パートナー
           </h3>
         </div>
@@ -167,7 +167,7 @@ export default async function MyPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Preferences
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             おふたりの希望
           </h3>
         </div>
@@ -182,7 +182,7 @@ export default async function MyPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             More
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             その他
           </h3>
         </div>

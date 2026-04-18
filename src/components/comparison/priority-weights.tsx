@@ -164,7 +164,7 @@ export function PriorityWeights({ onDecide }: { onDecide?: (venueId: string) => 
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-[family-name:var(--font-display)] text-sm font-extralight tracking-[-0.005em] truncate">{v.name}</p>
+              <p className="font-[family-name:var(--font-display)] text-sm font-light tracking-[-0.005em] truncate">{v.name}</p>
               <p className="text-xs text-muted-foreground tabular-nums">
                 重み付きスコア {v.weightedScore.toFixed(2)}
               </p>

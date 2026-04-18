@@ -345,7 +345,7 @@ export function OnboardingFlow() {
                         <p className="text-xs text-muted-foreground">{rec.location}</p>
                       </div>
                       {rec.estimatedPrice && (
-                        <p className="font-[family-name:var(--font-heading)] text-[22px] font-extralight tabular-nums text-muted-foreground whitespace-nowrap">
+                        <p className="font-[family-name:var(--font-heading)] text-[22px] font-light tabular-nums text-muted-foreground whitespace-nowrap">
                           {Math.round(rec.estimatedPrice / 10000)}<span className="text-xs ml-0.5">万〜</span>
                         </p>
                       )}
@@ -444,7 +444,7 @@ export function OnboardingFlow() {
           <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
             Haretoki
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-extralight leading-snug tracking-[-0.005em] text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-light leading-snug tracking-[-0.005em] text-foreground">
             晴れの日を、ふたりで描きはじめる。
           </h1>
         </div>

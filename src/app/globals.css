@@ -83,6 +83,9 @@
   --text-fluid-lg: clamp(1.125rem, 1rem + 0.75vw, 1.375rem);
   --text-fluid-xl: clamp(1.25rem, 1rem + 1.5vw, 2rem);
   --text-fluid-3xl: clamp(1.75rem, 1.25rem + 2.5vw, 3rem);
+  /* Cover-scale display — mincho 表紙サイズ。Home Cover / LP hero 専用。
+     モバイル 44px / デスクトップ 72px。letter-spacing は -0.02em を別途適用。 */
+  --text-fluid-4xl: clamp(2.75rem, 1.75rem + 4vw, 4.5rem);
   --shadow-card: 0 1px 3px rgba(42,35,32,0.04), 0 4px 12px rgba(42,35,32,0.06);
   --shadow-card-hover: 0 4px 12px rgba(42,35,32,0.06), 0 20px 40px rgba(42,35,32,0.10);
   --shadow-modal: 0 8px 32px rgba(42,35,32,0.12), 0 2px 8px rgba(42,35,32,0.06);
@@ -160,7 +163,12 @@
   --space-heading: 16px;
   --space-item: 12px;
 
-  /* Gold accents — for AI features */
+  /* Gold accents — for AI features.
+     ⚠️ Viz Phase 1 ルール: 1 画面あたりの gold 使用箇所は 3 以下に厳守。
+     残すべき場所: BottomNav active indicator / VenueCard star badge /
+     InviteLinkPanel CTA / primary AI signifier 1 点のみ。
+     hairline / eyebrow / background tint としての濫用は禁止。
+     詳細は plan: ~/.claude/plans/dapper-tinkering-quill.md */
   --gold-warm: oklch(0.70 0.13 80);
   --gold-light: oklch(0.80 0.10 80);
   --gold-subtle: oklch(0.70 0.13 80 / 0.10);
@@ -208,8 +216,10 @@
   --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.60);
 
   /* ── V1 Visual: Typography 7-tier (luxury hotel scale) ── */
-  --type-display: 2.25rem;    /* 36px — reserved for hero-level */
-  --type-h1: 1.75rem;         /* 28px */
+  /* Viz Phase 1 で display/h1 を表紙サイズに昇格。旧 36px / 28px は
+     情報量は多いが雑誌の目次級で、表紙に足りなかった。今は流動 clamp。 */
+  --type-display: clamp(2.75rem, 1.75rem + 4vw, 4rem); /* 44 → 64px */
+  --type-h1: clamp(2rem, 1.5rem + 2vw, 3rem);          /* 32 → 48px */
   --type-h2: 1.375rem;        /* 22px */
   --type-h3: 1.125rem;        /* 18px */
   --type-body: 0.9375rem;     /* 15px — more breathable than 14 */
@@ -223,6 +233,9 @@
 
   --tracking-eyebrow: 0.16em;
   --tracking-heading: -0.01em;
+  /* Cover-scale tighter tracking — mincho 44-72px 表紙見出し専用。
+     大サイズでは -0.02em まで締めると 2026 Modern Luxury の表紙感が出る。 */
+  --tracking-display: -0.02em;
 
   /* ── V1 Visual: Surface tiers ── */
   --bg-card: oklch(0.99 0.005 85);          /* aligns with --card */

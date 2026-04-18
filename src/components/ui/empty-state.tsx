@@ -62,7 +62,7 @@ export function EmptyState({
         </div>
       )}
       <div className="max-w-[300px] space-y-2">
-        <h3 className="text-h3 font-[family-name:var(--font-display)] font-extralight tracking-[-0.005em]">{title}</h3>
+        <h3 className="text-h3 font-[family-name:var(--font-display)] font-light tracking-[-0.005em]">{title}</h3>
         <p className="text-body text-muted-foreground">{description}</p>
       </div>
       {/* Decorative three-dot constellation — evocative, not noisy.

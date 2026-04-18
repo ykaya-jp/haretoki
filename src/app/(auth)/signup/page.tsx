@@ -90,7 +90,7 @@ export default function SignupPage() {
           <div className="flex justify-end">
             <SeasonalMotif size="md" className="opacity-60" />
           </div>
-          <h1 className="font-[family-name:var(--font-display)] text-[clamp(2rem,3.5vw,3rem)] font-extralight leading-snug tracking-[0.02em] text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-[clamp(2rem,3.5vw,3rem)] font-light leading-snug tracking-[0.02em] text-foreground">
             式場探し、
             <br />
             はじめましょう
@@ -127,7 +127,7 @@ export default function SignupPage() {
               <Link href="/" className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
                 Haretoki
               </Link>
-              <h2 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">
+              <h2 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-light tracking-[0.01em]">
                 式場探し、はじめましょう
               </h2>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -138,7 +138,7 @@ export default function SignupPage() {
 
           {/* Desktop heading */}
           <div className="hidden lg:block">
-            <h2 className="font-[family-name:var(--font-display)] text-2xl font-extralight tracking-[0.01em]">ふたりの場所を、はじめる</h2>
+            <h2 className="font-[family-name:var(--font-display)] text-2xl font-light tracking-[0.01em]">ふたりの場所を、はじめる</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               無料ではじめられます。3 分で準備できます。
             </p>

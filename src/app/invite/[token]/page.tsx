@@ -70,7 +70,7 @@ export default async function InvitePage({
                 "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 45%, transparent) 50%, transparent 100%)",
             }}
           />
-          <h1 className="font-[family-name:var(--font-display)] text-[24px] font-extralight leading-[1.35] tracking-[-0.005em]">
+          <h1 className="font-[family-name:var(--font-display)] text-[24px] font-light leading-[1.35] tracking-[-0.005em]">
             {inviterName}さんから、
             <br />
             式場さがしへの招待です。
@@ -133,7 +133,7 @@ function InvalidCard({
         <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
           Invitation
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[20px] font-extralight leading-[1.45]">
+        <h1 className="font-[family-name:var(--font-display)] text-[20px] font-light leading-[1.45]">
           この招待は、お渡しできませんでした。
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">

@@ -18,7 +18,7 @@ export default function DemoCandidatesPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1 pt-2">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-light tracking-[-0.01em]">
           候補
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -80,7 +80,7 @@ export default function DemoCandidatesPage() {
                 {favoriteVenues.map((v) => (
                   <th
                     key={v.id}
-                    className="p-4 font-[family-name:var(--font-display)] text-base font-extralight text-foreground"
+                    className="p-4 font-[family-name:var(--font-display)] text-base font-light text-foreground"
                   >
                     {v.name}
                   </th>

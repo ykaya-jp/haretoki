@@ -90,7 +90,7 @@ export function DemoVenueCard({ venue }: DemoVenueCardProps) {
         <p className="text-eyebrow tabular-nums text-[var(--gold-warm)] mb-2">
           {priceLabel}
         </p>
-        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
           {venue.name}
         </h3>
         <p className="mt-2 text-meta text-muted-foreground">{metaParts.join(" · ")}</p>

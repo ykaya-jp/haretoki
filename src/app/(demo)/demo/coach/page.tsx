@@ -17,7 +17,7 @@ export default function DemoCoachPage() {
           <Sparkles className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
           AIコーチ
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-light tracking-[-0.01em]">
           コーチと話す
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">

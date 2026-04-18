@@ -77,7 +77,7 @@ export function CoachClient({
               <span>Coach</span>
             </p>
             <h1
-              className="truncate font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[0.02em] leading-[1.35] text-foreground"
+              className="truncate font-[family-name:var(--font-display)] text-[15px] font-light tracking-[0.02em] leading-[1.35] text-foreground"
               title={title}
             >
               {title}

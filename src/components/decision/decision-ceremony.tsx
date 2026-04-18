@@ -167,7 +167,7 @@ export function DecisionCeremony({
             }}
           />
 
-          <h1 className="mt-5 font-[family-name:var(--font-display)] text-[30px] font-extralight leading-[1.25] tracking-[-0.005em] text-foreground">
+          <h1 className="mt-5 font-[family-name:var(--font-display)] text-[30px] font-light leading-[1.25] tracking-[-0.005em] text-foreground">
             {venueName}
           </h1>
 
@@ -222,7 +222,7 @@ export function DecisionCeremony({
           <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
             ふたりが選んだ場所
           </p>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.01em]">
+          <h2 className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-light tracking-[0.01em]">
             {venueName}
           </h2>
           <p className="mt-2 text-[12.5px] text-muted-foreground">
@@ -279,7 +279,7 @@ export function DecisionCeremony({
         <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
           記念に残す
         </p>
-        <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[18px] font-extralight tracking-wide">
+        <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[18px] font-light tracking-wide">
           決め手を教えてください
         </h2>
       </div>

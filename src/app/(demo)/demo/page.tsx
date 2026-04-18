@@ -20,7 +20,7 @@ export default function DemoHomePage() {
           <Sparkles className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
           デモモード
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-extralight tracking-[-0.01em]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl font-light tracking-[-0.01em]">
           ようこそ、デモへ
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -31,9 +31,9 @@ export default function DemoHomePage() {
       <div className="rounded-xl border border-border/60 bg-card p-5 shadow-[var(--shadow-card)]">
         <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground">デモ進捗</p>
         <div className="mt-3 grid grid-cols-3 divide-x divide-border/40 text-center">
-          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{totalVenues}</span><span className="text-[10px] text-muted-foreground">気になる</span></div>
-          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{visitedVenues}</span><span className="text-[10px] text-muted-foreground">印象メモ</span></div>
-          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-extralight tabular-nums">{favoriteCount}</span><span className="text-[10px] text-muted-foreground">本命</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{totalVenues}</span><span className="text-[10px] text-muted-foreground">気になる</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{visitedVenues}</span><span className="text-[10px] text-muted-foreground">印象メモ</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{favoriteCount}</span><span className="text-[10px] text-muted-foreground">本命</span></div>
         </div>
       </div>
 
@@ -48,7 +48,7 @@ export default function DemoHomePage() {
             className="group rounded-2xl border border-border/60 bg-card p-5 shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]"
           >
             <p className="text-xs uppercase tracking-[0.12em] text-[var(--gold-warm)]">01</p>
-            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-extralight">式場を見る</h3>
+            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-light">式場を見る</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               3件のモック式場をブラウズ。ハートでお気に入りに。
             </p>
@@ -63,7 +63,7 @@ export default function DemoHomePage() {
             className="group rounded-2xl border border-border/60 bg-card p-5 shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]"
           >
             <p className="text-xs uppercase tracking-[0.12em] text-[var(--gold-warm)]">02</p>
-            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-extralight">候補を比べる</h3>
+            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-light">候補を比べる</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               お気に入り2件の比較ビュー。価格・雰囲気を並べて。
             </p>
@@ -78,7 +78,7 @@ export default function DemoHomePage() {
             className="group rounded-2xl border border-border/60 bg-card p-5 shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98]"
           >
             <p className="text-xs uppercase tracking-[0.12em] text-[var(--gold-warm)]">03</p>
-            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-extralight">AIコーチと話す</h3>
+            <h3 className="mt-2 font-[family-name:var(--font-display)] text-lg font-light">AIコーチと話す</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               事前のQ&Aサンプル。ふたりに合う提案を読み取れます。
             </p>

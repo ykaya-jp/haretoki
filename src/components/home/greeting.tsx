@@ -37,13 +37,13 @@ export function Greeting({ userName, weddingDate }: GreetingProps) {
 
   return (
     <div>
-      <h1 className="font-[family-name:var(--font-display)] font-extralight text-fluid-xl">
+      <h1 className="font-[family-name:var(--font-display)] font-light text-fluid-xl">
         {greeting}、{userName}さん
       </h1>
       {daysUntilWedding !== null && daysUntilWedding > 0 && (
         <p className="mt-1 flex items-baseline gap-1 text-muted-foreground">
           <span className="text-[11px]">晴れの日まで あと</span>
-          <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-5xl leading-none tracking-tight text-foreground">
+          <span className="font-[family-name:var(--font-display)] font-light tabular-nums text-5xl leading-none tracking-tight text-foreground">
             {daysUntilWedding}
           </span>
           <span className="text-[11px]">日</span>

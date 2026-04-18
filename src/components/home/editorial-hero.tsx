@@ -169,7 +169,7 @@ export function EditorialHero(props: EditorialHeroProps) {
             <div className="min-w-0 flex-1 space-y-2.5">
               {/* Publication-style masthead eyebrow */}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-eyebrow text-muted-foreground">
-                <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
+                <span className="font-medium text-foreground">HARETOKI</span>
                 <span aria-hidden="true" className="opacity-30">·</span>
                 <span className="tabular-nums">{date || "\u00a0"}</span>
                 {timeOfDay && (
@@ -178,13 +178,7 @@ export function EditorialHero(props: EditorialHeroProps) {
                     <span className="normal-case tracking-normal text-[12px]">{timeOfDay}</span>
                   </>
                 )}
-                <span
-                  className="ml-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-eyebrow"
-                  style={{
-                    background: "var(--gold-subtle)",
-                    color: "var(--gold-warm)",
-                  }}
-                >
+                <span className="ml-1 inline-flex items-center rounded-full border border-border/60 bg-card px-2.5 py-0.5 text-eyebrow text-muted-foreground">
                   {stage.stageLabel}
                 </span>
               </div>
@@ -197,7 +191,7 @@ export function EditorialHero(props: EditorialHeroProps) {
           </div>
 
           {/* Headline — mincho, light, editorial */}
-          <h1 className="mt-5 font-[family-name:var(--font-display)] font-extralight leading-[1.22] tracking-[-0.01em] text-fluid-3xl text-foreground">
+          <h1 className="mt-5 font-[family-name:var(--font-display)] font-light leading-[1.22] tracking-[-0.01em] text-fluid-3xl text-foreground">
             {stage.headline}
           </h1>
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
@@ -210,32 +204,24 @@ export function EditorialHero(props: EditorialHeroProps) {
         // Compact mode: DailyRitual covers the headline above. Show only a
         // tiny stage label as a connector to the metrics block.
         <p className="mb-3 inline-flex items-center gap-2 text-eyebrow text-muted-foreground">
-          <span className="text-[var(--gold-warm)]">{stage.stageLabel}</span>
+          <span className="text-foreground">{stage.stageLabel}</span>
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>進捗</span>
         </p>
       )}
 
-      {/* Gradient hairline — only in full mode */}
+      {/* Hairline — full mode only. Viz Phase 1: gold gradient → neutral hairline。 */}
       {!compact && (
-        <div
-          aria-hidden="true"
-          className="mt-7 h-px w-full"
-          style={{
-            background:
-              "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 30%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 70%, transparent 100%)",
-          }}
-        />
+        <div aria-hidden="true" className="mt-7 h-px w-full bg-border/60" />
       )}
 
-      {/* Metrics block — Journey Ring (72px) + 3 metrics grid */}
+      {/* Metrics block — Journey Ring (72px) + 3 metrics grid.
+          Viz Phase 1: gold/primary グラデ背景 → card 色に統一。 */}
       <div
-        className={cn("rounded-3xl p-4", compact ? "mt-2" : "mt-5")}
-        style={{
-          background:
-            "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 5%, var(--background)) 0%, color-mix(in oklab, var(--primary) 3%, var(--background)) 100%)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
-        }}
+        className={cn(
+          "rounded-3xl bg-card p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]",
+          compact ? "mt-2" : "mt-5",
+        )}
       >
         {/* Row 1: Journey Ring (72px) — full mode only. Replaces JourneyRingSm. */}
         {!compact && (
@@ -252,7 +238,7 @@ export function EditorialHero(props: EditorialHeroProps) {
                 <div className="text-eyebrow text-muted-foreground">
                   Journey
                 </div>
-                <div className="font-[family-name:var(--font-display)] tabular-nums text-[17px] font-extralight text-foreground">
+                <div className="font-[family-name:var(--font-display)] tabular-nums text-[17px] font-light text-foreground">
                   {props.percentage}
                   <span className="ml-0.5 text-[11px] text-muted-foreground">%</span>
                 </div>
@@ -271,7 +257,7 @@ export function EditorialHero(props: EditorialHeroProps) {
               key={m.label}
               className="flex flex-col items-center leading-tight px-2 first:pl-0 last:pr-0"
             >
-              <span className="font-[family-name:var(--font-display)] font-extralight tabular-nums text-[22px] text-foreground">
+              <span className="font-[family-name:var(--font-display)] font-light tabular-nums text-[22px] text-foreground">
                 {m.value}
               </span>
               <span className="mt-0.5 text-[10px] tracking-[0.08em] text-muted-foreground">

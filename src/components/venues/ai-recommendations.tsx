@@ -310,7 +310,7 @@ export function AIRecommendations({
               AI Recommendations
             </p>
             {/* 明朝 subheading */}
-            <h3 className="font-[family-name:var(--font-display)] text-[14px] font-extralight tracking-[0.01em] text-foreground">
+            <h3 className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[0.01em] text-foreground">
               今日のおすすめ
             </h3>
           </div>
