@@ -1,4 +1,5 @@
 import { JourneyRing } from "@/components/home/journey-ring";
+import { AnimatedPercentage } from "@/components/home/animated-percentage";
 
 interface HomePulseProps {
   totalVenues: number;
@@ -51,7 +52,7 @@ export function HomePulse(props: HomePulseProps) {
             ))}
           </div>
           <p className="mt-2 text-right text-[10.5px] tracking-[0.12em] uppercase text-muted-foreground">
-            Journey <span className="tabular-nums text-foreground">{props.percentage}%</span>
+            Journey <AnimatedPercentage value={props.percentage} />
           </p>
         </div>
       </div>

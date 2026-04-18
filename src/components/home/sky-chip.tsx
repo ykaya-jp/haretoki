@@ -17,7 +17,7 @@ export function SkyChip({ mood, size = 56 }: SkyChipProps) {
   return (
     <div
       aria-hidden="true"
-      className="relative flex shrink-0 items-center justify-center rounded-full"
+      className="sky-drift relative flex shrink-0 items-center justify-center rounded-full"
       style={{
         width: size,
         height: size,

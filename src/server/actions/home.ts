@@ -30,6 +30,12 @@ interface HomeData {
     percentage: number;
     upcomingVisits: number;
   };
+  /** Earliest saved venue — used by TimeEcho to echo the couple's journey start. */
+  firstVenue: {
+    id: string;
+    name: string;
+    daysAgo: number;
+  } | null;
   userName: string;
 }
 
@@ -65,7 +71,7 @@ async function fetchHomeData(
     select: { id: true, name: true, conditions: true },
   });
 
-  const [venues, totalVenues, visitedVenues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits] = await Promise.all([
+  const [venues, totalVenues, visitedVenues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits, earliestVenue] = await Promise.all([
     prisma.venue.findMany({
       where: { projectId },
       include: {
@@ -84,8 +90,27 @@ async function fetchHomeData(
     prisma.decision.findUnique({ where: { projectId } }),
     prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
     prisma.visit.count({ where: { venue: { projectId }, status: "scheduled" } }),
+    prisma.venue.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, createdAt: true },
+    }),
   ]);
   const hasDecision = decision !== null;
+
+  const firstVenue = earliestVenue
+    ? {
+        id: earliestVenue.id,
+        name: earliestVenue.name,
+        daysAgo: Math.max(
+          0,
+          Math.floor(
+            (Date.now() - earliestVenue.createdAt.getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        ),
+      }
+    : null;
 
   // Calculate progress
   let steps = 0;
@@ -124,6 +149,7 @@ async function fetchHomeData(
       percentage,
       upcomingVisits,
     },
+    firstVenue,
     userName,
   };
 }

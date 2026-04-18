@@ -8,6 +8,7 @@ import { getTodayRitual } from "@/server/actions/ritual";
 import { HomeCover } from "@/components/home/home-cover";
 import { HomePulse } from "@/components/home/home-pulse";
 import { HomeWhisper } from "@/components/home/home-whisper";
+import { TimeEcho } from "@/components/home/time-echo";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { getHomeStage } from "@/components/home/home-stage";
@@ -139,6 +140,8 @@ export default async function HomePage() {
       )}
 
       {ritual && <HomeWhisper ritual={ritual} />}
+
+      <TimeEcho firstVenue={homeData.firstVenue} />
     </div>
   );
 }
