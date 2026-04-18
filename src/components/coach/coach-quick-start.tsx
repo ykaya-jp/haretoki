@@ -106,7 +106,7 @@ export function CoachQuickStart() {
   return (
     <section className="space-y-5">
       <div className="flex items-baseline gap-2">
-        <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
+        <p className="text-eyebrow text-muted-foreground">
           Prompts
         </p>
         <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
@@ -124,19 +124,32 @@ export function CoachQuickStart() {
               type="button"
               onClick={() => preFill(uc.prompt)}
               aria-label={`${uc.title}。チャット入力欄に質問文を入れます`}
-              className="flex min-h-[88px] w-full flex-col gap-2 rounded-2xl border border-border/60 border-l-[3px] border-l-[var(--gold-warm)] bg-card p-5 text-left transition-all duration-150 hover:bg-[var(--gold-subtle)]/30 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+              className="group flex min-h-[100px] w-full flex-col gap-3 rounded-[20px] bg-[color-mix(in_oklab,var(--gold-subtle)_60%,var(--card))] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              style={{
+                border: "1px solid color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+              }}
             >
-              <Icon
-                aria-hidden="true"
-                className="h-5 w-5 text-[var(--gold-warm)]"
-                strokeWidth={1.5}
-              />
+              {/* Icon circle */}
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-full"
+                style={{
+                  background: "color-mix(in oklab, var(--gold-warm) 12%, var(--background))",
+                  boxShadow: "0 1px 3px color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+                }}
+              >
+                <Icon
+                  aria-hidden="true"
+                  className="h-5 w-5 text-[var(--gold-warm)]"
+                  strokeWidth={1.5}
+                />
+              </div>
               <div className="space-y-1">
-                <h3 className="font-[family-name:var(--font-display)] text-sm font-medium leading-snug text-foreground">
+                <h3 className="font-[family-name:var(--font-heading)] text-[15.5px] font-light leading-snug text-foreground">
                   {uc.title}
                 </h3>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {uc.subtitle}
+                <p className="flex items-center gap-1 text-xs leading-relaxed text-muted-foreground">
+                  <span>{uc.subtitle}</span>
+                  <span className="text-[var(--gold-warm)] opacity-70 transition-opacity group-hover:opacity-100">→</span>
                 </p>
               </div>
             </button>
@@ -146,7 +159,7 @@ export function CoachQuickStart() {
 
       {/* Secondary: classic short prompts (one-tap send). */}
       <div className="space-y-2">
-        <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">ほかの質問</p>
+        <p className="text-eyebrow text-muted-foreground">ほかの質問</p>
         <div className="flex flex-wrap gap-2">
           {SECONDARY_PROMPTS.map((prompt, idx) => {
             const loading = isPending && activeIdx === idx;

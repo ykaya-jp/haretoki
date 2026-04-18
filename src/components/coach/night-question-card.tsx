@@ -13,6 +13,7 @@ export function NightQuestionCard({ question }: { question: NightQuestion }) {
   return (
     <Link
       href={href}
+      prefetch={true}
       className="group relative block overflow-hidden rounded-2xl border p-5 transition active:scale-[0.99]"
       style={{
         background:
@@ -36,11 +37,11 @@ export function NightQuestionCard({ question }: { question: NightQuestion }) {
           className="h-4 w-4 text-[color:var(--primary)]"
           strokeWidth={1.6}
         />
-        <p className="text-[10.5px] uppercase tracking-[0.16em] text-[color:var(--primary)]">
+        <p className="text-eyebrow text-[color:var(--primary)]">
           今夜の一問
         </p>
       </div>
-      <p className="relative mt-3 font-[family-name:var(--font-display)] text-[17.5px] font-light leading-[1.6] tracking-[0.005em] text-foreground">
+      <p className="relative mt-3 font-[family-name:var(--font-heading)] text-[17px] font-normal leading-[1.6] tracking-[0.005em] text-foreground">
         {question.text}
       </p>
       <p className="mt-4 text-[11.5px] text-muted-foreground">

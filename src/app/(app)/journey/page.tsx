@@ -21,10 +21,10 @@ export default async function JourneyPage() {
     <div className="space-y-10">
       {/* Header — breadcrumb eyebrow + editorial title */}
       <header className="space-y-3">
-        <p className="flex flex-wrap items-center gap-2 text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-2 text-eyebrow text-muted-foreground">
           <Link
             href="/home"
-            prefetch={false}
+            prefetch={true}
             className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
             <ArrowLeft className="h-3 w-3" aria-hidden="true" />

@@ -130,42 +130,54 @@ export function JourneyTimeline({ milestones }: JourneyTimelineProps) {
         return (
           <li
             key={milestone.id}
-            className={cn(
-              "relative flex gap-4",
-              !reached && "opacity-50",
-            )}
+            className="relative flex gap-4"
           >
-            {/* Vertical connector line */}
+            {/* Vertical connector line — gold for reached, border for pending */}
             {!isLast && (
               <div
                 aria-hidden="true"
                 className="absolute left-5 top-10 h-full w-px"
                 style={{
-                  background:
-                    "linear-gradient(to bottom, color-mix(in oklab, var(--gold-warm) 30%, transparent) 0%, color-mix(in oklab, var(--gold-warm) 10%, transparent) 100%)",
+                  background: reached
+                    ? "linear-gradient(to bottom, color-mix(in oklab, var(--gold-warm) 30%, transparent) 0%, color-mix(in oklab, var(--gold-warm) 10%, transparent) 100%)"
+                    : "var(--border)",
                 }}
               />
             )}
 
-            <WeatherIcon weather={milestone.weather} />
+            {/* WeatherIcon: grayscale for unreached milestones */}
+            <div className={cn(!reached && "opacity-50 grayscale")}>
+              <WeatherIcon weather={milestone.weather} />
+            </div>
 
             <div className="min-w-0 flex-1 pb-8">
               <div className="flex items-baseline gap-2">
-                <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight text-foreground">
+                {/* h3: /70 opacity for unreached */}
+                <h3 className={cn(
+                  "font-[family-name:var(--font-heading)] text-[15px] font-normal",
+                  reached ? "text-foreground" : "text-foreground/70"
+                )}>
                   {milestone.label}
                 </h3>
-                <span
-                  className="text-[10.5px] uppercase tracking-[0.14em]"
-                  style={{ color: "var(--gold-warm)" }}
-                >
-                  {weatherLabel(milestone.weather)}
-                </span>
+                {/* weatherLabel: hidden for unreached */}
+                {reached && (
+                  <span
+                    className="text-eyebrow"
+                    style={{ color: "var(--gold-warm)" }}
+                  >
+                    {weatherLabel(milestone.weather)}
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-[13.5px] leading-relaxed text-muted-foreground">
+              {/* subtext: /60 opacity for unreached */}
+              <p className={cn(
+                "mt-1 text-[13.5px] leading-relaxed",
+                reached ? "text-muted-foreground" : "text-muted-foreground/60"
+              )}>
                 {milestoneSubtext(milestone)}
               </p>
               {reached && milestone.id !== "start" && milestone.id !== "decision" && (
-                <p className="mt-0.5 text-[10.5px] uppercase tracking-[0.14em] tabular-nums text-muted-foreground">
+                <p className="mt-0.5 text-eyebrow tabular-nums text-muted-foreground">
                   {milestone.count} / {milestone.targetCount}
                 </p>
               )}
