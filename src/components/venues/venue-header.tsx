@@ -29,45 +29,65 @@ export function VenueHeader({
           ? `${capacityMin}名〜`
           : null;
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <h1 className="font-serif text-fluid-lg font-light tracking-[-0.01em]">{name}</h1>
-        <VenueStatusBadge status={status} />
-      </div>
-      {/* Definition list — basic info grid */}
-      <dl className="grid grid-cols-[80px_1fr] gap-x-4 gap-y-2">
-        {location && (
-          <>
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground leading-7">エリア</dt>
-            <dd className="text-sm leading-7 text-foreground">{location}</dd>
-          </>
-        )}
-        {accessInfo && (
-          <>
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground leading-7">アクセス</dt>
-            <dd className="text-sm leading-7 text-foreground">{accessInfo}</dd>
-          </>
-        )}
-        {capacityText && (
-          <>
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground leading-7">収容人数</dt>
-            <dd className="text-sm leading-7 tabular-nums text-foreground">着席 {capacityText}</dd>
-          </>
-        )}
-      </dl>
+  // Build a compact inline meta string for the eyebrow row
+  const metaParts: string[] = [];
+  if (location) metaParts.push(location);
+  if (capacityText) metaParts.push(`着席 ${capacityText}`);
 
-      {ceremonyStyles.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {ceremonyStyles.map((style) => (
+  return (
+    <div className="space-y-3">
+      {/* Layer 1 — eyebrow: ceremony style chips + meta inline */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {ceremonyStyles.length > 0 &&
+          ceremonyStyles.map((style) => (
             <span
               key={style}
-              className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+              className="text-eyebrow text-[var(--gold-warm)] uppercase"
             >
               {style}
             </span>
           ))}
-        </div>
+        {ceremonyStyles.length > 0 && metaParts.length > 0 && (
+          <span
+            aria-hidden="true"
+            className="text-[11px] text-muted-foreground/40"
+          >
+            ·
+          </span>
+        )}
+        {metaParts.map((part, i) => (
+          <span key={i} className="text-eyebrow text-muted-foreground">
+            {part}
+          </span>
+        ))}
+        <span
+          aria-hidden="true"
+          className="text-[11px] text-muted-foreground/40"
+        >
+          ·
+        </span>
+        <VenueStatusBadge status={status} />
+      </div>
+
+      {/* gold hairline */}
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] via-[color-mix(in_oklab,var(--gold-warm)_20%,transparent)] to-transparent"
+      />
+
+      {/* Layer 2 — h1: venue name in Noto Serif JP extralight 24-32px */}
+      <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-extralight leading-[1.25] tracking-[-0.01em]">
+        {name}
+      </h1>
+
+      {/* Layer 3 — definition list: access only (not repeated in eyebrow) */}
+      {accessInfo && (
+        <dl className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <dt className="text-eyebrow text-muted-foreground">アクセス</dt>
+          <dd className="text-[13px] leading-relaxed text-muted-foreground">
+            {accessInfo}
+          </dd>
+        </dl>
       )}
     </div>
   );
