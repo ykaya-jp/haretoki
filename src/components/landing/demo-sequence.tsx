@@ -259,16 +259,10 @@ function LoadingDots() {
   return (
     <span className="inline-flex gap-0.5" aria-hidden="true">
       {[0, 1, 2].map((i) => (
-        <motion.span
+        <span
           key={i}
-          className="inline-block h-1 w-1 rounded-full bg-primary-foreground"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{
-            duration: 1.2,
-            repeat: Infinity,
-            delay: i * 0.15,
-            ease: "easeInOut",
-          }}
+          className="inline-block h-1 w-1 animate-pulse rounded-full bg-primary-foreground"
+          style={{ animationDelay: `${i * 150}ms`, animationDuration: "1200ms" }}
         />
       ))}
     </span>

@@ -441,7 +441,6 @@ function WinnerResult({
       {/* CTA */}
       <Link
         href={`/venues/${winner.id}`}
-        prefetch={false}
         className="flex h-14 w-full items-center justify-center rounded-2xl bg-[color:var(--primary)] text-[15px] font-light tracking-wide text-[color:var(--primary-foreground)] transition-all active:scale-[0.98] active:opacity-90"
       >
         こちらで話を進めてみる

@@ -81,7 +81,6 @@ export async function CoupleGapSection() {
                 <li key={g.venueId}>
                   <Link
                     href={`/venues/${g.venueId}`}
-                    prefetch={false}
                     className="flex items-center gap-3 rounded-xl border bg-card p-3 pr-3.5 transition active:scale-[0.99]"
                   >
                     {/* C-2: thumb 48→48 (維持), rounded-lg → rounded-xl */}

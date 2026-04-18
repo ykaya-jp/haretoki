@@ -220,7 +220,7 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
                                     <div className="flex gap-2 flex-wrap">
                                       {item.photoUrls.map((url, idx) => (
                                         <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden">
-                                          <Image src={url} alt="" fill className="object-cover" />
+                                          <Image src={url} alt="" fill sizes="64px" className="object-cover" />
                                         </div>
                                       ))}
                                     </div>

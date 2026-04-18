@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import type { VenueStatus } from "@/generated/prisma/client";
@@ -22,9 +22,6 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
       where: { id: existing.id },
     });
     revalidateTag(`project:${projectId}`, { expire: 0 });
-    revalidatePath("/explore");
-    revalidatePath("/candidates");
-    revalidatePath("/home");
     return { isFavorite: false };
   }
 
@@ -33,9 +30,6 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
   });
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
-  revalidatePath("/explore");
-  revalidatePath("/candidates");
-  revalidatePath("/home");
   return { isFavorite: true };
 }
 
