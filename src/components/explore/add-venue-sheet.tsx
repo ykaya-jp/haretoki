@@ -239,6 +239,8 @@ export function AddVenueSheet({
           const venueId = confirmResult.venue.id;
           const existingName =
             mode === "merged" ? confirmResult.venue.name : undefined;
+          const photoUploadedCount = confirmResult.photoUploadedCount ?? 0;
+          const photoRequestedCount = confirmResult.photoRequestedCount ?? 0;
 
           setUrlStates((prev) =>
             prev.map((s, i) =>
@@ -261,6 +263,8 @@ export function AddVenueSheet({
             venueId,
             mode,
             updatedFieldsCount: updatedFields.length,
+            photoUploadedCount,
+            photoRequestedCount,
           };
         } catch {
           setUrlStates((prev) =>
@@ -285,6 +289,8 @@ export function AddVenueSheet({
         venueId: string;
         mode: "created" | "merged";
         updatedFieldsCount: number;
+        photoUploadedCount: number;
+        photoRequestedCount: number;
       }> => r.status === "fulfilled" && r.value.success,
     );
     const successCount = successResults.length;
@@ -295,22 +301,37 @@ export function AddVenueSheet({
       // merged cases positively surface "added to existing venue".
       if (successCount === 1) {
         const only = successResults[0].value;
+        // Photo count fragment: "· 写真 N/M 枚". Shown on both created and
+        // merged toasts so the user sees how many photos actually landed.
+        const photoFragment =
+          only.photoRequestedCount > 0
+            ? ` · 写真 ${only.photoUploadedCount}/${only.photoRequestedCount} 枚`
+            : "";
+        // Zero-photo recovery: when we tried at least one URL but 0 landed,
+        // nudge the user toward the cross-site retry without blaming them.
+        const zeroPhotoHint =
+          only.photoRequestedCount > 0 && only.photoUploadedCount === 0
+            ? "写真の取り込みに失敗しました。『別サイトから追加』で再挑戦できます"
+            : null;
+
         if (only.mode === "merged") {
           const chipCount = only.updatedFieldsCount;
-          const message =
+          const baseMessage =
             chipCount > 0
-              ? `${only.name} に ${chipCount} 件の情報を追加しました`
-              : `${only.name} は既に最新の情報です`;
-          showToast("success", message, {
+              ? `✨ ${only.name} に ${chipCount} 件の情報を追加${photoFragment}`
+              : `✨ ${only.name} は既に最新の情報です${photoFragment}`;
+          showToast("success", baseMessage, {
             duration: 6000,
             action: {
               label: "見る",
               onClick: () => router.push(`/venues/${only.venueId}?updated=1`),
             },
           });
+          if (zeroPhotoHint) showToast("info", zeroPhotoHint);
           router.push(`/venues/${only.venueId}?updated=1`);
         } else {
-          showToast("success", "1件の式場を追加しました");
+          showToast("success", `✨ ${only.name} を追加しました${photoFragment}`);
+          if (zeroPhotoHint) showToast("info", zeroPhotoHint);
           router.push(`/venues/${only.venueId}`);
         }
       } else {
@@ -318,11 +339,23 @@ export function AddVenueSheet({
           (r) => r.value.mode === "merged",
         ).length;
         const createdCount = successCount - mergedCount;
+        // Aggregate photo counts across all successes for the batch summary.
+        const totalPhotosUploaded = successResults.reduce(
+          (sum, r) => sum + r.value.photoUploadedCount,
+          0,
+        );
+        const totalPhotosRequested = successResults.reduce(
+          (sum, r) => sum + r.value.photoRequestedCount,
+          0,
+        );
         const parts: string[] = [];
         if (createdCount > 0) parts.push(`${createdCount}件追加`);
         if (mergedCount > 0) parts.push(`${mergedCount}件統合`);
         if (failCount > 0) parts.push(`${failCount}件失敗`);
-        showToast(failCount > 0 ? "info" : "success", parts.join("、"));
+        if (totalPhotosRequested > 0) {
+          parts.push(`写真 ${totalPhotosUploaded}/${totalPhotosRequested} 枚`);
+        }
+        showToast(failCount > 0 ? "info" : "success", parts.join(" · "));
         router.refresh();
       }
     } else if (failCount > 0) {

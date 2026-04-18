@@ -76,7 +76,10 @@ vi.mock("@/lib/analytics/server", () => ({
   captureServerEvent: vi.fn(),
 }));
 
-vi.mock("@/lib/sentry", () => ({ captureError: vi.fn() }));
+vi.mock("@/lib/sentry", () => ({
+  captureError: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 describe("confirmVenueFromUrl", () => {
   beforeEach(() => {
@@ -86,9 +89,11 @@ describe("confirmVenueFromUrl", () => {
     mockVenueFindMany.mockResolvedValue([]); // default: no dedupe match
     mockVenueFindUniqueOrThrow.mockResolvedValue({ id: "venue-1" });
     mockReviewUpsert.mockResolvedValue({ id: "rev-1" });
-    mockUploadVenuePhotoFromUrl.mockImplementation(async (src: string) =>
-      src.replace("https://cdn.zexy.net", "https://supabase.co/storage"),
-    );
+    mockUploadVenuePhotoFromUrl.mockImplementation(async (src: string) => ({
+      ok: true as const,
+      url: src.replace("https://cdn.zexy.net", "https://supabase.co/storage"),
+      srcUrl: src,
+    }));
   });
 
   it("persists expanded fields, downloads photos, saves individual reviews", async () => {
@@ -192,9 +197,12 @@ describe("confirmVenueFromUrl", () => {
   });
 
   it("creates venue even when every photo upload fails", async () => {
-    mockUploadVenuePhotoFromUrl.mockRejectedValue(
-      new Error("Image fetch non-2xx: 403"),
-    );
+    mockUploadVenuePhotoFromUrl.mockResolvedValue({
+      ok: false as const,
+      reason: "403" as const,
+      srcUrl: "https://cdn.example.com/a.jpg",
+      detail: "status=403",
+    });
     const { confirmVenueFromUrl } = await import(
       "@/server/actions/venues"
     );
@@ -229,6 +237,14 @@ describe("confirmVenueFromUrl", () => {
     if (result.success) {
       expect(result.photoUploadedCount).toBe(0);
       expect(result.photoRequestedCount).toBe(1);
+      // New failure-reason aggregation: 403 should have a count of 1.
+      expect(result.photoFailedReasons).toEqual({
+        "403": 1,
+        timeout: 0,
+        "invalid-ct": 0,
+        "size-limit": 0,
+        network: 0,
+      });
     }
   });
 });

@@ -16,12 +16,20 @@ import {
   buildMetadataPrompt,
 } from "@/server/actions/url-metadata";
 import { captureServerEvent } from "@/lib/analytics/server";
-import { captureError } from "@/lib/sentry";
+import { captureError, captureMessage } from "@/lib/sentry";
 import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
 import { deriveRelatedUrls } from "@/lib/url-import/domain-router";
 import { parseJsonLd } from "@/lib/url-import/jsonld-parser";
-import { uploadVenuePhotoFromUrl } from "@/lib/supabase/storage";
+import {
+  extractImagesFromHtml,
+  mergePhotoUrls,
+} from "@/lib/url-import/extract-images";
+import {
+  uploadVenuePhotoFromUrl,
+  type PhotoUploadReason,
+  type PhotoUploadResult,
+} from "@/lib/supabase/storage";
 import { saveExtractedReviews } from "@/server/actions/reviews";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 import {
@@ -870,6 +878,20 @@ export async function addVenueFromUrl(url: string): Promise<{
       enriched.photoUrls = Array.from(new Set(merged)).slice(0, 30);
     }
 
+    // Scrape raw HTML for <img src|data-src>, <source srcset>, <picture>.
+    // Claude often misses lazy-loaded + srcset images — cheerio pulls them
+    // directly so the upload pipeline gets a richer candidate set.
+    const scrapedImages: string[] = [];
+    targets.forEach((t, i) => {
+      const page = fetched[i];
+      if (!page) return;
+      const imgs = extractImagesFromHtml(page.html, t.url, 30);
+      for (const u of imgs) scrapedImages.push(u);
+    });
+    if (scrapedImages.length > 0) {
+      enriched.photoUrls = mergePhotoUrls(enriched.photoUrls, scrapedImages, 30);
+    }
+
     // When the rendered body was empty, we only saw OGP/JSON-LD. Surface a warning
     // so the UI can nudge the user to verify or complete missing fields manually.
     const warning =
@@ -1039,21 +1061,28 @@ export async function confirmVenueFromUrl(
     });
 
     // Upload any incoming photos first so `mergeVenueFields` can union the
-    // supabase URLs instead of external CDN ones.
+    // supabase URLs instead of external CDN ones. Result shape gives us
+    // per-reason failure counters without try/catch churn.
     const uploadedPhotoUrls: string[] = [];
+    const photoFailedReasons: Record<PhotoUploadReason, number> = {
+      "403": 0,
+      timeout: 0,
+      "invalid-ct": 0,
+      "size-limit": 0,
+      network: 0,
+    };
     if (uniquePhotoUrls.length > 0) {
-      const uploadResults = await limitedAll(uniquePhotoUrls, 3, async (src) => {
-        try {
-          return await uploadVenuePhotoFromUrl(src, projectId, existing.id, origin);
-        } catch (err) {
-          console.warn("[confirmVenueFromUrl merge] photo upload skipped:", {
-            src,
-            error: err instanceof Error ? err.message : err,
-          });
-          return null;
+      const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
+        uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
+      );
+      for (const r of uploadResults) {
+        if (r.ok) {
+          uploadedPhotoUrls.push(r.url);
+        } else {
+          photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
+          reportPhotoUploadFailure(r);
         }
-      });
-      for (const u of uploadResults) if (typeof u === "string") uploadedPhotoUrls.push(u);
+      }
     }
 
     const existingBag: VenueFieldBag = {
@@ -1112,6 +1141,7 @@ export async function confirmVenueFromUrl(
       updatedFields,
       photoUploadedCount: uploadedPhotoUrls.length,
       photoRequestedCount: uniquePhotoUrls.length,
+      photoFailedReasons,
       individualReviewCount: parsed.data.reviews.length,
     };
   }
@@ -1160,20 +1190,26 @@ export async function confirmVenueFromUrl(
     },
   });
 
-  let uploadedPhotoUrls: string[] = [];
+  const uploadedPhotoUrls: string[] = [];
+  const photoFailedReasons: Record<PhotoUploadReason, number> = {
+    "403": 0,
+    timeout: 0,
+    "invalid-ct": 0,
+    "size-limit": 0,
+    network: 0,
+  };
   if (uniquePhotoUrls.length > 0) {
-    const uploadResults = await limitedAll(uniquePhotoUrls, 3, async (src) => {
-      try {
-        return await uploadVenuePhotoFromUrl(src, projectId, venue.id, origin);
-      } catch (err) {
-        console.warn("[confirmVenueFromUrl] photo upload skipped:", {
-          src,
-          error: err instanceof Error ? err.message : err,
-        });
-        return null;
+    const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
+      uploadVenuePhotoFromUrl(src, projectId, venue.id, origin),
+    );
+    for (const r of uploadResults) {
+      if (r.ok) {
+        uploadedPhotoUrls.push(r.url);
+      } else {
+        photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
+        reportPhotoUploadFailure(r);
       }
-    });
-    uploadedPhotoUrls = uploadResults.filter((u): u is string => typeof u === "string");
+    }
     if (uploadedPhotoUrls.length > 0) {
       await prisma.venue.update({
         where: { id: venue.id },
@@ -1213,8 +1249,40 @@ export async function confirmVenueFromUrl(
     updatedFields: [] as string[],
     photoUploadedCount: uploadedPhotoUrls.length,
     photoRequestedCount: uniquePhotoUrls.length,
+    photoFailedReasons,
     individualReviewCount: parsed.data.reviews.length,
   };
+}
+
+/**
+ * Warning-level Sentry event + console.warn for a single photo upload
+ * failure. Groups by host + reason so production noise is aggregable
+ * (e.g. "zexy.net 403 spike after CDN change").
+ */
+function reportPhotoUploadFailure(
+  failure: PhotoUploadResult & { ok: false },
+): void {
+  let host = "(unknown)";
+  try {
+    host = new URL(failure.srcUrl).host;
+  } catch {
+    // malformed URL — keep fallback host.
+  }
+  console.warn("[photo_upload_failed]", {
+    reason: failure.reason,
+    host,
+    srcUrl: failure.srcUrl,
+    detail: failure.detail,
+  });
+  captureMessage("photo_upload_failed", {
+    level: "warning",
+    extra: {
+      reason: failure.reason,
+      host,
+      srcUrl: failure.srcUrl,
+      detail: failure.detail,
+    },
+  });
 }
 
 /**
