@@ -1,3 +1,5 @@
+import { MODEL } from "@/lib/models";
+
 export const REVIEW_SUMMARY_PROMPT = {
   system: `You are an expert at analyzing Japanese wedding venue reviews.
 
@@ -33,6 +35,6 @@ Guidelines:
   buildUserMessage: (reviews: string[], venueName: string) =>
     `以下は「${venueName}」の口コミ内容です（${reviews.length}件）。分析してください:\n\n${reviews.join("\n---\n").slice(0, 50000)}`,
 
-  model: "claude-sonnet-4-20250514",
+  model: MODEL.SONNET,
   maxTokens: 2048,
 };

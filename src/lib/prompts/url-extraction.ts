@@ -1,3 +1,5 @@
+import { MODEL } from "@/lib/models";
+
 export const URL_EXTRACTION_PROMPT = {
   system: `You are an expert at extracting structured wedding venue information from Japanese web page content.
 
@@ -24,6 +26,6 @@ Guidelines:
   buildUserMessage: (pageContent: string, url: string) =>
     `以下はURL ${url} から取得したウェブページの内容です。結婚式場の情報を構造化データとして抽出してください:\n\n${pageContent.slice(0, 30000)}`,
 
-  model: "claude-sonnet-4-20250514",
+  model: MODEL.SONNET,
   maxTokens: 2048,
 };

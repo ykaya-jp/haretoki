@@ -14,6 +14,15 @@
 - [docs/myreview/problems_02.md](docs/myreview/problems_02.md) — 最新ユーザー(妻)フィードバック。現行 audit 計画の原典
 - 過去 Release 技術仕様・v2 UI 仕様は [docs/archive/](docs/archive/) に移動済み。必要なときだけ参照
 
+## Engineering Harness（AI / 並列開発の入口）
+- IMPORTANT: [AGENTS.md](AGENTS.md) — AI コーディングエージェントの入口（Quick Orient / Must-Read / Conventions）
+- IMPORTANT: [.claude/README.md](.claude/README.md) — agents / skills / commands / hooks の一覧
+- [docs/harness/runbook.md](docs/harness/runbook.md) — 並列開発・worktree・tmux・Ship Cycle 手順
+- [docs/harness/hooks.md](docs/harness/hooks.md) — `.claude/settings.json` の hook 定義
+- IMPORTANT: [docs/ai/models.md](docs/ai/models.md) — モデル ID 対応表。`src/lib/models.ts` の `MODEL` 定数経由で参照
+- [docs/ai/guardrails.md](docs/ai/guardrails.md) — PII / prompt injection / コスト上限 / リトライ
+- [docs/ai/prompts/README.md](docs/ai/prompts/README.md) — prompt 仕様の正本（コードと同 PR で同期）
+
 ## Tech Stack
 - Framework: Next.js 16 (App Router) + TypeScript 5.x
 - Styling: Tailwind CSS + shadcn/ui
