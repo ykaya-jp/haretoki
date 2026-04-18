@@ -49,7 +49,10 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+8px)] left-4 right-4 z-50 flex items-center gap-3 rounded-xl bg-card p-4 shadow-[var(--shadow-modal)]">
+    <div
+      className="fixed left-4 right-4 z-50 flex items-center gap-3 rounded-xl bg-card p-4 shadow-[var(--shadow-modal)]"
+      style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 8px)" }}
+    >
       <Download className="h-5 w-5 shrink-0 text-primary" />
       <div className="flex-1">
         <p className="text-sm font-medium">アプリをインストール</p>

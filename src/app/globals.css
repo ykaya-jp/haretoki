@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Exclude docs/ and other non-source dirs from Tailwind v4 class scanning.
+   Prevents markdown code examples (e.g. duration-[var(--dur-*)]) from
+   generating invalid CSS. */
+@source not "../../docs/**";
+@source not "../../tests/**";
+
 /* ═══ View Transitions (supported browsers only) ═══ */
 /* Enables smooth cross-fade between navigations without JS overhead.
    Unsupported browsers ignore this rule silently.

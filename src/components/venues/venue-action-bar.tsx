@@ -40,7 +40,10 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
     <>
       {/* Delete confirmation overlay */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm pb-[calc(56px+env(safe-area-inset-bottom)+68px)]">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+          style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom) + 68px)" }}
+        >
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl">
             <p className="text-sm font-medium text-foreground">
               「{venueName}」を削除しますか？
