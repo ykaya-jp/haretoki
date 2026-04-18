@@ -339,11 +339,61 @@ export async function acceptSuggestedScore(
 
 // ── Comparison matrix data ─────────────────────────────────────────────────────
 
+/**
+ * Maximum number of venues the comparison board can display at once.
+ *
+ * Rationale: at ~160px per column (grid template), 10 columns + the 160px
+ * label gutter = 1760px of total horizontal scroll. Booking.com / Agoda
+ * both cap at 4-5 for desktop-first flows, but our mobile-first design
+ * uses scroll-snap-x-mandatory (one venue per viewport), so 10 stays
+ * legible. Going beyond 10 makes the "which is best?" judgement noisy.
+ */
+export const COMPARE_MAX_VENUES = 10;
+
 export interface ComparisonVenue {
   id: string;
   name: string;
+  location: string | null;
+  accessInfo: string | null;
   photoUrls: string[];
   scores: Array<{ dimension: string; score: number; source: string }>;
+
+  /** Basic facts */
+  costMin: number | null;
+  costMax: number | null;
+  capacityMin: number | null;
+  capacityMax: number | null;
+  ceremonyStyles: string[];
+
+  /** Deep extraction — external review signal */
+  externalRatingValue: number | null;
+  externalReviewCount: number | null;
+
+  /** Deep extraction — location detail */
+  postalCode: string | null;
+  streetAddress: string | null;
+
+  /** Deep extraction — facilities */
+  hasParking: boolean | null;
+  parkingCapacity: number | null;
+  hasShuttle: boolean | null;
+  hasAccommodation: boolean | null;
+  acceptsSecondParty: boolean | null;
+  barrierFree: boolean | null;
+
+  /** Deep extraction — cost breakdown */
+  ceremonyFeeExact: number | null;
+  productionFeeMin: number | null;
+  productionFeeMax: number | null;
+  serviceFeeRate: number | null;
+
+  /** Deep extraction — operating */
+  operatingHours: string | null;
+  closedDays: string[];
+
+  /** Deep extraction — cuisine */
+  cuisineTypes: string[];
+  chefCredentials: string | null;
 }
 
 export interface ComparisonAnswer {
@@ -363,16 +413,44 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Clamp to max 5 venues
-  const ids = venueIds.slice(0, 5);
+  // Clamp to max COMPARE_MAX_VENUES venues. Caller should trim + toast
+  // upstream so the user sees why — this is a defence-in-depth clamp.
+  const ids = venueIds.slice(0, COMPARE_MAX_VENUES);
 
-  // Verify all venues belong to project
+  // Verify all venues belong to project. Select the full Deep Extraction
+  // surface so comparison-field-registry.ts can show rows like 駐車場 /
+  // 送迎 / 提携宿泊 without a second round-trip.
   const venues = await prisma.venue.findMany({
     where: { id: { in: ids }, projectId },
     select: {
       id: true,
       name: true,
+      location: true,
+      accessInfo: true,
       photoUrls: true,
+      costMin: true,
+      costMax: true,
+      capacityMin: true,
+      capacityMax: true,
+      ceremonyStyles: true,
+      externalRatingValue: true,
+      externalReviewCount: true,
+      postalCode: true,
+      streetAddress: true,
+      hasParking: true,
+      parkingCapacity: true,
+      hasShuttle: true,
+      hasAccommodation: true,
+      acceptsSecondParty: true,
+      barrierFree: true,
+      ceremonyFeeExact: true,
+      productionFeeMin: true,
+      productionFeeMax: true,
+      serviceFeeRate: true,
+      operatingHours: true,
+      closedDays: true,
+      cuisineTypes: true,
+      chefCredentials: true,
       scores: { select: { dimension: true, score: true, source: true } },
     },
   });
@@ -380,11 +458,36 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
   // Restore requested order and convert Decimal to number
   const orderedVenues: ComparisonVenue[] = ids
     .map((id) => venues.find((v) => v.id === id))
-    .filter((v) => v != null)
+    .filter((v): v is NonNullable<typeof v> => v != null)
     .map((v) => ({
       id: v.id,
       name: v.name,
+      location: v.location,
+      accessInfo: v.accessInfo,
       photoUrls: v.photoUrls,
+      costMin: v.costMin,
+      costMax: v.costMax,
+      capacityMin: v.capacityMin,
+      capacityMax: v.capacityMax,
+      ceremonyStyles: v.ceremonyStyles,
+      externalRatingValue: v.externalRatingValue,
+      externalReviewCount: v.externalReviewCount,
+      postalCode: v.postalCode,
+      streetAddress: v.streetAddress,
+      hasParking: v.hasParking,
+      parkingCapacity: v.parkingCapacity,
+      hasShuttle: v.hasShuttle,
+      hasAccommodation: v.hasAccommodation,
+      acceptsSecondParty: v.acceptsSecondParty,
+      barrierFree: v.barrierFree,
+      ceremonyFeeExact: v.ceremonyFeeExact,
+      productionFeeMin: v.productionFeeMin,
+      productionFeeMax: v.productionFeeMax,
+      serviceFeeRate: v.serviceFeeRate === null ? null : Number(v.serviceFeeRate),
+      operatingHours: v.operatingHours,
+      closedDays: v.closedDays,
+      cuisineTypes: v.cuisineTypes,
+      chefCredentials: v.chefCredentials,
       scores: v.scores.map((s) => ({
         dimension: s.dimension as string,
         source: s.source as string,
@@ -450,7 +553,7 @@ export async function getFavoriteVenueIds(): Promise<string[]> {
     where: { userId: user.id, venue: { projectId } },
     select: { venueId: true },
     orderBy: { createdAt: "desc" },
-    take: 5,
+    take: COMPARE_MAX_VENUES,
   });
 
   return favorites.map((f) => f.venueId);
