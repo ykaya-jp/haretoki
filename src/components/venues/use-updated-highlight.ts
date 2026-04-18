@@ -17,17 +17,21 @@ import { useSearchParams } from "next/navigation";
 export function useUpdatedHighlight(durationMs: number = 2000): boolean {
   const search = useSearchParams();
   const hasUpdated = search.get("updated") === "1";
-  const [highlight, setHighlight] = useState(hasUpdated);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // Reset the timer-consumed flag when hasUpdated flips (React 19 render-phase
+  // state adjustment — avoids `react-hooks/set-state-in-effect` cascade).
+  const [prevHasUpdated, setPrevHasUpdated] = useState(hasUpdated);
+  if (prevHasUpdated !== hasUpdated) {
+    setPrevHasUpdated(hasUpdated);
+    setTimedOut(false);
+  }
 
   useEffect(() => {
-    if (!hasUpdated) {
-      setHighlight(false);
-      return;
-    }
-    setHighlight(true);
-    const t = setTimeout(() => setHighlight(false), durationMs);
+    if (!hasUpdated) return;
+    const t = setTimeout(() => setTimedOut(true), durationMs);
     return () => clearTimeout(t);
   }, [hasUpdated, durationMs]);
 
-  return highlight;
+  return hasUpdated && !timedOut;
 }

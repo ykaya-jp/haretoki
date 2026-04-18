@@ -52,12 +52,10 @@ export function BottomNav({ badges }: BottomNavProps) {
   // Optimistic active href — set on tap so the gold highlight moves instantly
   // AND loading.tsx can show immediately (we let <Link> do the navigation
   // itself; no startTransition wrapper, which would keep the old page visible).
+  // No effect needed to clear pendingHref: `showPending` derivation below
+  // flips to false the moment pathname matches, so the highlight falls back
+  // to pathname-driven. Persistent pendingHref state is harmless.
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  useEffect(() => {
-    if (pendingHref && matchesHref(pathname, pendingHref)) {
-      setPendingHref(null);
-    }
-  }, [pathname, pendingHref]);
 
   const showPending =
     pendingHref !== null && !matchesHref(pathname, pendingHref);
