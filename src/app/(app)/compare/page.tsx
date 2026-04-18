@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
-import { getComparisonMatrix, getFavoriteVenueIds } from "@/server/actions/checklist";
-import { ComparisonMatrixView } from "@/components/checklist/comparison-matrix-view";
+import {
+  getComparisonMatrix,
+  getFavoriteVenueIds,
+  COMPARE_MAX_VENUES,
+} from "@/server/actions/checklist";
+import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
+import { Info } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "式場横比較",
@@ -15,14 +20,18 @@ interface ComparePageProps {
 export default async function ComparePage({ searchParams }: ComparePageProps) {
   const params = await searchParams;
 
-  // Parse venue ids from query or fall back to favorites
+  // Parse venue ids from query or fall back to favorites. We capture the
+  // pre-trim count so the page can show a truthful message when the user
+  // asked for 15 but we only show 10.
   let venueIds: string[] = [];
+  let requestedCount = 0;
   if (params.venueIds) {
-    venueIds = params.venueIds
+    const all = params.venueIds
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 5);
+      .filter(Boolean);
+    requestedCount = all.length;
+    venueIds = all.slice(0, COMPARE_MAX_VENUES);
   }
 
   if (venueIds.length === 0) {
@@ -30,9 +39,11 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   }
 
   const matrix = await getComparisonMatrix(venueIds);
+  const trimmed = requestedCount > COMPARE_MAX_VENUES;
+  const insufficient = matrix.venues.length === 1;
 
   return (
-    <div className="space-y-10 pb-24">
+    <div className="space-y-8 pb-24">
       <div className="space-y-3">
         {/* Eyebrow */}
         <p className="flex items-center gap-1.5 text-eyebrow text-muted-foreground uppercase">
@@ -63,6 +74,18 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
             ? `${matrix.venues.length} 件の式場を、同じ観点で並べています`
             : "候補を並べると、ここに横比較が現れます。"}
         </p>
+
+        {/* Trim notice — "比較は 10 件までが一度に見やすいです" */}
+        {trimmed && (
+          <div className="flex items-start gap-2 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-[color-mix(in_oklab,var(--gold-warm)_5%,var(--background))] px-3 py-2.5 text-[12.5px] text-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gold-warm)]" strokeWidth={2} />
+            <p className="leading-snug">
+              比較は {COMPARE_MAX_VENUES} 件までが一度に見やすいです。
+              <br className="sm:hidden" />
+              上位 {COMPARE_MAX_VENUES} 件を表示しています。
+            </p>
+          </div>
+        )}
       </div>
 
       {matrix.venues.length === 0 ? (
@@ -75,18 +98,23 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
             式場を探す
           </Link>
         </div>
-      ) : matrix.items.length === 0 ? (
+      ) : insufficient ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">チェック項目が選ばれていません</p>
+          <p className="text-sm text-muted-foreground">
+            比較には 2 件以上の式場が必要です
+          </p>
+          <p className="mt-1 text-[12px] text-muted-foreground/70">
+            候補から追加で選んでみてください。
+          </p>
           <Link
-            href="/checklist"
+            href="/candidates"
             className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
           >
-            項目を選ぶ
+            候補を開く
           </Link>
         </div>
       ) : (
-        <ComparisonMatrixView matrix={matrix} />
+        <ComparisonBoard matrix={matrix} />
       )}
     </div>
   );
