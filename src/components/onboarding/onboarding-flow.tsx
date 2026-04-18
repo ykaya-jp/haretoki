@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { PillOptions } from "@/components/ui/pill-options";
-import { ChatBubble } from "@/components/coach/chat-bubble";
 import { SkyChip } from "@/components/home/sky-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -284,70 +283,119 @@ export function OnboardingFlow() {
   if (showRecommendations) {
     return (
       <div className="mx-auto max-w-lg space-y-6 py-4">
-        {/* AI recommendations header */}
-        <div className="rounded-r-lg border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-4 space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
-            <span>あなたへのおすすめ</span>
-          </div>
-          {isLoadingRecs ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>おふたりに合う式場を探しています…</span>
-            </div>
-          ) : advice ? (
-            <p className="text-sm text-muted-foreground">{advice}</p>
-          ) : null}
-        </div>
-
-        {/* Recommendation cards */}
-        {!isLoadingRecs && recommendations.length > 0 && (
-          <div className="space-y-3">
-            {recommendations.map((rec) => (
+        {/* Onb-3: skeleton shimmer while loading / Onb-2: editorial header */}
+        {isLoadingRecs ? (
+          <div className="space-y-4">
+            {/* Skeleton shimmer — 3 cards with 180ms stagger */}
+            {[0, 1, 2].map((i) => (
               <div
-                key={rec.name}
-                className="rounded-xl border bg-card p-4 space-y-2"
+                key={i}
+                className="rounded-2xl border p-5 space-y-3 animate-pulse"
+                style={{
+                  borderColor: "color-mix(in oklab, var(--gold-warm) 15%, transparent)",
+                  animationDelay: `${i * 180}ms`,
+                }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-[family-name:var(--font-display)] font-medium text-foreground">{rec.name}</p>
-                    <p className="text-xs text-muted-foreground">{rec.location}</p>
-                  </div>
-                  {rec.estimatedPrice && (
-                    <p className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
-                      {Math.round(rec.estimatedPrice / 10000)}万円〜
-                    </p>
-                  )}
-                </div>
-                <p className="text-sm text-foreground/80">{rec.reason}</p>
-                {rec.strengths.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {rec.strengths.map((s) => (
-                      <span key={s} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  disabled={addingVenues.has(rec.name)}
-                  onClick={() => handleAddVenue(rec)}
-                >
-                  {addingVenues.has(rec.name) ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-1" />
-                      追加する
-                    </>
-                  )}
-                </Button>
+                <div className="h-5 w-3/4 rounded-full bg-muted" />
+                <div className="h-3 w-1/2 rounded-full bg-muted" />
+                <div className="h-3 w-full rounded-full bg-muted" />
+                <div className="h-9 w-full rounded-full bg-muted" />
               </div>
             ))}
           </div>
+        ) : (
+          <>
+            {/* Editorial AI insight header */}
+            <div
+              className="rounded-r-2xl border-l-[3px] p-4 space-y-2"
+              style={{
+                borderLeftColor: "var(--gold-warm)",
+                background: "color-mix(in oklab, var(--gold-subtle) 60%, var(--background))",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
+                <p className="text-eyebrow text-[var(--gold-warm)]">Haretoki Suggests</p>
+              </div>
+              {advice ? (
+                <p className="font-[family-name:var(--font-heading)] text-sm font-light leading-relaxed text-foreground">
+                  {advice}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Recommendation cards — editorial style */}
+            {recommendations.length > 0 ? (
+              <div className="space-y-3">
+                {recommendations.map((rec) => (
+                  <div
+                    key={rec.name}
+                    className="rounded-2xl border p-5 space-y-3"
+                    style={{
+                      background: "color-mix(in oklab, var(--gold-subtle) 30%, var(--card))",
+                      borderColor: "color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5">
+                        {/* Venue name in Noto Serif JP 19px */}
+                        <p className="font-[family-name:var(--font-heading)] text-[19px] font-light leading-snug text-foreground">
+                          {rec.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{rec.location}</p>
+                      </div>
+                      {rec.estimatedPrice && (
+                        <p className="font-[family-name:var(--font-heading)] text-[22px] font-extralight tabular-nums text-muted-foreground whitespace-nowrap">
+                          {Math.round(rec.estimatedPrice / 10000)}<span className="text-xs ml-0.5">万〜</span>
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-sm leading-relaxed text-foreground/80">{rec.reason}</p>
+                    {rec.strengths.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {rec.strengths.map((s) => (
+                          <span
+                            key={s}
+                            className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground"
+                            style={{
+                              background: "color-mix(in oklab, var(--gold-warm) 8%, var(--muted))",
+                            }}
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={addingVenues.has(rec.name)}
+                      onClick={() => handleAddVenue(rec)}
+                    >
+                      {addingVenues.has(rec.name) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-1" />
+                          気になるに追加する
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Onb-3: 0件フォールバック */
+              <div className="py-10 text-center space-y-2">
+                <p className="font-[family-name:var(--font-heading)] text-[15px] font-light text-foreground/70">
+                  ちょうど合う場所が、いまは見つかりませんでした。
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  条件を少し広げて、ふたりで探してみませんか。
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {/* Primary CTA: proceed to home. The cookie is already set by
@@ -393,7 +441,7 @@ export function OnboardingFlow() {
         className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center gap-10 px-4 py-10 text-center"
       >
         <div className="space-y-5">
-          <p className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
+          <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
             Haretoki
           </p>
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-extralight leading-snug tracking-[-0.005em] text-foreground">
@@ -420,7 +468,7 @@ export function OnboardingFlow() {
         <div className="w-full space-y-2 text-left">
           <label
             htmlFor="display-name"
-            className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground"
+            className="text-eyebrow text-muted-foreground"
           >
             お名前 (任意)
           </label>
@@ -432,7 +480,7 @@ export function OnboardingFlow() {
             maxLength={50}
             className="h-11"
           />
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             ホームや見学メモで呼びかけに使わせていただきます。あとで変更できます。
           </p>
         </div>
@@ -463,27 +511,16 @@ export function OnboardingFlow() {
     );
   }
 
+  const moods = ["cloudy", "break", "clear", "sunny"] as const;
+
   return (
-    <div className="mx-auto max-w-lg space-y-6 py-4">
-      {/* Progress — SkyChip が 曇り→晴れ間→晴れ→太陽 と段階的に進む */}
-      <div className="flex items-center gap-3">
-        <SkyChip
-          mood={
-            step === 0
-              ? "cloudy"
-              : step === 1
-                ? "break"
-                : step === 2
-                  ? "clear"
-                  : "sunny"
-          }
-          size={40}
-        />
+    <div className="mx-auto max-w-lg py-4">
+      {/* ── 上ゾーン: SkyChip + 進捗 1行 ── */}
+      <div className="flex items-center gap-3 mb-6">
+        <SkyChip mood={moods[step] ?? "sunny"} size={40} />
         <div className="flex-1 space-y-1.5">
-          <p className="flex items-center gap-2 text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground tabular-nums">
-            <span className="font-medium text-[var(--gold-warm)]">
-              {step + 1}
-            </span>
+          <p className="flex items-center gap-2 text-eyebrow text-muted-foreground tabular-nums">
+            <span className="font-medium text-[var(--gold-warm)]">{step + 1}</span>
             <span aria-hidden="true" className="opacity-30">/</span>
             <span>{QUESTIONS.length}</span>
           </p>
@@ -496,18 +533,57 @@ export function OnboardingFlow() {
         </div>
       </div>
 
-      {/* Chat history */}
-      <div className="space-y-3">
-        {chatHistory.map((msg, i) => (
-          <ChatBubble key={i} role={msg.role} content={msg.content} />
-        ))}
-      </div>
+      {/* ── 下ゾーン: 過去回答 <details> 畳み ── */}
+      {chatHistory.length > 0 && (
+        <details className="mb-5 group">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-eyebrow text-muted-foreground select-none">
+            <span className="transition-transform group-open:rotate-90">▶</span>
+            <span>これまでの回答 ({Math.floor(chatHistory.length / 2)}問)</span>
+          </summary>
+          <div className="mt-3 space-y-2 pl-4 border-l border-border/40">
+            {chatHistory.map((msg, i) => (
+              <p
+                key={i}
+                className={
+                  msg.role === "assistant"
+                    ? "text-xs text-muted-foreground"
+                    : "text-xs font-medium text-foreground"
+                }
+              >
+                {msg.role === "assistant" ? "Q: " : "A: "}{msg.content}
+              </p>
+            ))}
+          </div>
+        </details>
+      )}
 
-      {/* Current question */}
+      {/* ── 現在質問スポットライト ── */}
       {currentQ && (
-        <div className="space-y-4">
-          <ChatBubble role="assistant" content={currentQ.question} />
-          <p className="text-xs text-muted-foreground">{currentQ.subtitle}</p>
+        <div
+          className="rounded-2xl p-5 space-y-4"
+          style={{
+            background: "color-mix(in oklab, var(--gold-subtle) 50%, var(--background))",
+            border: "1px solid color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+          }}
+        >
+          {/* avatar-indented question bubble */}
+          <div className="flex gap-3">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{
+                background: "var(--gold-subtle)",
+                boxShadow: "0 1px 4px color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+              }}
+            >
+              <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
+            </div>
+            <div className="flex-1 space-y-1 pt-1">
+              <p className="font-[family-name:var(--font-heading)] text-[16px] font-normal leading-relaxed text-foreground">
+                {currentQ.question}
+              </p>
+              <p className="text-xs text-muted-foreground">{currentQ.subtitle}</p>
+            </div>
+          </div>
 
           {currentQ.type === "pills" && currentQ.options && (
             <PillOptions
@@ -515,7 +591,6 @@ export function OnboardingFlow() {
               selected={selectedPills}
               onToggle={(id) => {
                 if (currentQ.id === "budget") {
-                  // Single select for budget
                   setSelectedPills([id]);
                 } else {
                   setSelectedPills((prev) =>

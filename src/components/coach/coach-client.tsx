@@ -71,13 +71,13 @@ export function CoachClient({
           <SessionHistorySheet sessions={sessions} currentSessionId={sessionId} />
 
           <div className="min-w-0 flex-1 text-center">
-            <p className="flex flex-wrap items-center justify-center gap-1.5 text-[10.5px] tracking-[0.2em] uppercase text-muted-foreground">
+            <p className="flex flex-wrap items-center justify-center gap-1.5 text-eyebrow text-muted-foreground">
               <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
               <span aria-hidden="true" className="opacity-30">·</span>
               <span>Coach</span>
             </p>
             <h1
-              className="truncate font-[family-name:var(--font-display)] text-[14.5px] font-extralight tracking-[0.02em] text-foreground"
+              className="truncate font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[0.02em] leading-[1.35] text-foreground"
               title={title}
             >
               {title}

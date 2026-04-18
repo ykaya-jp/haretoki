@@ -7,6 +7,8 @@ import { Sparkles } from "lucide-react";
 interface ChatBubbleProps {
   role: "user" | "assistant";
   content: string;
+  /** Optional timestamp for assistant messages — displayed as HH:MM eyebrow */
+  timestamp?: Date;
 }
 
 function TypingDots() {
@@ -34,7 +36,7 @@ function TypingDots() {
   );
 }
 
-export function ChatBubble({ role, content }: ChatBubbleProps) {
+export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
   const showTyping = role === "assistant" && content.length === 0;
 
   return (
@@ -49,13 +51,28 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
           <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
         </div>
       )}
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
-          role === "user"
-            ? "rounded-br-sm bg-primary text-primary-foreground"
-            : "rounded-bl-sm border border-border/60 bg-card text-foreground"
+      <div className={cn("flex flex-col gap-1", role === "user" ? "items-end" : "items-start")}>
+        {/* Coach-2: meta info eyebrow for assistant messages */}
+        {role === "assistant" && (
+          <p className="text-eyebrow text-muted-foreground/60 px-1">
+            <span>coach</span>
+            {timestamp && (
+              <>
+                <span aria-hidden="true" className="mx-1 opacity-40">·</span>
+                <span className="tabular-nums normal-case tracking-normal">
+                  {timestamp.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </>
+            )}
+          </p>
         )}
+        <div
+          className={cn(
+            "max-w-[80%] rounded-2xl px-4 py-3 leading-relaxed whitespace-pre-wrap",
+            role === "user"
+              ? "rounded-br-sm bg-primary text-primary-foreground text-sm"
+              : "rounded-bl-sm border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_38%,var(--card))] font-[family-name:var(--font-heading)] text-[15px] font-light text-foreground"
+          )}
         // Announce streaming chunks to screen readers, but only on the
         // assistant's text container — NOT the whole bubble — so the
         // typing-dots → text swap doesn't get re-announced.
@@ -68,6 +85,7 @@ export function ChatBubble({ role, content }: ChatBubbleProps) {
           : {})}
       >
         {showTyping ? <TypingDots /> : content}
+        </div>
       </div>
     </motion.div>
   );

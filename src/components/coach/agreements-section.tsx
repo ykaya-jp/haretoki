@@ -130,12 +130,11 @@ export function AgreementsSection({ initialAgreements }: Props) {
   return (
     <section aria-label="ふたりの話し合い" className="space-y-3">
       <div className="flex items-baseline gap-2">
-        <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
+        <p className="text-eyebrow text-muted-foreground">
           Dialogue
         </p>
-        {/* Coach intra-card h2 — 外部 page の text-h1 (28px) とは別のローカル
-            スケール。Coach 画面内だけの section 見出しなので 15px extralight で統一。 */}
-        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+        {/* Coach intra-card h2 — Noto Serif JP at 15px (< 24px → use heading, not display) */}
+        <h2 className="font-[family-name:var(--font-heading)] text-[15px] font-normal tracking-wide text-foreground">
           ふたりの話し合い
         </h2>
       </div>
@@ -166,7 +165,7 @@ export function AgreementsSection({ initialAgreements }: Props) {
                     />
                   );
                 })()}
-                <span className="text-[10.5px] uppercase tracking-[0.08em] opacity-80">
+                <span className="text-eyebrow opacity-80">
                   {STATUS_LABEL[item.status]}
                 </span>
                 <span aria-hidden="true" className="opacity-30">·</span>
