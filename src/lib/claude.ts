@@ -13,9 +13,15 @@ export class ClaudeCreditsError extends Error {
 export async function askClaude(
   systemPrompt: string,
   userMessage: string,
+  options?: { maxTokens?: number; model?: string },
 ): Promise<string | null> {
   try {
-    return await askClaudeNew({ system: systemPrompt, userMessage });
+    return await askClaudeNew({
+      system: systemPrompt,
+      userMessage,
+      maxTokens: options?.maxTokens,
+      model: options?.model,
+    });
   } catch (err) {
     // Surface credit/billing errors so callers can show a specific message
     if (

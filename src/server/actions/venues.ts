@@ -19,6 +19,10 @@ import { captureServerEvent } from "@/lib/analytics/server";
 import { captureError } from "@/lib/sentry";
 import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
+import { deriveRelatedUrls } from "@/lib/url-import/domain-router";
+import { uploadVenuePhotoFromUrl } from "@/lib/supabase/storage";
+import { saveExtractedReviews } from "@/server/actions/reviews";
+import { VIBE_TAGS } from "@/lib/vibe-tags";
 
 // --- Helpers ---
 
@@ -421,6 +425,14 @@ export async function uploadVenuePhotos(
 
 // --- URL venue extraction (R1 only Claude API usage) ---
 
+export interface ExtractedIndividualReviewData {
+  title: string | null;
+  body: string;
+  rating: number | null;
+  author: string | null;
+  visitedAt: string | null;
+}
+
 interface ExtractedVenueData {
   name: string;
   location: string | null;
@@ -432,7 +444,17 @@ interface ExtractedVenueData {
   features: string[];
   photoUrls: string[];
   confidence: "high" | "medium" | "low";
+  costMin: number | null;
+  costMax: number | null;
+  paymentMethodEnums: ("credit_card" | "cash" | "bank_transfer" | "installment")[];
+  dressBringIn: "allowed" | "not_allowed" | "negotiable" | null;
+  dressBringInFee: number | null;
+  maxInstallments: number | null;
+  vibeTags: string[];
+  reviews: ExtractedIndividualReviewData[];
 }
+
+const VIBE_TAG_IDS = VIBE_TAGS.map((v) => v.id) as [string, ...string[]];
 
 const extractedVenueSchema = z.object({
   name: z.string().min(1).max(200),
@@ -443,13 +465,41 @@ const extractedVenueSchema = z.object({
   ceremonyStyles: z.array(z.string().max(50)).max(10),
   estimatedPrice: z.number().int().positive().nullable(),
   features: z.array(z.string().max(100)).max(20),
-  photoUrls: z.array(z.string().url().max(1000)).max(20),
+  photoUrls: z.array(z.string().url().max(1000)).max(30),
   confidence: z.enum(["high", "medium", "low"]),
+  costMin: z.number().int().positive().nullable().optional().default(null),
+  costMax: z.number().int().positive().nullable().optional().default(null),
+  paymentMethodEnums: z
+    .array(z.enum(["credit_card", "cash", "bank_transfer", "installment"]))
+    .max(4)
+    .optional()
+    .default([]),
+  dressBringIn: z
+    .enum(["allowed", "not_allowed", "negotiable"])
+    .nullable()
+    .optional()
+    .default(null),
+  dressBringInFee: z.number().int().nonnegative().nullable().optional().default(null),
+  maxInstallments: z.number().int().positive().nullable().optional().default(null),
+  vibeTags: z.array(z.enum(VIBE_TAG_IDS)).max(8).optional().default([]),
+  reviews: z
+    .array(
+      z.object({
+        title: z.string().max(200).nullable(),
+        body: z.string().min(10).max(3000),
+        rating: z.number().min(1).max(5).nullable(),
+        author: z.string().max(50).nullable(),
+        visitedAt: z.string().max(50).nullable(),
+      }),
+    )
+    .max(8)
+    .optional()
+    .default([]),
 });
 
 const URL_EXTRACTION_SYSTEM_PROMPT = `You are an expert at extracting structured wedding venue information from Japanese web page content.
 
-Given raw HTML text content from a wedding venue page (Zexy, Wedding Park, Hanayume, Mynavi, etc.), extract the following information.
+You will receive multiple related sub-pages of the same venue concatenated as labelled sections (DETAIL / PHOTOS / REVIEWS / PLANS). Merge information across them and extract the following.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {
@@ -459,27 +509,48 @@ Return ONLY valid JSON (no markdown, no code fences):
   "capacityMin": <number or null>,
   "capacityMax": <number or null>,
   "ceremonyStyles": ["チャペル" | "神前" | "人前" | "ガーデン"],
-  "estimatedPrice": <estimated total in yen or null>,
-  "features": ["<feature1>", "<feature2>"],
-  "photoUrls": ["<url1>", "<url2>"],
-  "confidence": "high" | "medium" | "low"
+  "estimatedPrice": <rough total in yen or null>,
+  "features": ["<short feature label>", ...],
+  "photoUrls": ["<url1>", "<url2>", ... up to 20],
+  "confidence": "high" | "medium" | "low",
+  "costMin": <yen int or null>,
+  "costMax": <yen int or null>,
+  "paymentMethodEnums": ["credit_card" | "cash" | "bank_transfer" | "installment"],
+  "dressBringIn": "allowed" | "not_allowed" | "negotiable" | null,
+  "dressBringInFee": <yen int or null>,
+  "maxInstallments": <payment installment count or null>,
+  "vibeTags": ["natural_light"|"garden"|"glass"|"private_floor"|"historic"|"rooftop"|"chapel"|"riverside"|"modern"|"classical"],
+  "reviews": [
+    {
+      "title": "<review headline or null>",
+      "body": "<200-500 字程度に要約した感想 (原文の丸写しはしない)>",
+      "rating": <1-5 number or null>,
+      "author": "<handle name only, no PII>",
+      "visitedAt": "<e.g. 2024年5月 or null>"
+    }
+  ]
 }
 
 Guidelines:
-- If a field cannot be determined, use null (not empty string)
-- For price, look for "見積もり例", "お見積り", "挙式+披露宴" patterns
-- For capacity, look for "着席" followed by number
-- For ceremony styles, map to the enum values above
-- photoUrls: prefer large venue/ceremony photos, skip thumbnails and icons
-- confidence: "high" if major fields found, "medium" if some missing, "low" if minimal data
+- Use null (not empty string) when a field cannot be determined.
+- costMin / costMax: parse 見積もり例 / 挙式+披露宴 / 総額 / 参考費用 patterns. Convert "300万円" → 3000000. If only one value is visible put it in both costMin and costMax.
+- paymentMethodEnums: map "クレジットカード" → credit_card, "現金" → cash, "銀行振込" → bank_transfer, "分割" / "ローン" → installment.
+- dressBringIn: "持ち込み可" → allowed, "持ち込み不可" → not_allowed, "要相談" / "応相談" → negotiable.
+- dressBringInFee: fee in yen when dressBringIn=allowed with charge.
+- maxInstallments: payment installment max count when explicitly stated.
+- vibeTags: pick tags that clearly match from visible photo descriptions + body copy. Emit the enum id, not the Japanese label. Max 5.
+- ceremonyStyles: enum values チャペル / 神前 / 人前 / ガーデン.
+- photoUrls: prefer large venue/ceremony/reception/chapel hero images. Skip thumbnails, icons, avatars, and marketing banners. Absolute URLs only.
+- confidence: "high" if most core fields are present, "medium" if some missing, "low" if minimal.
+- reviews: 3-8 件ていど。必ず Japanese で要約すること。原文の長文コピペは NG — 200-500 字程度の要約に書き直す。出典 URL は呼び出し側で付与するのでここでは不要。複数ページの重複する口コミは 1 件にまとめる。author はハンドル名のみ、本名や電話番号など PII を含めてはいけない。
 
 Note: The input may include OGP (og:title / og:description / og:image), Twitter Cards,
-and JSON-LD (Schema.org Venue / LocalBusiness / Organization / Event) blocks in
+and JSON-LD (Schema.org Venue / LocalBusiness / Organization / Event / Review) blocks in
 addition to (or instead of) the main body text. Many Japanese wedding sites (e.g. Zexy)
 are SPAs that leave the visible body empty server-side but populate these structured
 fields for SEO. Treat OGP/JSON-LD as primary sources when they are present — the
-"name", "address", "image", "telephone", "geo" fields from JSON-LD and the og:title /
-og:description values are usually the most reliable signals.`;
+"name", "address", "image", "telephone", "geo", "review", "aggregateRating" fields from
+JSON-LD and og:title / og:description are usually the most reliable signals.`;
 
 /**
  * Strip optional ```json ... ``` markdown fences that Claude sometimes wraps JSON in,
@@ -489,6 +560,61 @@ og:description values are usually the most reliable signals.`;
 function extractJson(s: string): string {
   const match = s.match(/```(?:json)?\s*([\s\S]*?)```/);
   return match ? match[1].trim() : s.trim();
+}
+
+/**
+ * Fetch a single page and return its extracted metadata + body excerpt.
+ * Returns null on any non-2xx / network / timeout failure so the caller can
+ * gracefully degrade (the detail page is retried as a hard error elsewhere).
+ */
+async function fetchPageForExtraction(
+  targetUrl: string,
+  referer: string,
+): Promise<{
+  html: string;
+  metadata: ReturnType<typeof extractMetadata>;
+  textContent: string;
+  hadUsefulSignal: boolean;
+} | null> {
+  try {
+    const guard = guardExternalUrl(targetUrl);
+    if (!guard.ok) return null;
+    const response = await fetch(targetUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        DNT: "1",
+        Referer: referer,
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) {
+      console.warn("[fetchPageForExtraction] non-2xx:", {
+        url: targetUrl,
+        status: response.status,
+      });
+      return null;
+    }
+    const html = await response.text();
+    const metadata = extractMetadata(html);
+    const textContent = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const hadUsefulSignal = hasUsefulMetadata(metadata) || textContent.length >= 500;
+    return { html, metadata, textContent, hadUsefulSignal };
+  } catch (err) {
+    console.warn("[fetchPageForExtraction] fetch failed:", {
+      url: targetUrl,
+      error: err instanceof Error ? err.message : err,
+    });
+    return null;
+  }
 }
 
 export async function addVenueFromUrl(url: string): Promise<{
@@ -511,54 +637,43 @@ export async function addVenueFromUrl(url: string): Promise<{
   }
 
   try {
-    // Use a realistic modern Chrome UA — upstream venue sites (especially Zexy)
-    // serve a bot-challenge / 403 page to the generic "Haretoki/1.0" UA.
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-        "Cache-Control": "no-cache",
-        DNT: "1",
-        Referer: "https://zexy.net/",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
+    // Derive related sub-pages (photos / reviews / plans) so we can merge
+    // multi-page context before handing to Claude. Unknown domains fall back
+    // to detail-only, preserving the pre-existing single-URL behaviour.
+    let related: ReturnType<typeof deriveRelatedUrls>;
+    try {
+      related = deriveRelatedUrls(url);
+    } catch {
+      return { error: "有効な URL を入力してください" };
+    }
 
-    if (!response.ok) {
-      console.error("addVenueFromUrl non-2xx:", { url, status: response.status });
+    const origin = new URL(related.detail).origin;
+    const targets: Array<{ key: "DETAIL" | "PHOTOS" | "REVIEWS" | "PLANS"; url: string }> = [
+      { key: "DETAIL", url: related.detail },
+    ];
+    if (related.photos) targets.push({ key: "PHOTOS", url: related.photos });
+    if (related.reviews) targets.push({ key: "REVIEWS", url: related.reviews });
+    if (related.plans) targets.push({ key: "PLANS", url: related.plans });
+
+    const fetched = await limitedAll(targets, 4, (t) =>
+      fetchPageForExtraction(t.url, `${origin}/`),
+    );
+
+    const detailPage = fetched[0];
+    if (!detailPage) {
+      console.error("addVenueFromUrl detail fetch failed:", { url });
       return {
-        error: `ページを開けませんでした (HTTP ${response.status})。URL を見直すか、手動で入力してみてください。`,
+        error: `ページを開けませんでした。URL を見直すか、手動で入力してみてください。`,
       };
     }
 
-    const html = await response.text();
+    const detailBodyShort = detailPage.textContent.length < 500;
+    const detailMetadataUseful = hasUsefulMetadata(detailPage.metadata);
 
-    // Extract structured metadata (OGP / JSON-LD / Twitter / <title>) BEFORE the
-    // body-stripping empty-check. SPA sites like Zexy leave the rendered body near-empty
-    // but still populate these SEO signals — they often contain the venue name,
-    // description, hero image, and even Schema.org Venue/LocalBusiness blobs.
-    const metadata = extractMetadata(html);
-
-    // Strip scripts, styles, and tags for the fallback body excerpt.
-    const textContent = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const bodyIsShort = textContent.length < 500;
-    const metadataIsUseful = hasUsefulMetadata(metadata);
-    const usingMetadataPath = bodyIsShort || metadataIsUseful;
-
-    // Only abort when BOTH the rendered body is empty AND no structured metadata
-    // exists. Pre-fix, short body alone aborted — which made every Zexy URL fail.
-    if (bodyIsShort && !metadataIsUseful) {
+    if (detailBodyShort && !detailMetadataUseful) {
       console.error("addVenueFromUrl empty HTML and no metadata:", {
         url,
-        textLength: textContent.length,
+        textLength: detailPage.textContent.length,
       });
       return {
         error:
@@ -566,13 +681,29 @@ export async function addVenueFromUrl(url: string): Promise<{
       };
     }
 
-    // Build the prompt payload. When metadata is available (always, for modern SPAs)
-    // prefer the structured blob; fall back to raw body text when we have a full page.
-    const prompt = usingMetadataPath
-      ? buildMetadataPrompt(url, metadata, textContent)
-      : `以下はURL ${url} から取得したウェブページの内容です。結婚式場の情報を構造化データとして抽出してください:\n\n${textContent.slice(0, 30000)}`;
+    // Build multi-section prompt: DETAIL section first, then any successful
+    // sub-pages. Each section caps body at 5000 chars. JSON-LD blobs keep
+    // their original cap inside buildMetadataPrompt.
+    const sections: string[] = [];
+    targets.forEach((t, i) => {
+      const page = fetched[i];
+      if (!page) {
+        sections.push(`=== ${t.key} (${t.url}) ===\n(fetch failed)`);
+        return;
+      }
+      sections.push(
+        `=== ${t.key} (${t.url}) ===\n` +
+          buildMetadataPrompt(t.url, page.metadata, page.textContent.slice(0, 5000)),
+      );
+    });
 
-    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt);
+    const prompt =
+      `以下は同じ結婚式場の複数ページを連結した内容です。重複はまとめ、可能な限り情報を抽出してください。\n\n` +
+      sections.join("\n\n");
+
+    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
+      maxTokens: 4096,
+    });
 
     if (!claudeResponse) {
       return { error: "AI がうまく読めませんでした。手動で入力してみてください。" };
@@ -607,7 +738,7 @@ export async function addVenueFromUrl(url: string): Promise<{
     // When the rendered body was empty, we only saw OGP/JSON-LD. Surface a warning
     // so the UI can nudge the user to verify or complete missing fields manually.
     const warning =
-      bodyIsShort && metadataIsUseful
+      detailBodyShort && detailMetadataUseful
         ? "部分的な情報のみ読み取れました。手動で補完してください。"
         : undefined;
 
@@ -647,6 +778,23 @@ export async function confirmVenueFromUrl(
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
+  // Dedupe + cap raw photo URLs before upload. External sites sometimes list
+  // the same hero image across detail / photos pages — drop duplicates so
+  // we don't waste upload slots.
+  const uniquePhotoUrls = Array.from(new Set(parsed.data.photoUrls)).slice(0, 15);
+
+  // Download external photos and re-upload to our Supabase bucket. Failures
+  // are logged but never block venue creation — the user can always add
+  // photos manually later.
+  let origin: string | undefined;
+  try {
+    origin = new URL(sourceUrl).origin;
+  } catch {
+    origin = undefined;
+  }
+
+  // Create the venue first with an empty photoUrls so we have an id to
+  // scope upload paths to. We then patch photoUrls once uploads finish.
   const venue = await prisma.venue.create({
     data: {
       projectId,
@@ -657,16 +805,59 @@ export async function confirmVenueFromUrl(
       capacityMax: parsed.data.capacityMax,
       ceremonyStyles: parsed.data.ceremonyStyles,
       sourceUrls: [sourceUrl],
-      photoUrls: parsed.data.photoUrls,
+      photoUrls: [],
+      costMin: parsed.data.costMin,
+      costMax: parsed.data.costMax,
+      paymentMethodEnums: parsed.data.paymentMethodEnums,
+      dressBringIn: parsed.data.dressBringIn,
+      dressBringInFee: parsed.data.dressBringInFee,
+      maxInstallments: parsed.data.maxInstallments,
+      vibeTags: parsed.data.vibeTags,
     },
   });
+
+  let uploadedPhotoUrls: string[] = [];
+  if (uniquePhotoUrls.length > 0) {
+    const uploadResults = await limitedAll(uniquePhotoUrls, 3, async (src) => {
+      try {
+        const stored = await uploadVenuePhotoFromUrl(src, projectId, venue.id, origin);
+        return stored;
+      } catch (err) {
+        console.warn("[confirmVenueFromUrl] photo upload skipped:", {
+          src,
+          error: err instanceof Error ? err.message : err,
+        });
+        return null;
+      }
+    });
+    uploadedPhotoUrls = uploadResults.filter((u): u is string => typeof u === "string");
+
+    if (uploadedPhotoUrls.length > 0) {
+      await prisma.venue.update({
+        where: { id: venue.id },
+        data: { photoUrls: uploadedPhotoUrls },
+      });
+    }
+  }
+
+  // Persist individual reviews synchronously (small DB batch, <500ms).
+  const reviewSource = reviewSourceFromUrl(sourceUrl);
+  if (reviewSource && parsed.data.reviews.length > 0) {
+    try {
+      await saveExtractedReviews(venue.id, parsed.data.reviews, sourceUrl, reviewSource);
+    } catch (err) {
+      console.warn("[confirmVenueFromUrl] saveExtractedReviews failed:", err);
+    }
+  }
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
+  revalidatePath(`/venues/${venue.id}`);
 
-  // After venue creation, trigger review collection (fire-and-forget)
-  const reviewSource = reviewSourceFromUrl(sourceUrl);
+  // After venue creation, trigger aggregate review summary (fire-and-forget).
+  // This runs in parallel with individual reviews we already saved and
+  // produces a single aiSummary row under the base sourceUrl (no fragment).
   if (reviewSource) {
     import("@/server/actions/reviews")
       .then(({ analyzeVenueReviews }) =>
@@ -677,7 +868,13 @@ export async function confirmVenueFromUrl(
       });
   }
 
-  return { success: true as const, venue };
+  return {
+    success: true as const,
+    venue: { ...venue, photoUrls: uploadedPhotoUrls },
+    photoUploadedCount: uploadedPhotoUrls.length,
+    photoRequestedCount: uniquePhotoUrls.length,
+    individualReviewCount: parsed.data.reviews.length,
+  };
 }
 
 /**
