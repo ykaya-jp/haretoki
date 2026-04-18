@@ -45,7 +45,7 @@ export const RITUAL_PROMPT = {
   "headline": "明朝で美しい一文 (20-40 字, 句点含む)",
   "mood": "補足 1 行 (〜60 字)。今日のコンテキストに具体的に触れる",
   "ctaLabel": "短い動詞 (〜8 字)",
-  "ctaHref": "相対パス (/explore /candidates /coach /home/insights 等)"
+  "ctaHref": "相対パス — 次のどれか: /explore /candidates /candidates/duel /coach /journey /checklist /compare /mypage /mypage/saved-searches /home"
 }
 
 ## トーン
@@ -112,6 +112,26 @@ export const RITUAL_PROMPT = {
 const VALID_WEATHER: Weather[] = ["cloudy", "break", "clear", "sunny"];
 
 /**
+ * Allowed CTA paths — AI must not be trusted to invent routes, so any
+ * href not in this allowlist is discarded (parser returns ctaHref=null).
+ * Keep in sync with `src/app/(app)/**` when new authenticated routes land.
+ */
+const ALLOWED_CTA_HREFS = new Set<string>([
+  "/home",
+  "/explore",
+  "/candidates",
+  "/candidates/duel",
+  "/coach",
+  "/journey",
+  "/checklist",
+  "/compare",
+  "/mypage",
+  "/mypage/saved-searches",
+  "/notifications",
+  "/settings",
+]);
+
+/**
  * Defensive parser. Accepts the Claude raw response, strips ``` fences,
  * validates required fields, and clamps lengths.
  */
@@ -150,8 +170,12 @@ export function parseRitualOutput(raw: string): RitualOutput | null {
       : null;
   const ctaHrefRaw =
     typeof obj.ctaHref === "string" ? obj.ctaHref.trim() : "";
+  // Drop query / hash so "/coach?x=1" still matches the allowlist.
+  const ctaHrefBase = ctaHrefRaw.split(/[?#]/)[0];
   const ctaHref =
-    ctaHrefRaw.startsWith("/") && !ctaHrefRaw.startsWith("//")
+    ctaHrefBase.startsWith("/") &&
+    !ctaHrefBase.startsWith("//") &&
+    ALLOWED_CTA_HREFS.has(ctaHrefBase)
       ? ctaHrefRaw
       : null;
 

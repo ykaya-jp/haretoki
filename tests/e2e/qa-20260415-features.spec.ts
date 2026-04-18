@@ -27,7 +27,7 @@ dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const BASE = "http://localhost:3000";
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const SCREENSHOT_DIR = "/tmp/haretoki-qa";
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });

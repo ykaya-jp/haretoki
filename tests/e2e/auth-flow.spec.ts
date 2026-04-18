@@ -73,8 +73,12 @@ test.describe("Auth Pages — Design Quality", () => {
     // Next 16 App Router soft-nav + cacheComponents may briefly keep the
     // previous /signup form in the DOM. Scope assertions to the visible
     // login page via headings + role-based lookups rather than raw #email.
+    // Mobile layout shows h2 "ログイン", desktop shows h1/h2 "おかえりなさい" —
+    // accept either so the same test guards both breakpoints.
     await expect(
-      page.getByRole("heading", { name: "ログイン" }),
+      page
+        .getByRole("heading", { name: /ログイン|おかえりなさい/ })
+        .first(),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "ログイン", exact: true }),
