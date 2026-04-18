@@ -100,7 +100,7 @@ export function HeroNBA(props: HeroNBAProps) {
             )}
             style={{
               boxShadow:
-                "0 1px 2px rgba(42,35,32,0.08), 0 8px 24px color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+                "0 1px 2px rgba(42,35,32,0.08), 0 8px 24px color-mix(in oklab, var(--primary) 18%, transparent)",
             }}
           >
             {nba.primaryLabel}

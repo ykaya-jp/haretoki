@@ -64,7 +64,7 @@ async function SavedSearchCard({
         <Bookmark className="h-4 w-4 text-[color-mix(in_oklab,var(--gold-warm)_70%,var(--muted-foreground))]" strokeWidth={1.6} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-[family-name:var(--font-display)] font-extralight text-base leading-snug tracking-wide">
+        <p className="font-[family-name:var(--font-display)] font-light text-base leading-snug tracking-wide">
           {label}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
@@ -105,7 +105,7 @@ export default async function SavedSearchesPage() {
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Saved</span>
         </p>
-        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
           保存した検索条件
         </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">

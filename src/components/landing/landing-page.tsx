@@ -134,7 +134,7 @@ export function LandingPage() {
           <motion.h1
             custom={1}
             variants={fadeUp}
-            className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,5vw,3.5rem)] font-extralight leading-[1.2] tracking-[-0.015em] text-foreground"
+            className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,5vw,3.5rem)] font-light leading-[1.2] tracking-[-0.015em] text-foreground"
           >
             その直感、
             <br />

@@ -49,7 +49,7 @@ export function ChecklistStarterCTA() {
         </p>
       </div>
 
-      <h2 className="mt-3 font-[family-name:var(--font-display)] text-[22px] font-extralight leading-[1.3] tracking-[-0.005em] text-foreground">
+      <h2 className="mt-3 font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.3] tracking-[-0.005em] text-foreground">
         比べたい観点を、<br />
         ふたりで決める。
       </h2>

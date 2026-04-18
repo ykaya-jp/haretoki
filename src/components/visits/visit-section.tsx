@@ -126,7 +126,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
           <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
             Visit
           </p>
-          <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em]">
+          <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em]">
             見学のきろく
           </h2>
         </div>

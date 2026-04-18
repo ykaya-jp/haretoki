@@ -76,7 +76,7 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
       </SheetTrigger>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader className="pb-2">
-          <SheetTitle className="font-[family-name:var(--font-display)] font-extralight text-xl tracking-wide">
+          <SheetTitle className="font-[family-name:var(--font-display)] font-light text-xl tracking-wide">
             検索条件を保存
           </SheetTitle>
         </SheetHeader>

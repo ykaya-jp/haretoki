@@ -41,7 +41,7 @@ export default async function JourneyPage() {
         </p>
 
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-[26px] font-extralight leading-[1.22] tracking-[-0.01em] text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-[26px] font-light leading-[1.22] tracking-[-0.01em] text-foreground">
             晴れまでの道
           </h1>
           <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">

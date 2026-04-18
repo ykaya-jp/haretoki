@@ -27,7 +27,7 @@ export async function CoupleGapSection() {
             Couple Gap
           </p>
         </div>
-        <h2 className="font-[family-name:var(--font-display)] text-[17px] font-extralight leading-snug tracking-[0.01em]">
+        <h2 className="font-[family-name:var(--font-display)] text-[17px] font-light leading-snug tracking-[0.01em]">
           ふたりの温度
         </h2>
       </header>

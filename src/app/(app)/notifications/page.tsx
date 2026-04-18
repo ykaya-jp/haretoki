@@ -34,7 +34,7 @@ export default async function NotificationsPage() {
               <span aria-hidden="true" className="opacity-30">·</span>
               <span>Inbox</span>
             </p>
-            <h1 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+            <h1 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-light tracking-[-0.01em]">
               通知
             </h1>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">

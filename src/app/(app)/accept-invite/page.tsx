@@ -28,7 +28,7 @@ async function AcceptInviteContent() {
           }}
         />
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.01em]">
+          <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light tracking-[0.01em]">
             ふたりの式場さがしに、招待が届いています
           </h1>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">

@@ -86,25 +86,19 @@ export default async function HomePage() {
 
       <RecentVenues venues={homeData.recentVenues} />
 
-      {/* Journey note — editorial hairline + eyebrow + link, not a floating CTA */}
-      <div
-        className="rounded-xl px-4 py-3"
-        style={{
-          borderLeft: "2px solid var(--gold-warm)",
-          background:
-            "color-mix(in oklab, var(--gold-warm) 5%, var(--background))",
-        }}
-      >
+      {/* Journey note — editorial hairline + eyebrow + link, not a floating CTA.
+          Viz Phase 1: gold border/背景を外して余白とタイポで区切る。 */}
+      <div className="border-l border-border/60 pl-4 py-2">
         <p className="mb-1 text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
-          HARETOKI · Journey
+          Journey
         </p>
         <Link
           href="/journey"
           prefetch={true}
-          className="inline-flex min-h-[44px] items-center gap-1.5 font-[family-name:var(--font-display)] text-[14px] font-extralight text-foreground underline-offset-4 hover:text-[var(--gold-warm)] hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1.5 font-[family-name:var(--font-display)] text-[14px] font-light text-foreground underline-offset-4 hover:underline"
         >
           晴れまでの道
-          <span aria-hidden="true" className="text-[var(--gold-warm)]">→</span>
+          <span aria-hidden="true" className="text-muted-foreground">→</span>
         </Link>
         <p className="mt-0.5 text-[12px] text-muted-foreground">
           ふたりの歩みを、一筋の道に。

@@ -80,7 +80,7 @@ export function InviteLinkPanel({ initialLink }: InviteLinkPanelProps) {
         </p>
       </div>
 
-      <h3 className="mt-2 font-[family-name:var(--font-display)] text-[17px] font-extralight tracking-[0.01em]">
+      <h3 className="mt-2 font-[family-name:var(--font-display)] text-[17px] font-light tracking-[0.01em]">
         パートナーに、リンクを送る
       </h3>
       <p className="mt-1.5 text-[12px] text-muted-foreground leading-relaxed">

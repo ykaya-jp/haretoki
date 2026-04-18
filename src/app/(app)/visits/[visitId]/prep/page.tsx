@@ -54,7 +54,7 @@ export default async function VisitPrepPage({ params }: PageProps) {
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Prep</span>
         </p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-[24px] font-extralight leading-[1.35] tracking-[-0.005em]">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-[24px] font-light leading-[1.35] tracking-[-0.005em]">
           {data.venueName}、これだけは聞いて
         </h1>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">

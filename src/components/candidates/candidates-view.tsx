@@ -174,7 +174,7 @@ export function CandidatesView({
         <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           Three steps, gently
         </p>
-        <p className="font-[family-name:var(--font-display)] text-[15px] font-extralight leading-relaxed tracking-[0.01em] text-muted-foreground">
+        <p className="font-[family-name:var(--font-display)] text-[15px] font-light leading-relaxed tracking-[0.01em] text-muted-foreground">
           集める → 並べる → 決める
         </p>
       </div>

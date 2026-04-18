@@ -96,7 +96,7 @@ export function DuelClient({ venueA, venueB }: DuelClientProps) {
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             情景で決める
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-[17px] font-extralight leading-snug">
+          <h1 className="font-[family-name:var(--font-display)] text-[17px] font-light leading-snug">
             どちらの晴れの日か
           </h1>
         </div>
@@ -137,7 +137,7 @@ export function DuelClient({ venueA, venueB }: DuelClientProps) {
           }}
         />
         <p
-          className="font-[family-name:var(--font-display)] text-[21px] font-extralight leading-[1.65] tracking-[0.01em] text-foreground"
+          className="font-[family-name:var(--font-display)] text-[21px] font-light leading-[1.65] tracking-[0.01em] text-foreground"
           key={scene.id}
         >
           {scene.moment}
@@ -295,7 +295,7 @@ function ResultView({
           <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             情景で決める
           </p>
-          <p className="font-[family-name:var(--font-display)] text-[17px] font-extralight">
+          <p className="font-[family-name:var(--font-display)] text-[17px] font-light">
             結果
           </p>
         </div>
@@ -335,7 +335,7 @@ function DrawResult({
       {/* 両会場のサムネイル */}
       <div className="flex items-center gap-3">
         <VenueThumb venue={venueA} size="md" />
-        <span className="font-[family-name:var(--font-display)] text-xl font-extralight text-muted-foreground">
+        <span className="font-[family-name:var(--font-display)] text-xl font-light text-muted-foreground">
           =
         </span>
         <VenueThumb venue={venueB} size="md" />
@@ -348,7 +348,7 @@ function DrawResult({
             "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 8%, var(--background)) 0%, color-mix(in oklab, var(--primary) 5%, var(--background)) 100%)",
         }}
       >
-        <p className="font-[family-name:var(--font-display)] text-[20px] font-extralight leading-snug">
+        <p className="font-[family-name:var(--font-display)] text-[20px] font-light leading-snug">
           ふたりとも甲乙つけがたい
         </p>
         <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">

@@ -15,7 +15,7 @@ export default function TermsPage() {
       >
         ← Haretoki
       </Link>
-      <h1 className="mt-4 font-[family-name:var(--font-display)] text-[28px] font-extralight tracking-[0.01em]">
+      <h1 className="mt-4 font-[family-name:var(--font-display)] text-[28px] font-light tracking-[0.01em]">
         利用規約
       </h1>
       <p className="mt-1 text-[12px] text-muted-foreground">

@@ -51,13 +51,13 @@ export function DailyRitual({ ritual, todayLabel, timeOfDayLabel }: DailyRitualP
             <span aria-hidden="true" className="opacity-30">
               ·
             </span>
-            <span className="normal-case tracking-normal text-[12px] text-[var(--gold-warm)]">
+            <span className="normal-case tracking-normal text-[12px] text-foreground">
               {weatherLabel(ritual.weather)}
             </span>
           </p>
 
           <h1
-            className="mt-3 font-[family-name:var(--font-display)] text-fluid-3xl font-extralight leading-[1.22] tracking-[-0.005em] text-foreground"
+            className="mt-3 font-[family-name:var(--font-display)] text-fluid-3xl font-light leading-[1.22] tracking-[-0.005em] text-foreground"
           >
             {ritual.headline}
           </h1>
@@ -77,7 +77,7 @@ export function DailyRitual({ ritual, todayLabel, timeOfDayLabel }: DailyRitualP
           href={ritual.ctaHref}
           prefetch={true}
           onClick={() => void markRitualActed()}
-          className="mt-5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[var(--gold-warm)] transition-opacity hover:opacity-80 underline-offset-4 hover:underline"
+          className="mt-5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[var(--primary)] transition-opacity hover:opacity-80 underline-offset-4 hover:underline"
         >
           {ritual.ctaLabel}
           <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
@@ -93,16 +93,9 @@ export function DailyRitual({ ritual, todayLabel, timeOfDayLabel }: DailyRitualP
         </p>
       )}
 
-      {/* Editorial hairline — gold が左右にフェードする細い罫線。magazine 的な
-          余白のリズムをつくる。次のブロックとの呼吸を保つため mt を控えめに。*/}
-      <div
-        aria-hidden="true"
-        className="mt-6 h-px w-full"
-        style={{
-          background:
-            "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 30%, transparent) 35%, color-mix(in oklab, var(--gold-warm) 30%, transparent) 65%, transparent 100%)",
-        }}
-      />
+      {/* Editorial hairline — Viz Phase 1: gold から中性 border に。magazine
+          的な余白のリズムをタイポと space で担保する方針へ移行。*/}
+      <div aria-hidden="true" className="mt-6 h-px w-full bg-border/60" />
     </motion.section>
   );
 }

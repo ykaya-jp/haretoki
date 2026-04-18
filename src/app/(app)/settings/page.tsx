@@ -25,7 +25,7 @@ export default async function SettingsPage() {
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Settings</span>
         </p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-h1 font-light tracking-[-0.01em]">
           整える
         </h1>
       </div>
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Theme
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             見た目
           </h3>
         </div>
@@ -57,7 +57,7 @@ export default async function SettingsPage() {
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Data
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
             記録の管理
           </h3>
         </div>

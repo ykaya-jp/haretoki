@@ -50,7 +50,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>{isRecentView ? "Recent" : "Candidates"}</span>
         </p>
-        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-extralight tracking-[-0.01em]">
+        <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
           {isRecentView ? "最近見た式場" : "候補"}
         </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">

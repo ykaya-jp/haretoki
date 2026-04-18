@@ -60,7 +60,7 @@ export default async function ChecklistPage() {
           <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
             何を比べるか、決める
           </p>
-          <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-[22px] font-extralight tracking-[0.01em]">
+          <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-[22px] font-light tracking-[0.01em]">
             チェックリスト設定
           </h1>
         </div>

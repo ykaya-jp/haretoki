@@ -263,7 +263,7 @@ export function DecisionMatrix() {
           <p className="text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
             並べて、見比べる
           </p>
-          <h3 className="font-[family-name:var(--font-display)] text-[19px] font-extralight tracking-[0.01em] text-foreground">
+          <h3 className="font-[family-name:var(--font-display)] text-[19px] font-light tracking-[0.01em] text-foreground">
             決定マトリクス
           </h3>
           <p className="text-[11.5px] text-muted-foreground leading-relaxed">
@@ -507,7 +507,7 @@ export function DecisionMatrix() {
                     <Link
                       href={`/venues/${v.id}`}
                       prefetch={true}
-                      className="block font-[family-name:var(--font-display)] text-xs font-extralight tracking-[-0.005em] leading-tight truncate max-w-[100px] hover:underline"
+                      className="block font-[family-name:var(--font-display)] text-xs font-light tracking-[-0.005em] leading-tight truncate max-w-[100px] hover:underline"
                     >
                       {v.name}
                     </Link>

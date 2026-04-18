@@ -152,7 +152,7 @@ export function ComparisonMatrixView({ matrix }: ComparisonMatrixViewProps) {
                   ) : (
                     <div className="h-[54px] w-[72px] rounded-lg bg-muted" />
                   )}
-                  <p className="line-clamp-2 text-center font-[family-name:var(--font-display)] text-[13px] font-extralight leading-snug">
+                  <p className="line-clamp-2 text-center font-[family-name:var(--font-display)] text-[13px] font-light leading-snug">
                     {venue.name}
                   </p>
                   {overallScore !== undefined && (

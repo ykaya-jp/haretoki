@@ -49,10 +49,10 @@ export function AIInsightCard({
       )}
     >
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold-warm)]/10">
-          <Sparkles aria-hidden="true" className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
-        </div>
-        <h3 className="text-eyebrow text-[var(--gold-warm)]">
+        {/* Sparkles icon = AI signifier. Viz Phase 1 で唯一残す gold 点。
+            背景ラウンド bubble と title の gold は削除して 1 点に絞る。 */}
+        <Sparkles aria-hidden="true" className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
+        <h3 className="text-eyebrow text-foreground">
           {isAging ? "少し前の気づき" : title}
         </h3>
       </div>

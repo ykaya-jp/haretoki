@@ -61,7 +61,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
         <p
           className={[
             "font-[family-name:var(--font-display)] text-base leading-snug tracking-wide",
-            notification.read ? "font-extralight" : "font-light",
+            notification.read ? "font-light" : "font-light",
           ].join(" ")}
         >
           {notification.title}

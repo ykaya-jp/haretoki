@@ -71,7 +71,7 @@ export function VisitQuestionsList({ questions: initial }: VisitQuestionsListPro
 
       {Object.entries(grouped).map(([category, items]) => (
         <section key={category} className="space-y-2">
-          <h2 className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-[-0.005em] text-foreground">
+          <h2 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em] text-foreground">
             {category}
           </h2>
           <ul className="space-y-1.5">

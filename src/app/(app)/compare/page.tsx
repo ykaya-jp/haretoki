@@ -49,10 +49,10 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
         {/* h1: editorial 2-line 明朝 */}
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-extralight leading-[1.2] tracking-[-0.01em]">
+          <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-light leading-[1.2] tracking-[-0.01em]">
             Compare
           </h1>
-          <p className="mt-0.5 font-[family-name:var(--font-display)] text-[clamp(14px,3.5vw,17px)] font-extralight leading-relaxed tracking-[0.01em] text-muted-foreground">
+          <p className="mt-0.5 font-[family-name:var(--font-display)] text-[clamp(14px,3.5vw,17px)] font-light leading-relaxed tracking-[0.01em] text-muted-foreground">
             ふたつを、同じ目線で。
           </p>
         </div>

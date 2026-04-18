@@ -129,7 +129,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
       <main className="flex-1 px-6 py-8">
         {step === "mood" && (
           <section>
-            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight leading-[1.4] tracking-[-0.005em]">
+            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.4] tracking-[-0.005em]">
               今の気持ちは？
             </h1>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground leading-relaxed">
@@ -171,7 +171,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
 
         {step === "good" && (
           <section>
-            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight leading-[1.4]">
+            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.4]">
               一番よかったのは？
             </h1>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground">
@@ -216,7 +216,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
 
         {step === "concern" && (
           <section>
-            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight leading-[1.4]">
+            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.4]">
               引っかかったことは？
             </h1>
             <p className="mt-1.5 text-[12.5px] text-muted-foreground">
@@ -263,7 +263,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
             >
               ☀
             </div>
-            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-extralight">
+            <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light">
               残しました。
             </h1>
             <p className="text-[13px] text-muted-foreground leading-relaxed">
