@@ -165,7 +165,13 @@ test.describe("Q-07: Onboarding name input", () => {
   test("onboarding intro shows お名前 input and navigates to /home after submit", async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
+      if (msg.type() !== "error") return;
+      // Console "Failed to load resource" entries don't carry the URL in the
+      // message body itself — pull it from the structured location() so the
+      // downstream filter can drop noisy /_vercel/* analytics misses.
+      const loc = msg.location();
+      const url = loc?.url ?? "";
+      consoleErrors.push(url ? `${msg.text()} (${url})` : msg.text());
     });
     page.on("response", (res) => {
       if (res.url().startsWith(BASE) && res.status() >= 500) {
@@ -238,9 +244,15 @@ test.describe("Q-07: Onboarding name input", () => {
     const bodyText = await page.locator("body").textContent();
     expect(bodyText).toContain("QAテスト太郎");
 
-    // No critical errors
+    // No critical errors. Vercel Analytics/Speed Insights endpoints 404 under
+    // `next start` locally (they are only proxied by the Vercel edge in prod),
+    // so those noise entries are filtered out alongside 503 / WebSocket churn.
     const critical = consoleErrors.filter(
-      (e) => !e.includes("503") && !e.includes("WebSocket"),
+      (e) =>
+        !e.includes("503") &&
+        !e.includes("WebSocket") &&
+        !e.includes("/_vercel/insights") &&
+        !e.includes("/_vercel/speed-insights"),
     );
     expect(critical, `Console errors: ${critical.join("; ")}`).toHaveLength(0);
   });
@@ -369,8 +381,14 @@ test.describe("E-10: SaveSearchButton", () => {
     const bodyText = await page.locator("body").textContent();
     expect(bodyText).toContain("QA検索条件テスト");
 
-    // HTTP error check (exclude 503 coach/AI endpoints)
-    const critical = httpErrors.filter((e) => !e.includes("/api/coach"));
+    // HTTP error check (exclude 503 coach/AI endpoints, and Vercel
+    // Analytics/Speed Insights scripts that 404 under local `next start`).
+    const critical = httpErrors.filter(
+      (e) =>
+        !e.includes("/api/coach") &&
+        !e.includes("/_vercel/insights") &&
+        !e.includes("/_vercel/speed-insights"),
+    );
     expect(critical, `HTTP errors: ${critical.join("; ")}`).toHaveLength(0);
   });
 
@@ -412,7 +430,10 @@ test.describe("E-7: Journey Timeline", () => {
   test("/journey renders 5 milestone items", async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
+      if (msg.type() !== "error") return;
+      const loc = msg.location();
+      const url = loc?.url ?? "";
+      consoleErrors.push(url ? `${msg.text()} (${url})` : msg.text());
     });
 
     await loginAndOnboard(page, testEmail, testPassword);
@@ -444,9 +465,13 @@ test.describe("E-7: Journey Timeline", () => {
     expect(bodyText).toContain("決める");
 
     const critical = consoleErrors.filter(
-      (e) => !e.includes("503") && !e.includes("WebSocket"),
+      (e) =>
+        !e.includes("503") &&
+        !e.includes("WebSocket") &&
+        !e.includes("/_vercel/insights") &&
+        !e.includes("/_vercel/speed-insights"),
     );
-    expect(critical).toHaveLength(0);
+    expect(critical, `Console errors: ${critical.join("; ")}`).toHaveLength(0);
   });
 });
 
@@ -456,10 +481,16 @@ test.describe("E-7: Journey Timeline", () => {
 test.describe("R-7: AgreementsSection on /coach", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("＋ 話し合いを追加 opens input, submit shows chip", async ({ page }) => {
+  // d0777cb で AgreementsSection は /coach 初期 empty state から意図的に削除された
+  // （情報過多を避けるため NightQuestion + QuickStart のみ表示）。
+  // コンポーネント自体は残っているが現状 mount されていないため、本テストは skip。
+  test.skip("＋ 話し合いを追加 opens input, submit shows chip", async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
-      if (msg.type() === "error") consoleErrors.push(msg.text());
+      if (msg.type() !== "error") return;
+      const loc = msg.location();
+      const url = loc?.url ?? "";
+      consoleErrors.push(url ? `${msg.text()} (${url})` : msg.text());
     });
 
     await loginAndOnboard(page, testEmail, testPassword);
@@ -500,9 +531,13 @@ test.describe("R-7: AgreementsSection on /coach", () => {
     expect(bodyText).toContain("話してる");
 
     const critical = consoleErrors.filter(
-      (e) => !e.includes("503") && !e.includes("WebSocket"),
+      (e) =>
+        !e.includes("503") &&
+        !e.includes("WebSocket") &&
+        !e.includes("/_vercel/insights") &&
+        !e.includes("/_vercel/speed-insights"),
     );
-    expect(critical).toHaveLength(0);
+    expect(critical, `Console errors: ${critical.join("; ")}`).toHaveLength(0);
   });
 });
 
@@ -523,15 +558,26 @@ test.describe("Global: HTTP error & console check", () => {
           res.url().startsWith(BASE) &&
           res.status() >= 400 &&
           !res.url().includes("favicon") &&
-          !res.url().includes("/api/coach")
+          !res.url().includes("/api/coach") &&
+          !res.url().includes("/_vercel/insights") &&
+          !res.url().includes("/_vercel/speed-insights")
         ) {
           httpErrors.push(`${res.status()} ${res.url().replace(BASE, "")}`);
         }
       });
       page.on("console", (msg) => {
-        if (msg.type() === "error" && !msg.text().includes("WebSocket")) {
-          consoleErrors.push(msg.text());
+        if (msg.type() !== "error") return;
+        const loc = msg.location();
+        const url = loc?.url ?? "";
+        const combined = url ? `${msg.text()} (${url})` : msg.text();
+        if (
+          combined.includes("WebSocket") ||
+          combined.includes("/_vercel/insights") ||
+          combined.includes("/_vercel/speed-insights")
+        ) {
+          return;
         }
+        consoleErrors.push(combined);
       });
 
       await loginAndOnboard(page, testEmail, testPassword);

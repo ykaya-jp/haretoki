@@ -97,7 +97,8 @@ test.describe("Checklist flow (Phase 3)", () => {
     await login(page);
     await page.goto("/compare");
     await expect(page.locator("text=うまくいきませんでした")).not.toBeVisible();
-    // Should show heading
-    await expect(page.locator("h2, h1").first()).toContainText(/比較/);
+    // Editorial header: h1 is the English eyebrow word, Japanese subtitle sits below.
+    await expect(page.locator("h1").first()).toContainText(/Compare/);
+    await expect(page.locator("text=ふたつを、同じ目線で")).toBeVisible();
   });
 });

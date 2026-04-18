@@ -3,14 +3,8 @@ import { test, expect } from "@playwright/test";
 test.describe("Authentication", () => {
   test("login page renders with form fields", async ({ page }) => {
     await page.goto("/login");
-    // Haretoki branding — may be in desktop panel (hidden on mobile) or mobile header
-    const logos = page.locator("text=Haretoki");
-    const count = await logos.count();
-    let found = false;
-    for (let i = 0; i < count; i++) {
-      if (await logos.nth(i).isVisible()) { found = true; break; }
-    }
-    expect(found).toBe(true);
+    // Haretoki branding — mobile layout puts a link-style wordmark above the form.
+    await expect(page.getByRole("link", { name: "Haretoki" }).first()).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
