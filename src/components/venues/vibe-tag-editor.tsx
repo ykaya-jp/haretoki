@@ -108,7 +108,7 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
           disabled={isPending}
           className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-primary text-[13.5px] font-medium text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
         >
-          {isPending ? "残しています…" : "保存する"}
+          {isPending ? "残しています…" : "残す"}
         </button>
       </div>
     </section>

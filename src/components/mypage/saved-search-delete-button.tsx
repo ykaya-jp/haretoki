@@ -18,10 +18,10 @@ export function SavedSearchDeleteButton({ id }: SavedSearchDeleteButtonProps) {
     startTransition(async () => {
       const result = await deleteSavedSearch(id);
       if (result.ok) {
-        toast.success("削除しました");
+        toast.success("そっと外しました");
         router.refresh();
       } else {
-        toast.error("削除に失敗しました");
+        toast.error("うまく外せませんでした");
       }
     });
   }

@@ -194,7 +194,7 @@ export function ReviewEstimateEditSheet({
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              "保存する"
+              "残す"
             )}
           </Button>
         </form>
