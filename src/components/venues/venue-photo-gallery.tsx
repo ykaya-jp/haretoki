@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -13,17 +13,19 @@ interface Props {
   photoUrls: string[];
 }
 
-/**
- * Unified photo gallery for venue detail page.
- * - Shows PhotoCarousel when photos exist
- * - Shows tappable drop-zone when empty
- * - Provides persistent "写真を追加" primary button below
- * - Single file input shared between all triggers
- */
 export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
   const [uploading, setUploading] = useState(false);
+  // Optimistic display list: mirror server photoUrls, append freshly uploaded
+  // URLs immediately so the user sees the result before router.refresh()
+  // roundtrips the server component. Syncs back to props whenever the
+  // server data changes.
+  const [displayPhotos, setDisplayPhotos] = useState<string[]>(photoUrls);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setDisplayPhotos(photoUrls);
+  }, [photoUrls]);
 
   const triggerPicker = () => {
     if (uploading) return;
@@ -46,7 +48,12 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
       const result = await uploadVenuePhotos(venueId, formData);
       if (result.success) {
         const added = result.urls?.length ?? 0;
-        if (added > 0) {
+        if (added > 0 && result.urls) {
+          const freshUrls = result.urls;
+          setDisplayPhotos((prev) => {
+            const seen = new Set(prev);
+            return [...prev, ...freshUrls.filter((u) => !seen.has(u))];
+          });
           toast.success(`${added}枚の写真を追加しました`);
         }
         if ((result.droppedCount ?? 0) > 0) {
@@ -64,18 +71,17 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
     }
   };
 
-  const hasPhotos = photoUrls.length > 0;
+  const hasPhotos = displayPhotos.length > 0;
 
   return (
     <div className="space-y-3">
       <PhotoCarousel
-        photos={photoUrls}
+        photos={displayPhotos}
         alt={name}
         aspectRatio="4/3"
         onAddPhotoClick={hasPhotos ? undefined : triggerPicker}
       />
 
-      {/* Persistent upload button when photos exist */}
       {hasPhotos && (
         <div className="flex justify-end">
           <button
