@@ -7,7 +7,7 @@ import {
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { Heart, Info, Scale } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "式場横比較",
@@ -100,33 +100,67 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
       </p>
 
       {matrix.venues.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">比較する式場がありません</p>
-          <Link
-            href="/explore"
-            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
-          >
-            式場を探す
-          </Link>
-        </div>
+        <CompareEmptyState
+          icon={Heart}
+          title="並べる式場が、まだありません"
+          description="候補に 2 件そろうと、同じ観点で横に並べて見られます。"
+          ctaLabel="式場を探す"
+          ctaHref="/explore"
+        />
       ) : insufficient ? (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            比較には 2 件以上の式場が必要です
-          </p>
-          <p className="mt-1 text-[12px] text-muted-foreground/70">
-            候補から追加で選んでみてください。
-          </p>
-          <Link
-            href="/candidates"
-            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
-          >
-            候補を開く
-          </Link>
-        </div>
+        <CompareEmptyState
+          icon={Scale}
+          title="もう 1 件、並べてみませんか"
+          description="比較にはふたつ以上の式場が要ります。候補から 1 件そえてみてください。"
+          ctaLabel="候補を開く"
+          ctaHref="/candidates"
+        />
       ) : (
         <ComparisonBoard matrix={matrix} />
       )}
+    </div>
+  );
+}
+
+/** CMP-4 empty state: editorial card, icon in a gold halo circle, Noto
+ *  Serif JP headline, quiet description, pill CTA. Replaces the previous
+ *  border-dashed "error-like" treatment with the 晴れ時 tone. */
+function CompareEmptyState({
+  icon: Icon,
+  title,
+  description,
+  ctaLabel,
+  ctaHref,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-5 rounded-2xl border border-border/40 bg-card p-8 text-center shadow-[var(--shadow-card)]">
+      <div
+        className="flex h-14 w-14 items-center justify-center rounded-full"
+        style={{ background: "var(--gold-subtle)" }}
+      >
+        <Icon className="h-5 w-5 text-[var(--gold-warm)]" strokeWidth={1.5} />
+      </div>
+      <div className="space-y-1.5 max-w-[320px]">
+        <h3 className="font-[family-name:var(--font-display)] text-[17px] font-light leading-snug tracking-[0.01em]">
+          {title}
+        </h3>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <Link
+        href={ctaHref}
+        prefetch={true}
+        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
+      >
+        {ctaLabel}
+      </Link>
     </div>
   );
 }
