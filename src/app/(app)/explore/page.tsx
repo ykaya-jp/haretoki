@@ -171,6 +171,15 @@ export default async function ExplorePage({
         shouldRequest={aiSeed.shouldRequest}
       />
 
+      {/* Divider between AI recommendations and the user's own candidate
+          list. The hairline + eyebrow heading gives the page a clear
+          two-zone structure so users stop reading the AI block as part of
+          the list (P11). */}
+      <div aria-hidden className="h-px bg-border/40" />
+      <p className="text-eyebrow text-muted-foreground/70">
+        すべての候補
+      </p>
+
       {/* Venue list with unified filter zone.
           ExploreContent renders the filter zone even when the list is empty,
           so users can always adjust filters after getting zero results. */}

@@ -47,7 +47,9 @@ const STATUS_FILTERS = [
   { id: "researching", label: "気になる" },
   { id: "visit_scheduled", label: "見学予定" },
   { id: "visited", label: "見学済み" },
-  { id: "selected", label: "お気に入り" },
+  { id: "shortlisted", label: "検討中" },
+  { id: "selected", label: "決定" },
+  { id: "rejected", label: "見送り" },
 ] as const;
 
 export function ExploreContent({
