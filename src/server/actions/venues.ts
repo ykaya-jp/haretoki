@@ -306,6 +306,7 @@ export async function getVenueHeader(id: string) {
       capacityMax: true,
       ceremonyStyles: true,
       photoUrls: true,
+      sourceUrls: true,
       status: true,
       scores: true,
       vibeTags: true,
@@ -1428,4 +1429,118 @@ export async function bulkAddVenuesFromUrls(urls: string[]): Promise<{
   revalidatePath("/home");
 
   return { results, skipped };
+}
+
+/**
+ * Re-run the URL-import pipeline for an already-tracked venue so the
+ * deep-extraction columns (external rating, address, amenities, cost
+ * breakdown, cuisine …) are backfilled when they were added after the
+ * venue was originally saved.
+ *
+ * Unlike `confirmVenueFromUrl` this bypasses the cross-site dedupe
+ * matcher — we already know which venue to write into, so we just
+ * re-extract from each stored sourceUrl and merge the fresh bag onto
+ * the existing row.
+ */
+export async function refreshVenueFromSource(venueId: string): Promise<
+  | { success: true; updatedFields: string[]; photoAddedCount: number; reviewCount: number }
+  | { success: false; error: string }
+> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const existing = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+  });
+  if (!existing) return { success: false, error: "式場が見つかりません" };
+
+  const urls = (existing.sourceUrls ?? []).filter((u): u is string => typeof u === "string" && u.length > 0);
+  if (urls.length === 0) {
+    return { success: false, error: "登録元の URL が無いため更新できません" };
+  }
+
+  // Accumulators across sourceUrls — each URL can contribute new fields.
+  const allUpdatedFields = new Set<string>();
+  let totalPhotoAdded = 0;
+  let totalReviewCount = 0;
+
+  // Snapshot of the current row; subsequent merges compose on top so that
+  // a later URL can still contribute a field an earlier URL didn't have.
+  let currentBag: VenueFieldBag = {
+    ...existing,
+    serviceFeeRate:
+      existing.serviceFeeRate !== null ? Number(existing.serviceFeeRate) : null,
+  };
+
+  for (const sourceUrl of urls) {
+    const extractResult = await addVenueFromUrl(sourceUrl);
+    if (extractResult.error || !extractResult.extracted) continue;
+
+    const parsed = extractedVenueSchema.safeParse(extractResult.extracted);
+    if (!parsed.success) continue;
+
+    let origin: string | undefined;
+    try {
+      origin = new URL(sourceUrl).origin;
+    } catch {
+      origin = undefined;
+    }
+
+    const incomingPhotoUrls = Array.from(new Set(parsed.data.photoUrls)).slice(0, 15);
+    const uploadedPhotoUrls: string[] = [];
+    if (incomingPhotoUrls.length > 0) {
+      const uploadResults = await limitedAll(incomingPhotoUrls, 3, (src) =>
+        uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
+      );
+      for (const r of uploadResults) {
+        if (r.ok) uploadedPhotoUrls.push(r.url);
+        else reportPhotoUploadFailure(r);
+      }
+    }
+
+    const incomingBag: VenueFieldBag = {
+      ...buildVenueFieldBag(parsed.data, sourceUrl),
+      photoUrls: uploadedPhotoUrls,
+    };
+    const { data: patch, updatedFields } = mergeVenueFields(currentBag, incomingBag);
+
+    if (Object.keys(patch).length > 0) {
+      await prisma.venue.update({
+        where: { id: existing.id },
+        data: patch as Prisma.VenueUpdateInput,
+      });
+      for (const f of updatedFields) allUpdatedFields.add(f);
+      // Carry the merged state forward so the next URL's merger sees it.
+      currentBag = { ...currentBag, ...(patch as Partial<VenueFieldBag>) };
+    }
+
+    totalPhotoAdded += uploadedPhotoUrls.length;
+
+    const reviewSource = reviewSourceFromUrl(sourceUrl);
+    if (reviewSource && parsed.data.reviews.length > 0) {
+      try {
+        await saveExtractedReviews(
+          existing.id,
+          parsed.data.reviews,
+          sourceUrl,
+          reviewSource,
+        );
+        totalReviewCount += parsed.data.reviews.length;
+      } catch (err) {
+        console.warn("[refreshVenueFromSource] saveExtractedReviews failed:", err);
+      }
+    }
+  }
+
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath("/explore");
+  revalidatePath("/home");
+  revalidatePath(`/venues/${existing.id}`);
+
+  return {
+    success: true,
+    updatedFields: Array.from(allUpdatedFields),
+    photoAddedCount: totalPhotoAdded,
+    reviewCount: totalReviewCount,
+  };
 }

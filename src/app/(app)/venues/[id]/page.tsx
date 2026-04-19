@@ -13,6 +13,7 @@ import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actio
 import { getVenuePlans } from "@/server/actions/plans";
 import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
 import { VenueHeader } from "@/components/venues/venue-header";
+import { RefreshVenueButton } from "@/components/venues/refresh-venue-button";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { MoneyReality } from "@/components/venues/money-reality";
@@ -100,6 +101,19 @@ export default async function VenueDetailPage({
         ceremonyStyles={venue.ceremonyStyles}
         status={venue.status}
       />
+
+      {/* Owner-only refresh — re-runs the URL-import pipeline so deep
+          extraction columns backfill for venues imported before those
+          fields existed (R3). Hidden when there's no source URL to
+          refresh from. */}
+      {isOwner && (
+        <div className="flex justify-end">
+          <RefreshVenueButton
+            venueId={venue.id}
+            hasSourceUrl={(venue.sourceUrls ?? []).length > 0}
+          />
+        </div>
+      )}
 
       {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
       <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
