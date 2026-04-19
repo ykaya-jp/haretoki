@@ -78,6 +78,22 @@ export default async function HomePage() {
   const topInsight = insights[0];
   const showInsight = topInsight && progress.totalVenues > 0;
 
+  // H-7: Hero NBA and AIInsightCard can both point the user at the same
+  // next step (e.g. both say "/candidates"). When the insight's primary
+  // action is the same path as the cover CTA, strip the action so the
+  // card still delivers its copy but doesn't duplicate the button. Path
+  // comparison ignores query / hash so "/candidates" and
+  // "/candidates?view=recent" count as the same destination.
+  const stripRoute = (h: string | null | undefined): string =>
+    h ? h.split("?")[0].split("#")[0] : "";
+  const heroRoute = stripRoute(ctaHref);
+  const insightActions = topInsight?.actions ?? [];
+  const dedupedInsightActions =
+    heroRoute && insightActions.length > 0 &&
+    stripRoute(insightActions[0]?.href) === heroRoute
+      ? []
+      : insightActions;
+
   // Cover takes recentVenues[0] as hero photo — Recent carousel shows the rest.
   const carouselVenues = homeData.recentVenues.slice(1);
 
@@ -131,11 +147,7 @@ export default async function HomePage() {
           type={topInsight.type}
           title={topInsight.title}
           body={topInsight.body}
-          actions={
-            topInsight.actions?.[0]?.href?.startsWith("/candidates")
-              ? []
-              : topInsight.actions
-          }
+          actions={dedupedInsightActions}
         />
       )}
 
