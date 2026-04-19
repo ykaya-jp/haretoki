@@ -11,7 +11,7 @@ import { CoupleGapSection } from "@/components/candidates/couple-gap-section";
 
 export const metadata: Metadata = {
   title: "候補",
-  description: "お気に入りの式場を比較し、最終決定まで並べて検討できます。",
+  description: "候補の式場を比較し、最終決定まで並べて検討できます。",
 };
 
 interface CandidatesPageProps {

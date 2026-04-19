@@ -393,7 +393,7 @@ function PrimedState() {
         まず1件、式場を登録してください。
       </p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        お気に入りが溜まるほど、AIの推薦精度が高まります。
+        候補が増えるほど、AIの推薦精度が高まります。
       </p>
       <div className="flex flex-wrap gap-2 pt-1">
         <a
