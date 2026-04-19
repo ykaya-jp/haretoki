@@ -274,17 +274,36 @@ export function CandidatesView({
                 {favorites.length === 2 && !showSwipe && (
                   <Link
                     href={`/candidates/duel?a=${favorites[0].venue.id}&b=${favorites[1].venue.id}`}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-[var(--shadow-card)] transition-colors active:bg-muted"
+                    className="block w-full rounded-2xl border-l-[3px] border-y border-r border-border/40 p-4 transition-colors active:opacity-90"
+                    style={{
+                      borderLeftColor: "var(--gold-warm)",
+                      background: "var(--gold-subtle)",
+                    }}
                   >
-                    <Sparkles
-                      aria-hidden="true"
-                      className="h-4 w-4 shrink-0 text-[color:var(--gold-warm)]"
-                      strokeWidth={1.8}
-                    />
-                    <span className="flex-1 text-[13.5px] font-light">
-                      2件で迷ったら、情景で決める
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">→</span>
+                    <div className="flex items-start gap-2.5">
+                      <Sparkles
+                        aria-hidden="true"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--gold-warm)]"
+                        strokeWidth={1.6}
+                      />
+                      <div className="flex-1">
+                        <p className="text-eyebrow text-[var(--gold-warm)]">
+                          For Two
+                        </p>
+                        <p className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light leading-snug tracking-[0.01em] text-foreground">
+                          情景で決める
+                        </p>
+                        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                          2 件で迷ったとき、ふたりの心がどちらに寄っているか、静かに知る方法があります。
+                        </p>
+                      </div>
+                      <span
+                        aria-hidden="true"
+                        className="mt-1 shrink-0 text-[11px] text-muted-foreground"
+                      >
+                        →
+                      </span>
+                    </div>
                   </Link>
                 )}
 

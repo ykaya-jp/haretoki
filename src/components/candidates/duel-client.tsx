@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DUEL_SCENES } from "@/lib/duel-scenes";
@@ -379,8 +380,15 @@ function WinnerResult({
 }) {
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {/* 勝者の写真（大） */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted">
+      {/* 勝者の写真（大） — C-9: hero motion on reveal + venue name caption.
+          Opacity 0 → 1 with a small 0.96 → 1 scale, eased out over 900ms
+          so the result feels like an arrival rather than a replace. */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-muted"
+      >
         {winner.photoUrl ? (
           <Image
             src={winner.photoUrl}
@@ -395,15 +403,24 @@ function WinnerResult({
             <span className="text-muted-foreground/40 text-[40px]">◎</span>
           </div>
         )}
-        {/* gold オーバーレイ */}
+        {/* gradient + gold tint + venue name caption overlay */}
         <div
-          className="absolute inset-0 rounded-2xl"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-3xl"
           style={{
             background:
               "linear-gradient(to top, color-mix(in oklab, var(--gold-warm) 30%, transparent) 0%, transparent 50%)",
           }}
         />
-      </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end px-5 pb-4"
+        >
+          <span className="font-[family-name:var(--font-display)] text-[17px] font-light text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+            {winner.name}
+          </span>
+        </div>
+      </motion.div>
 
       {/* AI カード風インサイト */}
       <div
