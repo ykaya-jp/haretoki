@@ -35,13 +35,25 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
       fallbackWeather: "sunny",
     };
   }
-  if (p.favoriteCount >= 2) {
+  // Lexicon §5.4 — favorite == 2 is the unique duel case ("迷っている"
+  // moment), favorite >= 3 shifts to side-by-side compare.
+  if (p.favoriteCount === 2) {
+    return {
+      key: "comparing",
+      headline: "2 件で迷ったら、情景で決める",
+      sub: "ふたりの心がどちらに寄っているか、静かに知る時間を",
+      ctaLabel: "情景で決める",
+      ctaHref: "/candidates?tab=duel",
+      fallbackWeather: "clear",
+    };
+  }
+  if (p.favoriteCount >= 3) {
     return {
       key: "comparing",
       headline: "ふたりで並べて、見比べてみましょう",
       sub: `本命 ${p.favoriteCount} 件。比べるほど、輪郭が見えてきます`,
-      ctaLabel: "情景で決める",
-      ctaHref: "/candidates?tab=duel",
+      ctaLabel: "比べる",
+      ctaHref: "/compare",
       fallbackWeather: "clear",
     };
   }
@@ -49,8 +61,8 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
     const singleVenue = p.totalVenues === 1 && p.firstVenueId;
     return {
       key: "visiting",
-      headline: "印象を、忘れないうちに。",
-      sub: "気になったこと、写真と一緒に残しておきましょう",
+      headline: "見学の印象を、忘れないうちに残しましょう",
+      sub: "気になったこと、写真と一緒に",
       ctaLabel: "印象を残す",
       ctaHref: singleVenue ? `/venues/${p.firstVenueId}` : "/candidates",
       fallbackWeather: "break",
@@ -60,21 +72,21 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
     const singleVenue = p.totalVenues === 1 && p.firstVenueId;
     return {
       key: "adding",
-      headline: "少しずつ、見えてきました。",
+      headline: "最初の見学を入れてみませんか",
       sub: singleVenue
-        ? "最初の見学予定を入れてみませんか。日付とメモを残せます"
+        ? "当日のメモも残せます"
         : "見学する式場を選んで、予定を入れましょう",
-      ctaLabel: singleVenue ? "見学予定を入れる" : "式場を選ぶ",
+      ctaLabel: "見学を入れる",
       ctaHref: singleVenue ? `/venues/${p.firstVenueId}#visit` : "/candidates",
       fallbackWeather: "break",
     };
   }
   return {
     key: "start",
-    headline: "まだ見ぬ、あの一日へ。",
-    sub: "URL を貼るだけ。あとは晴れ時がそっと集めます",
+    headline: "まず 1 件、気になる式場を",
+    sub: "URL を貼るだけで始まります",
     ctaLabel: "URL から追加",
-    ctaHref: "/explore",
+    ctaHref: "/explore?addVenue=1",
     fallbackWeather: "cloudy",
   };
 }
