@@ -1111,6 +1111,9 @@ export async function confirmVenueFromUrl(
         } else {
           photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
           reportPhotoUploadFailure(r);
+          if (shouldKeepOriginalUrl(r)) {
+            uploadedPhotoUrls.push(r.srcUrl);
+          }
         }
       }
     }
@@ -1236,6 +1239,9 @@ export async function confirmVenueFromUrl(
       } else {
         photoFailedReasons[r.reason] = (photoFailedReasons[r.reason] ?? 0) + 1;
         reportPhotoUploadFailure(r);
+        if (shouldKeepOriginalUrl(r)) {
+          uploadedPhotoUrls.push(r.srcUrl);
+        }
       }
     }
     if (uploadedPhotoUrls.length > 0) {
@@ -1278,6 +1284,29 @@ export async function confirmVenueFromUrl(
     individualReviewCount: parsed.data.reviews.length,
     reviewSummaryStatus,
   };
+}
+
+/**
+ * P8-B fallback — when Supabase Storage upload fails for reasons where
+ * the source URL itself is almost certainly valid (403 hotlink blocks,
+ * invalid content-type from a misbehaving CDN), keep the original CDN
+ * URL in `photoUrls`. next/image's loader then fetches it server-side
+ * from Vercel's region (different IP than ours, no Referer/cookie
+ * forwarding baggage) and caches in the edge CDN. Only hosts listed in
+ * next.config.ts `images.remotePatterns` + CSP `img-src` will actually
+ * render client-side, so leaking an arbitrary URL here is safe.
+ *
+ * Excluded reasons:
+ *   - timeout / network: the URL might simply be dead; don't keep a
+ *     reference we can't ever serve.
+ *   - size-limit: the resource is too big; next/image would reject too.
+ */
+const RECOVERABLE_UPLOAD_REASONS = new Set<PhotoUploadReason>(["403", "invalid-ct"]);
+
+function shouldKeepOriginalUrl(
+  failure: PhotoUploadResult & { ok: false },
+): boolean {
+  return RECOVERABLE_UPLOAD_REASONS.has(failure.reason);
 }
 
 /**
@@ -1493,8 +1522,14 @@ export async function refreshVenueFromSource(venueId: string): Promise<
         uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
       );
       for (const r of uploadResults) {
-        if (r.ok) uploadedPhotoUrls.push(r.url);
-        else reportPhotoUploadFailure(r);
+        if (r.ok) {
+          uploadedPhotoUrls.push(r.url);
+        } else {
+          reportPhotoUploadFailure(r);
+          if (shouldKeepOriginalUrl(r)) {
+            uploadedPhotoUrls.push(r.srcUrl);
+          }
+        }
       }
     }
 

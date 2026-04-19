@@ -216,7 +216,7 @@ describe("confirmVenueFromUrl", () => {
     );
   });
 
-  it("creates venue even when every photo upload fails", async () => {
+  it("creates venue even when every photo upload fails, and keeps 403 URLs as next/image fallback (P8-B)", async () => {
     mockUploadVenuePhotoFromUrl.mockResolvedValue({
       ok: false as const,
       reason: "403" as const,
@@ -252,12 +252,18 @@ describe("confirmVenueFromUrl", () => {
     );
 
     expect(result.success).toBe(true);
-    // venue.update is never called because no photos succeeded.
-    expect(mockVenueUpdate).not.toHaveBeenCalled();
+    // P8-B: 403 is a recoverable reason so the original CDN URL is retained
+    // for next/image to fetch server-side. venue.update gets the URL list,
+    // photoUploadedCount counts what we kept, and photoFailedReasons still
+    // records the underlying Supabase upload failure so telemetry is honest.
+    expect(mockVenueUpdate).toHaveBeenCalledOnce();
+    const updateCall = mockVenueUpdate.mock.calls[0][0] as {
+      data: { photoUrls: string[] };
+    };
+    expect(updateCall.data.photoUrls).toEqual(["https://cdn.example.com/a.jpg"]);
     if (result.success) {
-      expect(result.photoUploadedCount).toBe(0);
+      expect(result.photoUploadedCount).toBe(1);
       expect(result.photoRequestedCount).toBe(1);
-      // Phase A: failure-reason aggregation — 403 should have a count of 1.
       expect(result.photoFailedReasons).toEqual({
         "403": 1,
         timeout: 0,

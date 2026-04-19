@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
       // single host so we don't regress to a wildcard that allows open
       // image-proxy abuse.
       { protocol: "https", hostname: "images.unsplash.com" },
+      // P8-B CDN fallback: when our Supabase Storage copy fails (e.g.
+      // 403 hotlink protection, invalid content-type), the upload
+      // pipeline keeps the original URL so next/image can still render
+      // it server-side from Vercel's region. Scoped to the known wedding
+      // venue sources so we don't regress to an open image proxy.
+      { protocol: "https", hostname: "*.zexy.net" },
+      { protocol: "https", hostname: "*.hana-yume.net" },
+      { protocol: "https", hostname: "*.mwed.jp" },
+      { protocol: "https", hostname: "*.mynavi.jp" },
+      { protocol: "https", hostname: "*.weddingpark.net" },
     ],
   },
   experimental: {
@@ -75,7 +85,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://*.posthog.com https://eu.i.posthog.com https://*.sentry.io",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.zexy.net https://*.hana-yume.net https://*.mwed.jp https://*.mynavi.jp https://*.weddingpark.net",
               "font-src 'self' https://fonts.gstatic.com data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
               "media-src 'self' blob: https://*.supabase.co",
