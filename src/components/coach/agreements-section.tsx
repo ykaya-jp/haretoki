@@ -133,8 +133,8 @@ export function AgreementsSection({ initialAgreements }: Props) {
         <p className="text-eyebrow text-muted-foreground">
           Dialogue
         </p>
-        {/* Coach intra-card h2 — Noto Serif JP at 15px (< 24px → use heading, not display) */}
-        <h2 className="font-[family-name:var(--font-heading)] text-[15px] font-normal tracking-wide text-foreground">
+        {/* Coach intra-card h2 — Noto Serif JP at 15px (< 24px → --font-display) */}
+        <h2 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
           ふたりの話し合い
         </h2>
       </div>

@@ -144,7 +144,7 @@ export function CoachQuickStart() {
                 />
               </div>
               <div className="space-y-1">
-                <h3 className="font-[family-name:var(--font-heading)] text-[15.5px] font-light leading-snug text-foreground">
+                <h3 className="font-[family-name:var(--font-display)] text-[15.5px] font-light leading-snug text-foreground">
                   {uc.title}
                 </h3>
                 <p className="flex items-center gap-1 text-xs leading-relaxed text-muted-foreground">

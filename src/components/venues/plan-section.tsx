@@ -64,7 +64,7 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-heading)] text-base font-normal">プランの詳細</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-base font-light">プランの詳細</h2>
         <PlanEditorSheet venueId={venueId} />
       </div>
       <p className="text-[12px] text-muted-foreground mb-3">

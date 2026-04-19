@@ -318,7 +318,7 @@ export function OnboardingFlow() {
                 <p className="text-eyebrow text-[var(--gold-warm)]">Haretoki Suggests</p>
               </div>
               {advice ? (
-                <p className="font-[family-name:var(--font-heading)] text-sm font-light leading-relaxed text-foreground">
+                <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
                   {advice}
                 </p>
               ) : null}
@@ -339,13 +339,13 @@ export function OnboardingFlow() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-0.5">
                         {/* Venue name in Noto Serif JP 19px */}
-                        <p className="font-[family-name:var(--font-heading)] text-[19px] font-light leading-snug text-foreground">
+                        <p className="font-[family-name:var(--font-display)] text-[19px] font-light leading-snug text-foreground">
                           {rec.name}
                         </p>
                         <p className="text-xs text-muted-foreground">{rec.location}</p>
                       </div>
                       {rec.estimatedPrice && (
-                        <p className="font-[family-name:var(--font-heading)] text-[22px] font-light tabular-nums text-muted-foreground whitespace-nowrap">
+                        <p className="font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums text-muted-foreground whitespace-nowrap">
                           {Math.round(rec.estimatedPrice / 10000)}<span className="text-xs ml-0.5">万〜</span>
                         </p>
                       )}
@@ -387,7 +387,7 @@ export function OnboardingFlow() {
             ) : (
               /* Onb-3: 0件フォールバック */
               <div className="py-10 text-center space-y-2">
-                <p className="font-[family-name:var(--font-heading)] text-[15px] font-light text-foreground/70">
+                <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground/70">
                   ちょうど合う場所が、いまは見つかりませんでした。
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -578,7 +578,7 @@ export function OnboardingFlow() {
               <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
             </div>
             <div className="flex-1 space-y-1 pt-1">
-              <p className="font-[family-name:var(--font-heading)] text-[16px] font-normal leading-relaxed text-foreground">
+              <p className="font-[family-name:var(--font-display)] text-[16px] font-normal leading-relaxed text-foreground">
                 {currentQ.question}
               </p>
               <p className="text-xs text-muted-foreground">{currentQ.subtitle}</p>

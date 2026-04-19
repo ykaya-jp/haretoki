@@ -39,7 +39,7 @@ export function NightQuestionCard({ question }: { question: NightQuestion }) {
           今夜の一問
         </p>
       </div>
-      <p className="relative mt-3 font-[family-name:var(--font-heading)] text-[17px] font-normal leading-[1.6] tracking-[0.005em] text-foreground">
+      <p className="relative mt-3 font-[family-name:var(--font-display)] text-[17px] font-light leading-[1.6] tracking-[0.005em] text-foreground">
         {question.text}
       </p>
       <p className="mt-4 text-[11.5px] text-muted-foreground">
