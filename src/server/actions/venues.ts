@@ -706,6 +706,91 @@ function extractJson(s: string): string {
 }
 
 /**
+ * Rescue path when Claude extraction fails end-to-end. Builds a minimum
+ * valid ExtractedVenueData from JSON-LD + OpenGraph metadata alone —
+ * enough to let the couple commit the venue and fill in detail later.
+ *
+ * Returns null if we don't even have a venue name (at which point the
+ * page really does have no extractable signal and the error path is
+ * the right behaviour).
+ */
+function buildFallbackExtracted(
+  structured: ReturnType<typeof parseJsonLd>,
+  metadata: ReturnType<typeof extractMetadata>,
+): ExtractedVenueData | null {
+  const name =
+    structured.name ||
+    metadata.og["og:title"] ||
+    metadata.title ||
+    null;
+  if (!name) return null;
+
+  const locationParts = [
+    structured.address?.region,
+    structured.address?.locality,
+    structured.address?.street,
+  ].filter((p): p is string => !!p);
+  const location = locationParts.length > 0 ? locationParts.join(" ").slice(0, 200) : null;
+
+  const photoCandidates: string[] = [];
+  const ogImage = metadata.og["og:image"];
+  if (ogImage) photoCandidates.push(ogImage);
+  if (structured.images) photoCandidates.push(...structured.images);
+  const photoUrls = Array.from(new Set(photoCandidates))
+    .filter((u) => {
+      try {
+        new URL(u);
+        return true;
+      } catch {
+        return false;
+      }
+    })
+    .slice(0, 30);
+
+  return {
+    name: name.slice(0, 200),
+    location,
+    accessInfo: null,
+    capacityMin: null,
+    capacityMax: null,
+    ceremonyStyles: [],
+    estimatedPrice: null,
+    features: [],
+    photoUrls,
+    confidence: "low",
+    costMin: null,
+    costMax: null,
+    paymentMethodEnums: [],
+    dressBringIn: null,
+    dressBringInFee: null,
+    maxInstallments: null,
+    vibeTags: [],
+    reviews: [],
+    externalRatingValue: structured.aggregateRating?.value ?? null,
+    externalReviewCount: structured.aggregateRating?.count ?? null,
+    latitude: structured.geo?.lat ?? null,
+    longitude: structured.geo?.lng ?? null,
+    postalCode: structured.address?.postal ?? null,
+    streetAddress: structured.address?.street ?? null,
+    phoneNumber: structured.phone ?? null,
+    hasParking: null,
+    parkingCapacity: null,
+    hasShuttle: null,
+    hasAccommodation: null,
+    acceptsSecondParty: null,
+    barrierFree: null,
+    ceremonyFeeExact: null,
+    productionFeeMin: null,
+    productionFeeMax: null,
+    serviceFeeRate: null,
+    operatingHours: null,
+    closedDays: [],
+    cuisineTypes: [],
+    chefCredentials: null,
+  };
+}
+
+/**
  * Fetch a single page and return its extracted metadata + body excerpt.
  * Returns null on any non-2xx / network / timeout failure so the caller can
  * gracefully degrade (the detail page is retried as a hard error elsewhere).
@@ -844,48 +929,61 @@ export async function addVenueFromUrl(url: string): Promise<{
       `以下は同じ結婚式場の複数ページを連結した内容です。重複はまとめ、可能な限り情報を抽出してください。\n\n` +
       sections.join("\n\n");
 
-    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
-      maxTokens: 4096,
-    });
-
-    if (!claudeResponse) {
-      return { error: "AI がうまく読めませんでした。手動で入力してみてください。" };
-    }
-
-    // Claude occasionally wraps JSON in markdown fences despite the system prompt.
-    let parsedJson: unknown;
-    try {
-      parsedJson = JSON.parse(extractJson(claudeResponse));
-    } catch (parseErr) {
-      console.error("addVenueFromUrl JSON parse failed:", {
-        url,
-        error: parseErr instanceof Error ? parseErr.message : parseErr,
-        snippet: claudeResponse.slice(0, 200),
-      });
-      return {
-        error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。",
-      };
-    }
-
-    const validated = extractedVenueSchema.safeParse(parsedJson);
-    if (!validated.success) {
-      console.error("addVenueFromUrl schema validation failed:", {
-        url,
-        issues: validated.error.issues,
-      });
-      return {
-        error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。",
-      };
-    }
-
-    // Structured parser overrides Claude for JSON-LD-derived fields (zero
-    // hallucination, stable). Merge every page's JSON-LD blobs.
+    // Structured parser — run EARLY (before Claude) so we can use JSON-LD
+    // as a fallback if Claude returns nothing. Most wedding CDNs embed
+    // enough Schema.org data (name, address, og:image) to bootstrap a
+    // venue record even when the AI step fails.
     const jsonLdBlobs: unknown[] = [];
     fetched.forEach((page) => {
       if (!page) return;
       for (const blob of page.metadata.jsonLd) jsonLdBlobs.push(blob);
     });
     const structured = parseJsonLd(jsonLdBlobs);
+
+    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
+      maxTokens: 4096,
+    });
+
+    // If Claude failed entirely, try to rescue with JSON-LD + og metadata
+    // alone. This is lower-confidence but gives zexy / hanayume pages a
+    // non-null result the user can commit and fill in by hand.
+    if (!claudeResponse) {
+      console.warn("[addVenueFromUrl] claude returned null, attempting JSON-LD fallback", { url });
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      if (fallback) {
+        return { extracted: fallback, warning: "AI 解析に失敗したため、取れた情報だけで下書きしました。内容を確認してください。" };
+      }
+      return { error: "AI がうまく読めませんでした。手動で入力してみてください。" };
+    }
+
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(extractJson(claudeResponse));
+    } catch (parseErr) {
+      console.error("[addVenueFromUrl] claude JSON parse failed, attempting JSON-LD fallback:", {
+        url,
+        error: parseErr instanceof Error ? parseErr.message : parseErr,
+        snippet: claudeResponse.slice(0, 200),
+      });
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      if (fallback) {
+        return { extracted: fallback, warning: "AI 解析結果を読めなかったため、取れた情報だけで下書きしました。内容を確認してください。" };
+      }
+      return { error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。" };
+    }
+
+    const validated = extractedVenueSchema.safeParse(parsedJson);
+    if (!validated.success) {
+      console.error("[addVenueFromUrl] claude schema validation failed, attempting JSON-LD fallback:", {
+        url,
+        issues: validated.error.issues,
+      });
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      if (fallback) {
+        return { extracted: fallback, warning: "AI 解析結果の形が合わなかったため、取れた情報だけで下書きしました。内容を確認してください。" };
+      }
+      return { error: "ページの中身をうまく整理できませんでした。手動で入力してみてください。" };
+    }
 
     const enriched: ExtractedVenueData = {
       ...validated.data,
