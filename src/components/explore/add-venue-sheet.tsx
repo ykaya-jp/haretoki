@@ -613,7 +613,17 @@ export function AddVenueSheet({
           追加
         </Button>
       )}
-      <SheetContent side="bottom" className="rounded-t-3xl max-h-[92dvh] overflow-y-auto">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl max-h-[92dvh] overflow-y-auto"
+        style={{
+          // E-10: soft dawn radial over the sheet surface. Top-left light
+          // glow at 5% — reads as air, not background paint — matches the
+          // 晴れ時 register and makes the sheet feel like an editorial
+          // welcome rather than a utilitarian form.
+          backgroundImage: "var(--gradient-dawn)",
+        }}
+      >
         {/* Editorial header — eyebrow + 明朝 title */}
         <SheetHeader className="px-1 pt-1 pb-2 mb-1">
           <p className="text-eyebrow text-muted-foreground text-left">
