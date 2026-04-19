@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -13,19 +13,28 @@ interface Props {
   photoUrls: string[];
 }
 
+/** Stable signature for a URL list — drives the render-phase reset below
+ *  so we only stomp on optimistic state when the server truly changes. */
+function photoSignature(urls: string[]): string {
+  return urls.join("|");
+}
+
 export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
   const [uploading, setUploading] = useState(false);
   // Optimistic display list: mirror server photoUrls, append freshly uploaded
   // URLs immediately so the user sees the result before router.refresh()
-  // roundtrips the server component. Syncs back to props whenever the
-  // server data changes.
+  // roundtrips the server component. Sync-from-props happens render-phase
+  // (React 19 pattern) — useEffect would trigger the set-state-in-effect
+  // ESLint rule and waste a render.
   const [displayPhotos, setDisplayPhotos] = useState<string[]>(photoUrls);
+  const [propsSig, setPropsSig] = useState(() => photoSignature(photoUrls));
+  const nextSig = photoSignature(photoUrls);
+  if (propsSig !== nextSig) {
+    setPropsSig(nextSig);
+    setDisplayPhotos(photoUrls);
+  }
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    setDisplayPhotos(photoUrls);
-  }, [photoUrls]);
 
   const triggerPicker = () => {
     if (uploading) return;
