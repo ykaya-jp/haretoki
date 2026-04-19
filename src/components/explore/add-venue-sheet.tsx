@@ -713,7 +713,7 @@ export function AddVenueSheet({
                         setUrlInput("");
                       }}
                     >
-                      別のURLを追加する
+                      別の URL を貼ってみる
                     </Button>
                   </motion.div>
                 )}
@@ -1069,7 +1069,7 @@ function UrlSkeletonCard({
             disabled={forcingNew}
             className="text-[11.5px] text-muted-foreground underline underline-offset-4 active:text-foreground transition-colors disabled:opacity-40"
           >
-            {forcingNew ? "追加しています…" : "違う式場として追加する"}
+            {forcingNew ? "迎えています…" : "別の式場として迎える"}
           </button>
         </motion.div>
       )}

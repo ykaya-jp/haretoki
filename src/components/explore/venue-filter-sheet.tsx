@@ -520,7 +520,7 @@ export function VenueFilterSheet({ filters, onApply }: VenueFilterSheetProps) {
         <SheetFooter className="border-t">
           <div className="flex w-full gap-3">
             <Button variant="outline" onClick={handleReset} className="flex-1">
-              リセット
+              やり直す
             </Button>
             <SheetClose
               render={

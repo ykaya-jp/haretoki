@@ -61,8 +61,8 @@ export function AccordionZoom() {
       <div className="flex flex-col items-center gap-4 py-16 text-center px-6">
         <p className="text-body text-muted-foreground">
           {hasVenuesButNoFavorites
-            ? "式場カードの ♡ をタップして候補に追加すると、ここで並べて比べられます。"
-            : "比較するには式場を 2 件以上追加してください。"}
+            ? "式場カードの ♡ をタップして候補に入れると、ここで並べて見比べられます。"
+            : "並べて見比べるには、式場を 2 件以上迎えてください。"}
         </p>
         <Link
           href="/explore"

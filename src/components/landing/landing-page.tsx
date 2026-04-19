@@ -28,7 +28,7 @@ const STATS = [
 const HERO_BENEFITS = [
   {
     icon: Link2,
-    title: "URLを貼るだけで登録",
+    title: "URL を貼るだけで、始まる",
     subtext: "AIが式場情報を読み取ります",
   },
   {
@@ -331,8 +331,8 @@ export function LandingPage() {
             {/* Steps — left column on md+ */}
             <ol className="flex w-full flex-col gap-10 md:max-w-sm md:flex-1">
               {[
-                { step: "01", title: "式場を登録する", desc: "URLを貼るだけ。情報はAIが読み取ります。" },
-                { step: "02", title: "見学して記録する", desc: "リストに沿って確認。印象をその場で残せます。" },
+                { step: "01", title: "式場を迎える", desc: "URLを貼るだけ。情報は AI が読み取ります。" },
+                { step: "02", title: "見学して、印象を残す", desc: "リストに沿って確認。気になったこと、その場で。" },
                 { step: "03", title: "並べて、決める", desc: "データと気持ち、両方を見て選べます。" },
               ].map((item, i) => (
                 <motion.li

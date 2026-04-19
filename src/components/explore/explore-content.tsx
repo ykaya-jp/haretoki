@@ -202,7 +202,7 @@ export function ExploreContent({
           imageAlt="式場を探す"
           title="まだ候補はありません"
           description="気になる 1 件から始めましょう。画面右下の「＋」から URL を貼るだけで始まります。"
-          action={{ href: "/explore?addVenue=1", label: "式場を追加する" }}
+          action={{ href: "/explore?addVenue=1", label: "式場を迎える" }}
         />
       )}
 

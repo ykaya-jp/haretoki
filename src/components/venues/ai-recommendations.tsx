@@ -390,10 +390,10 @@ function PrimedState() {
   return (
     <div className="space-y-3">
       <p className="text-sm leading-relaxed text-foreground">
-        まず1件、式場を登録してください。
+        まず 1 件、気になる式場を迎えてみませんか。
       </p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        候補が増えるほど、AIの推薦精度が高まります。
+        候補が増えるほど、AI の推薦がふたりに寄ってきます。
       </p>
       <div className="flex flex-wrap gap-2 pt-1">
         <a
@@ -421,7 +421,7 @@ function PreAIState({ venueCount, threshold }: { venueCount: number; threshold: 
         追加を進めましょう — あと{remaining}件でAI推薦が動き始めます。
       </p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        登録された式場の傾向を見て、相性の良い候補を提案します。
+        迎えた式場の傾向から、相性の良い候補をお届けします。
       </p>
       {/* Progress bar — subtle visual on the unlock */}
       <div
@@ -451,7 +451,7 @@ function LoadingState() {
   return (
     <div className="space-y-3">
       <p className="text-sm leading-relaxed text-foreground">
-        おふたりの登録式場から、相性の良い候補を探しています
+        おふたりの式場リストから、相性の良い候補を探しています
       </p>
       <div className="space-y-2 pt-1">
         {[0, 1, 2].map((i) => (
@@ -521,7 +521,7 @@ function ReadyState({
     if (data.conditions.guestCount) chips.push(`${data.conditions.guestCount}名前後`);
     if (data.conditions.budgetMax) chips.push(formatBudget(data.conditions.budgetMax));
     if (data.conditions.styles?.length) chips.push(data.conditions.styles.join("・"));
-    chips.push(`登録${data.venueCount}件を参考`);
+    chips.push(`${data.venueCount} 件を参考`);
     return chips;
   }, [data]);
 

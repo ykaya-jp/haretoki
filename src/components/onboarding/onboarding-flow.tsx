@@ -377,7 +377,7 @@ export function OnboardingFlow() {
                       ) : (
                         <>
                           <Plus className="h-4 w-4 mr-1" />
-                          気になるに追加する
+                          気になるリストに入れる
                         </>
                       )}
                     </Button>

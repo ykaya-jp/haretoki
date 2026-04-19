@@ -41,7 +41,7 @@ export function EstimateSection({
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          まだ見積もりが登録されていません
+          まだ見積もりを残していません
         </p>
         <Button
           variant="outline"
