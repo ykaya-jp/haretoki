@@ -154,7 +154,7 @@ export function JourneyTimeline({ milestones }: JourneyTimelineProps) {
               <div className="flex items-baseline gap-2">
                 {/* h3: /70 opacity for unreached */}
                 <h3 className={cn(
-                  "font-[family-name:var(--font-heading)] text-[15px] font-normal",
+                  "font-[family-name:var(--font-display)] text-[15px] font-light",
                   reached ? "text-foreground" : "text-foreground/70"
                 )}>
                   {milestone.label}

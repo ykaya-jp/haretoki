@@ -106,10 +106,17 @@ export function PhotoCarousel({
             className="rounded-[var(--r-lg)] object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
+          {/* V-5: caption overlay so the venue name is always visible in
+              the single-photo fold. Gradient is deepened to carry white
+              text readably without washing the hero image. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-[oklch(0_0_0_/_0.12)]"
-          />
+            className="pointer-events-none absolute inset-x-0 bottom-0 flex h-2/5 items-end bg-gradient-to-b from-transparent via-[oklch(0_0_0_/_0.18)] to-[oklch(0_0_0_/_0.42)] px-4 pb-3"
+          >
+            <span className="font-[family-name:var(--font-display)] text-[15px] font-light text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+              {alt}
+            </span>
+          </div>
         </button>
         <PhotoLightbox
           photos={photos}

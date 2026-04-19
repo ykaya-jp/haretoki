@@ -106,7 +106,7 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
               className="flex w-full min-h-[56px] items-center justify-between gap-3 px-4 py-3 pr-14 text-left transition-colors duration-200 active:bg-muted/50"
             >
               <div className="flex-1 min-w-0">
-                <p className="font-[family-name:var(--font-heading)] text-base font-normal truncate">{plan.name}</p>
+                <p className="font-[family-name:var(--font-display)] text-base font-light truncate">{plan.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {plan.basePrice != null && (
                     <span className="text-sm tabular-nums text-muted-foreground">
