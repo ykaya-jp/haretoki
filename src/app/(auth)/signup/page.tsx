@@ -196,7 +196,7 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  準備中...
+                  はじめています…
                 </>
               ) : (
                 <>
