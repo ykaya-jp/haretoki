@@ -259,6 +259,19 @@ async function VenueDetailContent({
 // Async child Server Components — each one is a Suspense boundary.
 // ---------------------------------------------------------------------------
 
+/** TEMP diagnostic — surface which child throws on old venues that
+ *  currently trip the error boundary. Wrap the component body with this
+ *  + throw to observe in Vercel runtime-logs. */
+function logAndRethrow(name: string, venueId: string, err: unknown): never {
+  console.error(`[venue-detail:${name}] failed`, {
+    venueId,
+    name: err instanceof Error ? err.name : typeof err,
+    message: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined,
+  });
+  throw err;
+}
+
 async function RatingWithPartner({
   venueId,
   userRatings,
@@ -266,7 +279,12 @@ async function RatingWithPartner({
   venueId: string;
   userRatings: Record<string, number>;
 }) {
-  const partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
+  let partnerRatingsData: Awaited<ReturnType<typeof getPartnerRatings>> | null;
+  try {
+    partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
+  } catch (err) {
+    logAndRethrow("RatingWithPartner", venueId, err);
+  }
 
   const partnerRatings: Record<string, number> = {};
   if (partnerRatingsData?.partnerRatings) {
@@ -297,15 +315,19 @@ async function RatingWithPartner({
 }
 
 async function EstimatesContent({ venueId }: { venueId: string }) {
-  const [estimates, reviewEstimateAgg] = await Promise.all([
-    getVenueEstimates(venueId),
-    getVenueReviewEstimateAggregate(venueId),
-  ]);
+  let estimates: Awaited<ReturnType<typeof getVenueEstimates>>;
+  let reviewEstimateAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
+  try {
+    [estimates, reviewEstimateAgg] = await Promise.all([
+      getVenueEstimates(venueId),
+      getVenueReviewEstimateAggregate(venueId),
+    ]);
+  } catch (err) {
+    logAndRethrow("EstimatesContent", venueId, err);
+  }
 
   if (estimates.length === 0) return null;
 
-  // E-6: Money Reality for the most recent estimate (full static analysis,
-  // no Claude). Catch so a bad report never blocks the estimate UI.
   const moneyReality = await getMoneyReality(estimates[0].id).catch(() => null);
 
   const reviewMeanFinal =
@@ -373,10 +395,16 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 }
 
 async function ReviewsContent({ venueId }: { venueId: string }) {
-  const [reviews, venueAgg] = await Promise.all([
-    getVenueReviews(venueId),
-    getVenueReviewEstimateAggregate(venueId),
-  ]);
+  let reviews: Awaited<ReturnType<typeof getVenueReviews>>;
+  let venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
+  try {
+    [reviews, venueAgg] = await Promise.all([
+      getVenueReviews(venueId),
+      getVenueReviewEstimateAggregate(venueId),
+    ]);
+  } catch (err) {
+    logAndRethrow("ReviewsContent", venueId, err);
+  }
   return (
     <div className="space-y-5">
       {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
@@ -414,7 +442,12 @@ async function ReviewsContent({ venueId }: { venueId: string }) {
 }
 
 async function PlansContent({ venueId }: { venueId: string }) {
-  const plans = await getVenuePlans(venueId);
+  let plans: Awaited<ReturnType<typeof getVenuePlans>>;
+  try {
+    plans = await getVenuePlans(venueId);
+  } catch (err) {
+    logAndRethrow("PlansContent", venueId, err);
+  }
   return (
     <PlanSection
       venueId={venueId}
@@ -450,7 +483,12 @@ async function VisitsContent({
   venueName: string;
   projectId: string;
 }) {
-  const visits = await getVenueVisits(venueId);
+  let visits: Awaited<ReturnType<typeof getVenueVisits>>;
+  try {
+    visits = await getVenueVisits(venueId);
+  } catch (err) {
+    logAndRethrow("VisitsContent", venueId, err);
+  }
   return (
     <VisitSection
       venueId={venueId}
