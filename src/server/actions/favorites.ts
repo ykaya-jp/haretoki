@@ -1,36 +1,68 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import type { VenueStatus } from "@/generated/prisma/client";
 
+/**
+ * Toggle the heart on a venue AND keep venue.status in sync so the chip
+ * row / card badges don't disagree with the heart state (P10 soft merge).
+ *
+ * Rules (chosen to not stomp on user-driven status edits):
+ *   - heart on  + status is researching / visit_scheduled → bump to shortlisted
+ *   - heart off + status is shortlisted                   → drop to researching
+ *   - visited / selected / rejected are never touched by the heart, because
+ *     those are lifecycle states the user reached on purpose and a stray
+ *     heart tap should not silently reset them.
+ */
+const HEART_ON_PROMOTE_FROM: VenueStatus[] = ["researching", "visit_scheduled"];
+const HEART_OFF_DEMOTE_FROM: VenueStatus[] = ["shortlisted"];
+
 export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boolean }> {
   const user = await requireUser();
-  await requireVenueAccess(user.id, venueId);
-
-  // Resolve projectId for tag invalidation
+  const { venue } = await requireVenueAccess(user.id, venueId);
   const { projectId } = await requireProjectMembership(user.id);
 
   const existing = await prisma.venueFavorite.findUnique({
     where: { venueId_userId: { venueId, userId: user.id } },
   });
 
-  if (existing) {
-    await prisma.venueFavorite.delete({
-      where: { id: existing.id },
-    });
-    revalidateTag(`project:${projectId}`, { expire: 0 });
-    return { isFavorite: false };
+  const nextFavorite = !existing;
+
+  // Status transition — bounded to the safe cases above. For everything
+  // else we leave status alone so e.g. a "rejected" venue stays rejected
+  // even if the user toggles the heart.
+  let statusUpdate: VenueStatus | null = null;
+  if (nextFavorite && HEART_ON_PROMOTE_FROM.includes(venue.status)) {
+    statusUpdate = "shortlisted";
+  } else if (!nextFavorite && HEART_OFF_DEMOTE_FROM.includes(venue.status)) {
+    statusUpdate = "researching";
   }
 
-  await prisma.venueFavorite.create({
-    data: { venueId, userId: user.id },
+  await prisma.$transaction(async (tx) => {
+    if (existing) {
+      await tx.venueFavorite.delete({ where: { id: existing.id } });
+    } else {
+      await tx.venueFavorite.create({ data: { venueId, userId: user.id } });
+    }
+    if (statusUpdate) {
+      await tx.venue.update({
+        where: { id: venueId },
+        data: { status: statusUpdate },
+      });
+    }
   });
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
-  return { isFavorite: true };
+  if (statusUpdate) {
+    revalidatePath("/explore");
+    revalidatePath("/candidates");
+    revalidatePath(`/venues/${venueId}`);
+  }
+
+  return { isFavorite: nextFavorite };
 }
 
 type FavoriteFilter = "mine" | "partner" | "both";

@@ -1,0 +1,155 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+/**
+ * P10 soft-merge contract — toggleFavorite keeps venue.status in sync
+ * with heart state, but only for safe transitions. Lifecycle states
+ * (visited / selected / rejected) must NOT be silently overwritten by
+ * a stray heart tap, or the user's decision history gets lost.
+ *
+ * Transition matrix (pinned here so regressions can't sneak in):
+ *
+ *                 | heart ON         | heart OFF
+ *   researching   | → shortlisted    | (no change)
+ *   visit_scheduled | → shortlisted  | (no change)
+ *   shortlisted   | (no change)      | → researching
+ *   visited       | (no change)      | (no change)
+ *   selected      | (no change)      | (no change)
+ *   rejected      | (no change)      | (no change)
+ */
+
+const findUniqueFavoriteMock = vi.fn();
+const deleteFavoriteMock = vi.fn();
+const createFavoriteMock = vi.fn();
+const updateVenueMock = vi.fn();
+const transactionMock = vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
+  // Our transactional closure only uses venueFavorite + venue tables on tx.
+  await cb({
+    venueFavorite: {
+      delete: deleteFavoriteMock,
+      create: createFavoriteMock,
+    },
+    venue: {
+      update: updateVenueMock,
+    },
+  });
+});
+
+const venueRow = {
+  id: "venue-1",
+  projectId: "proj-1",
+  status: "researching" as const,
+};
+
+vi.mock("@/server/db", () => ({
+  prisma: {
+    venueFavorite: {
+      findUnique: (...args: unknown[]) => findUniqueFavoriteMock(...args),
+    },
+    venue: {
+      findUnique: vi.fn(async () => venueRow),
+    },
+    projectMember: {
+      findFirst: vi.fn(async () => ({ projectId: "proj-1", role: "owner" })),
+    },
+    $transaction: (cb: (tx: unknown) => Promise<void>) => transactionMock(cb),
+  },
+}));
+
+vi.mock("@/server/auth", async () => ({
+  requireUser: vi.fn(async () => ({ id: "user-1" })),
+  requireProjectMembership: vi.fn(async () => ({
+    projectId: "proj-1",
+    role: "owner",
+  })),
+  requireVenueAccess: vi.fn(async () => ({ projectId: "proj-1", venue: venueRow })),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  cacheTag: vi.fn(),
+}));
+
+describe("toggleFavorite — heart ↔ status sync", () => {
+  beforeEach(() => {
+    findUniqueFavoriteMock.mockReset();
+    deleteFavoriteMock.mockReset();
+    createFavoriteMock.mockReset();
+    updateVenueMock.mockReset();
+    transactionMock.mockClear();
+  });
+
+  describe("heart ON (no existing favorite)", () => {
+    beforeEach(() => {
+      findUniqueFavoriteMock.mockResolvedValue(null);
+    });
+
+    it.each([
+      ["researching", "shortlisted"],
+      ["visit_scheduled", "shortlisted"],
+    ] as const)(
+      "promotes %s → %s",
+      async (currentStatus, expectedStatus) => {
+        venueRow.status = currentStatus;
+        const { toggleFavorite } = await import("@/server/actions/favorites");
+        const result = await toggleFavorite("venue-1");
+
+        expect(result).toEqual({ isFavorite: true });
+        expect(createFavoriteMock).toHaveBeenCalledOnce();
+        expect(updateVenueMock).toHaveBeenCalledWith({
+          where: { id: "venue-1" },
+          data: { status: expectedStatus },
+        });
+      },
+    );
+
+    it.each(["shortlisted", "visited", "selected", "rejected"] as const)(
+      "leaves status untouched when current is %s",
+      async (currentStatus) => {
+        venueRow.status = currentStatus;
+        const { toggleFavorite } = await import("@/server/actions/favorites");
+        await toggleFavorite("venue-1");
+
+        expect(createFavoriteMock).toHaveBeenCalledOnce();
+        expect(updateVenueMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe("heart OFF (existing favorite)", () => {
+    beforeEach(() => {
+      findUniqueFavoriteMock.mockResolvedValue({ id: "fav-1" });
+    });
+
+    it("demotes shortlisted → researching", async () => {
+      venueRow.status = "shortlisted";
+      const { toggleFavorite } = await import("@/server/actions/favorites");
+      const result = await toggleFavorite("venue-1");
+
+      expect(result).toEqual({ isFavorite: false });
+      expect(deleteFavoriteMock).toHaveBeenCalledOnce();
+      expect(updateVenueMock).toHaveBeenCalledWith({
+        where: { id: "venue-1" },
+        data: { status: "researching" },
+      });
+    });
+
+    it.each([
+      "researching",
+      "visit_scheduled",
+      "visited",
+      "selected",
+      "rejected",
+    ] as const)(
+      "leaves status untouched when current is %s",
+      async (currentStatus) => {
+        venueRow.status = currentStatus;
+        const { toggleFavorite } = await import("@/server/actions/favorites");
+        await toggleFavorite("venue-1");
+
+        expect(deleteFavoriteMock).toHaveBeenCalledOnce();
+        expect(updateVenueMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+});
