@@ -150,9 +150,14 @@ export function ExploreContent({
 
   return (
     <>
-      {/* Unified filter zone — 3-tier: 必須条件 / 絞り込み / AI 提案 */}
+      {/* Unified filter zone — E-5: collapsed to a 2-tier layout.
+          Previously the zone rendered 4 eyebrow labels (絞り込み /
+          必須条件 / ステータス / 雰囲気) which added visual noise without
+          being informative — users already understand what the chip
+          rows represent by looking at them. Keep just the top eyebrow
+          + count, and let vertical rhythm (space-y-5) separate the
+          groups. */}
       <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-5">
-        {/* Zone header — eyebrow 11px + count 13px */}
         <div className="flex items-center justify-between">
           <span className="text-eyebrow text-muted-foreground">
             絞り込み
@@ -162,38 +167,16 @@ export function ExploreContent({
           </span>
         </div>
 
-        {/* Tier 1: 必須条件 — personalized chips from onboarding */}
-        {conditionChips && (
-          <div className="space-y-2">
-            <p className="text-eyebrow text-muted-foreground/60">
-              必須条件
-            </p>
-            {conditionChips}
-          </div>
-        )}
+        {conditionChips && <div>{conditionChips}</div>}
 
-        {/* Tier 2: 絞り込み — status + filter sheet */}
-        <div className="space-y-2">
-          <p className="text-eyebrow text-muted-foreground/60">
-            ステータス
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 overflow-x-auto">
-              <FilterChips chips={chips} onToggle={handleToggle} />
-            </div>
-            <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
+        <div className="flex items-center gap-3">
+          <div className="flex-1 overflow-x-auto">
+            <FilterChips chips={chips} onToggle={handleToggle} />
           </div>
+          <VenueFilterSheet filters={advancedFilters} onApply={handleFilterApply} />
         </div>
 
-        {/* Tier 3: AI 提案 — vibe filter chips */}
-        {vibeChips && (
-          <div className="space-y-2">
-            <p className="text-eyebrow text-muted-foreground/60">
-              雰囲気
-            </p>
-            {vibeChips}
-          </div>
-        )}
+        {vibeChips && <div>{vibeChips}</div>}
       </div>
 
       {/* E-10 v2: Save Search — reflects live client filter state */}
