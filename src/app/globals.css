@@ -601,6 +601,41 @@
   }
 }
 
+/* ═══ X-8 skeleton shimmer ═══
+   Replaces the default Tailwind `animate-pulse` opacity flip with a gold-
+   tinted gradient sweeping left-to-right. Reads as "something is being
+   prepared" instead of "something is broken" — matches the brand's
+   晴れ時 register (朝の光が差し込む) better than a flat pulse.
+   Falls back to a static muted fill under prefers-reduced-motion. */
+@keyframes shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    var(--muted) 30%,
+    color-mix(in oklab, var(--gold-warm) 14%, var(--muted)) 50%,
+    var(--muted) 70%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    background-image: none;
+    animation: none;
+  }
+}
+
 /* ═══ Global focus-visible ring (WCAG 2.4.7) ═══
    Every interactive element gets a gold ring when reached via keyboard. Mouse /
    touch users never see it (:focus-visible only fires for keyboard). Matches

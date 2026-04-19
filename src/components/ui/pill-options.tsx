@@ -29,11 +29,12 @@ export function PillOptions({ options, selected, onToggle, multiSelect = true }:
             key={option.id}
             type="button"
             onClick={() => handleSelect(option.id)}
+            aria-pressed={isSelected}
             className={cn(
-              "min-h-[44px] rounded-full border px-4 text-sm transition-colors active:scale-95",
+              "min-h-[44px] rounded-full border px-4 text-sm transition-all duration-200 active:scale-[0.97]",
               isSelected
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-foreground hover:bg-muted"
+                ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_22%,transparent)]"
+                : "border-border bg-card text-foreground hover:border-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] hover:bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--card))] hover:text-foreground",
             )}
           >
             {option.label}
