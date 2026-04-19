@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Check, Plus } from "lucide-react";
 import { showToast } from "@/lib/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -140,6 +140,17 @@ export function RatingSection({
   partnerRatings,
 }: RatingSectionProps) {
   const [ratings, setRatings] = useState<Record<string, number>>(initialRatings);
+  // A dimension shows a full RatingBar when it's rated OR the user has
+  // explicitly expanded it via the chip below. Starts seeded from any
+  // dimensions that arrived with a non-zero score. Keeps a rated→unrated
+  // transition (if we ever add a clear button) on-screen so the bar
+  // doesn't disappear mid-tap.
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () =>
+      new Set(
+        TIER1_DIMENSIONS.filter((d) => (initialRatings[d] ?? 0) > 0),
+      ),
+  );
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -193,8 +204,37 @@ export function RatingSection({
     // though the user's own click was a valid 0.5 step.
     const newRatings = { ...ratings, [dimension]: score };
     setRatings(newRatings);
+    setExpanded((prev) => {
+      if (prev.has(dimension)) return prev;
+      const next = new Set(prev);
+      next.add(dimension);
+      return next;
+    });
     debouncedSave({ [dimension]: score });
   };
+
+  const handleExpand = (dimension: string) => {
+    setExpanded((prev) => {
+      if (prev.has(dimension)) return prev;
+      const next = new Set(prev);
+      next.add(dimension);
+      return next;
+    });
+  };
+
+  const { visibleDims, hiddenDims } = useMemo(() => {
+    const visible: string[] = [];
+    const hidden: string[] = [];
+    for (const dim of TIER1_DIMENSIONS) {
+      const rated = (ratings[dim] ?? 0) > 0;
+      if (rated || expanded.has(dim)) {
+        visible.push(dim);
+      } else {
+        hidden.push(dim);
+      }
+    }
+    return { visibleDims: visible, hiddenDims: hidden };
+  }, [ratings, expanded]);
 
   return (
     <section className="relative space-y-4">
@@ -227,7 +267,13 @@ export function RatingSection({
         ) : null}
       </AnimatePresence>
 
-      {TIER1_DIMENSIONS.map((dim) => {
+      {visibleDims.length === 0 && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          ふたりの印象を少しずつ残せます。気になる項目から、軽く触れるだけで。
+        </p>
+      )}
+
+      {visibleDims.map((dim) => {
         const value = ratings[dim] ?? 0;
         const partnerValue = partnerRatings?.[dim];
         return (
@@ -263,6 +309,30 @@ export function RatingSection({
           </div>
         );
       })}
+
+      {hiddenDims.length > 0 && (
+        <div className="space-y-2 pt-1">
+          {visibleDims.length > 0 && (
+            <p className="text-eyebrow text-muted-foreground/70">
+              残したい項目を足す
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {hiddenDims.map((dim) => (
+              <button
+                key={dim}
+                type="button"
+                onClick={() => handleExpand(dim)}
+                className="inline-flex min-h-11 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs text-foreground transition-all duration-200 hover:border-[var(--gold-warm)]/60 hover:text-[var(--gold-warm)] active:scale-95"
+                aria-label={`${DIMENSION_LABELS[dim]}を評価する`}
+              >
+                <Plus className="h-3 w-3" aria-hidden="true" />
+                {DIMENSION_LABELS[dim]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
