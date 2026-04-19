@@ -60,14 +60,16 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
         }}
       />
       <CoupleGapSection />
-      {/* チェック項目の編集は副次的なので inline text link で静かに。
-          -mt-6 を使わず CoupleGap 非表示時も hairline と安全に共存。 */}
-      <div className="text-right">
+      {/* Ghost pill — audit C-5 upgrade from bare text link. The previous
+          inline underline was too quiet and blended into CoupleGap copy;
+          a hairline pill with a 16px icon keeps it secondary without
+          disappearing on users who want to tune the checklist. */}
+      <div className="flex justify-end">
         <Link
           href="/checklist"
-          className="inline-flex min-h-11 items-center gap-1 text-[11.5px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-4 text-[12px] text-muted-foreground transition-colors duration-200 hover:border-[var(--gold-warm)]/60 hover:text-[var(--gold-warm)]"
         >
-          <SlidersHorizontal className="h-3 w-3" aria-hidden="true" />
+          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
           チェック項目を編集
         </Link>
       </div>
