@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   getComparisonMatrix,
   getFavoriteVenueIds,
@@ -34,13 +35,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
     venueIds = all.slice(0, COMPARE_MAX_VENUES);
   }
 
-  if (venueIds.length === 0) {
-    venueIds = await getFavoriteVenueIds();
-  }
-
-  const matrix = await getComparisonMatrix(venueIds);
   const trimmed = requestedCount > COMPARE_MAX_VENUES;
-  const insufficient = matrix.venues.length === 1;
 
   return (
     <div className="space-y-8 pb-24">
@@ -68,14 +63,7 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </p>
         </div>
 
-        {/* Ledger copy */}
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          {matrix.venues.length > 0
-            ? `${matrix.venues.length} 件の式場を、同じ観点で並べています`
-            : "候補を並べると、ここに横比較が現れます。"}
-        </p>
-
-        {/* Trim notice — "比較は 10 件までが一度に見やすいです" */}
+        {/* Trim notice — "比較は 10 件までが一度に見やすいです" (static, no data) */}
         {trimmed && (
           <div className="flex items-start gap-2 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-[color-mix(in_oklab,var(--gold-warm)_5%,var(--background))] px-3 py-2.5 text-[12.5px] text-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gold-warm)]" strokeWidth={2} />
@@ -87,6 +75,29 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
           </div>
         )}
       </div>
+
+      {/* Matrix + ledger copy — gated behind Suspense so page chrome paints
+          without waiting on getComparisonMatrix. Fallback mirrors the final
+          board layout so there's no jump when the matrix arrives (R4). */}
+      <Suspense fallback={<CompareBoardSkeleton />}>
+        <CompareMatrix venueIds={venueIds} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
+  const ids = venueIds.length > 0 ? venueIds : await getFavoriteVenueIds();
+  const matrix = await getComparisonMatrix(ids);
+  const insufficient = matrix.venues.length === 1;
+
+  return (
+    <div className="space-y-8">
+      <p className="text-[13px] leading-relaxed text-muted-foreground">
+        {matrix.venues.length > 0
+          ? `${matrix.venues.length} 件の式場を、同じ観点で並べています`
+          : "候補を並べると、ここに横比較が現れます。"}
+      </p>
 
       {matrix.venues.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
@@ -116,6 +127,38 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
       ) : (
         <ComparisonBoard matrix={matrix} />
       )}
+    </div>
+  );
+}
+
+/** Inline skeleton mirroring ComparisonBoard's header + 6 rows × 3 cols grid.
+ *  Matches loading.tsx but lives here so the outer chrome is already visible
+ *  while this boundary resolves. */
+function CompareBoardSkeleton() {
+  return (
+    <div className="space-y-4" aria-hidden="true">
+      <div className="h-4 w-64 animate-pulse rounded bg-muted/60" />
+      <div className="overflow-x-auto">
+        <div className="flex gap-3 pb-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-24 w-32 flex-shrink-0 animate-pulse rounded-lg bg-muted/60"
+            />
+          ))}
+        </div>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="flex gap-3 border-b py-3">
+            <div className="h-4 w-40 flex-shrink-0 animate-pulse rounded bg-muted/60" />
+            {[1, 2, 3].map((j) => (
+              <div
+                key={j}
+                className="h-8 w-32 flex-shrink-0 animate-pulse rounded bg-muted/60"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

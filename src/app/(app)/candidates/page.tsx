@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { getVenues } from "@/server/actions/venues";
@@ -18,19 +19,9 @@ interface CandidatesPageProps {
 }
 
 export default async function CandidatesPage({ searchParams }: CandidatesPageProps) {
-  // getCurrentUserName replaces the heavyweight getHomeData — only userName is needed here.
-  const [favorites, venues, decision, userName, params] = await Promise.all([
-    getFavorites("mine"),
-    getVenues(),
-    getDecision(),
-    getCurrentUserName(),
-    searchParams,
-  ]);
-
-  const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
+  const params = await searchParams;
 
   // ?view=recent: surface a note that "最近見た" is in the list below.
-  // Full "recently viewed" sub-tab is deferred to Tier 2.
   const isRecentView = params.view === "recent";
   // Tab compatibility mapping for old URLs
   const TAB_COMPAT: Record<string, string> = {
@@ -80,17 +71,66 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           チェック項目を編集
         </Link>
       </div>
-      <CandidatesView
-        initialFavorites={favorites}
-        venueOptions={venueOptions}
-        initialDecision={
-          decision
-            ? { venueName: decision.venue.name, rationale: decision.rationale }
-            : null
-        }
-        userName={userName}
-        initialTab={initialTab}
-      />
+
+      {/* Candidates list + compare + decision — chrome above paints first,
+          the heavier 4-call Promise.all streams in behind a shape-aware
+          skeleton (R4). */}
+      <Suspense fallback={<CandidatesViewSkeleton />}>
+        <CandidatesContent initialTab={initialTab} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function CandidatesContent({
+  initialTab,
+}: {
+  initialTab: "shortlist" | "compare" | "decision" | undefined;
+}) {
+  const [favorites, venues, decision, userName] = await Promise.all([
+    getFavorites("mine"),
+    getVenues(),
+    getDecision(),
+    getCurrentUserName(),
+  ]);
+
+  const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
+
+  return (
+    <CandidatesView
+      initialFavorites={favorites}
+      venueOptions={venueOptions}
+      initialDecision={
+        decision
+          ? { venueName: decision.venue.name, rationale: decision.rationale }
+          : null
+      }
+      userName={userName}
+      initialTab={initialTab}
+    />
+  );
+}
+
+function CandidatesViewSkeleton() {
+  return (
+    <div className="space-y-5" aria-hidden="true">
+      {/* Segmented control (3 primary tabs) */}
+      <div className="flex gap-1 rounded-2xl bg-muted/60 p-1.5">
+        <div className="h-11 flex-1 animate-pulse rounded-xl bg-muted/80" />
+        <div className="h-11 flex-1 animate-pulse rounded-xl bg-muted/80" />
+        <div className="h-11 flex-1 animate-pulse rounded-xl bg-muted/80" />
+      </div>
+      {/* Venue cards (3) */}
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="space-y-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]"
+        >
+          <div className="aspect-[4/3] w-full animate-pulse rounded-xl bg-muted/60" />
+          <div className="h-5 w-3/4 animate-pulse rounded bg-muted/60" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-muted/60" />
+        </div>
+      ))}
     </div>
   );
 }
