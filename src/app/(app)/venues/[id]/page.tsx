@@ -54,14 +54,32 @@ export default async function VenueDetailPage({
   // requireUser / requireProjectMembership are React.cache'd, so the repeated
   // calls inside the Suspense children (getVenueEstimates, getVenueVisits, …)
   // reuse the same cached result — no extra DB round-trips.
-  const user = await requireUser();
-  const membership = await requireProjectMembership(user.id);
-  const isOwner = membership.role === "owner";
+  let user: Awaited<ReturnType<typeof requireUser>>;
+  let membership: Awaited<ReturnType<typeof requireProjectMembership>>;
+  let venue: Awaited<ReturnType<typeof getVenueHeader>>;
+  let favorites: Awaited<ReturnType<typeof getFavorites>>;
+  try {
+    user = await requireUser();
+    membership = await requireProjectMembership(user.id);
+    [venue, favorites] = await Promise.all([
+      getVenueHeader(id),
+      getFavorites("mine"),
+    ]);
+  } catch (err) {
+    // TEMP diagnostic for the "式場情報を読み込めませんでした" boundary —
+    // the old Next.js log truncates the real message to "Route /venues/
+    // [id]...". Log the full stack + venueId so Vercel runtime-logs can
+    // surface it.
+    console.error("[VenueDetailPage] top-level fetch failed", {
+      venueId: id,
+      name: err instanceof Error ? err.name : typeof err,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw err;
+  }
 
-  const [venue, favorites] = await Promise.all([
-    getVenueHeader(id),
-    getFavorites("mine"),
-  ]);
+  const isOwner = membership.role === "owner";
 
   if (!venue) notFound();
 
