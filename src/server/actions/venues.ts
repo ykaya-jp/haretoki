@@ -705,10 +705,68 @@ function extractJson(s: string): string {
   return match ? match[1].trim() : s.trim();
 }
 
+/** Scan the raw textContent for common Japanese venue signals the
+ *  JSON-LD block doesn't carry — access info, ceremony styles,
+ *  cuisine types. Heuristic, but zero external calls.
+ */
+function scrapeBodyHints(
+  textContent: string,
+): {
+  accessInfo: string | null;
+  ceremonyStyles: string[];
+  cuisineTypes: ("french" | "japanese" | "italian" | "chinese" | "fusion" | "buffet")[];
+} {
+  const snippet = textContent.slice(0, 80_000);
+
+  // "表参道駅徒歩3分" / "○○駅A4出口より徒歩3分" style.
+  const walkMatch = snippet.match(/([^\s]{1,12}駅)[^\s。、]{0,40}徒歩\s*[約\s]*([0-9０-９]{1,2})\s*分/);
+  const accessInfo = walkMatch ? `${walkMatch[1]} 徒歩 ${walkMatch[2].replace(/[０-９]/g, (d) => String("０１２３４５６７８９".indexOf(d)))} 分` : null;
+
+  const CEREMONY_KEYWORDS = [
+    "チャペル",
+    "教会式",
+    "神前",
+    "人前",
+    "ガーデン",
+    "ホテル",
+    "レストラン",
+    "ハウスウェディング",
+  ];
+  const seenCeremony = new Set<string>();
+  for (const kw of CEREMONY_KEYWORDS) {
+    if (snippet.includes(kw)) seenCeremony.add(kw);
+  }
+  const ceremonyStyles = Array.from(seenCeremony).slice(0, 6);
+
+  const CUISINE_MAP: { kw: string; id: "french" | "japanese" | "italian" | "chinese" | "fusion" | "buffet" }[] = [
+    { kw: "フレンチ", id: "french" },
+    { kw: "和食", id: "japanese" },
+    { kw: "懐石", id: "japanese" },
+    { kw: "日本料理", id: "japanese" },
+    { kw: "イタリアン", id: "italian" },
+    { kw: "中華", id: "chinese" },
+    { kw: "フュージョン", id: "fusion" },
+    { kw: "折衷", id: "fusion" },
+    { kw: "ブッフェ", id: "buffet" },
+    { kw: "ビュッフェ", id: "buffet" },
+  ];
+  const seenCuisine = new Set<"french" | "japanese" | "italian" | "chinese" | "fusion" | "buffet">();
+  for (const { kw, id } of CUISINE_MAP) {
+    if (snippet.includes(kw)) seenCuisine.add(id);
+  }
+
+  return {
+    accessInfo,
+    ceremonyStyles,
+    cuisineTypes: Array.from(seenCuisine).slice(0, 5),
+  };
+}
+
 /**
  * Rescue path when Claude extraction fails end-to-end. Builds a minimum
- * valid ExtractedVenueData from JSON-LD + OpenGraph metadata alone —
- * enough to let the couple commit the venue and fill in detail later.
+ * valid ExtractedVenueData from JSON-LD + OpenGraph metadata + raw HTML
+ * body hints — enough to let the couple commit the venue and fill in
+ * detail later.
  *
  * Returns null if we don't even have a venue name (at which point the
  * page really does have no extractable signal and the error path is
@@ -717,6 +775,7 @@ function extractJson(s: string): string {
 function buildFallbackExtracted(
   structured: ReturnType<typeof parseJsonLd>,
   metadata: ReturnType<typeof extractMetadata>,
+  textContent: string = "",
 ): ExtractedVenueData | null {
   const name =
     structured.name ||
@@ -747,13 +806,15 @@ function buildFallbackExtracted(
     })
     .slice(0, 30);
 
+  const bodyHints = scrapeBodyHints(textContent);
+
   return {
     name: name.slice(0, 200),
     location,
-    accessInfo: null,
+    accessInfo: bodyHints.accessInfo,
     capacityMin: null,
     capacityMax: null,
-    ceremonyStyles: [],
+    ceremonyStyles: bodyHints.ceremonyStyles,
     estimatedPrice: null,
     features: [],
     photoUrls,
@@ -785,7 +846,7 @@ function buildFallbackExtracted(
     serviceFeeRate: null,
     operatingHours: null,
     closedDays: [],
-    cuisineTypes: [],
+    cuisineTypes: bodyHints.cuisineTypes,
     chefCredentials: null,
   };
 }
@@ -949,7 +1010,7 @@ export async function addVenueFromUrl(url: string): Promise<{
     // non-null result the user can commit and fill in by hand.
     if (!claudeResponse) {
       console.warn("[addVenueFromUrl] claude returned null, attempting JSON-LD fallback", { url });
-      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata, detailPage.textContent);
       if (fallback) {
         return { extracted: fallback, warning: "AI 解析に失敗したため、取れた情報だけで下書きしました。内容を確認してください。" };
       }
@@ -965,7 +1026,7 @@ export async function addVenueFromUrl(url: string): Promise<{
         error: parseErr instanceof Error ? parseErr.message : parseErr,
         snippet: claudeResponse.slice(0, 200),
       });
-      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata, detailPage.textContent);
       if (fallback) {
         return { extracted: fallback, warning: "AI 解析結果を読めなかったため、取れた情報だけで下書きしました。内容を確認してください。" };
       }
@@ -978,7 +1039,7 @@ export async function addVenueFromUrl(url: string): Promise<{
         url,
         issues: validated.error.issues,
       });
-      const fallback = buildFallbackExtracted(structured, detailPage.metadata);
+      const fallback = buildFallbackExtracted(structured, detailPage.metadata, detailPage.textContent);
       if (fallback) {
         return { extracted: fallback, warning: "AI 解析結果の形が合わなかったため、取れた情報だけで下書きしました。内容を確認してください。" };
       }
