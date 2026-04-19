@@ -467,10 +467,19 @@ function LoadingState() {
 
 function UnavailableState() {
   return (
-    <div className="space-y-2">
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        AIおすすめは現在準備中です。式場を追加すると、精度が高まります。
+    <div className="space-y-3">
+      <p className="text-sm leading-relaxed text-foreground">
+        今日のおすすめは準備中です。
       </p>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        候補を増やすと、ふたりに合う式場の精度が上がっていきます。
+      </p>
+      <a
+        href="/candidates?view=recent"
+        className="inline-flex min-h-11 items-center gap-1 text-xs text-[var(--gold-warm)] underline underline-offset-4"
+      >
+        先日ご覧になった式場をどうぞ →
+      </a>
     </div>
   );
 }
@@ -563,10 +572,10 @@ function RecommendationCard({
   if (rec.rationale?.style_match) rationaleChips.push("スタイル一致");
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1.5">
-          <h4 className="font-[family-name:var(--font-display)] text-sm font-medium tracking-[0.03em]">{rec.name}</h4>
+          <h4 className="font-[family-name:var(--font-display)] text-[17px] font-light tracking-[0.01em]">{rec.name}</h4>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" aria-hidden="true" />
             {rec.location}

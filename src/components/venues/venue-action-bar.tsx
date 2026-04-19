@@ -86,9 +86,9 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />
           </button>
           <Link
-            href="/candidates"
+            href={isFavorite ? "/compare" : "/candidates"}
             prefetch={true}
-            className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
+            className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
           >
             {isFavorite ? "ほかの式場と比べる" : "候補に入れて比べる"}
           </Link>
