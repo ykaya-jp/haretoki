@@ -34,10 +34,18 @@ const transactionMock = vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
   });
 });
 
-const venueRow = {
+type VenueStatus =
+  | "researching"
+  | "visit_scheduled"
+  | "visited"
+  | "shortlisted"
+  | "selected"
+  | "rejected";
+
+const venueRow: { id: string; projectId: string; status: VenueStatus } = {
   id: "venue-1",
   projectId: "proj-1",
-  status: "researching" as const,
+  status: "researching",
 };
 
 vi.mock("@/server/db", () => ({

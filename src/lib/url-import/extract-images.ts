@@ -97,15 +97,49 @@ function shouldDrop(url: string): boolean {
   return false;
 }
 
+/** Lazy-load attribute variants we've seen in the wild on wedding sites. */
+const IMG_LAZY_ATTRS = [
+  "data-src",
+  "data-original",
+  "data-lazy-src",
+  "data-lazy",
+  "data-echo",
+  "data-bg",
+  "data-ng-src",
+  "data-srcset",
+] as const;
+
+/**
+ * Match `background-image: url(...)` / `background: url(...)` occurrences
+ * inside an inline style attribute. Handles optional single / double
+ * quotes and arbitrary whitespace.
+ */
+const BG_IMAGE_RE = /background(?:-image)?\s*:\s*[^;]*url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+
+/**
+ * Match absolute image URLs (with a well-known extension) anywhere inside
+ * a script blob. Used as a last-ditch "the site hid the img URLs inside
+ * `window.__INITIAL_STATE__` or similar" recovery path.
+ */
+const SCRIPT_IMG_URL_RE =
+  /https?:\/\/[^\s"'<>`]+?\.(?:jpe?g|png|webp|avif|gif)(?:\?[^\s"'<>`]*)?/gi;
+
 /**
  * Scrape image URLs from an HTML string.
  *
- * Pulls from:
- *  - `<img src>`
- *  - `<img data-src>` (common lazy-load attribute)
- *  - `<img data-original>` (lazyload.js legacy)
- *  - `<img srcset>` (picks highest resolution)
- *  - `<source srcset>` inside `<picture>`
+ * Pulls from (in order — earlier sources tend to be the hero images):
+ *  - `<img src>` / `srcset`, plus lazy-load variants (data-src, data-lazy,
+ *    data-original, data-bg, data-ng-src, data-srcset, data-echo).
+ *  - `<picture><source srcset>` and standalone `<source srcset>`.
+ *  - `<noscript>` fallback markup — many sites hide the non-lazy `<img>`
+ *    here for SEO + no-JS users; cheerio treats noscript contents as
+ *    opaque text so we re-parse it.
+ *  - Inline `style="background-image: url(...)"` — slider/hero divs
+ *    typically render their image through CSS rather than `<img>`.
+ *  - Inline `<script>` blobs containing JSON/JS with image URLs (e.g.
+ *    `window.__INITIAL_STATE__`, Next.js `__NEXT_DATA__`) — regex-only
+ *    extraction keyed on absolute-URL + image extension so we don't
+ *    mis-pick JS snippets.
  *
  * Absolutises relative paths against `baseUrl` (the page URL). Dedupes while
  * preserving insertion order. Returns up to `maxUrls` URLs.
@@ -138,13 +172,20 @@ export function extractImagesFromHtml(
     urls.push(abs);
   };
 
-  // <img src>, <img data-src>, <img data-original>, <img srcset>
+  // <img> with all known lazy-load attrs + src + srcset.
   $("img").each((_, el) => {
     const $el = $(el);
     const srcset = $el.attr("srcset");
     if (srcset) push(pickHighestResFromSrcset(srcset));
-    push($el.attr("data-src") ?? null);
-    push($el.attr("data-original") ?? null);
+    for (const attr of IMG_LAZY_ATTRS) {
+      const v = $el.attr(attr);
+      if (!v) continue;
+      if (attr === "data-srcset") {
+        push(pickHighestResFromSrcset(v));
+      } else {
+        push(v);
+      }
+    }
     push($el.attr("src") ?? null);
   });
 
@@ -158,6 +199,48 @@ export function extractImagesFromHtml(
   $("source[srcset]").each((_, el) => {
     const srcset = $(el).attr("srcset");
     if (srcset) push(pickHighestResFromSrcset(srcset));
+  });
+
+  // <noscript> — contents are opaque text to cheerio's default parser, so
+  // re-parse each block. Common SSR pattern: a real <img src> is hidden
+  // inside <noscript> while the JS-visible <img> has data-src only.
+  $("noscript").each((_, el) => {
+    const inner = $(el).html();
+    if (!inner) return;
+    try {
+      const $$ = cheerio.load(inner);
+      $$("img").each((_, imgEl) => {
+        const $img = $$(imgEl);
+        const srcset = $img.attr("srcset");
+        if (srcset) push(pickHighestResFromSrcset(srcset));
+        push($img.attr("src") ?? null);
+      });
+    } catch {
+      // malformed noscript body — skip
+    }
+  });
+
+  // Inline style="background-image: url(...)" — slider / hero divs.
+  $("[style]").each((_, el) => {
+    const style = $(el).attr("style");
+    if (!style) return;
+    for (const m of style.matchAll(BG_IMAGE_RE)) {
+      push(m[2] ?? null);
+    }
+  });
+
+  // Inline <script> blobs — scan each (non-external) script for absolute
+  // image URLs. Capped per-blob to avoid a single mega-bundle producing
+  // thousands of hits that would flood the dedupe set.
+  const PER_SCRIPT_CAP = 40;
+  $("script:not([src])").each((_, el) => {
+    const code = $(el).html();
+    if (!code || code.length === 0) return;
+    let taken = 0;
+    for (const m of code.matchAll(SCRIPT_IMG_URL_RE)) {
+      push(m[0]);
+      if (++taken >= PER_SCRIPT_CAP) break;
+    }
   });
 
   return urls.slice(0, maxUrls);
