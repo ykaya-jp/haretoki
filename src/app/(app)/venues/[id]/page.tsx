@@ -43,19 +43,19 @@ const VENUE_SECTIONS = [
   { id: "ai", label: "AI解析" },
 ] as const;
 
-export default async function VenueDetailPage({
+export default function VenueDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  // Next 16 cacheComponents requires dynamic work (cookies via
-  // requireUser, DB reads) to sit inside a Suspense boundary. Move the
-  // entire data-fetch + render chain into an async child and wrap it
-  // here — matches the /compare and /candidates pattern.
+  // Next 16 cacheComponents rules: anything async — including
+  // `await params` (params is a Promise in Next 16) and any dynamic
+  // IO like cookies / DB reads — must live inside a Suspense boundary.
+  // Pass the params Promise straight through and let the child await
+  // it so the whole dynamic chain is inside Suspense.
   return (
     <Suspense fallback={<VenueDetailSkeleton />}>
-      <VenueDetailContent id={id} />
+      <VenueDetailContent params={params} />
     </Suspense>
   );
 }
@@ -71,7 +71,12 @@ function VenueDetailSkeleton() {
   );
 }
 
-async function VenueDetailContent({ id }: { id: string }) {
+async function VenueDetailContent({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const user = await requireUser();
   const membership = await requireProjectMembership(user.id);
   const isOwner = membership.role === "owner";
