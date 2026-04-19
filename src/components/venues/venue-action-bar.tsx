@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HeartButton } from "@/components/venues/heart-button";
 import { ShareButton } from "@/components/venues/share-button";
+import { HaloTap } from "@/components/ui/halo-tap";
 import { deleteVenue } from "@/server/actions/venues";
 import Link from "next/link";
 
@@ -85,13 +86,15 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
           >
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />
           </button>
-          <Link
-            href={isFavorite ? "/compare" : "/candidates"}
-            prefetch={true}
-            className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
-          >
-            {isFavorite ? "ほかの式場と比べる" : "候補に入れて比べる"}
-          </Link>
+          <HaloTap className="flex-1 rounded-full">
+            <Link
+              href={isFavorite ? "/compare" : "/candidates"}
+              prefetch={true}
+              className="flex min-h-[44px] w-full items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
+            >
+              {isFavorite ? "ほかの式場と比べる" : "候補に入れて比べる"}
+            </Link>
+          </HaloTap>
         </div>
       </div>
     </>

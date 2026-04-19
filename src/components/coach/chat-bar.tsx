@@ -4,6 +4,7 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { Send, Loader2, Sparkles } from "lucide-react";
 import { sendCoachMessage } from "@/server/actions/coach";
 import { ChatBubble } from "@/components/coach/chat-bubble";
+import { HaloTap } from "@/components/ui/halo-tap";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface InFlight {
@@ -238,19 +239,21 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
             className="min-w-0 flex-1 rounded-2xl bg-muted px-5 py-3 text-base outline-none focus:ring-2 focus:ring-primary/30"
             disabled={busy}
           />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={busy || !message.trim()}
-            aria-label={busy ? "送信しています" : "送信する"}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all duration-200 active:scale-[0.93] disabled:opacity-50"
-          >
-            {busy ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </button>
+          <HaloTap className="rounded-full">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={busy || !message.trim()}
+              aria-label={busy ? "送信しています" : "送信する"}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-all duration-200 active:scale-[0.93] disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </button>
+          </HaloTap>
         </div>
       </div>
     </>
