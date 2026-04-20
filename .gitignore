@@ -56,3 +56,7 @@ next-env.d.ts
 .claude/worktrees/
 images/
 .claude/scheduled_tasks.lock
+
+# debug scripts / screenshots (never commit)
+scripts/inspect-venue.ts
+tmp/
