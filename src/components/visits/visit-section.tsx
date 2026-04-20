@@ -284,7 +284,30 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
       ))}
 
       {visits.length === 0 && !showScheduleForm && (
-        <p className="text-sm text-muted-foreground">見学の思い出をここに残せます</p>
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ boxShadow: "0 0 0 0.5px var(--gold-subtle)" }}
+          >
+            <Calendar className="h-6 w-6 text-[var(--gold-warm)]" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-light">見学のきろくはこれから</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              予定を入れて、当日の印象やメモを残せば
+              <br />
+              あとで比べるときの手がかりになります
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowScheduleForm(true)}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
+          >
+            <Calendar className="h-4 w-4" />
+            見学の予定を入れる
+          </button>
+        </div>
       )}
     </section>
   );

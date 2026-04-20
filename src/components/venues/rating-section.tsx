@@ -238,7 +238,14 @@ export function RatingSection({
 
   return (
     <section className="relative space-y-4">
-      <h2 className="text-base">印象を残す</h2>
+      <div>
+        <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
+          Impression
+        </p>
+        <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em]">
+          印象を残す
+        </h2>
+      </div>
       <AnimatePresence mode="wait">
         {saving ? (
           <motion.span

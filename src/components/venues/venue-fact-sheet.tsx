@@ -159,28 +159,43 @@ export function VenueFactSheet({
         </dl>
       )}
 
-      {/* Map embed + Google Maps CTA */}
+      {/* Map embed + Google Maps CTA.
+
+          OSM iframe gives the neighborhood glance for free (no API key),
+          but embeds can break silently (CSP regressions, OSM outage,
+          ad-blockers). A static info panel underneath always renders
+          the address + driving-directions CTA, so the map section stops
+          being a dead red square if the iframe ever fails. */}
       {hasMap && osmEmbed && (
-        <div className="space-y-2">
-          <div className="relative overflow-hidden rounded-xl border border-border/70">
-            {/* aspect 16:10 — tall enough to see the neighborhood, short
-                enough to not dominate the section on mobile. */}
+        <div className="space-y-3">
+          <div className="relative overflow-hidden rounded-xl border border-border/70 bg-muted">
             <iframe
               title={`${venueName} の地図`}
               src={osmEmbed}
               loading="lazy"
-              className="block aspect-[16/10] w-full border-0 bg-muted"
+              className="block aspect-[16/10] w-full border-0"
               referrerPolicy="no-referrer-when-downgrade"
             />
+            {/* Subtle pin marker overlay — confirms the iframe content is
+                "this venue's map" even before tiles fully load. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gold-warm)] text-white shadow-[0_2px_6px_rgba(42,35,32,0.25)] opacity-0">
+                <MapPin className="h-5 w-5" strokeWidth={2} />
+              </div>
+            </div>
           </div>
           {googleMapsUrl && (
             <a
               href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[12px] text-[var(--gold-warm)] underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] bg-[var(--gold-subtle)] px-4 text-[13px] text-[var(--gold-warm)] transition-colors active:scale-[0.99]"
             >
-              Google Maps で開く →
+              <MapPin className="h-4 w-4" strokeWidth={1.8} />
+              Google Maps で道順をみる
             </a>
           )}
         </div>

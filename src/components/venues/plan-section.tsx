@@ -63,8 +63,15 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-display)] text-base font-light">プランの詳細</h2>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
+            Packages
+          </p>
+          <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em]">
+            お式のプラン
+          </h2>
+        </div>
         <PlanEditorSheet venueId={venueId} />
       </div>
       <p className="text-[12px] text-muted-foreground mb-3">

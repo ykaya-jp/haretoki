@@ -5,7 +5,7 @@ import { analyzeVenueReviews, batchAnalyzeVenueReviews } from "@/server/actions/
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, RefreshCw } from "lucide-react";
+import { Loader2, Plus, RefreshCw, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -191,8 +191,15 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base">口コミのまとめ</h2>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
+            Reviews
+          </p>
+          <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em]">
+            先輩カップルの声
+          </h2>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {reviews.length > 0 && (
             <Button
@@ -280,9 +287,29 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       )}
 
       {reviews.length === 0 && !showForm && (
-        <p className="text-sm text-muted-foreground">
-          口コミページのURLを追加すると、AIが要点をまとめます
-        </p>
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ boxShadow: "0 0 0 0.5px var(--gold-subtle)" }}
+          >
+            <MessageCircle className="h-6 w-6 text-[var(--gold-warm)]" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-light">先輩カップルの声はこれから</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              ゼクシィやハナユメの口コミページの URL を貼ると、
+              <br />
+              AI がふたり向けに要点をまとめます
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
+          >
+            口コミの URL を貼る
+          </button>
+        </div>
       )}
 
       {/* Venue-level aggregate estimate-increase badge (avg across reviews) */}

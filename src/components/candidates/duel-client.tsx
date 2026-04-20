@@ -242,7 +242,7 @@ function ChoiceButton({ venue, text, isSelected, isOtherSelected, onClick }: Cho
         >
           <p
             className={cn(
-              "mb-1 font-[family-name:var(--font-display)] text-[11px] font-light tracking-[0.1em]",
+              "mb-1 text-[11px] font-medium uppercase tracking-[0.14em]",
               isSelected ? "text-[color:var(--primary)]" : "text-muted-foreground",
             )}
           >
