@@ -81,9 +81,11 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
             return (
               <button
                 key={section.id}
+                id={`tab-${section.id}`}
                 role="tab"
                 aria-selected={isActive}
                 aria-controls={section.id}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => handleClick(section.id)}
                 className={cn(
                   "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[13px] transition-colors active:scale-[0.97]",

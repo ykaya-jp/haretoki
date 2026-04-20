@@ -26,6 +26,7 @@ import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { VenueDetailBackLink } from "@/components/venues/back-link";
+import { VenueOverflowMenu } from "@/components/venues/venue-overflow-menu";
 import { VenueUpdatedBanner } from "@/components/venues/venue-updated-banner";
 import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
 import { VenueFactSheet } from "@/components/venues/venue-fact-sheet";
@@ -75,9 +76,13 @@ export default async function VenueDetailPage({
 
   return (
     <div className="space-y-10 pb-36">
-      {/* Back link — uses router.back() to preserve filter/scroll state on
-          the referrer page (Explore, Candidates, Home all link here). */}
-      <VenueDetailBackLink variant="compact" />
+      {/* Top row: back link (left) + overflow menu (right). Destructive
+          actions live in the overflow menu so they're never adjacent to
+          the primary CTA in the sticky bottom bar. */}
+      <div className="flex items-center justify-between">
+        <VenueDetailBackLink variant="compact" />
+        <VenueOverflowMenu venueId={venue.id} venueName={venue.name} />
+      </div>
 
       {/* Merged-import banner — present only when ?updated=1, self-scrubs. */}
       <VenueUpdatedBanner />
@@ -104,7 +109,13 @@ export default async function VenueDetailPage({
       <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
 
       {/* ===== Overview section ===== */}
-      <section id="overview" className="space-y-4">
+      <section
+        id="overview"
+        role="tabpanel"
+        aria-labelledby="tab-overview"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
         <div
           aria-hidden="true"
           className="h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent"
@@ -151,7 +162,13 @@ export default async function VenueDetailPage({
       </section>
 
       {/* ===== Estimate section ===== */}
-      <section id="estimate" className="space-y-4">
+      <section
+        id="estimate"
+        role="tabpanel"
+        aria-labelledby="tab-estimate"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
         {/* Estimate sections — fetched in this Suspense child, streams independently */}
         <Suspense fallback={<EstimatesSkeleton />}>
           <EstimatesContent venueId={venue.id} />
@@ -176,7 +193,13 @@ export default async function VenueDetailPage({
       />
 
       {/* ===== Visit section ===== */}
-      <section id="visit" className="space-y-4">
+      <section
+        id="visit"
+        role="tabpanel"
+        aria-labelledby="tab-visit"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
         {/* Below-the-fold sections — each streams independently via Suspense. */}
         <Suspense fallback={<VisitsSkeleton />}>
           <VisitsContent
@@ -188,14 +211,26 @@ export default async function VenueDetailPage({
       </section>
 
       {/* ===== Review section ===== */}
-      <section id="review" className="space-y-4">
+      <section
+        id="review"
+        role="tabpanel"
+        aria-labelledby="tab-review"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
         <Suspense fallback={<ReviewsSkeleton />}>
           <ReviewsContent venueId={venue.id} />
         </Suspense>
       </section>
 
       {/* ===== Plan section ===== (renamed from "AI解析") */}
-      <section id="plan" className="space-y-4">
+      <section
+        id="plan"
+        role="tabpanel"
+        aria-labelledby="tab-plan"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
         <Suspense fallback={<PlansSkeleton />}>
           <PlansContent venueId={venue.id} />
         </Suspense>

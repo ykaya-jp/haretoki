@@ -723,21 +723,24 @@ function scrapeBodyHints(
   const walkMatch = snippet.match(/([^\s]{1,12}駅)[^\s。、]{0,40}徒歩\s*[約\s]*([0-9０-９]{1,2})\s*分/);
   const accessInfo = walkMatch ? `${walkMatch[1]} 徒歩 ${walkMatch[2].replace(/[０-９]/g, (d) => String("０１２３４５６７８９".indexOf(d)))} 分` : null;
 
-  const CEREMONY_KEYWORDS = [
-    "チャペル",
-    "教会式",
-    "神前",
-    "人前",
-    "ガーデン",
-    "ホテル",
-    "レストラン",
-    "ハウスウェディング",
+  // Canonical 4-value enum (matches the Claude prompt above, see
+  // ceremonyStyles enum in systemPrompt). ホテル / レストラン /
+  // ハウスウェディング are venue *types*, not ceremony styles, and
+  // surfacing them as chips produced 6-chip rows on zexy pages that
+  // mentioned every word in their nav. We also keep "教会式" as a
+  // synonym mapped to チャペル, since zexy body copy uses both.
+  const CEREMONY_KEYWORDS: Array<{ kw: string; label: string }> = [
+    { kw: "チャペル", label: "チャペル" },
+    { kw: "教会式", label: "チャペル" },
+    { kw: "神前", label: "神前" },
+    { kw: "人前", label: "人前" },
+    { kw: "ガーデン", label: "ガーデン" },
   ];
   const seenCeremony = new Set<string>();
-  for (const kw of CEREMONY_KEYWORDS) {
-    if (snippet.includes(kw)) seenCeremony.add(kw);
+  for (const { kw, label } of CEREMONY_KEYWORDS) {
+    if (snippet.includes(kw)) seenCeremony.add(label);
   }
-  const ceremonyStyles = Array.from(seenCeremony).slice(0, 6);
+  const ceremonyStyles = Array.from(seenCeremony).slice(0, 4);
 
   const CUISINE_MAP: { kw: string; id: "french" | "japanese" | "italian" | "chinese" | "fusion" | "buffet" }[] = [
     { kw: "フレンチ", id: "french" },
