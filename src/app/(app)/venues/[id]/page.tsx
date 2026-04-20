@@ -37,15 +37,19 @@ import { VenueCostBreakdown } from "@/components/venues/venue-cost-breakdown";
 import { VenueCuisineSection } from "@/components/venues/venue-cuisine-section";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Section order follows a "decision journey" rather than operational
+// grouping: start with the place itself (概要), absorb external signals
+// (口コミ + プラン) that shape judgement, then the couple's own records
+// (見積 + 見学). Airbnb / Zola / The Knot PDP all sequence this way.
+// Previously ran 概要 → 見積 → 見学 → 口コミ → プラン (vendor-side
+// lifecycle order), which buried the "what do others think?" question
+// at the bottom when it's the first thing couples actually look for.
 const VENUE_SECTIONS = [
   { id: "overview", label: "概要" },
+  { id: "review", label: "口コミ" },
+  { id: "plan", label: "プラン" },
   { id: "estimate", label: "見積" },
   { id: "visit", label: "見学" },
-  { id: "review", label: "口コミ" },
-  // Previously mislabelled "AI解析" — the section actually holds the
-  // venue's published plans + (owner-only) vibe tag editor. The "AI
-  // analysis" meaning belonged to a now-removed component.
-  { id: "plan", label: "プラン" },
 ] as const;
 
 export default async function VenueDetailPage({
@@ -175,7 +179,47 @@ export default async function VenueDetailPage({
         />
       </section>
 
-      {/* ===== Estimate section ===== */}
+      {/* ===== Review section ===== (moved earlier — "what do others say?"
+          is the first external signal couples look for) */}
+      <section
+        id="review"
+        role="tabpanel"
+        aria-labelledby="tab-review"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
+        <Suspense fallback={<ReviewsSkeleton />}>
+          <ReviewsContent venueId={venue.id} />
+        </Suspense>
+      </section>
+
+      {/* ===== Plan section ===== (venue-published packages come next,
+          right after reviews — couples pick a baseline package before
+          layering their own estimate numbers on top) */}
+      <section
+        id="plan"
+        role="tabpanel"
+        aria-labelledby="tab-plan"
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
+        <Suspense fallback={<PlansSkeleton />}>
+          <PlansContent venueId={venue.id} />
+        </Suspense>
+
+        {/* VibeTag editor — owner only */}
+        {isOwner && (
+          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
+        )}
+      </section>
+
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+      />
+
+      {/* ===== Estimate section ===== (couple's own record — comes after
+          external signals) */}
       <section
         id="estimate"
         role="tabpanel"
@@ -183,7 +227,6 @@ export default async function VenueDetailPage({
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
-        {/* Estimate sections — fetched in this Suspense child, streams independently */}
         <Suspense fallback={<EstimatesSkeleton />}>
           <EstimatesContent venueId={venue.id} />
         </Suspense>
@@ -201,12 +244,8 @@ export default async function VenueDetailPage({
         />
       </section>
 
-      <div
-        aria-hidden="true"
-        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
-      />
-
-      {/* ===== Visit section ===== */}
+      {/* ===== Visit section ===== (last — scheduling happens after the
+          couple has judged they want to visit at all) */}
       <section
         id="visit"
         role="tabpanel"
@@ -214,7 +253,6 @@ export default async function VenueDetailPage({
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
-        {/* Below-the-fold sections — each streams independently via Suspense. */}
         <Suspense fallback={<VisitsSkeleton />}>
           <VisitsContent
             venueId={venue.id}
@@ -222,37 +260,6 @@ export default async function VenueDetailPage({
             projectId={venue.projectId}
           />
         </Suspense>
-      </section>
-
-      {/* ===== Review section ===== */}
-      <section
-        id="review"
-        role="tabpanel"
-        aria-labelledby="tab-review"
-        tabIndex={0}
-        className="space-y-4 focus-visible:outline-none"
-      >
-        <Suspense fallback={<ReviewsSkeleton />}>
-          <ReviewsContent venueId={venue.id} />
-        </Suspense>
-      </section>
-
-      {/* ===== Plan section ===== (renamed from "AI解析") */}
-      <section
-        id="plan"
-        role="tabpanel"
-        aria-labelledby="tab-plan"
-        tabIndex={0}
-        className="space-y-4 focus-visible:outline-none"
-      >
-        <Suspense fallback={<PlansSkeleton />}>
-          <PlansContent venueId={venue.id} />
-        </Suspense>
-
-        {/* VibeTag editor — owner only */}
-        {isOwner && (
-          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
-        )}
       </section>
 
       {/* Action Bar */}

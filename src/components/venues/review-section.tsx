@@ -61,7 +61,7 @@ function formatDeltaPct(pct: number): string {
 
 const SOURCE_OPTIONS: { value: ReviewSource; label: string }[] = [
   { value: "zexy", label: "ゼクシィ" },
-  { value: "wedding_park", label: "Wedding Park" },
+  { value: "wedding_park", label: "ウェディングパーク" },
   { value: "hanayume", label: "ハナユメ" },
   { value: "mynavi", label: "マイナビ" },
   { value: "minna_no_wedding", label: "みんなのウェディング" },

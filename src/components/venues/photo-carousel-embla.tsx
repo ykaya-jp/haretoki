@@ -146,29 +146,42 @@ export function PhotoCarouselEmbla({
           </span>
         </div>
       )}
-      {/* Dot indicators — visual dot is 6-8px, tap target is 44x44px */}
-      <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2">
-        {photos.map((_, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => scrollTo(index)}
-            aria-label={`写真 ${index + 1}`}
-            aria-current={selectedIndex === index ? "true" : undefined}
-            className="flex h-11 w-11 items-center justify-center"
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "block rounded-full transition-all duration-200",
-                index === selectedIndex
-                  ? "h-2.5 w-2.5 bg-primary-foreground ring-1 ring-[var(--gold-warm)] ring-offset-2 ring-offset-transparent"
-                  : "h-1.5 w-1.5 bg-primary-foreground/50 hover:bg-primary-foreground/70",
-              )}
-            />
-          </button>
-        ))}
-      </div>
+      {/* Dot indicators — visual dot is 6-8px, tap target is 44x44px.
+          Rails over 5 dots (6+ photos) overflow 375px viewports, so we
+          swap to a compact counter pill that's always horizontally
+          centered and never wraps. Still navigable — swipe + the
+          top-left counter still work. */}
+      {photos.length <= 5 ? (
+        <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2">
+          {photos.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => scrollTo(index)}
+              aria-label={`写真 ${index + 1}`}
+              aria-current={selectedIndex === index ? "true" : undefined}
+              className="flex h-11 w-11 items-center justify-center"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "block rounded-full transition-all duration-200",
+                  index === selectedIndex
+                    ? "h-2.5 w-2.5 bg-primary-foreground ring-1 ring-[var(--gold-warm)] ring-offset-2 ring-offset-transparent"
+                    : "h-1.5 w-1.5 bg-primary-foreground/50 hover:bg-primary-foreground/70",
+                )}
+              />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-background/85 px-2.5 py-1 text-[11px] tabular-nums text-foreground/80 shadow-[0_1px_4px_rgba(0,0,0,0.08)] backdrop-blur-sm"
+        >
+          {selectedIndex + 1} / {photos.length}
+        </div>
+      )}
     </div>
   );
 }
