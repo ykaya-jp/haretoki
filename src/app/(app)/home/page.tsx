@@ -125,8 +125,8 @@ export default async function HomePage() {
       {carouselVenues.length > 0 && <RecentVenues venues={carouselVenues} />}
 
       {/* Journey note — editorial hairline + eyebrow + link. */}
-      <div className="border-l border-border/60 pl-4 py-2">
-        <p className="mb-1 text-[10px] tracking-[0.16em] uppercase text-muted-foreground">
+      <div className="border-l-2 border-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] pl-4 py-2">
+        <p className="mb-1 text-[11px] font-medium tracking-[0.18em] uppercase text-muted-foreground">
           Journey
         </p>
         <Link

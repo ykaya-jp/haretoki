@@ -42,16 +42,16 @@ export function HomePulse(props: HomePulseProps) {
                 key={m.label}
                 className="flex flex-col items-center leading-tight px-2 first:pl-0 last:pr-0"
               >
-                <span className="font-[family-name:var(--font-display)] font-light tabular-nums text-[22px] text-foreground">
+                <span className="font-[family-name:var(--font-display)] font-light tabular-nums text-[24px] text-foreground">
                   {m.value}
                 </span>
-                <span className="mt-0.5 text-[10px] tracking-[0.08em] text-muted-foreground">
+                <span className="mt-0.5 text-[11.5px] font-medium tracking-[0.04em] text-muted-foreground">
                   {m.label}
                 </span>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-right text-[10.5px] tracking-[0.12em] uppercase text-muted-foreground">
+          <p className="mt-2 text-right text-[11px] tracking-[0.14em] uppercase text-muted-foreground">
             Journey <AnimatedPercentage value={props.percentage} />
           </p>
         </div>
