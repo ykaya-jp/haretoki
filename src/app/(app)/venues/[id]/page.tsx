@@ -60,6 +60,30 @@ export default async function VenueDetailPage({
 
   if (!venue) notFound();
 
+  // TEMP diagnostic — log the full venue shape so Vercel runtime-logs
+  // surface any weird values that might be tripping the child renders
+  // for specific venue IDs (2cc925ca, eaeff163 are currently breaking).
+  // Prisma Decimal serializes poorly through JSON.stringify so convert
+  // known decimal fields to strings up front.
+  console.log("[VenueDetailPage:diagnostic]", {
+    venueId: venue.id,
+    name: venue.name,
+    status: venue.status,
+    photoUrls: venue.photoUrls,
+    sourceUrls: venue.sourceUrls,
+    vibeTags: venue.vibeTags,
+    ceremonyStyles: venue.ceremonyStyles,
+    location: venue.location,
+    phoneNumber: venue.phoneNumber,
+    latitude: venue.latitude,
+    longitude: venue.longitude,
+    serviceFeeRate:
+      venue.serviceFeeRate == null ? null : String(venue.serviceFeeRate),
+    cuisineTypes: venue.cuisineTypes,
+    closedDays: venue.closedDays,
+    scoresCount: venue.scores?.length ?? 0,
+  });
+
   const isFavorite = favorites.some((f) => f.venue.id === venue.id);
 
   // Extract user ratings into Record<dimension, score>
