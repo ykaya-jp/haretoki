@@ -39,12 +39,19 @@ export interface DimensionWithChecklist {
   answeredItems: number;
 }
 
+/** For each venue, which project members have favorited it. Lets the
+ *  compare UI filter to "自分 / パートナー / おふたり / すべて" without
+ *  an extra server round-trip. Values are "me" / "partner" from the
+ *  caller's perspective. */
+export type FavoritedByMap = Record<string, ("me" | "partner")[]>;
+
 export interface UnifiedComparisonData {
   venues: ComparisonVenue[];
   dimensions: DimensionWithChecklist[];
   totalScore: Record<string, number | null>;
   costWinnerId: string | null;
   unmappedItems: ChecklistItemComparison[];
+  favoritedBy: FavoritedByMap;
 }
 
 /** Merges score matrix data with checklist answers into one unified response.
@@ -54,14 +61,31 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  const allVenues = await prisma.venue.findMany({
-    where: { projectId },
-    include: {
-      scores: { where: { source: { in: ["user_rating", "ai_analysis", "checklist_derived"] } } },
-      estimates: { orderBy: { version: "desc" }, take: 1 },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [allVenues, favorites] = await Promise.all([
+    prisma.venue.findMany({
+      where: { projectId },
+      include: {
+        scores: { where: { source: { in: ["user_rating", "ai_analysis", "checklist_derived"] } } },
+        estimates: { orderBy: { version: "desc" }, take: 1 },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.venueFavorite.findMany({
+      where: { venue: { projectId } },
+      select: { venueId: true, userId: true },
+    }),
+  ]);
+
+  // Build venueId → ["me" | "partner"] map. "me" = current caller,
+  // "partner" = any other member of the same project. Two-member model,
+  // so a non-self userId is unambiguously the partner.
+  const favoritedBy: FavoritedByMap = {};
+  for (const f of favorites) {
+    const tag: "me" | "partner" = f.userId === user.id ? "me" : "partner";
+    const list = favoritedBy[f.venueId] ?? [];
+    if (!list.includes(tag)) list.push(tag);
+    favoritedBy[f.venueId] = list;
+  }
 
   if (allVenues.length === 0) {
     return {
@@ -78,6 +102,7 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
       totalScore: {},
       costWinnerId: null,
       unmappedItems: [],
+      favoritedBy,
     };
   }
 
@@ -262,5 +287,6 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     totalScore,
     costWinnerId,
     unmappedItems,
+    favoritedBy,
   };
 }
