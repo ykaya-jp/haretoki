@@ -25,8 +25,14 @@ const DROP_PATTERNS = [
   /\/icons?\//i,
   /\/avatar/i,
   /\/logo/i,
-  // Site-specific low-res paths occasionally show up as `s_xxx.jpg`; keep
-  // them — real thumbnails usually come via explicit `_thumb` suffix.
+  // Shared-asset / promo-banner filters. zexy serves `/images/common/
+  // ic_new_text.gif` (their "最新クチコミ" campaign banner) as og:image
+  // on every venue page, which the fallback then rendered as the hero
+  // photo. Drop anything that looks like a shared UI asset.
+  /\/common\//i,
+  /\/ic_/i,
+  /\/assets?\//i,
+  /\.gif($|\?)/i,
 ] as const;
 
 /**
@@ -95,6 +101,15 @@ function shouldDrop(url: string): boolean {
     if (re.test(url)) return true;
   }
   return false;
+}
+
+/**
+ * Public version of `shouldDrop` for callers outside this file (the
+ * URL-import fallback in `venues.ts` also needs to filter asset /
+ * promo-banner URLs before committing them to `photoUrls`).
+ */
+export function isLikelyAssetUrl(url: string): boolean {
+  return shouldDrop(url);
 }
 
 /** Lazy-load attribute variants we've seen in the wild on wedding sites. */

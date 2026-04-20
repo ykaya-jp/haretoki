@@ -345,28 +345,19 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             />
           </div>
 
-          {/* Category summary chips — defensively stringify each entry
-              because the DB column is JSON (unknown shape). Older AI
-              runs sometimes wrote nested objects instead of the flat
-              `{ key: string }` the type claims, which made React throw
-              "Objects are not valid as a React child" and cascaded all
-              the way up to /venues/[id]/error.tsx. Only render entries
-              whose value we can safely turn into text. */}
-          {review.categorySummary && Object.keys(review.categorySummary).length > 0 && (
-            <div className="space-y-2 rounded-xl bg-muted/30 p-3">
-              {Object.entries(review.categorySummary)
+          {/* Category summary chips. The DB column is JSON (unknown
+              shape); older AI runs occasionally wrote nested objects in
+              place of the flat `{ key: string }` the type claims. We
+              silently skip non-string values instead of stringifying
+              them — a raw JSON dump like `individual {"title":…}` is
+              worse than showing nothing. */}
+          {review.categorySummary &&
+            Object.keys(review.categorySummary).length > 0 &&
+            (() => {
+              const rows = Object.entries(review.categorySummary)
                 .map(([key, summary]) => {
-                  const text =
-                    typeof summary === "string"
-                      ? summary
-                      : summary == null
-                        ? null
-                        : typeof summary === "number" || typeof summary === "boolean"
-                          ? String(summary)
-                          : // object / array — JSON-stringify so the
-                            // render is safe even if the AI layout
-                            // regresses.
-                            JSON.stringify(summary);
+                  if (typeof summary !== "string") return null;
+                  const text = summary.trim();
                   if (!text) return null;
                   return (
                     <div key={key} className="flex items-start gap-2">
@@ -385,9 +376,13 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
                       </p>
                     </div>
                   );
-                })}
-            </div>
-          )}
+                })
+                .filter((el): el is NonNullable<typeof el> => el !== null);
+              if (rows.length === 0) return null;
+              return (
+                <div className="space-y-2 rounded-xl bg-muted/30 p-3">{rows}</div>
+              );
+            })()}
         </div>
         );
       })}

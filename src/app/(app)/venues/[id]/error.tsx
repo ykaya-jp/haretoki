@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,44 @@ export default function VenueDetailError({
     Sentry.captureException(error);
     console.error(error);
   }, [error]);
+
+  // Refer back to the couple's previous in-app screen when we can read
+  // it from document.referrer (same-origin only). Stops the boundary
+  // from always dumping everyone on /candidates — a frustrating jump
+  // for someone who tapped a venue from /explore or /home.
+  const { prevHref, prevLabel } = useMemo<{
+    prevHref: string;
+    prevLabel: string;
+  }>(() => {
+    if (typeof document === "undefined") {
+      return { prevHref: "/home", prevLabel: "ホームに戻る" };
+    }
+    const referrer = document.referrer;
+    if (!referrer) return { prevHref: "/home", prevLabel: "ホームに戻る" };
+    try {
+      const url = new URL(referrer);
+      if (url.origin !== window.location.origin) {
+        return { prevHref: "/home", prevLabel: "ホームに戻る" };
+      }
+      const path = url.pathname;
+      if (path === "/home" || path.startsWith("/home/")) {
+        return { prevHref: "/home", prevLabel: "ホームに戻る" };
+      }
+      if (path === "/explore" || path.startsWith("/explore/")) {
+        return { prevHref: "/explore", prevLabel: "探す画面に戻る" };
+      }
+      if (path === "/candidates" || path.startsWith("/candidates/")) {
+        return { prevHref: "/candidates", prevLabel: "候補に戻る" };
+      }
+      if (path === "/coach" || path.startsWith("/coach/")) {
+        return { prevHref: "/coach", prevLabel: "コーチに戻る" };
+      }
+      // Unknown internal path — use the raw path, labelled generically.
+      return { prevHref: path, prevLabel: "さっきの画面に戻る" };
+    } catch {
+      return { prevHref: "/home", prevLabel: "ホームに戻る" };
+    }
+  }, []);
 
   useEffect(() => {
     const onOnline = () => setOffline(false);
@@ -66,10 +104,10 @@ export default function VenueDetailError({
             </Button>
             <Button
               variant="outline"
-              render={<Link href="/candidates" prefetch={true} />}
+              render={<Link href={prevHref} prefetch={true} />}
               className="w-full"
             >
-              候補一覧に戻る
+              {prevLabel}
             </Button>
           </div>
           {error.digest && (

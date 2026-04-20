@@ -23,6 +23,7 @@ import { deriveRelatedUrls } from "@/lib/url-import/domain-router";
 import { parseJsonLd } from "@/lib/url-import/jsonld-parser";
 import {
   extractImagesFromHtml,
+  isLikelyAssetUrl,
   mergePhotoUrls,
 } from "@/lib/url-import/extract-images";
 import {
@@ -791,18 +792,28 @@ function buildFallbackExtracted(
   ].filter((p): p is string => !!p);
   const location = locationParts.length > 0 ? locationParts.join(" ").slice(0, 200) : null;
 
+  // JSON-LD `image` array first — Schema.org-grade URLs, typically the
+  // actual venue photo set (zexy: `/p/wedding/.../images/001008690602.jpg`).
+  // og:image comes next and is often a shared promo banner
+  // (zexy: `/images/common/ic_new_text.gif`) that beat the real photos
+  // when it was ordered first. Extract-images DROP_PATTERNS still filters
+  // obvious asset URLs as a second layer.
   const photoCandidates: string[] = [];
+  if (structured.images) photoCandidates.push(...structured.images);
   const ogImage = metadata.og["og:image"];
   if (ogImage) photoCandidates.push(ogImage);
-  if (structured.images) photoCandidates.push(...structured.images);
   const photoUrls = Array.from(new Set(photoCandidates))
     .filter((u) => {
       try {
         new URL(u);
-        return true;
       } catch {
         return false;
       }
+      // Drop shared asset / promo-banner URLs (e.g. zexy
+      // `/images/common/ic_new_text.gif`) that would otherwise render
+      // as the venue hero.
+      if (isLikelyAssetUrl(u)) return false;
+      return true;
     })
     .slice(0, 30);
 

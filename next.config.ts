@@ -82,6 +82,11 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
               "media-src 'self' blob: https://*.supabase.co",
+              // Allow OpenStreetMap iframe embeds used by VenueFactSheet.
+              // Without an explicit frame-src the directive falls through to
+              // default-src 'self' and blocks the map, leaving a broken-image
+              // icon in the middle of every venue detail page.
+              "frame-src 'self' https://www.openstreetmap.org",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
