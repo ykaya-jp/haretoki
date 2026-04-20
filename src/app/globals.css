@@ -720,4 +720,15 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Preserve functional progress indicators. Spinners and skeleton pulses
+     communicate "processing — please wait"; halting them turns a 15s URL
+     import into a silent freeze that reads as a broken UI. Softer cadence
+     for reduce-motion users: 1.5s spin (was 1s), 2.5s pulse. */
+  .animate-spin {
+    animation: spin 1.5s linear infinite !important;
+  }
+  .animate-pulse {
+    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  }
 }

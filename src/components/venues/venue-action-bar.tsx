@@ -26,10 +26,12 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
       const result = await deleteVenue(venueId);
       if (result.success) {
         toast.success(`${venueName} を削除しました`);
-        // cacheComponents の Router Cache が /explore の prefetch を保持するため、
-        // push → refresh の順で実行しないと削除済み venue が残って見える。
-        router.push("/explore");
-        router.refresh();
+        // cacheComponents (PPR) + Router Cache が /explore の prefetch を
+        // 保持してしまい、push + refresh では削除済み venue がリロード
+        // までカードに残って見えるケースが確認されたため、削除はハード
+        // ナビゲーションに倒す。頻度の低い destructive 操作なのでコスト
+        // より確実性を優先。
+        window.location.assign("/explore");
       } else {
         toast.error(result.error ?? "削除に失敗しました");
         setShowConfirm(false);

@@ -615,7 +615,11 @@ export function AddVenueSheet({
       )}
       <SheetContent
         side="bottom"
-        className="rounded-t-3xl max-h-[92dvh] overflow-y-auto"
+        // Cap the sheet at 520px on desktop so the body feels like a
+        // sheet, not a full-width panel. Mobile (<520) stays 100% width.
+        // Horizontal padding (px-5 sm:px-7) is applied inside so the URL
+        // textarea, CTA, and skeletons aren't glued to the edges.
+        className="rounded-t-3xl max-h-[92dvh] overflow-y-auto px-5 sm:px-7 !max-w-[520px] mx-auto"
         style={{
           // E-10: soft dawn radial over the sheet surface. Top-left light
           // glow at 5% — reads as air, not background paint — matches the
@@ -625,15 +629,15 @@ export function AddVenueSheet({
         }}
       >
         {/* Editorial header — eyebrow + 明朝 title */}
-        <SheetHeader className="px-1 pt-1 pb-2 mb-1">
-          <p className="text-eyebrow text-muted-foreground text-left">
+        <SheetHeader className="px-0 pt-2 pb-2 mb-1">
+          <p className="text-[11px] tracking-[0.18em] uppercase text-muted-foreground text-left">
             HARETOKI · Venue
           </p>
-          <SheetTitle className="mt-2 font-[family-name:var(--font-display)] text-[19px] font-light tracking-[0.01em] text-foreground text-left leading-[1.35]">
+          <SheetTitle className="mt-2 font-[family-name:var(--font-display)] text-[20px] font-light tracking-[0.01em] text-foreground text-left leading-[1.35]">
             新しい式場を、迎える
           </SheetTitle>
-          <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
-            URL を貼るだけ
+          <p className="mt-1 text-[13.5px] text-muted-foreground leading-relaxed">
+            URL を貼るだけで、必要な情報を読み取ります
           </p>
         </SheetHeader>
 
@@ -650,14 +654,14 @@ export function AddVenueSheet({
               <textarea
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder={"式場の URL を貼ってください\n(複数可 · 改行で区切り)"}
+                placeholder={"式場の URL を貼ってください\n(複数の場合は改行で区切り)"}
                 rows={4}
                 disabled={urlLoading}
-                className="w-full rounded-[14px] border-0 bg-card px-4 py-4 text-[15px] placeholder:text-muted-foreground/50 focus:outline-none resize-none leading-relaxed disabled:opacity-50"
-                style={{ minHeight: 112 }}
+                className="w-full rounded-[14px] border-0 bg-card px-4 py-4 text-[15.5px] placeholder:text-muted-foreground/55 focus:outline-none resize-none leading-relaxed disabled:opacity-50"
+                style={{ minHeight: 120 }}
               />
             </div>
-            <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+            <p className="text-[12.5px] text-muted-foreground leading-relaxed">
               ゼクシィ・ハナユメ・Wedding Park 等に対応しています
             </p>
             <Button
