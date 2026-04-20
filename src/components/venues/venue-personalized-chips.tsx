@@ -54,6 +54,30 @@ export function VenuePersonalizedChips({ conditions, hideHeader = false }: Venue
 
   const remove = (chip: Chip) => {
     const params = new URLSearchParams(window.location.search);
+
+    // Freeze all currently-applied conditions into the URL before we flip
+    // personalized=1. Previously the server only saw the key being
+    // removed (e.g. `styles`), so as soon as `personalized=1` was set
+    // the other onboarding-derived conditions (areas / guestCount /
+    // budgetMax) silently dropped — that's the "押してないものまで
+    // 消える" bug. Mirror the entire live condition set so the server
+    // can apply it exactly as the user expects.
+    if (conditions.styles?.length) {
+      params.delete("styles");
+      for (const v of conditions.styles) params.append("styles", v);
+    }
+    if (conditions.areas?.length) {
+      params.delete("areas");
+      for (const v of conditions.areas) params.append("areas", v);
+    }
+    if (typeof conditions.guestCount === "number") {
+      params.set("guestCount", String(conditions.guestCount));
+    }
+    if (typeof conditions.budgetMax === "number" && conditions.budgetMax > 0) {
+      params.set("budgetMax", String(conditions.budgetMax));
+    }
+
+    // Now apply the specific removal on top of the frozen set.
     if (chip.key === "styles" && chip.value) {
       const rest = (conditions.styles ?? []).filter((v) => v !== chip.value);
       params.delete("styles");
@@ -65,10 +89,15 @@ export function VenuePersonalizedChips({ conditions, hideHeader = false }: Venue
     } else {
       params.delete(chip.key);
     }
-    // Mark that user touched personalization so server doesn't re-apply defaults
+    // Mark that user touched personalization so server doesn't re-apply defaults.
     params.set("personalized", "1");
     startTransition(() => {
-      router.replace(`/explore${params.toString() ? `?${params.toString()}` : "?personalized=1"}`);
+      // `scroll: false` — Next's default on route change is to scroll to
+      // top, which felt disorienting when a chip was tapped mid-scroll.
+      router.replace(
+        `/explore${params.toString() ? `?${params.toString()}` : "?personalized=1"}`,
+        { scroll: false },
+      );
     });
   };
 

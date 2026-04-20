@@ -84,9 +84,22 @@ export async function createVenue(input: VenueInput) {
     },
   });
 
+  // Auto-favorite the new venue for the user who added it. Model: the
+  // "Candidates" tab shows venues the couple is actively tracking —
+  // adding a venue is a stronger expression of interest than just
+  // browsing it, so it lands in the adder's "自分" tab (and the
+  // partner sees it in their "パートナー" tab) without a separate
+  // heart tap. Idempotent via the composite unique on (userId, venueId).
+  await prisma.venueFavorite.upsert({
+    where: { venueId_userId: { userId: user.id, venueId: venue.id } },
+    update: {},
+    create: { userId: user.id, venueId: venue.id },
+  });
+
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
+  revalidatePath("/candidates");
 
   await captureServerEvent(user.id, "venue_added", {
     venueId: venue.id,
@@ -1453,6 +1466,17 @@ export async function confirmVenueFromUrl(
       data: patch as Prisma.VenueUpdateInput,
     });
 
+    // Adopting an existing venue (partner already added it, this user
+    // just ran another URL import that merged in) counts as an
+    // expression of interest → auto-favorite so the merged venue
+    // shows up in the current user's "自分" tab even though they
+    // didn't originate it. Idempotent via composite unique.
+    await prisma.venueFavorite.upsert({
+      where: { venueId_userId: { userId: user.id, venueId: existing.id } },
+      update: {},
+      create: { userId: user.id, venueId: existing.id },
+    });
+
     const reviewSource = reviewSourceFromUrl(sourceUrl);
     if (reviewSource && parsed.data.reviews.length > 0) {
       try {
@@ -1543,6 +1567,16 @@ export async function confirmVenueFromUrl(
           : Prisma.JsonNull,
       normalizedName: candidateNormalizedName,
     },
+  });
+
+  // Auto-favorite new URL-imported venues for the user who added them —
+  // same rationale as createVenue's auto-favorite. Without this a venue
+  // imported from zexy lives in the shared Project but doesn't appear
+  // in anyone's Candidates tab until someone taps the heart.
+  await prisma.venueFavorite.upsert({
+    where: { venueId_userId: { userId: user.id, venueId: venue.id } },
+    update: {},
+    create: { userId: user.id, venueId: venue.id },
   });
 
   const uploadedPhotoUrls: string[] = [];
