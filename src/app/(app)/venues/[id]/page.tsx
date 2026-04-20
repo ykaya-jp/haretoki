@@ -205,8 +205,9 @@ export default async function VenueDetailPage({
       </section>
 
       <section id="review" className="space-y-4">
-        {/* STEP 5: ReviewsContent removed */}
-        <p style={{ color: "#999", fontSize: 12 }}>DEBUG: ReviewsContent removed</p>
+        <Suspense fallback={<ReviewsSkeleton />}>
+          <ReviewsContent venueId={venue.id} />
+        </Suspense>
       </section>
 
       <VenueCuisineSection
