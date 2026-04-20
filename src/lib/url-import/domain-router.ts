@@ -23,6 +23,11 @@ export interface RelatedUrls {
   photos?: string;
   /** Optional review listing page. */
   reviews?: string;
+  /** Optional additional review pages (pagination beyond `reviews`). Fetched
+   *  sequentially to bulk up the review corpus for downstream clustering.
+   *  Handler returns up to a small cap (~4-6 pages) so the fetch stays
+   *  bounded. Pages are appended after `reviews` in fetch order. */
+  reviewPages?: string[];
   /** Optional plan/pricing page. */
   plans?: string;
   /** Domain key for telemetry / source mapping. */

@@ -5,7 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
-import type { Prisma, VenueStatus } from "@/generated/prisma/client";
+import { Prisma, type VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
@@ -336,6 +336,7 @@ export async function getVenueHeader(id: string) {
       closedDays: true,
       cuisineTypes: true,
       chefCredentials: true,
+      reviewClusters: true,
     },
   });
 }
@@ -501,6 +502,35 @@ export interface ExtractedIndividualReviewData {
   visitedAt: string | null;
 }
 
+export interface ReviewClusterTheme {
+  theme: string;
+  summary: string;
+  count?: number;
+}
+
+export interface ReviewClustersData {
+  positive: ReviewClusterTheme[];
+  negative: ReviewClusterTheme[];
+}
+
+/**
+ * Narrow a Prisma.JsonValue (which is `string | number | boolean | … | object`)
+ * down to ReviewClustersData. Older rows may carry null, legacy strings, or
+ * partially-shaped JSON from earlier experiments — treat anything that isn't
+ * the canonical `{ positive, negative }` shape as null so merge logic can
+ * simply prefer the new cluster pass.
+ */
+function castReviewClusters(
+  raw: Prisma.JsonValue | null | undefined,
+): ReviewClustersData | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const positive = Array.isArray(r.positive) ? (r.positive as ReviewClusterTheme[]) : [];
+  const negative = Array.isArray(r.negative) ? (r.negative as ReviewClusterTheme[]) : [];
+  if (positive.length === 0 && negative.length === 0) return null;
+  return { positive, negative };
+}
+
 interface ExtractedVenueData {
   name: string;
   location: string | null;
@@ -520,6 +550,10 @@ interface ExtractedVenueData {
   maxInstallments: number | null;
   vibeTags: string[];
   reviews: ExtractedIndividualReviewData[];
+  /** AI-clustered review themes (positive / negative). Null when clustering
+   *  wasn't attempted or the corpus was too thin. Optional so older
+   *  fixtures that predate the cluster pass still satisfy the type. */
+  reviewClusters?: ReviewClustersData | null;
 
   // v2 deep extraction — populated from JSON-LD parser where available,
   // falls back to Claude body inference for facility/cost-breakdown flags.
@@ -613,6 +647,36 @@ const extractedVenueSchema = z.object({
     .optional()
     .default([]),
 
+  // AI-clustered review themes — rolled up from the multi-page kuchikomi
+  // corpus. Each theme gets a short summary + ball-park count. Both arrays
+  // may be empty when there's too little source material to cluster.
+  reviewClusters: z
+    .object({
+      positive: z
+        .array(
+          z.object({
+            theme: z.string().min(1).max(40),
+            summary: z.string().min(1).max(400),
+            count: z.number().int().min(0).max(100000).optional(),
+          }),
+        )
+        .max(15)
+        .default([]),
+      negative: z
+        .array(
+          z.object({
+            theme: z.string().min(1).max(40),
+            summary: z.string().min(1).max(400),
+            count: z.number().int().min(0).max(100000).optional(),
+          }),
+        )
+        .max(15)
+        .default([]),
+    })
+    .nullable()
+    .optional()
+    .default(null),
+
   // v2 deep extraction
   externalRatingValue: z.number().min(0).max(5).nullable().optional().default(null),
   externalReviewCount: z.number().int().nonnegative().nullable().optional().default(null),
@@ -668,7 +732,15 @@ Return ONLY valid JSON (no markdown, no code fences):
       "author": "<handle name only, no PII>",
       "visitedAt": "<e.g. 2024年5月 or null>"
     }
-  ]
+  ],
+  "reviewClusters": {
+    "positive": [
+      { "theme": "<テーマ名 20字以内>", "summary": "<60-120 字のまとめ>", "count": <このテーマに該当するレビュー数 integer> }
+    ],
+    "negative": [
+      { "theme": "<テーマ名 20字以内>", "summary": "<60-120 字のまとめ>", "count": <integer> }
+    ]
+  }
 }
 
 Extra deep-extraction fields (all optional — emit null / [] when unsure):
@@ -710,6 +782,9 @@ Guidelines:
 - photoUrls: prefer large venue/ceremony/reception/chapel hero images. Skip thumbnails, icons, avatars, and marketing banners. Absolute URLs only.
 - confidence: "high" if most core fields are present, "medium" if some missing, "low" if minimal.
 - reviews: ページ上に表示されている口コミをできる限り全て拾う（最大 20 件まで）。少なすぎるより多い方がよい。必ず Japanese で要約すること。原文の長文コピペは NG — 200-500 字程度の要約に書き直す。出典 URL は呼び出し側で付与するのでここでは不要。複数ページの重複する口コミは 1 件にまとめる。author はハンドル名のみ、本名や電話番号など PII を含めてはいけない。
+- reviewClusters: REVIEWS セクション全体（複数ページ分の生テキスト）を読み、肯定的テーマと否定的テーマをそれぞれ 5-12 個ずつに「クラスタ」する。1400 件規模のコーパスを前提に、同じ話（例: 「チャペルの光が綺麗」「スタッフが親切」「料理が冷めていた」等）は 1 テーマにまとめる。各テーマの summary は 60-120 字のプレーン文。count は該当しそうな件数のざっくり見積もり（正確でなくて良いが 0 にはしない）。レビューが明らかに少ない（≤5 件）場合や見つからない場合は positive / negative どちらも空配列でよい。テーマ名は 20 字以内で具体的に（「良い」「悪い」のような粒度は禁止）。
+  * positive の例: 「チャペルの自然光」「スタッフのホスピタリティ」「料理のクオリティ」
+  * negative の例: 「見積もりの追加費用」「人数に対する披露宴会場の狭さ」「送迎バスの待ち時間」
 
 IMPORTANT: Fields derivable directly from JSON-LD (aggregateRating value/count, GeoCoordinates latitude/longitude, PostalAddress postalCode/streetAddress, telephone) are handled by a separate structured parser — OMIT them from your output. Do not guess or rewrite these.
 
@@ -866,6 +941,7 @@ function buildFallbackExtracted(
     maxInstallments: null,
     vibeTags: [],
     reviews: [],
+    reviewClusters: null,
     externalRatingValue: structured.aggregateRating?.value ?? null,
     externalReviewCount: structured.aggregateRating?.count ?? null,
     latitude: structured.geo?.lat ?? null,
@@ -976,11 +1052,21 @@ export async function addVenueFromUrl(url: string): Promise<{
     }
 
     const origin = new URL(related.detail).origin;
-    const targets: Array<{ key: "DETAIL" | "PHOTOS" | "REVIEWS" | "PLANS"; url: string }> = [
-      { key: "DETAIL", url: related.detail },
-    ];
+    const targets: Array<{
+      key: "DETAIL" | "PHOTOS" | "REVIEWS" | "REVIEWS_PAGE" | "PLANS";
+      url: string;
+    }> = [{ key: "DETAIL", url: related.detail }];
     if (related.photos) targets.push({ key: "PHOTOS", url: related.photos });
     if (related.reviews) targets.push({ key: "REVIEWS", url: related.reviews });
+    // Additional review pages (zexy ?pn=2..5) widen the corpus from ~10
+    // to ~50 reviews. Keyed as REVIEWS_PAGE so the prompt-building step
+    // can collapse them into the same REVIEWS section rather than
+    // presenting each page as a separate header to Claude.
+    if (related.reviewPages) {
+      for (const page of related.reviewPages) {
+        targets.push({ key: "REVIEWS_PAGE", url: page });
+      }
+    }
     if (related.plans) targets.push({ key: "PLANS", url: related.plans });
 
     const fetched = await limitedAll(targets, 4, (t) =>
@@ -1010,11 +1096,25 @@ export async function addVenueFromUrl(url: string): Promise<{
     }
 
     // Build multi-section prompt: DETAIL section first, then any successful
-    // sub-pages. Each section caps body at 5000 chars. JSON-LD blobs keep
-    // their original cap inside buildMetadataPrompt.
+    // sub-pages. Each section caps body at 5000 chars except REVIEWS which
+    // is widened (see below). JSON-LD blobs keep their original cap inside
+    // buildMetadataPrompt.
+    //
+    // REVIEWS pages (original + REVIEWS_PAGE pagination entries) are merged
+    // into a single REVIEWS section with 12_000 chars cap so Claude can see
+    // 30-60 reviews worth of body text for clustering. Individual pages as
+    // their own sections would waste tokens on duplicated masthead markup
+    // and fragment the corpus across N prompt headers.
     const sections: string[] = [];
+    const reviewBodies: string[] = [];
+    let reviewHeaderUrl: string | null = null;
     targets.forEach((t, i) => {
       const page = fetched[i];
+      if (t.key === "REVIEWS" || t.key === "REVIEWS_PAGE") {
+        if (t.key === "REVIEWS") reviewHeaderUrl = t.url;
+        if (page) reviewBodies.push(page.textContent);
+        return;
+      }
       if (!page) {
         sections.push(`=== ${t.key} (${t.url}) ===\n(fetch failed)`);
         return;
@@ -1024,6 +1124,18 @@ export async function addVenueFromUrl(url: string): Promise<{
           buildMetadataPrompt(t.url, page.metadata, page.textContent.slice(0, 5000)),
       );
     });
+    if (reviewBodies.length > 0) {
+      const headerUrl = reviewHeaderUrl ?? related.reviews ?? "";
+      // buildMetadataPrompt internally caps body at 2000 chars — too tight
+      // for 50+ reviews. Emit REVIEWS as a minimal headered block with
+      // just the merged body so Claude sees the full corpus. Cap at 12k
+      // chars (≈ the middle of Haiku's prompt-cost/quality sweet spot).
+      const mergedReviewText = reviewBodies.join("\n\n").slice(0, 12_000);
+      sections.push(
+        `=== REVIEWS (${headerUrl}, merged ${reviewBodies.length} pages) ===\n` +
+          mergedReviewText,
+      );
+    }
 
     const prompt =
       `以下は同じ結婚式場の複数ページを連結した内容です。重複はまとめ、可能な限り情報を抽出してください。\n\n` +
@@ -1196,6 +1308,9 @@ function buildVenueFieldBag(
     closedDays: parsed.closedDays,
     cuisineTypes: parsed.cuisineTypes,
     chefCredentials: parsed.chefCredentials,
+    // Clusters included so mergeVenueFields' "new wins" strategy picks up
+    // a freshly-rolled-up cluster pass on re-import.
+    reviewClusters: parsed.reviewClusters ?? null,
   };
 }
 
@@ -1323,6 +1438,9 @@ export async function confirmVenueFromUrl(
         existing.serviceFeeRate !== null
           ? Number(existing.serviceFeeRate)
           : null,
+      // JSON column — narrow the Prisma.JsonValue to the cluster shape.
+      // Incorrectly shaped historic values simply drop through as null.
+      reviewClusters: castReviewClusters(existing.reviewClusters),
     };
     const mergeInput: VenueFieldBag = {
       ...candidateBag,
@@ -1415,6 +1533,14 @@ export async function confirmVenueFromUrl(
       closedDays: parsed.data.closedDays,
       cuisineTypes: parsed.data.cuisineTypes,
       chefCredentials: parsed.data.chefCredentials,
+      // AI review clusters — stored as JSON so the detail page can
+      // render "良いところ / 気になる点" panels without re-running
+      // Claude on every request. Null when the model returned nothing
+      // clusterable or the venue had too few reviews.
+      reviewClusters:
+        parsed.data.reviewClusters != null
+          ? (parsed.data.reviewClusters as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       normalizedName: candidateNormalizedName,
     },
   });
@@ -1697,6 +1823,7 @@ export async function refreshVenueFromSource(venueId: string): Promise<
     ...existing,
     serviceFeeRate:
       existing.serviceFeeRate !== null ? Number(existing.serviceFeeRate) : null,
+    reviewClusters: castReviewClusters(existing.reviewClusters),
   };
 
   for (const sourceUrl of urls) {

@@ -279,6 +279,16 @@ model Venue {
   reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
   /// R-2 気分で探す: 式場の雰囲気タグ (VibeTag[])
   vibeTags           String[]        @default([]) @map("vibe_tags")
+  /// AI-clustered review summary. Rolled up from the multi-page review
+  /// corpus during URL import. Schema:
+  ///   {
+  ///     positive: [{ theme, summary, count? }],
+  ///     negative: [{ theme, summary, count? }],
+  ///     totalSampled: number,          // how many reviews the cluster pass saw
+  ///     totalOnSource: number | null,   // site's headline count (e.g. zexy 1400)
+  ///   }
+  /// Null means clustering hasn't run (or isn't available for this venue).
+  reviewClusters  Json?              @map("review_clusters")
 
   /// Deep extraction (v2) — JSON-LD derived
   externalRatingValue Float?    @map("external_rating_value")

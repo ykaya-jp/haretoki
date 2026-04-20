@@ -206,6 +206,15 @@ export interface VenueFieldBag {
   closedDays?: string[] | null;
   cuisineTypes?: string[] | null;
   chefCredentials?: string | null;
+
+  /** AI-clustered positive / negative review themes. Stored as Json on the
+   *  Venue model (see prisma schema). Not part of ARRAY_UNION_FIELDS —
+   *  merge strategy is "new wins" when re-imports produce a fresher
+   *  cluster pass. */
+  reviewClusters?: {
+    positive: Array<{ theme: string; summary: string; count?: number }>;
+    negative: Array<{ theme: string; summary: string; count?: number }>;
+  } | null;
 }
 
 const ARRAY_UNION_FIELDS = [
@@ -357,6 +366,18 @@ export function mergeVenueFields(
         updatedFields.push("externalRatingValue", "externalReviewCount");
       }
     }
+  }
+
+  // reviewClusters — "new wins" when the incoming cluster pass has any
+  // themes at all. A fresh import against a larger corpus should replace
+  // a stale (possibly thin) previous clustering.
+  if (
+    incoming.reviewClusters &&
+    (incoming.reviewClusters.positive.length > 0 ||
+      incoming.reviewClusters.negative.length > 0)
+  ) {
+    data.reviewClusters = incoming.reviewClusters;
+    updatedFields.push("reviewClusters");
   }
 
   return { data, updatedFields: Array.from(new Set(updatedFields)) };

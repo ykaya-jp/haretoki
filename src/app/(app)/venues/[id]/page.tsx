@@ -19,6 +19,7 @@ import { EstimateSection } from "@/components/venues/estimate-section";
 import { MoneyReality } from "@/components/venues/money-reality";
 import { getMoneyReality } from "@/server/actions/money-reality";
 import { ReviewSection } from "@/components/venues/review-section";
+import { ReviewClusterPanel } from "@/components/venues/review-cluster-panel";
 import { VenueWhisper } from "@/components/venues/venue-whisper";
 import { PlanSection } from "@/components/venues/plan-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
@@ -189,7 +190,16 @@ export default async function VenueDetailPage({
         className="space-y-4 focus-visible:outline-none"
       >
         <Suspense fallback={<ReviewsSkeleton />}>
-          <ReviewsContent venueId={venue.id} />
+          <ReviewsContent
+            venueId={venue.id}
+            reviewClusters={
+              venue.reviewClusters as {
+                positive: Array<{ theme: string; summary: string; count?: number }>;
+                negative: Array<{ theme: string; summary: string; count?: number }>;
+              } | null
+            }
+            externalReviewCount={venue.externalReviewCount}
+          />
         </Suspense>
       </section>
 
@@ -395,13 +405,35 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
   );
 }
 
-async function ReviewsContent({ venueId }: { venueId: string }) {
+async function ReviewsContent({
+  venueId,
+  reviewClusters,
+  externalReviewCount,
+}: {
+  venueId: string;
+  reviewClusters: {
+    positive: Array<{ theme: string; summary: string; count?: number }>;
+    negative: Array<{ theme: string; summary: string; count?: number }>;
+  } | null;
+  externalReviewCount: number | null;
+}) {
   const [reviews, venueAgg] = await Promise.all([
     getVenueReviews(venueId),
     getVenueReviewEstimateAggregate(venueId),
   ]);
   return (
     <div className="space-y-5">
+      {/* AI-clustered "よかった / 気になる" panel. Renders only when
+          reviewClusters has at least one theme on either side. Distilled
+          from the multi-page kuchikomi corpus during URL import. */}
+      {reviewClusters && (
+        <ReviewClusterPanel
+          positive={reviewClusters.positive ?? []}
+          negative={reviewClusters.negative ?? []}
+          sourceCount={externalReviewCount}
+        />
+      )}
+
       {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
           to no render when no reviews analyzed yet (0 noise). */}
       <VenueWhisper

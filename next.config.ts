@@ -31,6 +31,15 @@ const nextConfig: NextConfig = {
     // viewTransition disabled: both-page DOM coexistence during transition
     // caused net-negative latency on mobile tab switches (body thrash).
     viewTransition: false,
+    // Default Server Actions body limit is 1MB. A single iPhone photo is
+    // often 3-8MB, so uploads via "写真を追加" silently failed with
+    // "アップロードできませんでした" before the 10MB per-file server-side
+    // guard could run. Raise to 20MB — generous enough for a couple of
+    // full-res photos per call while the per-file size guard still trims
+    // anything over 10MB inside uploadVenuePhotos.
+    serverActions: {
+      bodySizeLimit: "20mb",
+    },
   },
   async redirects() {
     return [
