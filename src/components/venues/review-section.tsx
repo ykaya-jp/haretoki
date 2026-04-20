@@ -345,22 +345,47 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             />
           </div>
 
-          {/* Category summary chips */}
+          {/* Category summary chips — defensively stringify each entry
+              because the DB column is JSON (unknown shape). Older AI
+              runs sometimes wrote nested objects instead of the flat
+              `{ key: string }` the type claims, which made React throw
+              "Objects are not valid as a React child" and cascaded all
+              the way up to /venues/[id]/error.tsx. Only render entries
+              whose value we can safely turn into text. */}
           {review.categorySummary && Object.keys(review.categorySummary).length > 0 && (
             <div className="space-y-2 rounded-xl bg-muted/30 p-3">
-              {Object.entries(review.categorySummary).map(([key, summary]) => (
-                <div key={key} className="flex items-start gap-2">
-                  <span className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                    key === "negative_points" || key === "estimate_increase"
-                      ? "bg-destructive/15 text-destructive"
-                      : "bg-muted text-muted-foreground"
-                  )}>
-                    {CATEGORY_LABELS[key] ?? key}
-                  </span>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{summary}</p>
-                </div>
-              ))}
+              {Object.entries(review.categorySummary)
+                .map(([key, summary]) => {
+                  const text =
+                    typeof summary === "string"
+                      ? summary
+                      : summary == null
+                        ? null
+                        : typeof summary === "number" || typeof summary === "boolean"
+                          ? String(summary)
+                          : // object / array — JSON-stringify so the
+                            // render is safe even if the AI layout
+                            // regresses.
+                            JSON.stringify(summary);
+                  if (!text) return null;
+                  return (
+                    <div key={key} className="flex items-start gap-2">
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                          key === "negative_points" || key === "estimate_increase"
+                            ? "bg-destructive/15 text-destructive"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {CATEGORY_LABELS[key] ?? key}
+                      </span>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {text}
+                      </p>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>

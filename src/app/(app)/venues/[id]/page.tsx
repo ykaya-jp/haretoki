@@ -48,67 +48,17 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  console.log("[VenueDetailPage:enter]", { id });
 
-  let user: Awaited<ReturnType<typeof requireUser>>;
-  let membership: Awaited<ReturnType<typeof requireProjectMembership>>;
-  let venue: Awaited<ReturnType<typeof getVenueHeader>>;
-  let favorites: Awaited<ReturnType<typeof getFavorites>>;
-
-  try {
-    user = await requireUser();
-    console.log("[VenueDetailPage:requireUser-ok]", { id, userId: user.id });
-  } catch (err) {
-    console.error("[VenueDetailPage:requireUser-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
-    throw err;
-  }
-  try {
-    membership = await requireProjectMembership(user.id);
-    console.log("[VenueDetailPage:membership-ok]", { id, projectId: membership.projectId });
-  } catch (err) {
-    console.error("[VenueDetailPage:membership-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
-    throw err;
-  }
+  const user = await requireUser();
+  const membership = await requireProjectMembership(user.id);
   const isOwner = membership.role === "owner";
-  try {
-    [venue, favorites] = await Promise.all([
-      getVenueHeader(id),
-      getFavorites("mine"),
-    ]);
-    console.log("[VenueDetailPage:fetch-ok]", { id, found: !!venue, favoritesCount: favorites.length });
-  } catch (err) {
-    console.error("[VenueDetailPage:fetch-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
-    throw err;
-  }
 
-  if (!venue) {
-    console.log("[VenueDetailPage:notFound]", { id });
-    notFound();
-  }
+  const [venue, favorites] = await Promise.all([
+    getVenueHeader(id),
+    getFavorites("mine"),
+  ]);
 
-  // TEMP diagnostic — log the full venue shape so Vercel runtime-logs
-  // surface any weird values that might be tripping the child renders
-  // for specific venue IDs (2cc925ca, eaeff163 are currently breaking).
-  // Prisma Decimal serializes poorly through JSON.stringify so convert
-  // known decimal fields to strings up front.
-  console.log("[VenueDetailPage:diagnostic]", {
-    venueId: venue.id,
-    name: venue.name,
-    status: venue.status,
-    photoUrls: venue.photoUrls,
-    sourceUrls: venue.sourceUrls,
-    vibeTags: venue.vibeTags,
-    ceremonyStyles: venue.ceremonyStyles,
-    location: venue.location,
-    phoneNumber: venue.phoneNumber,
-    latitude: venue.latitude,
-    longitude: venue.longitude,
-    serviceFeeRate:
-      venue.serviceFeeRate == null ? null : String(venue.serviceFeeRate),
-    cuisineTypes: venue.cuisineTypes,
-    closedDays: venue.closedDays,
-    scoresCount: venue.scores?.length ?? 0,
-  });
+  if (!venue) notFound();
 
   const isFavorite = favorites.some((f) => f.venue.id === venue.id);
 
@@ -120,25 +70,23 @@ export default async function VenueDetailPage({
     }
   }
 
-  // TEMP: step 4 — full render with every Suspense child. If only the
-  // new Rating chip UI is throwing (see P5 diagnosis earlier), we'll
-  // see the error boundary show up again and narrow from there.
-  console.log("[VenueDetailPage:step4-full]", { id });
   return (
     <div className="space-y-10 pb-36">
-      <h1 style={{ fontSize: 14, color: "#999", padding: 8 }}>
-        DEBUG step 4: {venue.name}
-      </h1>
-
+      {/* Back link — uses router.back() to preserve filter/scroll state on
+          the referrer page (Explore, Candidates, Home all link here). */}
       <VenueDetailBackLink variant="compact" />
+
+      {/* Merged-import banner — present only when ?updated=1, self-scrubs. */}
       <VenueUpdatedBanner />
 
+      {/* Photo Gallery — above the fold */}
       <VenuePhotoGallery
         venueId={venue.id}
         name={venue.name}
         photoUrls={venue.photoUrls}
       />
 
+      {/* Venue Header — above the fold */}
       <VenueHeader
         name={venue.name}
         location={venue.location}
@@ -149,13 +97,23 @@ export default async function VenueDetailPage({
         status={venue.status}
       />
 
+      {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
       <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
 
+      {/* ===== Overview section ===== */}
       <section id="overview" className="space-y-4">
+        <div
+          aria-hidden="true"
+          className="h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent"
+        />
+
+        {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
         <Suspense fallback={<RatingSkeleton />}>
           <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
         </Suspense>
 
+        {/* Fact Sheet — external rating ★, address, phone, map.
+            Each sub-field is null-safe; section hides itself when no data. */}
         <VenueFactSheet
           venueName={venue.name}
           externalRatingValue={venue.externalRatingValue}
@@ -168,11 +126,16 @@ export default async function VenueDetailPage({
         />
       </section>
 
+      {/* ===== Estimate section ===== */}
       <section id="estimate" className="space-y-4">
+        {/* Estimate sections — fetched in this Suspense child, streams independently */}
         <Suspense fallback={<EstimatesSkeleton />}>
           <EstimatesContent venueId={venue.id} />
         </Suspense>
 
+        {/* Cost Breakdown — venue-published base fees (挙式料 / 演出料 /
+            サービス料率). Complements the user's own estimate above.
+            Hides when all three fields are null. */}
         <VenueCostBreakdown
           ceremonyFeeExact={venue.ceremonyFeeExact}
           productionFeeMin={venue.productionFeeMin}
@@ -183,6 +146,15 @@ export default async function VenueDetailPage({
         />
       </section>
 
+      <div
+        aria-hidden="true"
+        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
+      />
+
+      {/* Amenities — 設備と過ごし方 chip grid (parking / shuttle / lodging /
+          2nd-party / barrier-free / operating hours / closed days).
+          Sits above Visit so the user sees facility facts before planning
+          a tour. Returns null when zero chips build. */}
       <VenueAmenitiesSection
         hasParking={venue.hasParking}
         parkingCapacity={venue.parkingCapacity}
@@ -194,7 +166,9 @@ export default async function VenueDetailPage({
         closedDays={venue.closedDays}
       />
 
+      {/* ===== Visit section ===== */}
       <section id="visit" className="space-y-4">
+        {/* Below-the-fold sections — each streams independently via Suspense. */}
         <Suspense fallback={<VisitsSkeleton />}>
           <VisitsContent
             venueId={venue.id}
@@ -204,22 +178,33 @@ export default async function VenueDetailPage({
         </Suspense>
       </section>
 
+      {/* ===== Review section ===== */}
       <section id="review" className="space-y-4">
         <Suspense fallback={<ReviewsSkeleton />}>
           <ReviewsContent venueId={venue.id} />
         </Suspense>
       </section>
 
+      {/* Cuisine — 料理・シェフ. Sits just before AI Analysis so the
+          reader anchors the AI opinion to concrete cuisine data. Null-safe. */}
       <VenueCuisineSection
         cuisineTypes={venue.cuisineTypes}
         chefCredentials={venue.chefCredentials}
       />
 
+      {/* ===== AI analysis section ===== */}
       <section id="ai" className="space-y-4">
-        {/* STEP 5: PlansContent + VibeTagEditor removed */}
-        <p style={{ color: "#999", fontSize: 12 }}>DEBUG: PlansContent + VibeTagEditor removed</p>
+        <Suspense fallback={<PlansSkeleton />}>
+          <PlansContent venueId={venue.id} />
+        </Suspense>
+
+        {/* VibeTag editor — owner only */}
+        {isOwner && (
+          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
+        )}
       </section>
 
+      {/* Action Bar */}
       <VenueActionBar
         venueId={venue.id}
         venueName={venue.name}
@@ -227,7 +212,6 @@ export default async function VenueDetailPage({
       />
     </div>
   );
-
 }
 
 // ---------------------------------------------------------------------------
@@ -346,51 +330,41 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 }
 
 async function ReviewsContent({ venueId }: { venueId: string }) {
-  let reviews: Awaited<ReturnType<typeof getVenueReviews>>;
-  let venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
-  try {
-    [reviews, venueAgg] = await Promise.all([
-      getVenueReviews(venueId),
-      getVenueReviewEstimateAggregate(venueId),
-    ]);
-    console.log("[ReviewsContent:fetch-ok]", {
-      venueId,
-      reviewsCount: reviews.length,
-      agg: venueAgg,
-      firstReviewShape: reviews[0]
-        ? {
-            id: reviews[0].id,
-            hasSentiment: !!reviews[0].sentiment,
-            sentimentType: typeof reviews[0].sentiment,
-            hasCategorySummary: !!reviews[0].categorySummary,
-            categorySummaryType: typeof reviews[0].categorySummary,
-            hasEstimateIncrease: !!reviews[0].estimateIncrease,
-            estimateIncreaseType: typeof reviews[0].estimateIncrease,
-            ratingType: typeof reviews[0].rating,
-            source: reviews[0].source,
-          }
-        : null,
-    });
-  } catch (err) {
-    console.error("[ReviewsContent:fetch-fail]", {
-      venueId,
-      err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
-    });
-    throw err;
-  }
-
-  // TEMP: VenueWhisper re-enabled, ReviewSection still disabled.
+  const [reviews, venueAgg] = await Promise.all([
+    getVenueReviews(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
   return (
     <div className="space-y-5">
-      <div style={{ padding: 8, background: "#f0f0f0", fontSize: 11 }}>
-        DEBUG ReviewsContent + VenueWhisper: reviews={reviews.length}
-      </div>
+      {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
+          to no render when no reviews analyzed yet (0 noise). */}
       <VenueWhisper
         reviews={reviews.map((r) => ({
           categorySummary: r.categorySummary,
           isNegative: r.isNegative,
         }))}
         reviewEstimateAggregate={venueAgg}
+      />
+
+      <ReviewSection
+        venueId={venueId}
+        reviews={reviews.map((r) => ({
+          id: r.id,
+          source: r.source,
+          sourceUrl: r.sourceUrl,
+          aiSummary: r.aiSummary,
+          sentiment: r.sentiment as Record<string, number> | null,
+          rating: r.rating ? Number(r.rating) : null,
+          categorySummary: r.categorySummary as Record<string, string> | null,
+          isNegative: r.isNegative,
+          estimateIncrease: r.estimateIncrease as {
+            deltaYen?: number;
+            deltaPct?: number;
+            confidence?: "high" | "medium" | "low";
+            note?: string;
+          } | null,
+        }))}
+        venueEstimateAggregate={venueAgg}
       />
     </div>
   );
