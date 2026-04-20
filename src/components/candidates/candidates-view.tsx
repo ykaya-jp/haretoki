@@ -29,8 +29,11 @@ const TabFallback = () => (
   </div>
 );
 
-const AccordionZoom = dynamic(
-  () => import("@/components/comparison/accordion-zoom").then((m) => m.AccordionZoom),
+const CompareRedesigned = dynamic(
+  () =>
+    import("@/components/comparison/compare-redesigned").then(
+      (m) => m.CompareRedesigned,
+    ),
   { loading: TabFallback },
 );
 const PriorityWeights = dynamic(
@@ -375,7 +378,7 @@ export function CandidatesView({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             {canCompare ? (
-              <AccordionZoom />
+              <CompareRedesigned />
             ) : (
               <EmptyState
                 icon={BarChart3}

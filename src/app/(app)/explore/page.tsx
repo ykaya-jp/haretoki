@@ -74,36 +74,16 @@ export default async function ExplorePage({
     budgetMax: toNumber(params.budgetMax),
   };
 
-  const hasUrlPersonalization =
-    params.personalized === "1" ||
-    urlFilters.styles !== undefined ||
-    urlFilters.areas !== undefined ||
-    urlFilters.guestCount !== undefined ||
-    urlFilters.budgetMax !== undefined;
-
-  // Fall back to project.conditions only on first visit (no personalization params in URL)
-  let appliedConditions: PersonalizedConditions = urlFilters;
-  if (!hasUrlPersonalization && !query) {
-    const user = await requireUser();
-    const { projectId } = await requireProjectMembership(user.id);
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { conditions: true },
-    });
-    const c = (project?.conditions ?? {}) as {
-      style?: string[];
-      area?: string[];
-      guestCount?: number;
-      budget?: { min: number; max: number };
-    };
-    appliedConditions = {
-      styles: c.style && c.style.length > 0 ? c.style : undefined,
-      areas: c.area && c.area.length > 0 ? c.area : undefined,
-      guestCount: typeof c.guestCount === "number" ? c.guestCount : undefined,
-      budgetMax:
-        typeof c.budget?.max === "number" && c.budget.max > 0 ? c.budget.max : undefined,
-    };
-  }
+  // Only apply filters that the user put in the URL. Previously we
+  // silently merged project.conditions (onboarding answers) into the
+  // server-side WHERE clause on first visit, which made venues
+  // inconsistent across /explore and /candidates: a couple could see
+  // a venue in their Candidates tab but not on Explore because the
+  // venue's ceremonyStyles didn't match the onboarding preference.
+  // Onboarding data should behave like a *soft suggestion* — it's fine
+  // to hydrate filter chips from it (see below), but it must not
+  // silently exclude project-owned venues.
+  const appliedConditions: PersonalizedConditions = urlFilters;
 
   const venueFilters: VenueFilters = {
     ...(query ? { query } : {}),
