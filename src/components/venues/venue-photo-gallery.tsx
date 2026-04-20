@@ -13,26 +13,12 @@ interface Props {
   photoUrls: string[];
 }
 
-/** Stable signature for a URL list — drives the render-phase reset below
- *  so we only stomp on optimistic state when the server truly changes. */
-function photoSignature(urls: string[]): string {
-  return urls.join("|");
-}
-
 export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
   const [uploading, setUploading] = useState(false);
-  // Optimistic display list: mirror server photoUrls, append freshly uploaded
-  // URLs immediately so the user sees the result before router.refresh()
-  // roundtrips the server component. Sync-from-props happens render-phase
-  // (React 19 pattern) — useEffect would trigger the set-state-in-effect
-  // ESLint rule and waste a render.
-  const [displayPhotos, setDisplayPhotos] = useState<string[]>(photoUrls);
-  const [propsSig, setPropsSig] = useState(() => photoSignature(photoUrls));
-  const nextSig = photoSignature(photoUrls);
-  if (propsSig !== nextSig) {
-    setPropsSig(nextSig);
-    setDisplayPhotos(photoUrls);
-  }
+  // Show photos straight from props. P6's optimistic append was removed
+  // during the /venues/[id] cacheComponents regression triage — bring it
+  // back once the root cause is identified.
+  const displayPhotos = photoUrls;
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -57,12 +43,7 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
       const result = await uploadVenuePhotos(venueId, formData);
       if (result.success) {
         const added = result.urls?.length ?? 0;
-        if (added > 0 && result.urls) {
-          const freshUrls = result.urls;
-          setDisplayPhotos((prev) => {
-            const seen = new Set(prev);
-            return [...prev, ...freshUrls.filter((u) => !seen.has(u))];
-          });
+        if (added > 0) {
           toast.success(`${added}枚の写真を追加しました`);
         }
         if ((result.droppedCount ?? 0) > 0) {

@@ -13,7 +13,6 @@ import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actio
 import { getVenuePlans } from "@/server/actions/plans";
 import { VenuePhotoGallery } from "@/components/venues/venue-photo-gallery";
 import { VenueHeader } from "@/components/venues/venue-header";
-import { RefreshVenueButton } from "@/components/venues/refresh-venue-button";
 import { RatingSection } from "@/components/venues/rating-section";
 import { EstimateSection } from "@/components/venues/estimate-section";
 import { MoneyReality } from "@/components/venues/money-reality";
@@ -43,40 +42,13 @@ const VENUE_SECTIONS = [
   { id: "ai", label: "AI解析" },
 ] as const;
 
-export default function VenueDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  // Next 16 cacheComponents rules: anything async — including
-  // `await params` (params is a Promise in Next 16) and any dynamic
-  // IO like cookies / DB reads — must live inside a Suspense boundary.
-  // Pass the params Promise straight through and let the child await
-  // it so the whole dynamic chain is inside Suspense.
-  return (
-    <Suspense fallback={<VenueDetailSkeleton />}>
-      <VenueDetailContent params={params} />
-    </Suspense>
-  );
-}
-
-function VenueDetailSkeleton() {
-  return (
-    <div className="space-y-6 pb-36" aria-hidden="true">
-      <Skeleton className="aspect-[4/3] w-full rounded-[var(--r-lg)]" />
-      <Skeleton className="h-6 w-56" />
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="h-24 w-full rounded-xl" />
-    </div>
-  );
-}
-
-async function VenueDetailContent({
+export default async function VenueDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
   const user = await requireUser();
   const membership = await requireProjectMembership(user.id);
   const isOwner = membership.role === "owner";
@@ -124,19 +96,6 @@ async function VenueDetailContent({
         ceremonyStyles={venue.ceremonyStyles}
         status={venue.status}
       />
-
-      {/* Owner-only refresh — re-runs the URL-import pipeline so deep
-          extraction columns backfill for venues imported before those
-          fields existed (R3). Hidden when there's no source URL to
-          refresh from. */}
-      {isOwner && (
-        <div className="flex justify-end">
-          <RefreshVenueButton
-            venueId={venue.id}
-            hasSourceUrl={(venue.sourceUrls ?? []).length > 0}
-          />
-        </div>
-      )}
 
       {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
       <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
@@ -259,19 +218,6 @@ async function VenueDetailContent({
 // Async child Server Components — each one is a Suspense boundary.
 // ---------------------------------------------------------------------------
 
-/** TEMP diagnostic — surface which child throws on old venues that
- *  currently trip the error boundary. Wrap the component body with this
- *  + throw to observe in Vercel runtime-logs. */
-function logAndRethrow(name: string, venueId: string, err: unknown): never {
-  console.error(`[venue-detail:${name}] failed`, {
-    venueId,
-    name: err instanceof Error ? err.name : typeof err,
-    message: err instanceof Error ? err.message : String(err),
-    stack: err instanceof Error ? err.stack : undefined,
-  });
-  throw err;
-}
-
 async function RatingWithPartner({
   venueId,
   userRatings,
@@ -279,12 +225,7 @@ async function RatingWithPartner({
   venueId: string;
   userRatings: Record<string, number>;
 }) {
-  let partnerRatingsData: Awaited<ReturnType<typeof getPartnerRatings>> | null;
-  try {
-    partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
-  } catch (err) {
-    logAndRethrow("RatingWithPartner", venueId, err);
-  }
+  const partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
 
   const partnerRatings: Record<string, number> = {};
   if (partnerRatingsData?.partnerRatings) {
@@ -315,16 +256,10 @@ async function RatingWithPartner({
 }
 
 async function EstimatesContent({ venueId }: { venueId: string }) {
-  let estimates: Awaited<ReturnType<typeof getVenueEstimates>>;
-  let reviewEstimateAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
-  try {
-    [estimates, reviewEstimateAgg] = await Promise.all([
-      getVenueEstimates(venueId),
-      getVenueReviewEstimateAggregate(venueId),
-    ]);
-  } catch (err) {
-    logAndRethrow("EstimatesContent", venueId, err);
-  }
+  const [estimates, reviewEstimateAgg] = await Promise.all([
+    getVenueEstimates(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
 
   if (estimates.length === 0) return null;
 
@@ -395,16 +330,10 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 }
 
 async function ReviewsContent({ venueId }: { venueId: string }) {
-  let reviews: Awaited<ReturnType<typeof getVenueReviews>>;
-  let venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
-  try {
-    [reviews, venueAgg] = await Promise.all([
-      getVenueReviews(venueId),
-      getVenueReviewEstimateAggregate(venueId),
-    ]);
-  } catch (err) {
-    logAndRethrow("ReviewsContent", venueId, err);
-  }
+  const [reviews, venueAgg] = await Promise.all([
+    getVenueReviews(venueId),
+    getVenueReviewEstimateAggregate(venueId),
+  ]);
   return (
     <div className="space-y-5">
       {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
@@ -442,12 +371,7 @@ async function ReviewsContent({ venueId }: { venueId: string }) {
 }
 
 async function PlansContent({ venueId }: { venueId: string }) {
-  let plans: Awaited<ReturnType<typeof getVenuePlans>>;
-  try {
-    plans = await getVenuePlans(venueId);
-  } catch (err) {
-    logAndRethrow("PlansContent", venueId, err);
-  }
+  const plans = await getVenuePlans(venueId);
   return (
     <PlanSection
       venueId={venueId}
@@ -483,12 +407,7 @@ async function VisitsContent({
   venueName: string;
   projectId: string;
 }) {
-  let visits: Awaited<ReturnType<typeof getVenueVisits>>;
-  try {
-    visits = await getVenueVisits(venueId);
-  } catch (err) {
-    logAndRethrow("VisitsContent", venueId, err);
-  }
+  const visits = await getVenueVisits(venueId);
   return (
     <VisitSection
       venueId={venueId}
