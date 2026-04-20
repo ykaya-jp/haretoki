@@ -379,11 +379,19 @@ async function ReviewsContent({ venueId }: { venueId: string }) {
     throw err;
   }
 
-  // TEMP: render just the data shape so we can isolate whether the
-  // bug is in VenueWhisper, ReviewSection, or the mappers above.
+  // TEMP: VenueWhisper re-enabled, ReviewSection still disabled.
   return (
-    <div style={{ padding: 8, background: "#f0f0f0", fontSize: 11, whiteSpace: "pre-wrap" }}>
-      DEBUG ReviewsContent: reviews={reviews.length}, agg={JSON.stringify(venueAgg)}
+    <div className="space-y-5">
+      <div style={{ padding: 8, background: "#f0f0f0", fontSize: 11 }}>
+        DEBUG ReviewsContent + VenueWhisper: reviews={reviews.length}
+      </div>
+      <VenueWhisper
+        reviews={reviews.map((r) => ({
+          categorySummary: r.categorySummary,
+          isNegative: r.isNegative,
+        }))}
+        reviewEstimateAggregate={venueAgg}
+      />
     </div>
   );
 }
