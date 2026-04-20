@@ -91,7 +91,11 @@ export default async function VenueDetailPage({
           the primary CTA in the sticky bottom bar. */}
       <div className="flex items-center justify-between">
         <VenueDetailBackLink variant="compact" />
-        <VenueOverflowMenu venueId={venue.id} venueName={venue.name} />
+        <VenueOverflowMenu
+          venueId={venue.id}
+          venueName={venue.name}
+          hasSourceUrl={(venue.sourceUrls ?? []).length > 0}
+        />
       </div>
 
       {/* Merged-import banner — present only when ?updated=1, self-scrubs. */}

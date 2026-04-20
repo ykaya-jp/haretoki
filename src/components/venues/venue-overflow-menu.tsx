@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteVenue } from "@/server/actions/venues";
+import { deleteVenue, refreshVenueFromSource } from "@/server/actions/venues";
 
 interface VenueOverflowMenuProps {
   venueId: string;
   venueName: string;
+  hasSourceUrl?: boolean;
 }
 
 /**
@@ -21,10 +22,11 @@ interface VenueOverflowMenuProps {
  * Kept dependency-light: no popover / dropdown primitive — a plain
  * absolutely-positioned panel with outside-click + Escape close.
  */
-export function VenueOverflowMenu({ venueId, venueName }: VenueOverflowMenuProps) {
+export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: VenueOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isRefreshing, startRefreshTransition] = useTransition();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,6 +44,21 @@ export function VenueOverflowMenu({ venueId, venueName }: VenueOverflowMenuProps
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  function handleRefresh() {
+    setOpen(false);
+    startRefreshTransition(async () => {
+      const result = await refreshVenueFromSource(venueId);
+      if (result.success) {
+        const count = result.updatedFields.length;
+        const photos = result.photoAddedCount;
+        const photoMsg = photos > 0 ? ` · 写真 ${photos} 枚` : "";
+        toast.success(`${count} 件の情報を更新しました${photoMsg}`);
+      } else {
+        toast.error(result.error ?? "更新に失敗しました");
+      }
+    });
+  }
 
   function handleDelete() {
     startTransition(async () => {
@@ -78,6 +95,19 @@ export function VenueOverflowMenu({ venueId, venueName }: VenueOverflowMenuProps
             role="menu"
             className="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-[0_8px_32px_rgba(42,35,32,0.12)]"
           >
+            {hasSourceUrl && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex w-full min-h-11 items-center gap-2 px-4 text-left text-sm transition-colors hover:bg-muted/50 active:bg-muted disabled:opacity-50"
+                style={{ color: "var(--gold-warm, oklch(0.65 0.12 80))" }}
+              >
+                <RefreshCw className={`h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                {isRefreshing ? "更新中…" : "情報を更新する"}
+              </button>
+            )}
             <button
               type="button"
               role="menuitem"
