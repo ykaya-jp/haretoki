@@ -81,7 +81,10 @@ export default async function VenueDetailPage({
     throw err;
   }
 
-  if (!venue) notFound();
+  if (!venue) {
+    console.log("[VenueDetailPage:notFound]", { id });
+    notFound();
+  }
 
   // TEMP diagnostic — log the full venue shape so Vercel runtime-logs
   // surface any weird values that might be tripping the child renders
