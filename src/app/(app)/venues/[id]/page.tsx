@@ -120,24 +120,74 @@ export default async function VenueDetailPage({
     }
   }
 
-  // TEMP: step 2 — add VenuePhotoGallery to the minimal render. If the
-  // detail page now errors where step 1 rendered fine, the photo
-  // component (or its next/image call on a fallback URL) is the
-  // culprit. If it still renders, move on to the next suspect.
-  console.log("[VenueDetailPage:step2-photo-only]", { id });
+  // TEMP: step 3 — + VenueHeader + VenueSegmentsNav + VenueFactSheet
+  // + VenueAmenitiesSection + VenueCostBreakdown + VenueCuisineSection
+  // + VenueActionBar. All the inline (non-Suspense) client components.
+  // If this breaks, one of these is the culprit.
+  console.log("[VenueDetailPage:step3-inline-clients]", { id });
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 24, marginBottom: 16 }}>DEBUG step 2: {venue.name}</h1>
+    <div className="space-y-10 pb-36" style={{ padding: 24 }}>
+      <h1 style={{ fontSize: 18 }}>DEBUG step 3: {venue.name}</h1>
+
       <VenuePhotoGallery
         venueId={venue.id}
         name={venue.name}
         photoUrls={venue.photoUrls}
       />
-      <pre style={{ fontSize: 12, marginTop: 24 }}>
-        photos: {venue.photoUrls.length}
-        {"\n"}
-        first: {venue.photoUrls[0] ?? "(none)"}
-      </pre>
+
+      <VenueHeader
+        name={venue.name}
+        location={venue.location}
+        accessInfo={venue.accessInfo}
+        capacityMin={venue.capacityMin}
+        capacityMax={venue.capacityMax}
+        ceremonyStyles={venue.ceremonyStyles}
+        status={venue.status}
+      />
+
+      <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
+
+      <VenueFactSheet
+        venueName={venue.name}
+        externalRatingValue={venue.externalRatingValue}
+        externalReviewCount={venue.externalReviewCount}
+        postalCode={venue.postalCode}
+        streetAddress={venue.streetAddress}
+        latitude={venue.latitude}
+        longitude={venue.longitude}
+        phoneNumber={venue.phoneNumber}
+      />
+
+      <VenueAmenitiesSection
+        hasParking={venue.hasParking}
+        parkingCapacity={venue.parkingCapacity}
+        hasShuttle={venue.hasShuttle}
+        hasAccommodation={venue.hasAccommodation}
+        acceptsSecondParty={venue.acceptsSecondParty}
+        barrierFree={venue.barrierFree}
+        operatingHours={venue.operatingHours}
+        closedDays={venue.closedDays}
+      />
+
+      <VenueCostBreakdown
+        ceremonyFeeExact={venue.ceremonyFeeExact}
+        productionFeeMin={venue.productionFeeMin}
+        productionFeeMax={venue.productionFeeMax}
+        serviceFeeRate={
+          venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
+        }
+      />
+
+      <VenueCuisineSection
+        cuisineTypes={venue.cuisineTypes}
+        chefCredentials={venue.chefCredentials}
+      />
+
+      <VenueActionBar
+        venueId={venue.id}
+        venueName={venue.name}
+        isFavorite={isFavorite}
+      />
     </div>
   );
 
