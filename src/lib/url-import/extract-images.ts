@@ -29,9 +29,17 @@ const DROP_PATTERNS = [
   // ic_new_text.gif` (their "最新クチコミ" campaign banner) as og:image
   // on every venue page, which the fallback then rendered as the hero
   // photo. Drop anything that looks like a shared UI asset.
+  //
+  // NOTE: previously included `/\/assets?\//i` here, but that's a
+  // legitimate CDN path on many wedding sites — dropping it left real
+  // venue photos on the cutting room floor and the user saw
+  // "写真の取り込みに失敗しました". Keep filters narrow:
+  //   - `/common/` is specifically zexy's shared-asset directory
+  //   - `/ic_` targets the `ic_<token>.gif` naming convention zexy
+  //     uses for UI glyphs, not real photos
+  //   - `.gif` is fair — wedding photography is never a GIF
   /\/common\//i,
   /\/ic_/i,
-  /\/assets?\//i,
   /\.gif($|\?)/i,
 ] as const;
 

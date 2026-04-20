@@ -604,7 +604,12 @@ const extractedVenueSchema = z.object({
         visitedAt: z.string().max(50).nullable(),
       }),
     )
-    .max(8)
+    // Raised from 8 → 20. Users report the venue detail page shows only
+    // 3-5 reviews for venues that clearly list 15-30 on the source page
+    // (zexy / wedding park) — Claude was capped too tight to fit all
+    // visible entries. 20 still fits the completion budget and gives
+    // couples a statistically meaningful sample.
+    .max(20)
     .optional()
     .default([]),
 
@@ -704,7 +709,7 @@ Guidelines:
 - chefCredentials: brief one-sentence summary of head chef background. Professional only, no PII.
 - photoUrls: prefer large venue/ceremony/reception/chapel hero images. Skip thumbnails, icons, avatars, and marketing banners. Absolute URLs only.
 - confidence: "high" if most core fields are present, "medium" if some missing, "low" if minimal.
-- reviews: 3-8 件ていど。必ず Japanese で要約すること。原文の長文コピペは NG — 200-500 字程度の要約に書き直す。出典 URL は呼び出し側で付与するのでここでは不要。複数ページの重複する口コミは 1 件にまとめる。author はハンドル名のみ、本名や電話番号など PII を含めてはいけない。
+- reviews: ページ上に表示されている口コミをできる限り全て拾う（最大 20 件まで）。少なすぎるより多い方がよい。必ず Japanese で要約すること。原文の長文コピペは NG — 200-500 字程度の要約に書き直す。出典 URL は呼び出し側で付与するのでここでは不要。複数ページの重複する口コミは 1 件にまとめる。author はハンドル名のみ、本名や電話番号など PII を含めてはいけない。
 
 IMPORTANT: Fields derivable directly from JSON-LD (aggregateRating value/count, GeoCoordinates latitude/longitude, PostalAddress postalCode/streetAddress, telephone) are handled by a separate structured parser — OMIT them from your output. Do not guess or rewrite these.
 
