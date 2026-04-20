@@ -48,15 +48,38 @@ export default async function VenueDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  console.log("[VenueDetailPage:enter]", { id });
 
-  const user = await requireUser();
-  const membership = await requireProjectMembership(user.id);
+  let user: Awaited<ReturnType<typeof requireUser>>;
+  let membership: Awaited<ReturnType<typeof requireProjectMembership>>;
+  let venue: Awaited<ReturnType<typeof getVenueHeader>>;
+  let favorites: Awaited<ReturnType<typeof getFavorites>>;
+
+  try {
+    user = await requireUser();
+    console.log("[VenueDetailPage:requireUser-ok]", { id, userId: user.id });
+  } catch (err) {
+    console.error("[VenueDetailPage:requireUser-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
+    throw err;
+  }
+  try {
+    membership = await requireProjectMembership(user.id);
+    console.log("[VenueDetailPage:membership-ok]", { id, projectId: membership.projectId });
+  } catch (err) {
+    console.error("[VenueDetailPage:membership-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
+    throw err;
+  }
   const isOwner = membership.role === "owner";
-
-  const [venue, favorites] = await Promise.all([
-    getVenueHeader(id),
-    getFavorites("mine"),
-  ]);
+  try {
+    [venue, favorites] = await Promise.all([
+      getVenueHeader(id),
+      getFavorites("mine"),
+    ]);
+    console.log("[VenueDetailPage:fetch-ok]", { id, found: !!venue, favoritesCount: favorites.length });
+  } catch (err) {
+    console.error("[VenueDetailPage:fetch-fail]", { id, err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err });
+    throw err;
+  }
 
   if (!venue) notFound();
 
