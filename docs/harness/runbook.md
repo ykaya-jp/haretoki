@@ -64,6 +64,26 @@ tmux select-pane -t .0               # chat pane に focus 戻す
 - 各メンバーに **具体ファイルパスとスコープ** を明示
 - 共有コンポーネントは先に単独実装
 
+### Agent(isolation: "worktree") で並列 subagent を飛ばすときの注意
+
+Claude Code の `Agent` tool に `isolation: "worktree"` を渡すと、`.claude/worktrees/agent-<id>/` に自動で worktree が切られて worker が走る。ただし **作成される worktree の base は develop の現 HEAD ではなく、古い merge-base** になることがある (2026-04-20 確認)。対策を worker の prompt に必ず入れる:
+
+1. **prompt 冒頭で rebase を明示**: 「作業開始前に `git rebase origin/develop`、conflict なら abort してログに記録して報告」
+2. **必ずコミットさせる**: worker が完了報告だけしてコミットしないと orchestrator 側で cp する羽目になる。prompt に「最後に `git status` で変更を確認し、`git commit` で 1 コミットにまとめる」を明示
+3. **進捗ログを `/tmp/haretoki-worker-<A|B|...>.log` に書き出させる**: tmux viewer pane は `tail -f` でここを見る
+4. **他 worker のスコープを列挙**: 「worker-B が `foo.tsx` を触るので絶対 touch しない」と書くと衝突が減る
+
+orchestrator 側の取り込み手順:
+```bash
+# worker が正しく commit している場合: cherry-pick が基本
+git cherry-pick <worker-sha>
+# conflict が出る場合 (worker の base が古い) は 3-way apply にフォールバック:
+git format-patch -1 <worker-sha> --stdout | git apply --3way -
+# マーカー解消 → add → commit --reuse-message=<worker-sha>
+```
+
+取り込み後は `git worktree remove -f -f <path>` + `git branch -D <worker-branch>` で掃除。`-f -f` (2 回) は lock 解除に必要。
+
 ## Ship Cycle（CLAUDE.md 準拠、省略しない）
 
 1. **E2E**: `npx playwright test --project="Mobile Chrome"` PASS

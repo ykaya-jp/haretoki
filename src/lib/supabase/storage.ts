@@ -1,4 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+/**
+ * Pick a Supabase client for Storage writes.
+ *
+ * Prefer the service-role admin client when `SUPABASE_SERVICE_ROLE_KEY`
+ * is configured: it bypasses RLS on `storage.objects`, which is the usual
+ * cause of "uploads silently fail on some envs but not others" — a bucket
+ * may exist but user-scoped INSERT lack a policy row. The server action
+ * layer has already authenticated the caller and verified project
+ * membership, so bypassing storage RLS is safe here.
+ *
+ * Falls back to the user-scoped client when admin isn't configured so
+ * local dev without SUPABASE_SERVICE_ROLE_KEY still works.
+ */
+async function getStorageClient() {
+  const admin = createAdminClient();
+  if (admin) return admin;
+  return createClient();
+}
 
 /**
  * Upload a PDF file to Supabase Storage.
@@ -44,19 +64,41 @@ export async function uploadVenuePhoto(
   projectId: string,
   venueId: string,
 ): Promise<string> {
-  const supabase = await createClient();
-  const ext = fileName.split(".").pop() ?? "jpg";
+  const supabase = await getStorageClient();
+  const extRaw = (fileName.split(".").pop() ?? "jpg").toLowerCase();
+  // Normalise known aliases; default unknown extensions to jpg so Supabase
+  // doesn't reject on a bucket MIME whitelist.
+  const ext = extRaw === "jpeg" ? "jpg" : extRaw;
   const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const path = `${projectId}/${venueId}/${uniqueName}`;
+  const contentType =
+    ext === "png"
+      ? "image/png"
+      : ext === "webp"
+        ? "image/webp"
+        : ext === "heic" || ext === "heif"
+          ? "image/heic"
+          : "image/jpeg";
 
   const { data, error } = await supabase.storage
     .from("venue-photos")
-    .upload(path, file, {
-      contentType: `image/${ext === "png" ? "png" : ext === "webp" ? "webp" : "jpeg"}`,
-      upsert: false,
-    });
+    .upload(path, file, { contentType, upsert: false });
 
-  if (error) throw new Error(`写真のアップロードに失敗しました: ${error.message}`);
+  if (error) {
+    // Bubble up the *full* Supabase error so production logs show the
+    // real cause ("Bucket not found", RLS policy error, mime rejection,
+    // etc.) instead of a truncated "Bu..." that reveals nothing.
+    console.error("[uploadVenuePhoto] Supabase storage upload failed", {
+      bucket: "venue-photos",
+      path,
+      contentType,
+      byteLength: file.byteLength,
+      supabaseError: error,
+    });
+    throw new Error(
+      `写真のアップロードに失敗しました (bucket=venue-photos, path=${path}): ${error.message}`,
+    );
+  }
 
   const { data: urlData } = supabase.storage
     .from("venue-photos")
