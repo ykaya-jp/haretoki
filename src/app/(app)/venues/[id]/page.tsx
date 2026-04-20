@@ -120,14 +120,18 @@ export default async function VenueDetailPage({
     }
   }
 
-  // TEMP: step 3 — + VenueHeader + VenueSegmentsNav + VenueFactSheet
-  // + VenueAmenitiesSection + VenueCostBreakdown + VenueCuisineSection
-  // + VenueActionBar. All the inline (non-Suspense) client components.
-  // If this breaks, one of these is the culprit.
-  console.log("[VenueDetailPage:step3-inline-clients]", { id });
+  // TEMP: step 4 — full render with every Suspense child. If only the
+  // new Rating chip UI is throwing (see P5 diagnosis earlier), we'll
+  // see the error boundary show up again and narrow from there.
+  console.log("[VenueDetailPage:step4-full]", { id });
   return (
-    <div className="space-y-10 pb-36" style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 18 }}>DEBUG step 3: {venue.name}</h1>
+    <div className="space-y-10 pb-36">
+      <h1 style={{ fontSize: 14, color: "#999", padding: 8 }}>
+        DEBUG step 4: {venue.name}
+      </h1>
+
+      <VenueDetailBackLink variant="compact" />
+      <VenueUpdatedBanner />
 
       <VenuePhotoGallery
         venueId={venue.id}
@@ -147,16 +151,37 @@ export default async function VenueDetailPage({
 
       <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
 
-      <VenueFactSheet
-        venueName={venue.name}
-        externalRatingValue={venue.externalRatingValue}
-        externalReviewCount={venue.externalReviewCount}
-        postalCode={venue.postalCode}
-        streetAddress={venue.streetAddress}
-        latitude={venue.latitude}
-        longitude={venue.longitude}
-        phoneNumber={venue.phoneNumber}
-      />
+      <section id="overview" className="space-y-4">
+        <Suspense fallback={<RatingSkeleton />}>
+          <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
+        </Suspense>
+
+        <VenueFactSheet
+          venueName={venue.name}
+          externalRatingValue={venue.externalRatingValue}
+          externalReviewCount={venue.externalReviewCount}
+          postalCode={venue.postalCode}
+          streetAddress={venue.streetAddress}
+          latitude={venue.latitude}
+          longitude={venue.longitude}
+          phoneNumber={venue.phoneNumber}
+        />
+      </section>
+
+      <section id="estimate" className="space-y-4">
+        <Suspense fallback={<EstimatesSkeleton />}>
+          <EstimatesContent venueId={venue.id} />
+        </Suspense>
+
+        <VenueCostBreakdown
+          ceremonyFeeExact={venue.ceremonyFeeExact}
+          productionFeeMin={venue.productionFeeMin}
+          productionFeeMax={venue.productionFeeMax}
+          serviceFeeRate={
+            venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
+          }
+        />
+      </section>
 
       <VenueAmenitiesSection
         hasParking={venue.hasParking}
@@ -169,19 +194,36 @@ export default async function VenueDetailPage({
         closedDays={venue.closedDays}
       />
 
-      <VenueCostBreakdown
-        ceremonyFeeExact={venue.ceremonyFeeExact}
-        productionFeeMin={venue.productionFeeMin}
-        productionFeeMax={venue.productionFeeMax}
-        serviceFeeRate={
-          venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
-        }
-      />
+      <section id="visit" className="space-y-4">
+        <Suspense fallback={<VisitsSkeleton />}>
+          <VisitsContent
+            venueId={venue.id}
+            venueName={venue.name}
+            projectId={venue.projectId}
+          />
+        </Suspense>
+      </section>
+
+      <section id="review" className="space-y-4">
+        <Suspense fallback={<ReviewsSkeleton />}>
+          <ReviewsContent venueId={venue.id} />
+        </Suspense>
+      </section>
 
       <VenueCuisineSection
         cuisineTypes={venue.cuisineTypes}
         chefCredentials={venue.chefCredentials}
       />
+
+      <section id="ai" className="space-y-4">
+        <Suspense fallback={<PlansSkeleton />}>
+          <PlansContent venueId={venue.id} />
+        </Suspense>
+
+        {isOwner && (
+          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
+        )}
+      </section>
 
       <VenueActionBar
         venueId={venue.id}
