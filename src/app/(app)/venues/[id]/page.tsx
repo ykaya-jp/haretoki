@@ -120,31 +120,23 @@ export default async function VenueDetailPage({
     }
   }
 
-  // TEMP: minimal render to isolate which child blows up on
-  // eaeff163-like venues. If this stripped-down view renders, the bug
-  // is in a subsequent child component; if even this fails, the bug is
-  // upstream (data fetch / Next framework).
-  console.log("[VenueDetailPage:minimal-render]", { id, venueId: venue.id });
+  // TEMP: step 2 — add VenuePhotoGallery to the minimal render. If the
+  // detail page now errors where step 1 rendered fine, the photo
+  // component (or its next/image call on a fallback URL) is the
+  // culprit. If it still renders, move on to the next suspect.
+  console.log("[VenueDetailPage:step2-photo-only]", { id });
   return (
     <div style={{ padding: 24, fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 24, marginBottom: 16 }}>DEBUG: {venue.name}</h1>
-      <pre style={{ fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
-        {JSON.stringify(
-          {
-            id: venue.id,
-            status: venue.status,
-            photos: venue.photoUrls?.length ?? 0,
-            sources: venue.sourceUrls?.length ?? 0,
-            scores: venue.scores?.length ?? 0,
-            ceremonyStyles: venue.ceremonyStyles,
-            vibeTags: venue.vibeTags,
-            isOwner,
-            isFavorite,
-            ratingsCount: Object.keys(userRatings).length,
-          },
-          null,
-          2,
-        )}
+      <h1 style={{ fontSize: 24, marginBottom: 16 }}>DEBUG step 2: {venue.name}</h1>
+      <VenuePhotoGallery
+        venueId={venue.id}
+        name={venue.name}
+        photoUrls={venue.photoUrls}
+      />
+      <pre style={{ fontSize: 12, marginTop: 24 }}>
+        photos: {venue.photoUrls.length}
+        {"\n"}
+        first: {venue.photoUrls[0] ?? "(none)"}
       </pre>
     </div>
   );
