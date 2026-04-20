@@ -16,24 +16,15 @@ const nextConfig: NextConfig = {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
   },
   images: {
-    remotePatterns: [
-      // Supabase Storage — venue photos, avatars, PDFs
-      { protocol: "https", hostname: "*.supabase.co" },
-      // Seed / demo venue photos hosted on Unsplash. Kept narrow to the
-      // single host so we don't regress to a wildcard that allows open
-      // image-proxy abuse.
-      { protocol: "https", hostname: "images.unsplash.com" },
-      // P8-B CDN fallback: when our Supabase Storage copy fails (e.g.
-      // 403 hotlink protection, invalid content-type), the upload
-      // pipeline keeps the original URL so next/image can still render
-      // it server-side from Vercel's region. Scoped to the known wedding
-      // venue sources so we don't regress to an open image proxy.
-      { protocol: "https", hostname: "*.zexy.net" },
-      { protocol: "https", hostname: "*.hana-yume.net" },
-      { protocol: "https", hostname: "*.mwed.jp" },
-      { protocol: "https", hostname: "*.mynavi.jp" },
-      { protocol: "https", hostname: "*.weddingpark.net" },
-    ],
+    // Allow any HTTPS source. We accept that this widens the
+    // image-proxy surface, but the source of URLs is our own extraction
+    // pipeline (not arbitrary user input), and the alternative — a
+    // strict host allow-list — was throwing "hostname is not configured"
+    // runtime errors on the detail page whenever a venue carried a URL
+    // from a host we hadn't added yet (e.g. zexy promo banners served
+    // from a CDN outside `*.zexy.net`). Listing every possible wedding
+    // CDN is a moving target we keep losing.
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion", "recharts"],
@@ -85,7 +76,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://*.posthog.com https://eu.i.posthog.com https://*.sentry.io",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.zexy.net https://*.hana-yume.net https://*.mwed.jp https://*.mynavi.jp https://*.weddingpark.net",
+              // Mirror the images.remotePatterns: any HTTPS image for the
+              // same reason the Next/Image config widened.
+              "img-src 'self' data: blob: https:",
               "font-src 'self' https://fonts.gstatic.com data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://*.vercel-scripts.com https://va.vercel-scripts.com https://eu.i.posthog.com https://*.posthog.com https://*.sentry.io https://api.anthropic.com https://line.me",
               "media-src 'self' blob: https://*.supabase.co",
