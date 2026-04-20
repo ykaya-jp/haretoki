@@ -21,6 +21,63 @@ async function getStorageClient() {
 }
 
 /**
+ * Bucket self-heal — buckets sometimes go missing on Supabase project
+ * swaps / re-provisioning, and "Bucket not found" is otherwise invisible
+ * to end users (upload throws → generic toast). Cache per-process so we
+ * pay the create roundtrip at most once per cold start per bucket.
+ */
+const bucketExistsCache = new Set<string>();
+
+type BucketOptions = {
+  public: boolean;
+  fileSizeLimit: number;
+  allowedMimeTypes: string[];
+};
+
+const BUCKET_OPTIONS: Record<string, BucketOptions> = {
+  "venue-photos": {
+    public: true,
+    fileSizeLimit: 10 * 1024 * 1024,
+    allowedMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+      "image/avif",
+    ],
+  },
+  estimates: {
+    public: false,
+    fileSizeLimit: 20 * 1024 * 1024,
+    allowedMimeTypes: ["application/pdf"],
+  },
+};
+
+async function ensureBucket(
+  supabase: Awaited<ReturnType<typeof getStorageClient>>,
+  bucket: string,
+): Promise<void> {
+  if (bucketExistsCache.has(bucket)) return;
+  const options = BUCKET_OPTIONS[bucket];
+  if (!options) {
+    bucketExistsCache.add(bucket);
+    return;
+  }
+  // Idempotent — if the bucket already exists, createBucket returns a
+  // "duplicate" error we swallow. Avoids the cold-start race condition
+  // that listBuckets + createBucket would otherwise have.
+  const { error } = await supabase.storage.createBucket(bucket, options);
+  if (error && !/already exists|duplicate/i.test(error.message)) {
+    console.warn("[storage] ensureBucket create failed", {
+      bucket,
+      error: error.message,
+    });
+  }
+  bucketExistsCache.add(bucket);
+}
+
+/**
  * Upload a PDF file to Supabase Storage.
  *
  * NOTE: The "estimates" bucket must be created in the Supabase Dashboard
@@ -33,7 +90,8 @@ export async function uploadEstimatePdf(
   projectId: string,
   venueId: string,
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = await getStorageClient();
+  await ensureBucket(supabase, "estimates");
   const path = `${projectId}/${venueId}/estimates/${fileName}`;
 
   const { data, error } = await supabase.storage
@@ -65,6 +123,7 @@ export async function uploadVenuePhoto(
   venueId: string,
 ): Promise<string> {
   const supabase = await getStorageClient();
+  await ensureBucket(supabase, "venue-photos");
   const extRaw = (fileName.split(".").pop() ?? "jpg").toLowerCase();
   // Normalise known aliases; default unknown extensions to jpg so Supabase
   // doesn't reject on a bucket MIME whitelist.
@@ -117,7 +176,8 @@ export async function uploadChecklistPhoto(
   projectId: string,
   venueId: string,
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = await getStorageClient();
+  await ensureBucket(supabase, "venue-photos");
   const ext = fileName.split(".").pop() ?? "jpg";
   const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const path = `${projectId}/${venueId}/checklist/${uniqueName}`;
