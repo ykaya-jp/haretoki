@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition, type ReactNode } from "react";
+import { useState, useMemo, useCallback, useTransition, useRef, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueFilterSheet } from "@/components/explore/venue-filter-sheet";
 import { SaveSearchButton } from "@/components/explore/save-search-button";
 import { VenueCard } from "@/components/venues/venue-card";
+import { HeartCoachMark } from "@/components/venues/heart-coach-mark";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,6 +68,8 @@ export function ExploreContent({
   const [advancedFilters, setAdvancedFilters] = useState<VenueFilters>({});
   const [isPending, startTransition] = useTransition();
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  // Ref for the first venue card's heart button area (used by HeartCoachMark)
+  const firstCardHeartRef = useRef<HTMLDivElement | null>(null);
 
   // Read URL params for keyword and vibe tags (managed by parent components).
   const searchParams = useSearchParams();
@@ -260,11 +263,28 @@ export function ExploreContent({
                   transition={{ delay: Math.min(i, 4) * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                   layout
                 >
-                  <VenueCard
-                    venue={venue}
-                    isFavorite={favoriteSet.has(venue.id)}
-                    fitReason={fitReasons[venue.id] ?? null}
-                  />
+                  {i === 0 ? (
+                    <div className="relative">
+                      {/* Anchor div positioned at the heart button area (top-right of card) */}
+                      <div
+                        ref={firstCardHeartRef}
+                        className="pointer-events-none absolute right-3 top-3 z-20 h-12 w-12"
+                        aria-hidden="true"
+                      />
+                      <HeartCoachMark anchorRef={firstCardHeartRef} />
+                      <VenueCard
+                        venue={venue}
+                        isFavorite={favoriteSet.has(venue.id)}
+                        fitReason={fitReasons[venue.id] ?? null}
+                      />
+                    </div>
+                  ) : (
+                    <VenueCard
+                      venue={venue}
+                      isFavorite={favoriteSet.has(venue.id)}
+                      fitReason={fitReasons[venue.id] ?? null}
+                    />
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
