@@ -39,7 +39,10 @@ const VENUE_SECTIONS = [
   { id: "estimate", label: "見積" },
   { id: "visit", label: "見学" },
   { id: "review", label: "口コミ" },
-  { id: "ai", label: "AI解析" },
+  // Previously mislabelled "AI解析" — the section actually holds the
+  // venue's published plans + (owner-only) vibe tag editor. The "AI
+  // analysis" meaning belonged to a now-removed component.
+  { id: "plan", label: "プラン" },
 ] as const;
 
 export default async function VenueDetailPage({
@@ -124,6 +127,27 @@ export default async function VenueDetailPage({
           longitude={venue.longitude}
           phoneNumber={venue.phoneNumber}
         />
+
+        {/* Amenities — 設備と過ごし方 chip grid. Moved inside overview so
+            the SegmentsNav tab accurately describes what the reader
+            will find. Returns null when zero chips build. */}
+        <VenueAmenitiesSection
+          hasParking={venue.hasParking}
+          parkingCapacity={venue.parkingCapacity}
+          hasShuttle={venue.hasShuttle}
+          hasAccommodation={venue.hasAccommodation}
+          acceptsSecondParty={venue.acceptsSecondParty}
+          barrierFree={venue.barrierFree}
+          operatingHours={venue.operatingHours}
+          closedDays={venue.closedDays}
+        />
+
+        {/* Cuisine — 料理・シェフ. Same relocation reason: belongs to the
+            "what kind of place is this" read, not an orphaned float. */}
+        <VenueCuisineSection
+          cuisineTypes={venue.cuisineTypes}
+          chefCredentials={venue.chefCredentials}
+        />
       </section>
 
       {/* ===== Estimate section ===== */}
@@ -151,21 +175,6 @@ export default async function VenueDetailPage({
         className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
       />
 
-      {/* Amenities — 設備と過ごし方 chip grid (parking / shuttle / lodging /
-          2nd-party / barrier-free / operating hours / closed days).
-          Sits above Visit so the user sees facility facts before planning
-          a tour. Returns null when zero chips build. */}
-      <VenueAmenitiesSection
-        hasParking={venue.hasParking}
-        parkingCapacity={venue.parkingCapacity}
-        hasShuttle={venue.hasShuttle}
-        hasAccommodation={venue.hasAccommodation}
-        acceptsSecondParty={venue.acceptsSecondParty}
-        barrierFree={venue.barrierFree}
-        operatingHours={venue.operatingHours}
-        closedDays={venue.closedDays}
-      />
-
       {/* ===== Visit section ===== */}
       <section id="visit" className="space-y-4">
         {/* Below-the-fold sections — each streams independently via Suspense. */}
@@ -185,15 +194,8 @@ export default async function VenueDetailPage({
         </Suspense>
       </section>
 
-      {/* Cuisine — 料理・シェフ. Sits just before AI Analysis so the
-          reader anchors the AI opinion to concrete cuisine data. Null-safe. */}
-      <VenueCuisineSection
-        cuisineTypes={venue.cuisineTypes}
-        chefCredentials={venue.chefCredentials}
-      />
-
-      {/* ===== AI analysis section ===== */}
-      <section id="ai" className="space-y-4">
+      {/* ===== Plan section ===== (renamed from "AI解析") */}
+      <section id="plan" className="space-y-4">
         <Suspense fallback={<PlansSkeleton />}>
           <PlansContent venueId={venue.id} />
         </Suspense>
@@ -261,7 +263,15 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
     getVenueReviewEstimateAggregate(venueId),
   ]);
 
-  if (estimates.length === 0) return null;
+  // Render EstimateSection even when empty — its internal empty-state CTA
+  // invites the user to add their first estimate. Previously we returned
+  // null here, which made the "見積" tab a dead-end on venues with no
+  // estimate recorded yet.
+  if (estimates.length === 0) {
+    return (
+      <EstimateSection venueId={venueId} estimates={[]} />
+    );
+  }
 
   const moneyReality = await getMoneyReality(estimates[0].id).catch(() => null);
 

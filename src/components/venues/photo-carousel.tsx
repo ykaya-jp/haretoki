@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Camera } from "lucide-react";
 import { VenueImage } from "@/components/ui/venue-image";
 import { PhotoLightbox } from "@/components/venues/photo-lightbox";
+import { isLikelyAssetUrl } from "@/lib/url-import/extract-images";
 import { cn } from "@/lib/utils";
 
 interface PhotoCarouselProps {
@@ -32,12 +33,21 @@ const PhotoCarouselEmbla = dynamic(
 );
 
 export function PhotoCarousel({
-  photos,
+  photos: rawPhotos,
   alt,
   aspectRatio = "4/3",
   onAddPhotoClick,
 }: PhotoCarouselProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Hide URLs that look like a shared UI asset / promo banner (e.g.
+  // zexy `/images/common/ic_new_text.gif`) from the gallery. These
+  // slipped into some venues' `photoUrls` before the extraction
+  // pipeline learned to drop them; this keeps them off-screen without
+  // a DB migration.
+  const photos = useMemo(
+    () => rawPhotos.filter((u) => !isLikelyAssetUrl(u)),
+    [rawPhotos],
+  );
   if (photos.length === 0) {
     const baseClasses = cn(
       "flex flex-col items-center justify-center gap-3 rounded-2xl",

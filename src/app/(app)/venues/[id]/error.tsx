@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,9 @@ export default function VenueDetailError({
   // Refer back to the couple's previous in-app screen when we can read
   // it from document.referrer (same-origin only). Stops the boundary
   // from always dumping everyone on /candidates — a frustrating jump
-  // for someone who tapped a venue from /explore or /home.
-  const { prevHref, prevLabel } = useMemo<{
+  // for someone who tapped a venue from /explore or /home. Lazy useState
+  // instead of useMemo so React Compiler can preserve it.
+  const [{ prevHref, prevLabel }] = useState<{
     prevHref: string;
     prevLabel: string;
   }>(() => {
@@ -64,7 +65,7 @@ export default function VenueDetailError({
     } catch {
       return { prevHref: "/home", prevLabel: "ホームに戻る" };
     }
-  }, []);
+  });
 
   useEffect(() => {
     const onOnline = () => setOffline(false);

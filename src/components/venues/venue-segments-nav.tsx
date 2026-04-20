@@ -33,7 +33,12 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
           }
         },
         {
-          rootMargin: `-${OFFSET}px 0px -60% 0px`,
+          // -25% at top gives enough breathing room past the sticky
+          // nav; -70% at bottom lets even the last section activate
+          // before its midpoint exits the viewport. Previous setting
+          // (-60% bottom) meant the final section never reached the
+          // active threshold, so the tab lied about where you were.
+          rootMargin: `-${OFFSET}px 0px -70% 0px`,
           threshold: 0,
         },
       );

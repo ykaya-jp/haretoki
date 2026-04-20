@@ -57,12 +57,14 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
     <section className="rounded-2xl border border-border bg-card p-4">
       <h2
         className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em] text-foreground"
-        aria-label="この式場の気分"
+        aria-label="雰囲気タグ"
       >
-        この式場の気分
+        雰囲気タグ
       </h2>
-      <p className="mt-1 text-[11.5px] text-muted-foreground">
-        雰囲気に合うタグを選んでください
+      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+        この式場の雰囲気に合うタグを選んでください。
+        <br />
+        選んだタグは「探す」画面で似た式場を見つける手がかりになります。
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">

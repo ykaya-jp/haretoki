@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EstimateForm } from "@/components/venues/estimate-form";
 import { EstimateBreakdown } from "@/components/venues/estimate-breakdown";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Receipt } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 
 type EstimateItem = {
@@ -39,18 +39,27 @@ export function EstimateSection({
 
   if (!latest && !showForm) {
     return (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          まだ見積もりを残していません
-        </p>
-        <Button
-          variant="outline"
+      <div className="flex flex-col items-center gap-4 py-8 text-center">
+        <div
+          className="flex h-12 w-12 items-center justify-center rounded-full"
+          style={{ boxShadow: "0 0 0 0.5px var(--gold-subtle)" }}
+        >
+          <Receipt className="h-6 w-6 text-[var(--gold-warm)]" strokeWidth={1.5} />
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-light">見積もりはまだありません</p>
+          <p className="text-xs text-muted-foreground">
+            見学でもらった見積もりを記録すると、最終費用の予測や式場比較ができます
+          </p>
+        </div>
+        <button
+          type="button"
           onClick={() => setShowForm(true)}
-          className="w-full"
+          className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
         >
           <Plus className="mr-1 h-4 w-4" />
-          見積もりを追加
-        </Button>
+          見積もりを記録する
+        </button>
       </div>
     );
   }
