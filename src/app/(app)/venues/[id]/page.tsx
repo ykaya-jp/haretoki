@@ -120,148 +120,35 @@ export default async function VenueDetailPage({
     }
   }
 
+  // TEMP: minimal render to isolate which child blows up on
+  // eaeff163-like venues. If this stripped-down view renders, the bug
+  // is in a subsequent child component; if even this fails, the bug is
+  // upstream (data fetch / Next framework).
+  console.log("[VenueDetailPage:minimal-render]", { id, venueId: venue.id });
   return (
-    <div className="space-y-10 pb-36">
-      {/* Back link — uses router.back() to preserve filter/scroll state on
-          the referrer page (Explore, Candidates, Home all link here). */}
-      <VenueDetailBackLink variant="compact" />
-
-      {/* Merged-import banner — present only when ?updated=1, self-scrubs. */}
-      <VenueUpdatedBanner />
-
-      {/* Photo Gallery — above the fold */}
-      <VenuePhotoGallery
-        venueId={venue.id}
-        name={venue.name}
-        photoUrls={venue.photoUrls}
-      />
-
-      {/* Venue Header — above the fold */}
-      <VenueHeader
-        name={venue.name}
-        location={venue.location}
-        accessInfo={venue.accessInfo}
-        capacityMin={venue.capacityMin}
-        capacityMax={venue.capacityMax}
-        ceremonyStyles={venue.ceremonyStyles}
-        status={venue.status}
-      />
-
-      {/* Sticky segmented control — scroll-spy via IntersectionObserver */}
-      <VenueSegmentsNav sections={[...VENUE_SECTIONS]} />
-
-      {/* ===== Overview section ===== */}
-      <section id="overview" className="space-y-4">
-        <div
-          aria-hidden="true"
-          className="h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent"
-        />
-
-        {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
-        <Suspense fallback={<RatingSkeleton />}>
-          <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
-        </Suspense>
-
-        {/* Fact Sheet — external rating ★, address, phone, map.
-            Each sub-field is null-safe; section hides itself when no data. */}
-        <VenueFactSheet
-          venueName={venue.name}
-          externalRatingValue={venue.externalRatingValue}
-          externalReviewCount={venue.externalReviewCount}
-          postalCode={venue.postalCode}
-          streetAddress={venue.streetAddress}
-          latitude={venue.latitude}
-          longitude={venue.longitude}
-          phoneNumber={venue.phoneNumber}
-        />
-      </section>
-
-      {/* ===== Estimate section ===== */}
-      <section id="estimate" className="space-y-4">
-        {/* Estimate sections — fetched in this Suspense child, streams independently */}
-        <Suspense fallback={<EstimatesSkeleton />}>
-          <EstimatesContent venueId={venue.id} />
-        </Suspense>
-
-        {/* Cost Breakdown — venue-published base fees (挙式料 / 演出料 /
-            サービス料率). Complements the user's own estimate above.
-            Hides when all three fields are null. */}
-        <VenueCostBreakdown
-          ceremonyFeeExact={venue.ceremonyFeeExact}
-          productionFeeMin={venue.productionFeeMin}
-          productionFeeMax={venue.productionFeeMax}
-          serviceFeeRate={
-            venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
-          }
-        />
-      </section>
-
-      <div
-        aria-hidden="true"
-        className="h-px bg-gradient-to-r from-transparent via-[oklch(0.70_0.13_80/0.35)] to-transparent"
-      />
-
-      {/* Amenities — 設備と過ごし方 chip grid (parking / shuttle / lodging /
-          2nd-party / barrier-free / operating hours / closed days).
-          Sits above Visit so the user sees facility facts before planning
-          a tour. Returns null when zero chips build. */}
-      <VenueAmenitiesSection
-        hasParking={venue.hasParking}
-        parkingCapacity={venue.parkingCapacity}
-        hasShuttle={venue.hasShuttle}
-        hasAccommodation={venue.hasAccommodation}
-        acceptsSecondParty={venue.acceptsSecondParty}
-        barrierFree={venue.barrierFree}
-        operatingHours={venue.operatingHours}
-        closedDays={venue.closedDays}
-      />
-
-      {/* ===== Visit section ===== */}
-      <section id="visit" className="space-y-4">
-        {/* Below-the-fold sections — each streams independently via Suspense. */}
-        <Suspense fallback={<VisitsSkeleton />}>
-          <VisitsContent
-            venueId={venue.id}
-            venueName={venue.name}
-            projectId={venue.projectId}
-          />
-        </Suspense>
-      </section>
-
-      {/* ===== Review section ===== */}
-      <section id="review" className="space-y-4">
-        <Suspense fallback={<ReviewsSkeleton />}>
-          <ReviewsContent venueId={venue.id} />
-        </Suspense>
-      </section>
-
-      {/* Cuisine — 料理・シェフ. Sits just before AI Analysis so the
-          reader anchors the AI opinion to concrete cuisine data. Null-safe. */}
-      <VenueCuisineSection
-        cuisineTypes={venue.cuisineTypes}
-        chefCredentials={venue.chefCredentials}
-      />
-
-      {/* ===== AI analysis section ===== */}
-      <section id="ai" className="space-y-4">
-        <Suspense fallback={<PlansSkeleton />}>
-          <PlansContent venueId={venue.id} />
-        </Suspense>
-
-        {/* VibeTag editor — owner only */}
-        {isOwner && (
-          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
+    <div style={{ padding: 24, fontFamily: "system-ui" }}>
+      <h1 style={{ fontSize: 24, marginBottom: 16 }}>DEBUG: {venue.name}</h1>
+      <pre style={{ fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+        {JSON.stringify(
+          {
+            id: venue.id,
+            status: venue.status,
+            photos: venue.photoUrls?.length ?? 0,
+            sources: venue.sourceUrls?.length ?? 0,
+            scores: venue.scores?.length ?? 0,
+            ceremonyStyles: venue.ceremonyStyles,
+            vibeTags: venue.vibeTags,
+            isOwner,
+            isFavorite,
+            ratingsCount: Object.keys(userRatings).length,
+          },
+          null,
+          2,
         )}
-      </section>
-
-      {/* Action Bar */}
-      <VenueActionBar
-        venueId={venue.id}
-        venueName={venue.name}
-        isFavorite={isFavorite}
-      />
+      </pre>
     </div>
   );
+
 }
 
 // ---------------------------------------------------------------------------
