@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { consumeInvitationLink } from "@/server/actions/invitation-links";
@@ -18,6 +19,10 @@ export default async function InvitePage({
 }: {
   params: Promise<{ token: string }>;
 }) {
+  // cacheComponents-safe "mark as dynamic" — the route reads cookies via
+  // supabase.auth.getUser() and writes state via consumeInvitationLink,
+  // so it must opt out of the static prerender.
+  await connection();
   const { token } = await params;
 
   // Validate token shape early — 64 hex chars.

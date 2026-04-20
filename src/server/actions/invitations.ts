@@ -191,7 +191,7 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "招待が見つかりません" };
   }
 
-  if (membership.user.email !== user.email?.toLowerCase()) {
+  if (!user.email || membership.user.email !== user.email.toLowerCase()) {
     return { success: false as const, error: "この招待はあなた宛ではありません" };
   }
 

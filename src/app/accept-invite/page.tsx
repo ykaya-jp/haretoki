@@ -1,18 +1,30 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { getPendingInvitation } from "@/server/actions/invitations";
+import { Toaster } from "@/components/ui/sonner";
 import { AcceptInviteForm } from "./accept-invite-form";
 import AcceptInviteLoading from "./loading";
 
 async function AcceptInviteContent() {
+  // Under cacheComponents (PPR) any route that reads cookies / auth must
+  // opt into dynamic rendering; `connection()` is the cacheComponents-safe
+  // equivalent of `export const dynamic = "force-dynamic"` (which Next 16
+  // rejects when cacheComponents is on). Without this, the static
+  // prerender fails at build and the error boundary takes over at runtime.
+  await connection();
   const invitation = await getPendingInvitation();
 
   if (!invitation) {
     redirect("/");
   }
 
+  // Route lives at the app root (not inside `(app)` layout) so partner
+  // invitees never trigger getOrCreateProject before they've accepted
+  // the invite — that was the root cause of the 500 loop. The root
+  // layout doesn't bring a Toaster, so we mount one inline.
   return (
-    <div className="flex min-h-[60dvh] items-center justify-center px-4">
+    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-md space-y-6 text-center">
         <p className="text-[11.5px] font-medium uppercase tracking-[0.2em] text-[var(--gold-warm)]">
           Haretoki
@@ -39,6 +51,7 @@ async function AcceptInviteContent() {
         </div>
         <AcceptInviteForm invitationId={invitation.id} />
       </div>
+      <Toaster position="bottom-center" />
     </div>
   );
 }

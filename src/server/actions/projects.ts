@@ -7,10 +7,20 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 export async function getOrCreateProject() {
   const user = await requireUser();
 
+  // Phone-only Supabase signups + OAuth providers that don't return an
+  // email both leave user.email as undefined. Fall through to phone, then
+  // a synthetic sentinel keyed on the auth id so Prisma's unique-email
+  // constraint never null-dereferences. Still a string, so the collision
+  // handling below stays intact.
+  const userEmail =
+    user.email ??
+    (user as { phone?: string }).phone ??
+    `user-${user.id}@haretoki.local`;
+
   try {
     // Ensure user exists in DB. Handle email conflicts gracefully.
     const existingByEmail = await prisma.user.findUnique({
-      where: { email: user.email! },
+      where: { email: userEmail },
     });
 
     if (existingByEmail && existingByEmail.id !== user.id) {
@@ -18,10 +28,10 @@ export async function getOrCreateProject() {
       // Update the existing record to use the new Supabase auth ID.
       // This is rare but prevents unique constraint failures.
       console.warn(
-        `[getOrCreateProject] Email collision: existing user ${existingByEmail.id} has email ${user.email}, new auth ID ${user.id}. Merging.`,
+        `[getOrCreateProject] Email collision: existing user ${existingByEmail.id} has email ${userEmail}, new auth ID ${user.id}. Merging.`,
       );
       await prisma.user.update({
-        where: { email: user.email! },
+        where: { email: userEmail },
         data: {
           id: user.id,
           name: user.user_metadata?.name ?? existingByEmail.name,
@@ -30,10 +40,10 @@ export async function getOrCreateProject() {
     } else {
       await prisma.user.upsert({
         where: { id: user.id },
-        update: { email: user.email! },
+        update: { email: userEmail },
         create: {
           id: user.id,
-          email: user.email!,
+          email: userEmail,
           name: user.user_metadata?.name,
         },
       });
