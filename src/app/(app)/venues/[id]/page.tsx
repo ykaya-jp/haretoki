@@ -205,9 +205,8 @@ export default async function VenueDetailPage({
       </section>
 
       <section id="review" className="space-y-4">
-        <Suspense fallback={<ReviewsSkeleton />}>
-          <ReviewsContent venueId={venue.id} />
-        </Suspense>
+        {/* STEP 5: ReviewsContent removed */}
+        <p style={{ color: "#999", fontSize: 12 }}>DEBUG: ReviewsContent removed</p>
       </section>
 
       <VenueCuisineSection
@@ -216,13 +215,8 @@ export default async function VenueDetailPage({
       />
 
       <section id="ai" className="space-y-4">
-        <Suspense fallback={<PlansSkeleton />}>
-          <PlansContent venueId={venue.id} />
-        </Suspense>
-
-        {isOwner && (
-          <VibeTagEditor venueId={venue.id} initialTags={venue.vibeTags} />
-        )}
+        {/* STEP 5: PlansContent + VibeTagEditor removed */}
+        <p style={{ color: "#999", fontSize: 12 }}>DEBUG: PlansContent + VibeTagEditor removed</p>
       </section>
 
       <VenueActionBar
