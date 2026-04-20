@@ -346,42 +346,44 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 }
 
 async function ReviewsContent({ venueId }: { venueId: string }) {
-  const [reviews, venueAgg] = await Promise.all([
-    getVenueReviews(venueId),
-    getVenueReviewEstimateAggregate(venueId),
-  ]);
-  return (
-    <div className="space-y-5">
-      {/* E-9 Venue Whisper: distilled 2-axis summary at the top. Falls back
-          to no render when no reviews analyzed yet (0 noise). */}
-      <VenueWhisper
-        reviews={reviews.map((r) => ({
-          categorySummary: r.categorySummary,
-          isNegative: r.isNegative,
-        }))}
-        reviewEstimateAggregate={venueAgg}
-      />
+  let reviews: Awaited<ReturnType<typeof getVenueReviews>>;
+  let venueAgg: Awaited<ReturnType<typeof getVenueReviewEstimateAggregate>>;
+  try {
+    [reviews, venueAgg] = await Promise.all([
+      getVenueReviews(venueId),
+      getVenueReviewEstimateAggregate(venueId),
+    ]);
+    console.log("[ReviewsContent:fetch-ok]", {
+      venueId,
+      reviewsCount: reviews.length,
+      agg: venueAgg,
+      firstReviewShape: reviews[0]
+        ? {
+            id: reviews[0].id,
+            hasSentiment: !!reviews[0].sentiment,
+            sentimentType: typeof reviews[0].sentiment,
+            hasCategorySummary: !!reviews[0].categorySummary,
+            categorySummaryType: typeof reviews[0].categorySummary,
+            hasEstimateIncrease: !!reviews[0].estimateIncrease,
+            estimateIncreaseType: typeof reviews[0].estimateIncrease,
+            ratingType: typeof reviews[0].rating,
+            source: reviews[0].source,
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error("[ReviewsContent:fetch-fail]", {
+      venueId,
+      err: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
+    });
+    throw err;
+  }
 
-      <ReviewSection
-        venueId={venueId}
-        reviews={reviews.map((r) => ({
-          id: r.id,
-          source: r.source,
-          sourceUrl: r.sourceUrl,
-          aiSummary: r.aiSummary,
-          sentiment: r.sentiment as Record<string, number> | null,
-          rating: r.rating ? Number(r.rating) : null,
-          categorySummary: r.categorySummary as Record<string, string> | null,
-          isNegative: r.isNegative,
-          estimateIncrease: r.estimateIncrease as {
-            deltaYen?: number;
-            deltaPct?: number;
-            confidence?: "high" | "medium" | "low";
-            note?: string;
-          } | null,
-        }))}
-        venueEstimateAggregate={venueAgg}
-      />
+  // TEMP: render just the data shape so we can isolate whether the
+  // bug is in VenueWhisper, ReviewSection, or the mappers above.
+  return (
+    <div style={{ padding: 8, background: "#f0f0f0", fontSize: 11, whiteSpace: "pre-wrap" }}>
+      DEBUG ReviewsContent: reviews={reviews.length}, agg={JSON.stringify(venueAgg)}
     </div>
   );
 }
