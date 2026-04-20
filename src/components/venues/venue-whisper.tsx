@@ -76,7 +76,7 @@ export function VenueWhisper({
   return (
     <section
       aria-label="口コミの要約"
-      className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(42,35,32,0.04),0_4px_12px_rgba(42,35,32,0.05)]"
+      className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-[var(--shadow-card-low)]"
     >
       <div className="flex items-center gap-2">
         <Sparkles

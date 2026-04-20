@@ -344,6 +344,26 @@ export async function getVenueHeader(id: string) {
 // plain-module sibling. "use server" modules cannot export non-async values,
 // so the const had to move out. Tests should import from that file.
 
+/**
+ * Lightweight — just the latest estimate's total, for the above-the-fold
+ * price ribbon. One row, one column, sorted by version desc. Kept
+ * separate from getVenueEstimates so the ribbon can stream (or await
+ * inline) without also pulling line items + upgrade predictions.
+ */
+export async function getVenueLatestEstimateTotal(
+  id: string,
+): Promise<number | null> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const latest = await prisma.estimate.findFirst({
+    where: { venueId: id, venue: { projectId } },
+    orderBy: { version: "desc" },
+    select: { total: true },
+  });
+  return latest?.total ?? null;
+}
+
 /** Estimates + line items — below the fold, streamed via Suspense. */
 export async function getVenueEstimates(id: string) {
   const user = await requireUser();

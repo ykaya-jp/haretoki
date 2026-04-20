@@ -46,7 +46,7 @@ export function VenueCuisineSection({
     <section
       aria-label="料理・シェフ"
       className={cn(
-        "space-y-3 rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(42,35,32,0.04),0_4px_12px_rgba(42,35,32,0.05)] transition-[box-shadow,outline] duration-500",
+        "space-y-3 rounded-2xl bg-card p-5 shadow-[var(--shadow-card-low)] transition-[box-shadow,outline] duration-500",
         highlight && "ring-2 ring-primary/30",
       )}
     >

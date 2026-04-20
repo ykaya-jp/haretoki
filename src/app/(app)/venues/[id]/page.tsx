@@ -4,6 +4,7 @@ import {
   getVenueHeader,
   getVenueEstimates,
   getVenueVisits,
+  getVenueLatestEstimateTotal,
 } from "@/server/actions/venues";
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
@@ -27,6 +28,7 @@ import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { VenueDetailBackLink } from "@/components/venues/back-link";
 import { VenueOverflowMenu } from "@/components/venues/venue-overflow-menu";
+import { VenueHeroRibbon } from "@/components/venues/venue-hero-ribbon";
 import { VenueUpdatedBanner } from "@/components/venues/venue-updated-banner";
 import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
 import { VenueFactSheet } from "@/components/venues/venue-fact-sheet";
@@ -57,9 +59,12 @@ export default async function VenueDetailPage({
   const membership = await requireProjectMembership(user.id);
   const isOwner = membership.role === "owner";
 
-  const [venue, favorites] = await Promise.all([
+  const [venue, favorites, latestEstimateTotal] = await Promise.all([
     getVenueHeader(id),
     getFavorites("mine"),
+    // Latest estimate total drives the hero ribbon. Fetched in parallel
+    // with the other above-the-fold data so it doesn't add to TTFB.
+    getVenueLatestEstimateTotal(id),
   ]);
 
   if (!venue) notFound();
@@ -92,6 +97,15 @@ export default async function VenueDetailPage({
         venueId={venue.id}
         name={venue.name}
         photoUrls={venue.photoUrls}
+      />
+
+      {/* Price + rating ribbon — the "decide in 2 seconds" fact panel
+          pattern borrowed from Zola / The Knot PDP. Renders only when
+          at least one of the two signals exists. */}
+      <VenueHeroRibbon
+        estimateTotal={latestEstimateTotal}
+        externalRatingValue={venue.externalRatingValue}
+        externalReviewCount={venue.externalReviewCount}
       />
 
       {/* Venue Header — above the fold */}

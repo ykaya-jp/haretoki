@@ -68,7 +68,7 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
       <PhotoCarousel
         photos={displayPhotos}
         alt={name}
-        aspectRatio="4/3"
+        aspectRatio="3/2"
         onAddPhotoClick={hasPhotos ? undefined : triggerPicker}
       />
 

@@ -88,6 +88,14 @@
   --text-fluid-4xl: clamp(2.75rem, 1.75rem + 4vw, 4.5rem);
   --shadow-card: 0 1px 3px rgba(42,35,32,0.04), 0 4px 12px rgba(42,35,32,0.06);
   --shadow-card-hover: 0 4px 12px rgba(42,35,32,0.06), 0 20px 40px rgba(42,35,32,0.10);
+  /* Soft panel shadow — single, very low-intensity elevation used by
+     editorial info panels (FactSheet, Amenities, Cuisine, Cost,
+     Whisper). Lighter than --shadow-card so stacked panels on the
+     venue detail page don't read as a pile of boxes. Dark-mode
+     override below swaps the dye to transparent black so the same
+     class works under both themes. */
+  --shadow-card-low:
+    0 1px 3px rgba(42,35,32,0.04), 0 4px 12px rgba(42,35,32,0.05);
   --shadow-modal: 0 8px 32px rgba(42,35,32,0.12), 0 2px 8px rgba(42,35,32,0.06);
   --shadow-gold: 0 0 20px rgba(201,164,76,0.15);
 
@@ -307,6 +315,7 @@
   /* Dark mode shadows */
   --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
   --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3), 0 20px 40px rgba(0,0,0,0.4);
+  --shadow-card-low: 0 1px 3px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.26);
   --shadow-modal: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
   --shadow-gold: 0 0 20px rgba(201,164,76,0.25);
 

@@ -76,9 +76,9 @@ export function VenueFactSheet({
 
   return (
     <section
-      aria-label="基本情報"
+      aria-label="この場所のこと"
       className={cn(
-        "space-y-4 rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(42,35,32,0.04),0_4px_12px_rgba(42,35,32,0.05)] transition-[box-shadow,outline] duration-500",
+        "space-y-4 rounded-2xl bg-card p-5 shadow-[var(--shadow-card-low)] transition-[box-shadow,outline] duration-500",
         highlight && "ring-2 ring-primary/30",
       )}
     >
@@ -89,7 +89,7 @@ export function VenueFactSheet({
           style={{ background: "var(--gold-warm)" }}
         />
         <p className="text-[10.5px] uppercase tracking-[0.14em] text-foreground font-medium">
-          基本情報
+          この場所のこと
         </p>
         <div className="h-px flex-1 bg-border/50" />
       </div>
