@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronsUpDown, Loader2, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   getUnifiedComparisonData,
   type UnifiedComparisonData,
@@ -56,7 +56,12 @@ const OWNER_FILTERS: { id: OwnerFilter; label: string }[] = [
   { id: "both", label: "おふたり" },
 ];
 
-const MAX_SELECTED = 5;
+// Scale ceiling — users reported wanting to compare 20+ venues at once.
+// Raising to 20 still performs cleanly because each cell is a bar +
+// number (no heavy per-cell framer animation). 20 × 112 = 2240px of
+// horizontal content, which feels right as a deliberate scrolling
+// exploration rather than a cramped fit.
+const MAX_SELECTED = 20;
 const LABEL_COL_PX = 120;
 const VENUE_COL_PX = 112;
 
@@ -238,9 +243,35 @@ export function CompareRedesigned() {
               </button>
             ))}
           </div>
-          <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
-            {selected.size} / {MAX_SELECTED}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+              {selected.size} / {MAX_SELECTED}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                // Toggle "select all visible pool" ⇄ clear. When the
+                // entire pool is already selected, a second tap clears.
+                if (
+                  pool.length > 0 &&
+                  pool.every((v) => selected.has(v.id))
+                ) {
+                  setSelected(new Set());
+                } else {
+                  setSelected(
+                    new Set(
+                      pool.slice(0, MAX_SELECTED).map((v) => v.id),
+                    ),
+                  );
+                }
+              }}
+              className="min-h-9 rounded-full border border-border bg-card px-3 text-[11px] font-medium text-muted-foreground transition-colors active:scale-[0.97]"
+            >
+              {pool.length > 0 && pool.every((v) => selected.has(v.id))
+                ? "すべて外す"
+                : "すべて選ぶ"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -345,50 +376,60 @@ export function CompareRedesigned() {
             </button>
           </div>
 
-          {/* Matrix */}
+          {/* Matrix — horizontal scroll container. A gold-hint gradient
+              on the right edge signals "there's more →" to users who
+              might otherwise miss that the table scrolls. */}
           <div
-            className="mx-3 overflow-x-auto rounded-2xl border border-border bg-card shadow-[var(--shadow-card-low)]"
-            style={gridStyle}
+            className={cn(
+              "relative mx-3 rounded-2xl border border-border bg-card shadow-[var(--shadow-card-low)]",
+              // Fade the right edge so the rightmost visible column
+              // doesn't look hard-cut. pointer-events-none so it
+              // doesn't block scroll.
+              "before:pointer-events-none before:absolute before:inset-y-0 before:right-0 before:z-20 before:w-6 before:rounded-r-2xl before:bg-gradient-to-l before:from-card before:to-transparent",
+            )}
             role="region"
             aria-label="式場比較マトリクス"
           >
-            {/* Header row — venue thumbnails + names */}
-            <div
-              className="grid items-end gap-0 border-b border-border"
-              style={{ gridTemplateColumns: "var(--cmp-grid)" }}
-            >
+            <div className="overflow-x-auto rounded-2xl" style={gridStyle}>
+              {/* Header row — venue thumbnails + names. Sticky top so
+                  vertical scrolling through many dimensions keeps the
+                  venue identity visible. */}
               <div
-                className="sticky left-0 z-10 bg-card px-3 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
-                style={{ width: LABEL_COL_PX }}
+                className="sticky top-0 z-20 grid items-end gap-0 border-b border-border bg-card"
+                style={{ gridTemplateColumns: "var(--cmp-grid)" }}
               >
-                Venue
-              </div>
-              {selectedVenues.map((v) => (
-                <Link
-                  key={v.id}
-                  href={`/venues/${v.id}`}
-                  className="flex flex-col items-center gap-1.5 px-2 py-2 transition-transform active:scale-95"
+                <div
+                  className="sticky left-0 z-30 bg-card px-3 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+                  style={{ width: LABEL_COL_PX }}
                 >
-                  <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border">
-                    {v.photoUrl && (
-                      <Image
-                        src={v.photoUrl}
-                        alt=""
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                  <p
-                    className="w-full truncate text-center font-[family-name:var(--font-display)] text-[11.5px] leading-tight"
-                    title={v.name}
+                  Venue
+                </div>
+                {selectedVenues.map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/venues/${v.id}`}
+                    className="flex flex-col items-center gap-1.5 px-2 py-2 transition-transform active:scale-95"
                   >
-                    {v.name}
-                  </p>
-                </Link>
-              ))}
-            </div>
+                    <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border">
+                      {v.photoUrl && (
+                        <Image
+                          src={v.photoUrl}
+                          alt=""
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <p
+                      className="w-full truncate text-center font-[family-name:var(--font-display)] text-[11.5px] leading-tight"
+                      title={v.name}
+                    >
+                      {v.name}
+                    </p>
+                  </Link>
+                ))}
+              </div>
 
             {/* Total row */}
             <div
@@ -420,48 +461,44 @@ export function CompareRedesigned() {
               })}
             </div>
 
-            {/* Dimension rows */}
+            {/* Dimension rows — no framer `layout` animation at this scale
+                (20 venues × N dims = 140+ cells); keep it light with a
+                CSS-only transition on diffOnly toggle. */}
             {visibleRows.length === 0 ? (
               <p className="px-3 py-8 text-center text-[12.5px] text-muted-foreground">
                 差のある項目はありません。
               </p>
             ) : (
-              <AnimatePresence initial={false}>
-                {visibleRows.map((row, idx) => (
-                  <motion.div
-                    key={row.dim.id}
-                    layout
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2, ease: LUXURY_EASE }}
-                    className={cn(
-                      "grid items-center gap-0",
-                      idx !== visibleRows.length - 1 && "border-b border-border/60",
-                    )}
-                    style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+              visibleRows.map((row, idx) => (
+                <div
+                  key={row.dim.id}
+                  className={cn(
+                    "grid items-center gap-0",
+                    idx !== visibleRows.length - 1 && "border-b border-border/60",
+                  )}
+                  style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+                >
+                  <div
+                    className="sticky left-0 z-10 bg-card px-3 py-2.5 text-[12px] font-medium text-foreground/80"
+                    style={{ width: LABEL_COL_PX }}
                   >
-                    <div
-                      className="sticky left-0 z-10 bg-card px-3 py-2.5 text-[12px] font-medium text-foreground/80"
-                      style={{ width: LABEL_COL_PX }}
-                    >
-                      {row.dim.label}
-                    </div>
-                    {row.scores.map((score, colIdx) => {
-                      const venueId = venueIds[colIdx];
-                      const isWinner = row.winnerId === venueId;
-                      return (
-                        <DimensionCell
-                          key={venueId}
-                          score={score}
-                          isWinner={isWinner}
-                        />
-                      );
-                    })}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    {row.dim.label}
+                  </div>
+                  {row.scores.map((score, colIdx) => {
+                    const venueId = venueIds[colIdx];
+                    const isWinner = row.winnerId === venueId;
+                    return (
+                      <DimensionCell
+                        key={venueId}
+                        score={score}
+                        isWinner={isWinner}
+                      />
+                    );
+                  })}
+                </div>
+              ))
             )}
+            </div>
           </div>
 
           {/* AI insight */}

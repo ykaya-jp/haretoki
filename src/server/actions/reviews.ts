@@ -12,6 +12,26 @@ import {
   aggregateEstimateIncrease,
 } from "@/server/actions/review-schema";
 
+/**
+ * Normalise a Claude completion into something JSON.parse can consume.
+ * Handles: ```json … ``` fences, plain preamble/postamble text, and
+ * trailing commentary after the JSON block. Falls back to the raw
+ * input if neither a fenced block nor a balanced {…} can be located.
+ */
+function stripJsonResponse(raw: string): string {
+  // Fenced block first — ```json { … } ``` or ``` { … } ```
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+  // Otherwise, slice from the first "{" to the matching last "}" so
+  // any preamble ("Here's the analysis:") or trailing notes drop off.
+  const first = raw.indexOf("{");
+  const last = raw.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    return raw.slice(first, last + 1).trim();
+  }
+  return raw.trim();
+}
+
 interface ReviewSummary {
   summary: string;
   sentiment: Record<string, number>;
@@ -278,11 +298,28 @@ async function analyzeVenueReviewsInner(
       })
     );
 
+    // Claude occasionally wraps the JSON in ```json …``` fences or adds
+    // a short preamble like "Here's the analysis:" before the object.
+    // Strip fences + slice from the first "{" to the last "}" before
+    // parsing so we don't throw on legitimate output. Same pattern as
+    // venues.ts extractJson for the URL-import path.
+    const stripped = stripJsonResponse(claudeResponse);
     let result: ReviewSummary & { reviewCount: number };
     try {
-      result = JSON.parse(claudeResponse) as ReviewSummary & { reviewCount: number };
-    } catch {
-      return { ok: false, reason: "api-error", message: "AI の応答をうまく読み取れませんでした" };
+      result = JSON.parse(stripped) as ReviewSummary & { reviewCount: number };
+    } catch (err) {
+      console.warn("[analyzeVenueReviews] JSON parse failed", {
+        venueId,
+        rawLength: claudeResponse.length,
+        rawPreview: claudeResponse.slice(0, 400),
+        strippedPreview: stripped.slice(0, 400),
+        err,
+      });
+      return {
+        ok: false,
+        reason: "api-error",
+        message: "AI の応答をうまく読み取れませんでした",
+      };
     }
     if (!result.summary) {
       return { ok: false, reason: "api-error", message: "AI の読み取りが途中で止まりました" };
