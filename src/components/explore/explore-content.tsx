@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition, useRef, type ReactNode } from "react";
+import { useState, useMemo, useCallback, useTransition, useRef, useLayoutEffect, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { FilterChips } from "@/components/explore/filter-chips";
 import { VenueFilterSheet } from "@/components/explore/venue-filter-sheet";
 import { SaveSearchButton } from "@/components/explore/save-search-button";
@@ -21,6 +22,23 @@ type VenueWithRelations = Venue & {
   scores: Pick<VenueScore, "dimension" | "score" | "source">[];
   estimates?: (Pick<Estimate, "id" | "venueId" | "total" | "version" | "createdAt"> & { items: { amount: unknown }[] })[];
 };
+
+/**
+ * Threshold above which the /explore list switches from the animated
+ * framer-motion map render to a window-virtualized render. Below the
+ * threshold, virtualization overhead (layout-effect, observer, absolute
+ * positioning) outweighs the savings on a short list, so we keep the
+ * original code path for small result sets.
+ */
+const VIRTUALIZE_THRESHOLD = 50;
+
+/**
+ * Rough estimate of a VenueCard's rendered height at 375px viewport.
+ * The virtualizer measures real heights after mount via the `measureElement`
+ * ref, so this only controls the initial scrollbar size. Keep it in the
+ * ballpark of the common case (photo 4:3 + header + price + one chip row).
+ */
+const CARD_ESTIMATE_HEIGHT_PX = 420;
 
 interface ExploreContentProps {
   venues: VenueWithRelations[];
@@ -252,45 +270,190 @@ export function ExploreContent({
         </div>
       ) : (
         !isPending && venues.length > 0 && (
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {filteredVenues.map((venue, i) => (
-                <motion.div
-                  key={venue.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ delay: Math.min(i, 4) * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  layout
-                >
-                  {i === 0 ? (
-                    <div className="relative">
-                      {/* Anchor div positioned at the heart button area (top-right of card) */}
-                      <div
-                        ref={firstCardHeartRef}
-                        className="pointer-events-none absolute right-3 top-3 z-20 h-12 w-12"
-                        aria-hidden="true"
-                      />
-                      <HeartCoachMark anchorRef={firstCardHeartRef} />
-                      <VenueCard
-                        venue={venue}
-                        isFavorite={favoriteSet.has(venue.id)}
-                        fitReason={fitReasons[venue.id] ?? null}
-                      />
-                    </div>
-                  ) : (
-                    <VenueCard
-                      venue={venue}
-                      isFavorite={favoriteSet.has(venue.id)}
-                      fitReason={fitReasons[venue.id] ?? null}
-                    />
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <VenueList
+            venues={filteredVenues}
+            favoriteSet={favoriteSet}
+            fitReasons={fitReasons}
+            firstCardHeartRef={firstCardHeartRef}
+          />
         )
       )}
     </>
   );
+}
+
+/**
+ * Renders the venue list with two strategies:
+ *  - below {@link VIRTUALIZE_THRESHOLD}: the original framer-motion animated
+ *    list (unchanged behaviour for the common case).
+ *  - at or above the threshold: `useWindowVirtualizer` from
+ *    `@tanstack/react-virtual`, which mounts only the cards near the
+ *    viewport. This drops the DOM node count from O(N) to O(viewport),
+ *    which is what saves frame time on 50+ item result sets.
+ */
+function VenueList({
+  venues,
+  favoriteSet,
+  fitReasons,
+  firstCardHeartRef,
+}: {
+  venues: VenueWithRelations[];
+  favoriteSet: Set<string>;
+  fitReasons: Record<string, string | null>;
+  firstCardHeartRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (venues.length < VIRTUALIZE_THRESHOLD) {
+    return (
+      <div className="space-y-4">
+        <AnimatePresence mode="popLayout">
+          {venues.map((venue, i) => (
+            <motion.div
+              key={venue.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ delay: Math.min(i, 4) * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              layout
+            >
+              <VenueRowInner
+                venue={venue}
+                isFirst={i === 0}
+                isFavorite={favoriteSet.has(venue.id)}
+                fitReason={fitReasons[venue.id] ?? null}
+                firstCardHeartRef={firstCardHeartRef}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  return (
+    <VirtualVenueList
+      venues={venues}
+      favoriteSet={favoriteSet}
+      fitReasons={fitReasons}
+      firstCardHeartRef={firstCardHeartRef}
+    />
+  );
+}
+
+/**
+ * Virtualized variant. Uses the window as the scroll container because
+ * /explore scrolls the page — not an inner container — so mounting an
+ * extra scroll wrapper would break the existing layout + sticky chip
+ * zone. `scrollMargin` is read once on mount and pinned so virtualizer
+ * offsets line up with our actual list origin.
+ */
+function VirtualVenueList({
+  venues,
+  favoriteSet,
+  fitReasons,
+  firstCardHeartRef,
+}: {
+  venues: VenueWithRelations[];
+  favoriteSet: Set<string>;
+  fitReasons: Record<string, string | null>;
+  firstCardHeartRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  // `scrollMargin` needs to be a plain value (not a ref read) during render
+  // because React 19 flags ref-access-in-render as a purity violation. We
+  // measure the list's offset in a layout effect and store it in state so
+  // the virtualizer reruns with the correct offset after mount.
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  useLayoutEffect(() => {
+    const offset = listRef.current?.offsetTop ?? 0;
+    setScrollMargin(offset);
+  }, []);
+
+  const virtualizer = useWindowVirtualizer({
+    count: venues.length,
+    estimateSize: () => CARD_ESTIMATE_HEIGHT_PX,
+    overscan: 4,
+    // Gap between cards in the small-list variant is `space-y-4` (16px).
+    // Applying it as `gap` lets the virtualizer account for it so items
+    // don't visually collide at rest.
+    gap: 16,
+    scrollMargin,
+    getItemKey: (i) => venues[i]?.id ?? i,
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  return (
+    <div ref={listRef}>
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {items.map((virtualRow) => {
+          const venue = venues[virtualRow.index];
+          if (!venue) return null;
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+              }}
+            >
+              <VenueRowInner
+                venue={venue}
+                isFirst={virtualRow.index === 0}
+                isFavorite={favoriteSet.has(venue.id)}
+                fitReason={fitReasons[venue.id] ?? null}
+                firstCardHeartRef={firstCardHeartRef}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Single venue row used by both the small-list and virtualized paths.
+ * Keeps the HeartCoachMark anchor attached to the first card regardless
+ * of which render strategy is in play.
+ */
+function VenueRowInner({
+  venue,
+  isFirst,
+  isFavorite,
+  fitReason,
+  firstCardHeartRef,
+}: {
+  venue: VenueWithRelations;
+  isFirst: boolean;
+  isFavorite: boolean;
+  fitReason: string | null;
+  firstCardHeartRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  if (isFirst) {
+    return (
+      <div className="relative">
+        {/* Anchor div positioned at the heart button area (top-right of card) */}
+        <div
+          ref={firstCardHeartRef}
+          className="pointer-events-none absolute right-3 top-3 z-20 h-12 w-12"
+          aria-hidden="true"
+        />
+        <HeartCoachMark anchorRef={firstCardHeartRef} />
+        <VenueCard venue={venue} isFavorite={isFavorite} fitReason={fitReason} />
+      </div>
+    );
+  }
+  return <VenueCard venue={venue} isFavorite={isFavorite} fitReason={fitReason} />;
 }
