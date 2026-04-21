@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
-import createNextIntlPlugin from "next-intl/plugin";
-
-// Points the plugin at our App Router request config.
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
@@ -55,8 +51,8 @@ const nextConfig: NextConfig = {
   /**
    * B-4 security headers. Applied to every response unless overridden by a
    * route handler's own Response.headers. CSP is intentionally permissive
-   * for inline-style/script during the React 19 + next-intl migration; it
-   * can be tightened in a follow-up once hashes are generated.
+   * for inline-style/script during the React 19 migration; it can be
+   * tightened in a follow-up once hashes are generated.
    */
   async headers() {
     return [
@@ -108,18 +104,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Wrap order matters per next-intl docs: withNextIntl must be the OUTERMOST
-// wrapper. withSentryConfig adds source-map upload + tunnel, safe to apply
+// withSentryConfig adds source-map upload + tunnel, safe to apply
 // unconditionally (it no-ops when SENTRY_AUTH_TOKEN is unset).
-export default withNextIntl(
-  withSentryConfig(nextConfig, {
-    silent: true,
-    org: process.env.SENTRY_ORG || "haretoki",
-    project: process.env.SENTRY_PROJECT || "haretoki-web",
-    telemetry: false,
-    widenClientFileUpload: false,
-    // Serves the Sentry ingest endpoint through our own origin to dodge
-    // ad-blockers that strip third-party beacon requests.
-    tunnelRoute: "/monitoring",
-  }),
-);
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  org: process.env.SENTRY_ORG || "haretoki",
+  project: process.env.SENTRY_PROJECT || "haretoki-web",
+  telemetry: false,
+  widenClientFileUpload: false,
+  // Serves the Sentry ingest endpoint through our own origin to dodge
+  // ad-blockers that strip third-party beacon requests.
+  tunnelRoute: "/monitoring",
+});
