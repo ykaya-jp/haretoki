@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
+import { DecisionSummaryCard } from "@/components/candidates/decision-summary-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles, GitCompare, X } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
@@ -15,6 +16,7 @@ import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
+import { buildDecisionSummary, type SummaryVenueInput } from "@/lib/decision-summary";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4
@@ -116,6 +118,24 @@ export function CandidatesView({
 
   const canCompare = venueOptions.length >= 2;
   const canDecide = venueOptions.length >= 1;
+
+  /* W11-2: memoized per-venue summaries keyed by venueId.
+     Rebuilt whenever the favorites array (or its scores/costs) change. */
+  const summariesByVenueId = useMemo(() => {
+    if (favorites.length < 2) return {};
+    const shortlist: SummaryVenueInput[] = favorites.map((f) => ({
+      id: f.venue.id,
+      name: f.venue.name,
+      costMin: f.venue.costMin,
+      costMax: f.venue.costMax,
+      scores: f.venue.scores,
+    }));
+    const result: Record<string, ReturnType<typeof buildDecisionSummary>> = {};
+    for (const v of shortlist) {
+      result[v.id] = buildDecisionSummary(v.id, shortlist);
+    }
+    return result;
+  }, [favorites]);
 
   const SEGMENTS = [
     { id: "shortlist" as const, label: "候補" },
@@ -308,6 +328,16 @@ export function CandidatesView({
                       transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <VenueCard venue={fav.venue} isFavorite={true} />
+                      {/* W11-2: per-venue "この式場を選ぶなら" summary card.
+                          Rendered under the venue card as a folded
+                          disclosure — client-side math on the already-
+                          loaded favorites list, no extra round-trip. */}
+                      {favorites.length >= 2 && (
+                        <DecisionSummaryCard
+                          summary={summariesByVenueId[fav.venue.id] ?? null}
+                          venueName={fav.venue.name}
+                        />
+                      )}
                     </motion.div>
                   ))}
                 </AnimatePresence>
