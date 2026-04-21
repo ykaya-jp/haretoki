@@ -12,6 +12,7 @@ import {
   type FieldGroup,
 } from "./comparison-field-registry";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
+import type { DimensionWeights } from "@/lib/weighted-score";
 
 /**
  * Desktop/tablet CSS Grid layout (≥ 768px).
@@ -37,9 +38,12 @@ import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 
 interface ComparisonGridProps {
   matrix: ComparisonMatrix;
+  /** W12-1: viewer's per-dimension weights. Forwarded to the header
+   *  column so the ★ badge reflects their priority profile. */
+  weights?: DimensionWeights | null;
 }
 
-export function ComparisonGrid({ matrix }: ComparisonGridProps) {
+export function ComparisonGrid({ matrix, weights = null }: ComparisonGridProps) {
   const { venues, items, answers } = matrix;
 
   // Only show Deep Extraction rows that at least one venue has data for.
@@ -132,7 +136,7 @@ export function ComparisonGrid({ matrix }: ComparisonGridProps) {
               )}
               style={{ gridRow: 1, gridColumn: i + 2 }}
             >
-              <ComparisonHeaderColumn venue={venue} />
+              <ComparisonHeaderColumn venue={venue} weights={weights} />
             </div>
           ))}
 

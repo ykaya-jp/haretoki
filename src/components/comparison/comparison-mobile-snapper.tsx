@@ -6,6 +6,10 @@ import Link from "next/link";
 import { Star, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeCompositeScore } from "@/lib/venue-score";
+import {
+  computeWeightedComposite,
+  type DimensionWeights,
+} from "@/lib/weighted-score";
 import type {
   ComparisonMatrix,
   ComparisonVenue,
@@ -39,9 +43,11 @@ import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 
 interface Props {
   matrix: ComparisonMatrix;
+  /** W12-1: viewer's dimension weights; null → unweighted (legacy). */
+  weights?: DimensionWeights | null;
 }
 
-export function ComparisonMobileSnapper({ matrix }: Props) {
+export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
   const { venues, items, answers } = matrix;
   const [active, setActive] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -145,6 +151,7 @@ export function ComparisonMobileSnapper({ matrix }: Props) {
               fieldsByGroup={fieldsByGroup}
               fieldWinners={fieldWinners}
               checklistGroups={checklistGroups}
+              weights={weights}
             />
           </div>
         ))}
@@ -161,6 +168,7 @@ function VenueCardView({
   fieldsByGroup,
   fieldWinners,
   checklistGroups,
+  weights,
 }: {
   venue: ComparisonVenue;
   items: ComparisonMatrix["items"];
@@ -169,8 +177,21 @@ function VenueCardView({
   fieldsByGroup: Map<FieldGroup, CompareField[]>;
   fieldWinners: Map<string, Set<string>>;
   checklistGroups: Array<{ category: string; label: string; items: ComparisonMatrix["items"] }>;
+  weights?: DimensionWeights | null;
 }) {
-  const composite = computeCompositeScore(venue.scores);
+  // W12-1: prefer weighted composite when viewer has set weights. Falls
+  // back to the unweighted composite for couples who haven't adjusted a
+  // single slider — so their compare screen stays bit-identical.
+  const composite = weights
+    ? computeWeightedComposite(
+        venue.scores.map((s) => ({
+          dimension: s.dimension,
+          score: s.score,
+          source: s.source,
+        })),
+        weights,
+      )
+    : computeCompositeScore(venue.scores);
   const rating = composite ?? venue.externalRatingValue;
 
   return (

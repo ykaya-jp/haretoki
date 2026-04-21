@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComparisonMatrix } from "@/lib/comparison-types";
+import type { DimensionWeights } from "@/lib/weighted-score";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 
@@ -12,14 +13,21 @@ import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
  *
  * Kept as a thin wrapper so the page.tsx can stay a pure Server Component.
  */
-export function ComparisonBoard({ matrix }: { matrix: ComparisonMatrix }) {
+export function ComparisonBoard({
+  matrix,
+  weights = null,
+}: {
+  matrix: ComparisonMatrix;
+  /** W12-1: viewer's dimension weights (null → legacy unweighted). */
+  weights?: DimensionWeights | null;
+}) {
   return (
     <>
       <div className="md:hidden">
-        <ComparisonMobileSnapper matrix={matrix} />
+        <ComparisonMobileSnapper matrix={matrix} weights={weights} />
       </div>
       <div className="hidden md:block">
-        <ComparisonGrid matrix={matrix} />
+        <ComparisonGrid matrix={matrix} weights={weights} />
       </div>
     </>
   );

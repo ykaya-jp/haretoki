@@ -7,7 +7,7 @@ import { PartnerInvite } from "@/components/partner/partner-invite";
 import { InviteLinkPanel } from "@/components/partner/invite-link-panel";
 import { getCurrentInvitationLink } from "@/server/actions/invitation-links";
 import { NameEdit } from "@/components/mypage/name-edit";
-import { Settings, ChevronRight, Bookmark } from "lucide-react";
+import { Settings, ChevronRight, Bookmark, Sliders } from "lucide-react";
 import Link from "next/link";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -214,6 +214,25 @@ export default async function MyPage() {
               setting in /settings (the two "通知" items confused users
               into thinking mypage's "通知" was the frequency control).
               Frequency mode lives only in /settings now. */}
+
+          {/* W12-1: per-dimension weights — adjusts total score used for
+              candidate ranking and comparison header ★ */}
+          <Link
+            href="/mypage/weights"
+            prefetch
+            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <Sliders className="h-5 w-5 text-[var(--gold-warm)]" />
+              <div>
+                <p className="font-medium">次元ごとの重要度</p>
+                <p className="text-xs text-muted-foreground">
+                  料理・費用・雰囲気…どこを重く見る？
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
 
           {/* E-10: Saved search conditions */}
           <Link

@@ -220,6 +220,11 @@ model ProjectMember {
   role       ProjectRole
   invitedAt  DateTime     @default(now()) @map("invited_at")
   acceptedAt DateTime?    @map("accepted_at")
+  /// W12-1: per-member dimension weights (1-5 integer scale, 3=neutral default).
+  /// Stored as Json keyed by Tier1Dimension (see src/lib/constants.ts). NULL =
+  /// unset → computeWeighted() treats every dimension as weight 3 (equal),
+  /// keeping current non-weighted callers behavior intact for existing rows.
+  weights    Json?        @map("weights")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)

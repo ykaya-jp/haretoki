@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { buildDecisionSummary, type SummaryVenueInput } from "@/lib/decision-summary";
+import type { DimensionWeights } from "@/lib/weighted-score";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4
@@ -81,6 +82,13 @@ interface CandidatesViewProps {
   initialDecision?: DecisionData | null;
   userName?: string;
   initialTab?: "shortlist" | "compare" | "decision";
+  /**
+   * W12-1: viewer's per-dimension weights. Used to recompute each venue
+   * card's ★ badge with the couple's individual priorities. Null / omitted
+   * → defaults to equal weights (legacy unweighted average) so the call
+   * site can opt in incrementally.
+   */
+  weights?: DimensionWeights | null;
 }
 
 export function CandidatesView({
@@ -89,6 +97,7 @@ export function CandidatesView({
   initialDecision,
   userName,
   initialTab,
+  weights = null,
 }: CandidatesViewProps) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
@@ -327,7 +336,7 @@ export function CandidatesView({
                       exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
                       transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <VenueCard venue={fav.venue} isFavorite={true} />
+                      <VenueCard venue={fav.venue} isFavorite={true} weights={weights} />
                       {/* W11-2: per-venue "この式場を選ぶなら" summary card.
                           Rendered under the venue card as a folded
                           disclosure — client-side math on the already-

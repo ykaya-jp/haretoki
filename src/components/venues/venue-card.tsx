@@ -4,6 +4,10 @@ import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
 import { computeCompositeScore } from "@/lib/venue-score";
+import {
+  computeWeightedComposite,
+  type DimensionWeights,
+} from "@/lib/weighted-score";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { VenueStatus } from "@/generated/prisma/client";
@@ -59,6 +63,13 @@ interface VenueCardProps {
    * Optional so callers outside candidates/ can ignore it.
    */
   favoritedBy?: ("me" | "partner")[];
+  /**
+   * W12-1: viewer's per-dimension weights. When provided, the ★ number
+   * reflects the user's priority profile (e.g. a cuisine-heavy user sees
+   * the culinary venue rated higher). Omit / null → unweighted composite
+   * — keeps all non-candidates call sites behaving exactly as before.
+   */
+  weights?: DimensionWeights | null;
 }
 
 export function VenueCard({
@@ -66,8 +77,23 @@ export function VenueCard({
   isFavorite = false,
   fitReason = null,
   favoritedBy,
+  weights = null,
 }: VenueCardProps) {
-  const avgScore = computeCompositeScore(venue.scores);
+  // W12-1: prefer the viewer's weighted composite when they've set weights.
+  // computeWeightedComposite with null weights matches the arithmetic mean
+  // of the per-dimension source-weighted averages — the behaviour couples
+  // saw before W12-1. We fall back to the legacy computeCompositeScore
+  // only when there are zero scores, so that "no data" still renders null.
+  const avgScore = weights
+    ? computeWeightedComposite(
+        venue.scores.map((s) => ({
+          dimension: s.dimension,
+          score: s.score,
+          source: s.source,
+        })),
+        weights,
+      )
+    : computeCompositeScore(venue.scores);
   const hasCost = venue.costMin || venue.costMax;
 
   // V1 Visual: hotel-brochure feel — 3:2 photo, larger serif name,

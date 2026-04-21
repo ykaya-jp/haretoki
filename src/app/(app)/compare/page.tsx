@@ -4,6 +4,7 @@ import {
   getComparisonMatrix,
   getFavoriteVenueIds,
 } from "@/server/actions/checklist";
+import { getMyWeights } from "@/server/actions/weights";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -88,7 +89,13 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
 async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
   const ids = venueIds.length > 0 ? venueIds : await getFavoriteVenueIds();
-  const matrix = await getComparisonMatrix(ids);
+  // W12-1: hoist the viewer's weights in parallel with the matrix so the
+  // comparison column header ★ reflects their priorities. `.catch(null)`
+  // keeps the page usable when the weights row is absent (first visit).
+  const [matrix, weights] = await Promise.all([
+    getComparisonMatrix(ids),
+    getMyWeights().catch(() => null),
+  ]);
   const insufficient = matrix.venues.length === 1;
 
   return (
@@ -116,7 +123,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
           ctaHref="/candidates"
         />
       ) : (
-        <ComparisonBoard matrix={matrix} />
+        <ComparisonBoard matrix={matrix} weights={weights} />
       )}
     </div>
   );

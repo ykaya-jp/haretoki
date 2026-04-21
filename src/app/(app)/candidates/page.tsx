@@ -6,6 +6,7 @@ import { getFavorites } from "@/server/actions/favorites";
 import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
 import { getCurrentUserName } from "@/server/actions/home";
+import { getMyWeights } from "@/server/actions/weights";
 import { CandidatesView } from "@/components/candidates/candidates-view";
 import { CoupleGapSection } from "@/components/candidates/couple-gap-section";
 
@@ -89,11 +90,16 @@ async function CandidatesContent({
 }: {
   initialTab: "shortlist" | "compare" | "decision" | undefined;
 }) {
-  const [favorites, venues, decision, userName] = await Promise.all([
+  const [favorites, venues, decision, userName, weights] = await Promise.all([
     getFavorites("mine"),
     getVenues(),
     getDecision(),
     getCurrentUserName(),
+    // W12-1: fetch the viewer's dimension weights so VenueCard ★ and the
+    // compare-view header reflect "自分の重み付け". If this fails (e.g. no
+    // project yet — shouldn't happen past requireProjectMembership, but
+    // stays defensive) we fall back to null → equal weights.
+    getMyWeights().catch(() => null),
   ]);
 
   // venueOptions carries the minimum fields the view + ceremony need: id/name
@@ -116,6 +122,7 @@ async function CandidatesContent({
       }
       userName={userName}
       initialTab={initialTab}
+      weights={weights}
     />
   );
 }

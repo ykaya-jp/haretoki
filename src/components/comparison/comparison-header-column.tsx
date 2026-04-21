@@ -3,6 +3,10 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import type { ComparisonVenue } from "@/lib/comparison-types";
 import { computeCompositeScore } from "@/lib/venue-score";
+import {
+  computeWeightedComposite,
+  type DimensionWeights,
+} from "@/lib/weighted-score";
 
 /**
  * Sticky venue header that sits on top of each column.
@@ -24,10 +28,30 @@ import { computeCompositeScore } from "@/lib/venue-score";
 
 interface ComparisonHeaderColumnProps {
   venue: ComparisonVenue;
+  /**
+   * W12-1: viewer's per-dimension weights. When supplied, the column ★
+   * reflects their priority profile; otherwise we fall back to the
+   * previous unweighted composite for backward compatibility.
+   *
+   * Note (TODO): partner weights are NOT mixed in yet. See the
+   * `ProjectMember.weights` TODO in the weights server action — we'll
+   * add a "ふたりの総合" line once the product direction on how to
+   * combine owner+partner is nailed down.
+   */
+  weights?: DimensionWeights | null;
 }
 
-export function ComparisonHeaderColumn({ venue }: ComparisonHeaderColumnProps) {
-  const composite = computeCompositeScore(venue.scores);
+export function ComparisonHeaderColumn({ venue, weights = null }: ComparisonHeaderColumnProps) {
+  const composite = weights
+    ? computeWeightedComposite(
+        venue.scores.map((s) => ({
+          dimension: s.dimension,
+          score: s.score,
+          source: s.source,
+        })),
+        weights,
+      )
+    : computeCompositeScore(venue.scores);
   // Prefer Haretoki's composite (includes user rating weight); fall back
   // to external rating only when no scores exist.
   const rating = composite ?? venue.externalRatingValue;
