@@ -9,9 +9,11 @@ import { SkyChip } from "@/components/home/sky-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/actions/onboarding";
+import { recommendVenuesFromConditions, type DbVenueRecommendation } from "@/server/actions/onboarding-recs";
 import { updateDisplayName } from "@/server/actions/profile";
 import { createVenue } from "@/server/actions/venues";
-import { Loader2, Sparkles, Plus } from "lucide-react";
+import { Loader2, Sparkles, Plus, MapPin } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 
@@ -100,6 +102,9 @@ export function OnboardingFlow() {
   const [advice, setAdvice] = useState("");
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [addingVenues, setAddingVenues] = useState<Set<string>>(new Set());
+  const [dbRecs, setDbRecs] = useState<DbVenueRecommendation[]>([]);
+  const [dbRecsSummary, setDbRecsSummary] = useState("");
+  const [isLoadingDbRecs, setIsLoadingDbRecs] = useState(false);
   const router = useRouter();
 
   const currentQ = QUESTIONS[step];
@@ -181,16 +186,23 @@ export function OnboardingFlow() {
           hasBudget: Boolean(finalAnswers.budget),
         });
         setIsLoadingRecs(true);
+        setIsLoadingDbRecs(true);
         setShowRecommendations(true);
-        try {
-          const result = await getOnboardingRecommendations();
-          if (result) {
-            setRecommendations(result.recommendations);
-            setAdvice(result.advice);
-          }
-        } finally {
-          setIsLoadingRecs(false);
+        // Fire both recommendation fetches in parallel
+        const [genResult, dbResult] = await Promise.allSettled([
+          getOnboardingRecommendations(),
+          recommendVenuesFromConditions(),
+        ]);
+        if (genResult.status === "fulfilled" && genResult.value) {
+          setRecommendations(genResult.value.recommendations);
+          setAdvice(genResult.value.advice);
         }
+        setIsLoadingRecs(false);
+        if (dbResult.status === "fulfilled" && dbResult.value) {
+          setDbRecs(dbResult.value.recommendations);
+          setDbRecsSummary(dbResult.value.summary);
+        }
+        setIsLoadingDbRecs(false);
       });
     }
   };
@@ -244,16 +256,22 @@ export function OnboardingFlow() {
           hasBudget: Boolean(finalAnswers.budget),
         });
         setIsLoadingRecs(true);
+        setIsLoadingDbRecs(true);
         setShowRecommendations(true);
-        try {
-          const result = await getOnboardingRecommendations();
-          if (result) {
-            setRecommendations(result.recommendations);
-            setAdvice(result.advice);
-          }
-        } finally {
-          setIsLoadingRecs(false);
+        const [genResult, dbResult] = await Promise.allSettled([
+          getOnboardingRecommendations(),
+          recommendVenuesFromConditions(),
+        ]);
+        if (genResult.status === "fulfilled" && genResult.value) {
+          setRecommendations(genResult.value.recommendations);
+          setAdvice(genResult.value.advice);
         }
+        setIsLoadingRecs(false);
+        if (dbResult.status === "fulfilled" && dbResult.value) {
+          setDbRecs(dbResult.value.recommendations);
+          setDbRecsSummary(dbResult.value.summary);
+        }
+        setIsLoadingDbRecs(false);
       });
     }
   };
@@ -283,6 +301,73 @@ export function OnboardingFlow() {
   if (showRecommendations) {
     return (
       <div className="mx-auto max-w-lg space-y-6 py-4">
+        {/* DB venue recommendations — top 3 from existing venues */}
+        {isLoadingDbRecs ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground animate-pulse">
+              相性のよさそうな式場を探しています…
+            </p>
+          </div>
+        ) : dbRecs.length > 0 ? (
+          <div className="space-y-4">
+            {/* Summary header */}
+            <div
+              className="rounded-r-2xl border-l-[3px] p-4 space-y-1"
+              style={{
+                borderLeftColor: "var(--gold-warm)",
+                background: "color-mix(in oklab, var(--gold-subtle) 60%, var(--background))",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
+                <p className="text-eyebrow text-[var(--gold-warm)]">登録済み式場から</p>
+              </div>
+              <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
+                {dbRecsSummary}
+              </p>
+            </div>
+
+            {/* Venue cards */}
+            <div className="space-y-3">
+              {dbRecs.map((rec) => (
+                <a
+                  key={rec.venueId}
+                  href={`/venues/${rec.venueId}`}
+                  className="block rounded-2xl border overflow-hidden active:scale-[0.98] transition-transform"
+                  style={{
+                    background: "color-mix(in oklab, var(--gold-subtle) 30%, var(--card))",
+                    borderColor: "color-mix(in oklab, var(--gold-warm) 18%, transparent)",
+                  }}
+                >
+                  {rec.photoUrl && (
+                    <div className="relative w-full aspect-[4/3]">
+                      <Image
+                        src={rec.photoUrl}
+                        alt={rec.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 512px) 100vw, 512px"
+                      />
+                    </div>
+                  )}
+                  <div className="p-4 space-y-2">
+                    <p className="font-[family-name:var(--font-display)] text-[18px] font-light leading-snug text-foreground">
+                      {rec.name}
+                    </p>
+                    {rec.location && (
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-none" strokeWidth={1.5} />
+                        {rec.location}
+                      </p>
+                    )}
+                    <p className="text-sm leading-relaxed text-foreground/80">{rec.reason}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {/* Onb-3: skeleton shimmer while loading / Onb-2: editorial header */}
         {isLoadingRecs ? (
           <div className="space-y-4">
