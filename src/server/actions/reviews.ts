@@ -206,17 +206,38 @@ async function analyzeVenueReviewsInner(
   }
 
   try {
-    // Fetch review page content
+    // Fetch review page content. zexy / wedding park reject the fake
+    // "Mozilla/5.0 (compatible; Haretoki/1.0)" UA with 403, which is
+    // why the URL import pipeline uses a real Chrome UA via
+    // fetchPageForExtraction. Mirror those headers here so the review
+    // analyzer path stops throwing "口コミページをうまく取れません
+    // でした" on the same URLs that venue import opens successfully.
+    const referer = `${parsedUrl.protocol}//${parsedUrl.hostname}/`;
     const response = await fetch(sourceUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Haretoki/1.0)",
-        Accept: "text/html",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        DNT: "1",
+        Referer: referer,
       },
       signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
-      return { ok: false, reason: "api-error", message: "口コミページをうまく取れませんでした" };
+      console.warn("[analyzeVenueReviews] non-2xx from source", {
+        sourceUrl,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      return {
+        ok: false,
+        reason: "api-error",
+        message: `口コミページをうまく取れませんでした (HTTP ${response.status})`,
+      };
     }
 
     const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB

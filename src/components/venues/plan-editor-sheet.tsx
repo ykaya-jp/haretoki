@@ -228,7 +228,10 @@ export function PlanEditorSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl max-h-[90vh] overflow-y-auto"
+        // Cap at 520px on desktop (same as AddVenueSheet) so the form
+        // doesn't sprawl edge-to-edge on wide viewports, and add body
+        // padding so inputs don't hug the sheet border.
+        className="rounded-t-2xl max-h-[90vh] overflow-y-auto px-5 sm:px-7 !max-w-[520px] mx-auto"
       >
         <SheetHeader>
           <SheetTitle className="font-[family-name:var(--font-display)] font-normal">

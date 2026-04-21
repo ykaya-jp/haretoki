@@ -3,14 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Layers,
-  Loader2,
-  Scale,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { Check, ChevronsUpDown, Loader2, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   getUnifiedComparisonData,
   type UnifiedComparisonData,
@@ -24,29 +18,36 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { cn } from "@/lib/utils";
 
 /**
- * CompareRedesigned — 比べるタブの抜本書き直し。
+ * CompareRedesigned — horizontal multi-select comparison table.
  *
- * 背景: 既存 AccordionZoom は 375px で右に伸びすぎ、DimensionRow の
- * 自前 grid-template がヘッダー行と不整合になりラベルが潰れる構造破綻
- * があった。product-designer のリサーチ (Airbnb / Booking.com / NN/G
- * 2026) でも「mobile で 3+ venue の完全並列マトリクスは破綻する」が
- * 一貫した結論 → マトリクスそのものを捨てる。
+ * The wife-review session landed on two firm requirements:
+ *   1. Pick *any* N venues from the project (owner filter acts as a
+ *      source-pool chip, not as a gate — users can pick across pools)
+ *   2. See them **side-by-side horizontally** with compact per-dimension
+ *      bars so the whole matrix reads as a spreadsheet at a glance
  *
- * - Duel (ペアで比べる, default): 2 件の A/B を並置、swipe/ボタンで
- *   全 C(N,2) ペアを回遊。差分 ≥ 0.5 の dimension だけ「ここが論点」
- *   カードに昇格、同値は 1 行で圧縮。
- * - Stack (ぜんぶ並べる): 全 venue を縦積みカード、各 card 内に
- *   dimension を bar + 数値で 4 行表示。横スクロールは発生しない。
+ * The earlier iteration tried to dodge the mobile-width problem by
+ * offering Duel (pairs) + Stack (vertical) modes and skipping the
+ * matrix altogether. User explicitly rejected that ("横並びで比較
+ * できるようにしたい") — so the matrix is back, done right this time:
  *
- * 勝者(winner) 表現は UI から削除。結婚式場選びで一方が「負け」扱い
- * されるのはブランドに反するため、「ここが論点」「+0.8 強み」のような
- * 論点提示語彙に全面置換。
+ *   - ALL rows (header, total, every dimension) share a single grid
+ *     template via the `--cmp-grid` CSS custom property on the outer
+ *     scroll container. No more DimensionRow drift.
+ *   - Fixed column widths (120px label + 112px per venue). On mobile
+ *     375px this means 2 venues fit exactly; 3+ venues scroll
+ *     horizontally while the label column stays sticky-left.
+ *   - Stars replaced with a compact 80px horizontal bar + tabular
+ *     numeric score. 5 bars in a row are legible at 112px; 5 stars
+ *     weren't.
+ *   - Winner highlighting = subtle gold background + bold score,
+ *     NOT a full-cell gold fill. Previous version saturated columns
+ *     in gold which made 4-column matrices feel like a trophy shelf.
  */
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 type OwnerFilter = "all" | "mine" | "partner" | "both";
-type Mode = "duel" | "stack";
 
 const OWNER_FILTERS: { id: OwnerFilter; label: string }[] = [
   { id: "all", label: "すべて" },
@@ -55,20 +56,17 @@ const OWNER_FILTERS: { id: OwnerFilter; label: string }[] = [
   { id: "both", label: "おふたり" },
 ];
 
-const MODES: { id: Mode; label: string; Icon: typeof Scale }[] = [
-  { id: "duel", label: "ペアで比べる", Icon: Scale },
-  { id: "stack", label: "ぜんぶ並べる", Icon: Layers },
-];
-
-const STACK_VISIBLE_DIMS = 4;
+const MAX_SELECTED = 5;
+const LABEL_COL_PX = 120;
+const VENUE_COL_PX = 112;
 
 export function CompareRedesigned() {
   const [data, setData] = useState<UnifiedComparisonData | null>(null);
   const [insight, setInsight] = useState<MatrixInsight | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<Mode>("duel");
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
-  const [pairIndex, setPairIndex] = useState(0);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [diffOnly, setDiffOnly] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +81,7 @@ export function CompareRedesigned() {
           setInsight(insightData);
         }
       } catch {
-        // Empty-state fallback below handles this
+        // fall through to the "< 2" empty state
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -94,10 +92,13 @@ export function CompareRedesigned() {
     };
   }, []);
 
+  // Pool defines which venues are eligible for the chip picker. The
+  // owner filter narrows the pool; selected venues that fall outside
+  // the new pool are dropped (render-phase reset, no effect cascade).
   const pool = useMemo(() => {
     if (!data) return [];
+    if (ownerFilter === "all") return data.venues;
     return data.venues.filter((v) => {
-      if (ownerFilter === "all") return true;
       const owners: FavoritedByMap[string] = data.favoritedBy[v.id] ?? [];
       if (ownerFilter === "mine") return owners.includes("me");
       if (ownerFilter === "partner") return owners.includes("partner");
@@ -105,24 +106,49 @@ export function CompareRedesigned() {
     });
   }, [data, ownerFilter]);
 
-  const pairs = useMemo<[string, string][]>(() => {
-    const out: [string, string][] = [];
-    for (let i = 0; i < pool.length; i++) {
-      for (let j = i + 1; j < pool.length; j++) {
-        out.push([pool[i].id, pool[j].id]);
+  // Auto-seed the initial selection from the first 3 pool entries.
+  // React 19 sanctions render-phase resets over useEffect setState.
+  const [prevOwnerFilter, setPrevOwnerFilter] = useState(ownerFilter);
+  if (prevOwnerFilter !== ownerFilter) {
+    setPrevOwnerFilter(ownerFilter);
+    if (pool.length === 0) {
+      setSelected(new Set());
+    } else {
+      const kept = new Set<string>();
+      for (const v of pool) if (selected.has(v.id)) kept.add(v.id);
+      if (kept.size >= 2) {
+        setSelected(kept);
+      } else {
+        setSelected(
+          new Set(pool.slice(0, Math.min(3, pool.length)).map((v) => v.id)),
+        );
       }
     }
-    return out;
-  }, [pool]);
-
-  // Reset pair cursor when the pool shrinks below the current index.
-  // Render-phase comparison is React 19's sanctioned pattern (avoids
-  // the "setState inside useEffect triggers cascade" lint error).
-  const [prevPairsLen, setPrevPairsLen] = useState(pairs.length);
-  if (prevPairsLen !== pairs.length) {
-    setPrevPairsLen(pairs.length);
-    if (pairIndex >= pairs.length) setPairIndex(0);
+  } else if (
+    !loading &&
+    data &&
+    selected.size === 0 &&
+    pool.length >= 2
+  ) {
+    // First paint: seed selection. Guarded on `!loading` so we don't
+    // fight the initial `setData` setState.
+    setSelected(
+      new Set(pool.slice(0, Math.min(3, pool.length)).map((v) => v.id)),
+    );
   }
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (next.size >= MAX_SELECTED) return prev;
+      next.add(id);
+      return next;
+    });
+  };
 
   if (loading) {
     return (
@@ -150,393 +176,384 @@ export function CompareRedesigned() {
     );
   }
 
+  const selectedVenues = data.venues.filter((v) => selected.has(v.id));
+  const venueIds = selectedVenues.map((v) => v.id);
+  const canRender = venueIds.length >= 2;
+
+  // Build matrix rows with per-dimension winner detection. "Winner"
+  // semantics reused from the server payload; we only compute the
+  // "ほぼ同じ (|Δ| < 0.5)" tie flag locally so the UI can tint
+  // less aggressively when the gap is not meaningful.
+  const rows = data.dimensions.map((d) => {
+    const scores = venueIds.map((id) => d.scores[id] ?? null);
+    const numeric = scores.filter((s): s is number => s !== null);
+    const max = numeric.length > 0 ? Math.max(...numeric) : null;
+    const min = numeric.length > 0 ? Math.min(...numeric) : null;
+    const spread = max !== null && min !== null ? max - min : 0;
+    const hasMeaningfulDiff = spread >= 0.5;
+    const winnerId =
+      max !== null && hasMeaningfulDiff
+        ? venueIds[scores.findIndex((s) => s === max)] ?? null
+        : null;
+    return { dim: d, scores, winnerId, hasMeaningfulDiff, spread };
+  });
+
+  const visibleRows = diffOnly ? rows.filter((r) => r.hasMeaningfulDiff) : rows;
+  const diffCount = rows.filter((r) => r.hasMeaningfulDiff).length;
+
+  // One CSS variable drives every grid row — no more template drift.
+  // Using inline style since Tailwind arbitrary values don't compose
+  // cleanly with variable column counts.
+  const gridStyle = {
+    "--cmp-grid": `${LABEL_COL_PX}px repeat(${venueIds.length}, ${VENUE_COL_PX}px)`,
+  } as React.CSSProperties;
+
+  const atLimit = selected.size >= MAX_SELECTED;
+
   return (
     <div className="flex flex-col gap-4 pb-6">
-      {/* Sticky filter bar: owner scope + compare mode */}
+      {/* Sticky filter bar: owner scope + selection counter + diff toggle */}
       <div className="sticky top-0 z-20 space-y-3 bg-background/80 px-3 pb-2 pt-3 backdrop-blur-xl">
-        <div
-          className="inline-flex gap-1 rounded-full bg-muted p-1"
-          role="tablist"
-          aria-label="誰の候補をみる"
-        >
-          {OWNER_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              role="tab"
-              aria-selected={ownerFilter === f.id}
-              onClick={() => setOwnerFilter(f.id)}
-              className={cn(
-                "min-h-9 rounded-full px-3 text-[12px] font-medium transition-colors active:scale-[0.97]",
-                ownerFilter === f.id
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div
-          className="inline-flex gap-1 rounded-full bg-muted p-1"
-          role="tablist"
-          aria-label="比べ方を選ぶ"
-        >
-          {MODES.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={mode === id}
-              onClick={() => setMode(id)}
-              className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors active:scale-[0.97]",
-                mode === id
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-2">
+          <div
+            className="inline-flex gap-1 rounded-full bg-muted p-1"
+            role="tablist"
+            aria-label="誰の候補から選ぶ"
+          >
+            {OWNER_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={ownerFilter === f.id}
+                onClick={() => setOwnerFilter(f.id)}
+                className={cn(
+                  "min-h-9 rounded-full px-3 text-[12px] font-medium transition-colors active:scale-[0.97]",
+                  ownerFilter === f.id
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <span className="shrink-0 tabular-nums text-[11px] text-muted-foreground">
+            {selected.size} / {MAX_SELECTED}
+          </span>
         </div>
       </div>
 
-      {pool.length < 2 ? (
-        <div className="px-6 py-10 text-center text-[13px] text-muted-foreground">
-          このフィルタでペアになる式場がありません。別の絞り込みを試してみてください。
+      {/* Venue picker — "card chips" with thumbnail + name + selection
+          indicator. Horizontally scrollable; each chip tap toggles a
+          selection, but chips beyond MAX_SELECTED are disabled. */}
+      {pool.length === 0 ? (
+        <div className="mx-3 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+          <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+            {ownerFilter === "both"
+              ? "おふたりが共通で候補にしている式場はまだありません。"
+              : ownerFilter === "partner"
+                ? "パートナーの候補はまだありません。"
+                : ownerFilter === "mine"
+                  ? "自分の候補はまだありません。"
+                  : "候補がまだありません。"}
+          </p>
         </div>
-      ) : mode === "duel" ? (
-        <DuelView
-          data={data}
-          pairs={pairs}
-          pairIndex={pairIndex}
-          onPrev={() => setPairIndex((i) => Math.max(0, i - 1))}
-          onNext={() =>
-            setPairIndex((i) => Math.min(pairs.length - 1, i + 1))
-          }
-          insight={insight}
-        />
       ) : (
-        <StackView data={data} pool={pool} />
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 scrollbar-hide">
+          {pool.map((v) => {
+            const on = selected.has(v.id);
+            const disabled = !on && atLimit;
+            const owners = data.favoritedBy[v.id] ?? [];
+            const byMe = owners.includes("me");
+            const byPartner = owners.includes("partner");
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => toggle(v.id)}
+                disabled={disabled}
+                aria-pressed={on}
+                className={cn(
+                  "group relative flex min-h-11 shrink-0 flex-col gap-1 overflow-hidden rounded-2xl border p-2 text-left transition-all active:scale-[0.97] disabled:opacity-40",
+                  on
+                    ? "border-[color-mix(in_oklab,var(--gold-warm)_60%,transparent)] bg-[var(--gold-subtle)]"
+                    : "border-border bg-card",
+                )}
+                style={{ width: 108 }}
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted">
+                  {v.photoUrl ? (
+                    <Image
+                      src={v.photoUrl}
+                      alt=""
+                      fill
+                      sizes="100px"
+                      className="object-cover"
+                    />
+                  ) : null}
+                  {on && (
+                    <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gold-warm)] text-white shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </div>
+                  )}
+                </div>
+                <p className="truncate font-[family-name:var(--font-display)] text-[11.5px] font-light leading-tight">
+                  {v.name}
+                </p>
+                <div className="flex items-center gap-1">
+                  {byMe && (
+                    <span className="rounded-full bg-foreground/10 px-1.5 text-[9px] text-foreground/70">
+                      自分
+                    </span>
+                  )}
+                  {byPartner && (
+                    <span className="rounded-full bg-foreground/10 px-1.5 text-[9px] text-foreground/70">
+                      P
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       )}
+
+      {canRender ? (
+        <>
+          {/* Toolbar: diff toggle */}
+          <div className="flex items-center justify-between px-3">
+            <p className="text-[11px] text-muted-foreground">
+              {selectedVenues.length} 件 比較中 · 差のある項目{" "}
+              <span className="tabular-nums text-foreground/80">
+                {diffCount}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setDiffOnly((v) => !v)}
+              aria-pressed={diffOnly}
+              className={cn(
+                "inline-flex min-h-8 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors active:scale-[0.97]",
+                diffOnly
+                  ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
+                  : "border-border text-muted-foreground",
+              )}
+            >
+              <ChevronsUpDown className="h-3 w-3" strokeWidth={2} />
+              差がある項目だけ
+            </button>
+          </div>
+
+          {/* Matrix */}
+          <div
+            className="mx-3 overflow-x-auto rounded-2xl border border-border bg-card shadow-[var(--shadow-card-low)]"
+            style={gridStyle}
+            role="region"
+            aria-label="式場比較マトリクス"
+          >
+            {/* Header row — venue thumbnails + names */}
+            <div
+              className="grid items-end gap-0 border-b border-border"
+              style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+            >
+              <div
+                className="sticky left-0 z-10 bg-card px-3 py-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+                style={{ width: LABEL_COL_PX }}
+              >
+                Venue
+              </div>
+              {selectedVenues.map((v) => (
+                <Link
+                  key={v.id}
+                  href={`/venues/${v.id}`}
+                  className="flex flex-col items-center gap-1.5 px-2 py-2 transition-transform active:scale-95"
+                >
+                  <div className="relative h-12 w-12 overflow-hidden rounded-full border border-border">
+                    {v.photoUrl && (
+                      <Image
+                        src={v.photoUrl}
+                        alt=""
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <p
+                    className="w-full truncate text-center font-[family-name:var(--font-display)] text-[11.5px] leading-tight"
+                    title={v.name}
+                  >
+                    {v.name}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            {/* Total row */}
+            <div
+              className="grid items-center gap-0 border-b border-border bg-[color-mix(in_oklab,var(--gold-warm)_6%,transparent)]"
+              style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+            >
+              <div
+                className="sticky left-0 z-10 bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--card))] px-3 py-2.5 text-[12px] font-medium text-foreground/85"
+                style={{ width: LABEL_COL_PX }}
+              >
+                総合
+              </div>
+              {venueIds.map((id) => {
+                const score = data.totalScore[id] ?? null;
+                return (
+                  <div
+                    key={id}
+                    className="flex items-center justify-center px-2 py-2.5"
+                  >
+                    {score !== null ? (
+                      <span className="tabular-nums text-[18px] font-extralight text-[var(--gold-warm)]">
+                        {score.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground/40">—</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Dimension rows */}
+            {visibleRows.length === 0 ? (
+              <p className="px-3 py-8 text-center text-[12.5px] text-muted-foreground">
+                差のある項目はありません。
+              </p>
+            ) : (
+              <AnimatePresence initial={false}>
+                {visibleRows.map((row, idx) => (
+                  <motion.div
+                    key={row.dim.id}
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: LUXURY_EASE }}
+                    className={cn(
+                      "grid items-center gap-0",
+                      idx !== visibleRows.length - 1 && "border-b border-border/60",
+                    )}
+                    style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+                  >
+                    <div
+                      className="sticky left-0 z-10 bg-card px-3 py-2.5 text-[12px] font-medium text-foreground/80"
+                      style={{ width: LABEL_COL_PX }}
+                    >
+                      {row.dim.label}
+                    </div>
+                    {row.scores.map((score, colIdx) => {
+                      const venueId = venueIds[colIdx];
+                      const isWinner = row.winnerId === venueId;
+                      return (
+                        <DimensionCell
+                          key={venueId}
+                          score={score}
+                          isWinner={isWinner}
+                        />
+                      );
+                    })}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
+          </div>
+
+          {/* AI insight */}
+          {insight && (
+            <div className="mx-3">
+              <AIInsightCard
+                type="comparison"
+                title="AIコーチからのひとこと"
+                body={insight.summary}
+                actions={insight.nextActions.map((label) => ({
+                  label,
+                  href: "/coach",
+                }))}
+              />
+            </div>
+          )}
+        </>
+      ) : pool.length >= 2 ? (
+        <div className="mx-3 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 py-10 text-center">
+          <Sparkles
+            className="h-6 w-6 text-[var(--gold-warm)]"
+            strokeWidth={1.4}
+          />
+          <p className="text-[13px] text-muted-foreground">
+            並べたい式場を 2 件以上えらんでください
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/** DUEL — A vs B, carousel through all C(N,2) pairs */
-function DuelView({
-  data,
-  pairs,
-  pairIndex,
-  onPrev,
-  onNext,
-  insight,
+/**
+ * Compact per-cell renderer — a bar (80% fill for score 4/5) + the
+ * numeric score underneath. Stars were replaced because 5 glyphs × N
+ * columns wrap on 375px below ~80px per column; a bar + number stays
+ * legible at 112px and reads as a "how close to full marks" signal.
+ */
+function DimensionCell({
+  score,
+  isWinner,
 }: {
-  data: UnifiedComparisonData;
-  pairs: [string, string][];
-  pairIndex: number;
-  onPrev: () => void;
-  onNext: () => void;
-  insight: MatrixInsight | null;
+  score: number | null;
+  isWinner: boolean;
 }) {
-  if (pairs.length === 0) {
+  if (score === null) {
     return (
-      <p className="px-6 py-10 text-center text-[13px] text-muted-foreground">
-        このフィルタでペアになる式場がありません。
-      </p>
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center gap-1 px-2 py-2.5",
+          isWinner && "bg-[color-mix(in_oklab,var(--gold-warm)_5%,transparent)]",
+        )}
+      >
+        <div className="h-1.5 w-[70%] rounded-full bg-muted" />
+        <span className="text-[11px] text-muted-foreground/50">—</span>
+      </div>
     );
   }
-  const [aId, bId] = pairs[pairIndex];
-  const A = data.venues.find((v) => v.id === aId);
-  const B = data.venues.find((v) => v.id === bId);
-  if (!A || !B) return null;
-
-  // Sort dimensions by |Δ| desc so the biggest gaps surface first.
-  const diffs = data.dimensions
-    .map((d) => {
-      const sa = d.scores[aId];
-      const sb = d.scores[bId];
-      if (sa === null || sa === undefined || sb === null || sb === undefined) {
-        return null;
-      }
-      return { dimId: d.id, label: d.label, a: sa, b: sb, delta: sa - sb };
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
-    .sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
-
-  const significant = diffs.filter((d) => Math.abs(d.delta) >= 0.5);
-  const tied = diffs.filter((d) => Math.abs(d.delta) < 0.5);
-
-  const sa = data.totalScore[aId] ?? null;
-  const sb = data.totalScore[bId] ?? null;
-
+  const pct = Math.max(6, (score / 5) * 100);
   return (
-    <motion.div
-      key={`${aId}-${bId}`}
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, ease: LUXURY_EASE }}
-      className="flex flex-col gap-4 px-3"
-    >
-      {/* Pair navigator */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onPrev}
-          disabled={pairIndex === 0}
-          aria-label="前のペア"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card transition-transform active:scale-95 disabled:opacity-30"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
-        </button>
-        <span className="tabular-nums text-[11px] text-muted-foreground">
-          {pairIndex + 1} / {pairs.length} ペア
-        </span>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={pairIndex >= pairs.length - 1}
-          aria-label="次のペア"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card transition-transform active:scale-95 disabled:opacity-30"
-        >
-          <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
-        </button>
-      </div>
-
-      {/* A vs B heads */}
-      <div className="grid grid-cols-2 gap-2">
-        {[A, B].map((v, i) => {
-          const s = i === 0 ? sa : sb;
-          const otherS = i === 0 ? sb : sa;
-          const lead =
-            s !== null && otherS !== null && s - otherS >= 0.5
-              ? (s - otherS).toFixed(1)
-              : null;
-          return (
-            <Link
-              key={v.id}
-              href={`/venues/${v.id}`}
-              className="group flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 transition-transform active:scale-[0.98]"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-                {v.photoUrl && (
-                  <Image
-                    src={v.photoUrl}
-                    alt=""
-                    fill
-                    sizes="180px"
-                    className="object-cover"
-                  />
-                )}
-              </div>
-              <h3 className="truncate font-[family-name:var(--font-display)] text-[13px] font-light leading-tight">
-                {v.name}
-              </h3>
-              <div className="flex items-baseline gap-1">
-                <span className="tabular-nums text-2xl font-extralight text-foreground">
-                  {s !== null ? s.toFixed(1) : "—"}
-                </span>
-                <span className="text-[10px] text-muted-foreground">/5.0</span>
-                {lead && (
-                  <span className="ml-auto inline-flex items-center rounded-full bg-[var(--gold-subtle)] px-2 text-[10px] font-medium tabular-nums text-[var(--gold-warm)]">
-                    +{lead}
-                  </span>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* "ここが論点" diff card */}
-      <section
-        className="rounded-2xl border border-border bg-card p-4"
-        aria-label="差分ハイライト"
-      >
-        <header className="mb-3 flex items-center justify-between">
-          <h4 className="text-[12px] font-medium tracking-wider text-muted-foreground">
-            ここが論点
-          </h4>
-          <span className="tabular-nums text-[11px] text-muted-foreground">
-            {significant.length} 項目
-          </span>
-        </header>
-        {significant.length === 0 ? (
-          <p className="text-[12.5px] text-muted-foreground">
-            大きな違いは見つかりませんでした。どちらも近い評価です。
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {significant.map((d) => {
-              const leader = d.delta > 0 ? A : B;
-              const absDelta = Math.abs(d.delta);
-              const aPct = (d.a / 5) * 100;
-              const bPct = (d.b / 5) * 100;
-              return (
-                <li key={d.dimId} className="space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12.5px] text-foreground/85">
-                      {d.label}
-                    </span>
-                    <span className="truncate tabular-nums text-[11px] font-medium text-[var(--gold-warm)]">
-                      {leader.name.length > 8
-                        ? `${leader.name.slice(0, 8)}…`
-                        : leader.name}{" "}
-                      +{absDelta.toFixed(1)}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <div
-                      className="relative h-1.5 rounded-full bg-muted"
-                      aria-label={`${A.name} ${d.a.toFixed(1)}`}
-                    >
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-full bg-foreground/70"
-                        style={{ width: `${aPct}%` }}
-                      />
-                    </div>
-                    <div
-                      className="relative h-1.5 rounded-full bg-muted"
-                      aria-label={`${B.name} ${d.b.toFixed(1)}`}
-                    >
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-full bg-foreground/70"
-                        style={{ width: `${bPct}%` }}
-                      />
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {tied.length > 0 && (
-          <p className="mt-3 border-t border-border/60 pt-2 text-[11px] text-muted-foreground/80">
-            ほぼ同じ: {tied.map((d) => d.label).join(" / ")}
-          </p>
-        )}
-      </section>
-
-      {insight && (
-        <AIInsightCard
-          type="comparison"
-          title="AIコーチからのひとこと"
-          body={buildPairCopy(A.name, B.name, significant, insight)}
-          actions={[
-            {
-              label: "コーチに相談する",
-              href: `/coach?pair=${A.id},${B.id}`,
-            },
-          ]}
-        />
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 px-2 py-2.5",
+        isWinner && "bg-[color-mix(in_oklab,var(--gold-warm)_8%,transparent)]",
       )}
-    </motion.div>
-  );
-}
-
-function buildPairCopy(
-  aName: string,
-  bName: string,
-  significant: { label: string; delta: number }[],
-  fallback: MatrixInsight,
-) {
-  if (significant.length === 0) {
-    // When the pair is near-tied, the project-level insight still
-    // surfaces useful framing ("費用が同額で…" 等).
-    return `${aName} と ${bName} は総合点が近いですね。${fallback.summary.split("。")[0]}。`;
-  }
-  const top = significant[0];
-  const leader = top.delta > 0 ? aName : bName;
-  const rest =
-    significant.length > 1
-      ? "他にも差のある項目があります。"
-      : "";
-  return `${top.label} で ${leader} が ${Math.abs(top.delta).toFixed(
-    1,
-  )} 点リードしています。${rest}譲れない軸を一度話してみませんか。`;
-}
-
-/** STACK — vertical list of all venues, one card per venue */
-function StackView({
-  data,
-  pool,
-}: {
-  data: UnifiedComparisonData;
-  pool: UnifiedComparisonData["venues"];
-}) {
-  return (
-    <div className="space-y-3 px-3">
-      {pool.map((v) => {
-        const total = data.totalScore[v.id];
-        return (
-          <Link
-            key={v.id}
-            href={`/venues/${v.id}`}
-            className="block space-y-3 rounded-2xl border border-border bg-card p-4 transition-transform active:scale-[0.99]"
-          >
-            <header className="flex items-center gap-3">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
-                {v.photoUrl && (
-                  <Image
-                    src={v.photoUrl}
-                    alt=""
-                    fill
-                    sizes="56px"
-                    className="object-cover"
-                  />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate font-[family-name:var(--font-display)] text-[15px] font-light">
-                  {v.name}
-                </h3>
-                {v.latestEstimateTotal !== null && (
-                  <p className="tabular-nums text-[11.5px] text-muted-foreground">
-                    見積もり ¥{Math.round(v.latestEstimateTotal / 10000)}万
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="tabular-nums text-2xl font-extralight">
-                  {total !== null && total !== undefined
-                    ? total.toFixed(1)
-                    : "—"}
-                </span>
-                <span className="text-[10px] text-muted-foreground">総合</span>
-              </div>
-            </header>
-            <ul className="space-y-2">
-              {data.dimensions.slice(0, STACK_VISIBLE_DIMS).map((d) => {
-                const s = d.scores[v.id];
-                const hasScore = s !== null && s !== undefined;
-                const pct = hasScore ? (s / 5) * 100 : 0;
-                return (
-                  <li
-                    key={d.id}
-                    className="grid grid-cols-[80px_1fr_32px] items-center gap-2"
-                  >
-                    <span className="text-[11.5px] text-muted-foreground">
-                      {d.label}
-                    </span>
-                    <div className="h-1.5 rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-foreground/60"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="tabular-nums text-right text-[11px] text-foreground/80">
-                      {hasScore ? s.toFixed(1) : "—"}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </Link>
-        );
-      })}
+    >
+      <div
+        className="relative h-1.5 w-[80%] overflow-hidden rounded-full bg-muted"
+        aria-hidden="true"
+      >
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.5, ease: LUXURY_EASE }}
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full",
+            isWinner
+              ? "bg-[var(--gold-warm)]"
+              : "bg-foreground/60",
+          )}
+        />
+      </div>
+      <span
+        className={cn(
+          "tabular-nums text-[12.5px] leading-none",
+          isWinner
+            ? "font-medium text-[var(--gold-warm)]"
+            : "font-normal text-foreground/85",
+        )}
+      >
+        {score.toFixed(1)}
+      </span>
     </div>
   );
 }
