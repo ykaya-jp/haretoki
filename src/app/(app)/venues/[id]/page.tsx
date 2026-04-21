@@ -38,6 +38,7 @@ import { VenueFactSheet } from "@/components/venues/venue-fact-sheet";
 import { VenueAmenitiesSection } from "@/components/venues/venue-amenities-section";
 import { VenueCostBreakdown } from "@/components/venues/venue-cost-breakdown";
 import { VenueCuisineSection } from "@/components/venues/venue-cuisine-section";
+import { SimilarVenues } from "@/components/venues/similar-venues";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Section order follows a "decision journey" rather than operational
@@ -286,6 +287,15 @@ export default async function VenueDetailPage({
           />
         </Suspense>
       </section>
+
+      {/* ===== Similar venues ===== (broaden consideration — ranked by
+          pure-maths similarity across ceremonyStyles / vibeTags /
+          location / cost / capacity. Self-hides when there are no
+          other venues or zero overlap. Keep this below 見学 so it
+          never competes with primary actions.) */}
+      <Suspense fallback={<SimilarVenuesSkeleton />}>
+        <SimilarVenues venueId={venue.id} />
+      </Suspense>
 
       {/* Action Bar */}
       <VenueActionBar
@@ -632,6 +642,27 @@ function VisitsSkeleton() {
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">
       <Skeleton className="h-5 w-28" />
       <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
+
+function SimilarVenuesSkeleton() {
+  // Mirrors the carousel layout so the section doesn't pop-in with
+  // layout shift once `getSimilarVenues` resolves. We show 3 cards
+  // (roughly what fits on 375px) at the same 4:5 aspect as the real
+  // card photos.
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-40" />
+      <div className="-mx-5 flex gap-4 overflow-hidden px-5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="min-w-[220px] shrink-0 space-y-2">
+            <Skeleton className="aspect-[4/5] w-full rounded-2xl" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
