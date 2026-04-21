@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho, Geist } from "next/font/google";
+import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho } from "next/font/google";
 import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
@@ -8,8 +8,6 @@ import { MotionProvider } from "@/components/providers/motion-provider";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-geist'});
 
 // Japanese glyphs are served lazily via unicode-range partitions (there is no
 // "japanese" Google Fonts subset). On slow networks or platforms without
@@ -141,7 +139,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans", geist.variable)}>
+    <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans")}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {/* B-19 JSON-LD — crawler-facing structured data */}
         <script

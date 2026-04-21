@@ -98,6 +98,7 @@ export function LandingPage() {
             tone="hero"
             className="object-cover opacity-[0.18]"
             priority
+            sizes="100vw"
           />
           <div
             className="absolute inset-0"
