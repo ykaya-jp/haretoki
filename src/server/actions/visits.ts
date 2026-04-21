@@ -280,6 +280,97 @@ export async function generateVisitChecklist(visitId: string): Promise<void> {
   revalidatePath(`/venues/${visit.venueId}`);
 }
 
+export interface VisitSummary {
+  id: string;
+  venueId: string;
+  venueName: string;
+  venueLocation: string | null;
+  scheduledAt: Date | null;
+  completedAt: Date | null;
+  status: string;
+  title: string | null;
+  memo: string | null;
+  checklistProgress: { total: number; checked: number };
+}
+
+export async function getUpcomingVisits(): Promise<VisitSummary[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  const now = new Date();
+
+  const venues = await prisma.venue.findMany({
+    where: { projectId },
+    include: {
+      visits: {
+        where: { status: "scheduled", scheduledAt: { gte: now } },
+        include: { checklist: { select: { status: true } } },
+        orderBy: { scheduledAt: "asc" },
+        take: 10,
+      },
+    },
+  });
+
+  return venues.flatMap(venue =>
+    venue.visits.map(visit => ({
+      id: visit.id,
+      venueId: venue.id,
+      venueName: venue.name,
+      venueLocation: venue.location,
+      scheduledAt: visit.scheduledAt,
+      completedAt: visit.completedAt,
+      status: visit.status,
+      title: visit.title,
+      memo: visit.memo,
+      checklistProgress: {
+        total: visit.checklist.length,
+        checked: visit.checklist.filter(c => c.status !== "unchecked").length,
+      },
+    }))
+  ).sort((a, b) => {
+    if (!a.scheduledAt) return 1;
+    if (!b.scheduledAt) return -1;
+    return a.scheduledAt.getTime() - b.scheduledAt.getTime();
+  });
+}
+
+export async function getPastVisits(): Promise<VisitSummary[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venues = await prisma.venue.findMany({
+    where: { projectId },
+    include: {
+      visits: {
+        where: { status: "completed" },
+        include: { checklist: { select: { status: true } } },
+        orderBy: { completedAt: "desc" },
+      },
+    },
+  });
+
+  return venues.flatMap(venue =>
+    venue.visits.map(visit => ({
+      id: visit.id,
+      venueId: venue.id,
+      venueName: venue.name,
+      venueLocation: venue.location,
+      scheduledAt: visit.scheduledAt,
+      completedAt: visit.completedAt,
+      status: visit.status,
+      title: visit.title,
+      memo: visit.memo,
+      checklistProgress: {
+        total: visit.checklist.length,
+        checked: visit.checklist.filter(c => c.status !== "unchecked").length,
+      },
+    }))
+  ).sort((a, b) => {
+    if (!a.completedAt) return 1;
+    if (!b.completedAt) return -1;
+    return b.completedAt.getTime() - a.completedAt.getTime();
+  });
+}
+
 export async function getVisitsByProject() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);

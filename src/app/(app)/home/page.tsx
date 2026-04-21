@@ -142,6 +142,27 @@ export default async function HomePage() {
         </p>
       </div>
 
+      {/* Upcoming visits nudge — shown when at least 1 scheduled visit exists */}
+      {progress.upcomingVisits > 0 && (
+        <Link
+          href="/visits"
+          prefetch={true}
+          className="flex min-h-[44px] items-center gap-3 rounded-2xl border border-[color-mix(in_oklab,var(--gold-warm)_30%,transparent)] bg-[var(--gold-subtle)] px-4 py-3 active:scale-[0.98] active:bg-muted transition-transform"
+        >
+          <span className="text-[var(--gold-warm)]" aria-hidden>📅</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-light text-foreground">
+              見学予定が{" "}
+              <span className="tabular-nums font-medium text-[var(--gold-warm)]">
+                {progress.upcomingVisits}
+              </span>{" "}
+              件あります
+            </p>
+          </div>
+          <span aria-hidden className="text-muted-foreground text-[13px]">→</span>
+        </Link>
+      )}
+
       {showInsight && (
         <AIInsightCard
           type={topInsight.type}
