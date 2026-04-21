@@ -9,6 +9,7 @@ type CeremonyPhase = "celebration" | "summary" | "reason";
 interface DecisionCeremonyProps {
   venueName: string;
   userName: string;
+  projectId?: string;
   journeyStats: {
     totalVenues: number;
     shortlisted: number;
@@ -29,6 +30,7 @@ function formatJaDate(d: Date): string {
 export function DecisionCeremony({
   venueName,
   userName,
+  projectId,
   journeyStats,
   onRecordReason,
 }: DecisionCeremonyProps) {
@@ -104,14 +106,18 @@ export function DecisionCeremony({
 
   const handleShare = async () => {
     const text = `${venueName}に、決めました。#晴れ時`;
+    const shareUrl = projectId
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/decision/${projectId}`
+      : undefined;
     if (typeof navigator === "undefined") return;
     try {
       if (typeof navigator.share === "function") {
-        await navigator.share({ title: "式場が決まりました", text });
+        await navigator.share({ title: "式場が決まりました", text, url: shareUrl });
         return;
       }
+      const copyText = shareUrl ? `${text}\n${shareUrl}` : text;
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(copyText);
       }
     } catch {
       // user cancelled or unsupported — silent no-op

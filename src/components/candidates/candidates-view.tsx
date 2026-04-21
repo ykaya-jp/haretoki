@@ -70,6 +70,7 @@ interface FavoriteVenue {
 interface DecisionData {
   venueName: string;
   rationale: string | null;
+  projectId?: string;
 }
 
 interface CandidatesViewProps {
@@ -93,6 +94,7 @@ export function CandidatesView({
   const [showSwipe, setShowSwipe] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
   const [ceremonyVenueName, setCeremonyVenueName] = useState("");
+  const [ceremonyProjectId, setCeremonyProjectId] = useState<string | undefined>(undefined);
   const [decision, setDecision] = useState(initialDecision ?? null);
   const [isDeciding, setIsDeciding] = useState(false);
   // Multi-select (比較モード): flip cards into tap-to-toggle, pick 2-10,
@@ -185,6 +187,7 @@ export function CandidatesView({
       }
 
       setCeremonyVenueName(venue.name);
+      setCeremonyProjectId("decision" in result ? result.decision.projectId : undefined);
       setShowCeremony(true);
       setTab("decision");
     } finally {
@@ -409,6 +412,7 @@ export function CandidatesView({
               <DecisionCeremony
                 venueName={ceremonyVenueName}
                 userName={userName ?? ""}
+                projectId={ceremonyProjectId ?? decision?.projectId}
                 journeyStats={{
                   totalVenues: venueOptions.length,
                   shortlisted: favorites.length,

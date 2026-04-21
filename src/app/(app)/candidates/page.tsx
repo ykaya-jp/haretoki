@@ -104,7 +104,7 @@ async function CandidatesContent({
       venueOptions={venueOptions}
       initialDecision={
         decision
-          ? { venueName: decision.venue.name, rationale: decision.rationale }
+          ? { venueName: decision.venue.name, rationale: decision.rationale, projectId: decision.projectId }
           : null
       }
       userName={userName}
