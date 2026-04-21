@@ -176,11 +176,32 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       return { error: "AI がうまく読めませんでした。少し時間をおいてもう一度お試しください" };
     }
 
-    // Parse and validate Claude's JSON response with zod
+    // Parse and validate Claude's JSON response with zod. Claude
+    // occasionally wraps its output in ```json … ``` fences or adds a
+    // brief preamble ("Here's the analysis:") before the object — the
+    // review-summary path hit the same breakage so we apply the same
+    // forgiving extraction here: prefer a fenced block, otherwise
+    // slice from the first "{" to the last "}".
+    const stripped = (() => {
+      const fenced = claudeResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenced) return fenced[1].trim();
+      const first = claudeResponse.indexOf("{");
+      const last = claudeResponse.lastIndexOf("}");
+      if (first !== -1 && last !== -1 && last > first) {
+        return claudeResponse.slice(first, last + 1).trim();
+      }
+      return claudeResponse.trim();
+    })();
     let rawJson: unknown;
     try {
-      rawJson = JSON.parse(claudeResponse);
-    } catch {
+      rawJson = JSON.parse(stripped);
+    } catch (err) {
+      console.warn("[analyzeEstimatePdf] JSON parse failed", {
+        venueId,
+        rawPreview: claudeResponse.slice(0, 400),
+        strippedPreview: stripped.slice(0, 400),
+        err,
+      });
       return {
         error: "AI の応答をうまく読み取れませんでした。もう一度お試しください",
       };
