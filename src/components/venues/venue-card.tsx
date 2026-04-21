@@ -1,4 +1,4 @@
-import { Star, Sparkles, Layers, Check } from "lucide-react";
+import { Star, Sparkles, Layers } from "lucide-react";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
@@ -53,25 +53,19 @@ interface VenueCardProps {
    */
   fitReason?: string | null;
   /**
-   * Multi-select mode props (compare-mode on /candidates):
-   * - When `selectMode` is true, the whole card becomes tap-to-toggle
-   *   (prefetch link on the name + image is suppressed) and a large
-   *   gold checkbox overlay appears in the bottom-right.
-   * - Left alone when `selectMode` is false so normal browsing flow
-   *   works exactly as before.
+   * Which members have favorited this venue ("me" / "partner").
+   * Rendered as small chips above the cost line so the shortlist tab
+   * exposes the same owner signal the compare tab already shows.
+   * Optional so callers outside candidates/ can ignore it.
    */
-  selectMode?: boolean;
-  isSelected?: boolean;
-  onToggleSelect?: (venueId: string) => void;
+  favoritedBy?: ("me" | "partner")[];
 }
 
 export function VenueCard({
   venue,
   isFavorite = false,
   fitReason = null,
-  selectMode = false,
-  isSelected = false,
-  onToggleSelect,
+  favoritedBy,
 }: VenueCardProps) {
   const avgScore = computeCompositeScore(venue.scores);
   const hasCost = venue.costMin || venue.costMax;
@@ -117,31 +111,11 @@ export function VenueCard({
   );
   const isAggregated = sourceLabels.length >= 2;
 
-  const cardWrapperProps = selectMode
-    ? {
-        role: "checkbox" as const,
-        "aria-checked": isSelected,
-        tabIndex: 0,
-        onClick: () => onToggleSelect?.(venue.id),
-        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggleSelect?.(venue.id);
-          }
-        },
-      }
-    : {};
-
   return (
     <div
-      {...cardWrapperProps}
-      className={cn(
-        "group relative overflow-hidden rounded-[var(--r-lg)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-500 ease-out md:hover:shadow-[var(--shadow-elevated)] md:hover:-translate-y-0.5 active:scale-[0.98] active:duration-100",
-        selectMode && "cursor-pointer",
-        selectMode && isSelected && "ring-2 ring-[var(--gold-warm)] ring-offset-2 ring-offset-background",
-      )}
+      className="group relative overflow-hidden rounded-[var(--r-lg)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] transition-[transform,box-shadow] duration-500 ease-out md:hover:shadow-[var(--shadow-elevated)] md:hover:-translate-y-0.5 active:scale-[0.98] active:duration-100"
       style={
-        isDecided && !selectMode
+        isDecided
           ? {
               boxShadow:
                 "0 0 0 2px color-mix(in oklab, var(--gold-warm) 55%, transparent), 0 1px 3px rgba(42,35,32,0.04), 0 12px 28px color-mix(in oklab, var(--gold-warm) 14%, transparent)",
@@ -149,57 +123,23 @@ export function VenueCard({
           : undefined
       }
     >
-      {/* Photo section — 4:3 editorial ratio, gold hairline below.
-          In select mode the whole card is the tap target, so the photo
-          becomes a plain <div> rather than a PrefetchLink. */}
+      {/* Photo section — 4:3 editorial ratio, gold hairline below. */}
       <div className="relative border-b border-[var(--gold-subtle)]/40">
-        {selectMode ? (
-          <div aria-hidden="true">
-            <PhotoCarousel
-              photos={venue.photoUrls}
-              alt={venue.name}
-              aspectRatio="4/3"
-            />
-            {venue.photoUrls.length > 0 && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
-            )}
-          </div>
-        ) : (
-          <PrefetchLink href={`/venues/${venue.id}`}>
-            <PhotoCarousel
-              photos={venue.photoUrls}
-              alt={venue.name}
-              aspectRatio="4/3"
-            />
-            {venue.photoUrls.length > 0 && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
-            )}
-          </PrefetchLink>
-        )}
+        <PrefetchLink href={`/venues/${venue.id}`}>
+          <PhotoCarousel
+            photos={venue.photoUrls}
+            alt={venue.name}
+            aspectRatio="4/3"
+          />
+          {venue.photoUrls.length > 0 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
+          )}
+        </PrefetchLink>
 
-        {/* Heart button - top right only. Hidden in select mode (the whole
-            card is the tap target; hearting would swallow the toggle). */}
-        {!selectMode && (
-          <div className="absolute right-3 top-3 z-10">
-            <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
-          </div>
-        )}
-
-        {/* Selection checkbox — bottom right so it doesn't collide with
-            the heart (top right). Large tap target, gold when selected. */}
-        {selectMode && (
-          <div
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute bottom-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all",
-              isSelected
-                ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-background"
-                : "border-background/80 bg-background/60 text-transparent backdrop-blur-sm",
-            )}
-          >
-            <Check className="h-4 w-4" strokeWidth={3} />
-          </div>
-        )}
+        {/* Heart button — top right. */}
+        <div className="absolute right-3 top-3 z-10">
+          <HeartButton venueId={venue.id} initialFavorite={isFavorite} />
+        </div>
 
         {/* "晴れの日" chip — decided venue only, top left */}
         {isDecided && (
@@ -267,66 +207,51 @@ export function VenueCard({
         </p>
       )}
 
-      {/* Info section — generous padding, hotel-brochure typography.
-          In select mode the wrapping <div> already handles tap; we
-          swap the link out for a plain <div> to avoid nested tap targets. */}
-      {selectMode ? (
-        <div className="block px-4 pt-2 pb-5">
-          <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
-            {venue.name}
-          </h3>
-          {metaParts.length > 0 && (
-            <p className="mt-2 truncate text-meta text-muted-foreground">
-              {metaParts.join(" · ")}
-            </p>
-          )}
-          {((venue.ceremonyStyles?.length ?? 0) > 0 || venue.dressBringIn) && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {(venue.ceremonyStyles ?? []).map((style) => (
-                <span
-                  key={style}
-                  className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground"
-                >
-                  {CEREMONY_STYLE_LABELS[style.toLowerCase()] ?? style}
-                </span>
-              ))}
-              {venue.dressBringIn && (
-                <span className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground">
-                  持ち込み{venue.dressBringIn === "allowed" ? "可" : venue.dressBringIn === "not_allowed" ? "不可" : "要相談"}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <PrefetchLink href={`/venues/${venue.id}`} className="block px-4 pt-2 pb-5">
-          <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
-            {venue.name}
-          </h3>
-          {metaParts.length > 0 && (
-            <p className="mt-2 truncate text-meta text-muted-foreground">
-              {metaParts.join(" · ")}
-            </p>
-          )}
-          {((venue.ceremonyStyles?.length ?? 0) > 0 || venue.dressBringIn) && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {(venue.ceremonyStyles ?? []).map((style) => (
-                <span
-                  key={style}
-                  className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground"
-                >
-                  {CEREMONY_STYLE_LABELS[style.toLowerCase()] ?? style}
-                </span>
-              ))}
-              {venue.dressBringIn && (
-                <span className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground">
-                  持ち込み{venue.dressBringIn === "allowed" ? "可" : venue.dressBringIn === "not_allowed" ? "不可" : "要相談"}
-                </span>
-              )}
-            </div>
-          )}
-        </PrefetchLink>
-      )}
+      {/* Info section — generous padding, hotel-brochure typography. */}
+      <PrefetchLink href={`/venues/${venue.id}`} className="block px-4 pt-2 pb-5">
+        <h3 className="truncate text-h2 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
+          {venue.name}
+        </h3>
+        {metaParts.length > 0 && (
+          <p className="mt-2 truncate text-meta text-muted-foreground">
+            {metaParts.join(" · ")}
+          </p>
+        )}
+        {/* Owner chips — same "自分 / P" signal the compare tab uses,
+            so the shortlist card tells couples whose heart got this
+            venue into the list without requiring a tab switch. */}
+        {favoritedBy && favoritedBy.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {favoritedBy.includes("me") && (
+              <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground/70">
+                自分
+              </span>
+            )}
+            {favoritedBy.includes("partner") && (
+              <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground/70">
+                パートナー
+              </span>
+            )}
+          </div>
+        )}
+        {((venue.ceremonyStyles?.length ?? 0) > 0 || venue.dressBringIn) && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {(venue.ceremonyStyles ?? []).map((style) => (
+              <span
+                key={style}
+                className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground"
+              >
+                {CEREMONY_STYLE_LABELS[style.toLowerCase()] ?? style}
+              </span>
+            ))}
+            {venue.dressBringIn && (
+              <span className="rounded-full bg-muted px-2.5 py-1 text-meta text-muted-foreground">
+                持ち込み{venue.dressBringIn === "allowed" ? "可" : venue.dressBringIn === "not_allowed" ? "不可" : "要相談"}
+              </span>
+            )}
+          </div>
+        )}
+      </PrefetchLink>
     </div>
   );
 }

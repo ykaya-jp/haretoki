@@ -55,8 +55,12 @@ export default async function MyPage() {
     getUnreadCount().catch(() => 0),
   ]);
 
-  const hasPartner = members.some((m) => m.role === "partner" && m.acceptedAt);
   const partner = members.find((m) => m.role === "partner");
+  const hasPartner = partner?.acceptedAt != null;
+  // Distinguish "invited but not yet joined" from "no partner at all" so
+  // the mypage panel can show an "招待中…" state rather than re-offering
+  // the invite UI to a couple already mid-flow.
+  const partnerPending = !!partner && !partner.acceptedAt;
 
   const conditions = (project?.conditions ?? {}) as {
     style?: string[];
@@ -130,10 +134,26 @@ export default async function MyPage() {
         {hasPartner ? (
           <div className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
             <p className="text-xs text-muted-foreground">パートナー</p>
-            <p className="mt-1 font-medium">{partner?.user?.name ?? partner?.user?.email ?? "—"}</p>
+            <p className="mt-1 font-medium">
+              {partner?.user?.name ?? partner?.user?.email ?? "—"}
+            </p>
             <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2.5 py-0.5 text-xs text-[var(--gold-warm)]">
               一緒に参加中
             </span>
+          </div>
+        ) : partnerPending ? (
+          <div className="rounded-2xl border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-card p-5 shadow-[var(--shadow-card)]">
+            <p className="text-xs text-muted-foreground">招待中…</p>
+            <p className="mt-1 font-medium">
+              {partner?.user?.email ?? "—"}
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+              招待リンクを送りました。受け取った方が「合流する」を押すと、
+              ふたりの式場さがしが始まります。
+            </p>
+            <div className="mt-4 border-t border-border pt-4">
+              <InviteLinkPanel initialLink={invitationLink} />
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

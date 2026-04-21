@@ -195,17 +195,29 @@ export async function acceptInvitation(invitationId: string) {
     return { success: false as const, error: "この招待はあなた宛ではありません" };
   }
 
-  // Supabase Auth marks user_metadata.email_verified after the confirmation
-  // email is clicked. We require that before accepting — this is the gate
-  // that prevents someone from creating an account with another person's
-  // email and claiming their invitation.
+  // Email verification gate: blocks "sign up with someone else's email +
+  // claim their invitation" abuse. Accept any of three equivalent
+  // signals so we don't reject legitimate OAuth users:
+  //   1. email_confirmed_at set — classic email/password confirm flow
+  //   2. user.user_metadata.email_verified — Supabase surfaces this
+  //      for most OAuth providers (Google, GitHub)
+  //   3. identities[].identity_data.email_verified — the provider-level
+  //      flag Supabase normalises into identities when the top-level
+  //      metadata isn't populated (some Google flows hit this)
+  const identitiesVerified = (
+    user.identities as Array<{
+      identity_data?: { email_verified?: boolean };
+    }> | undefined
+  )?.some((i) => i.identity_data?.email_verified === true);
   const emailConfirmed =
     (user.email_confirmed_at ?? null) !== null ||
-    user.user_metadata?.email_verified === true;
+    user.user_metadata?.email_verified === true ||
+    identitiesVerified === true;
   if (!emailConfirmed) {
     return {
       success: false as const,
-      error: "メールアドレスの確認が必要です。受信メールの確認リンクをタップしてください。",
+      error:
+        "メールアドレスの確認が必要です。受信メールの確認リンクをタップしてください。",
     };
   }
 

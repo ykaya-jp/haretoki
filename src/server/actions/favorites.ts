@@ -33,27 +33,47 @@ export async function toggleFavorite(venueId: string): Promise<{ isFavorite: boo
 
   // Status transition — bounded to the safe cases above. For everything
   // else we leave status alone so e.g. a "rejected" venue stays rejected
-  // even if the user toggles the heart.
-  let statusUpdate: VenueStatus | null = null;
-  if (nextFavorite && HEART_ON_PROMOTE_FROM.includes(venue.status)) {
-    statusUpdate = "shortlisted";
-  } else if (!nextFavorite && HEART_OFF_DEMOTE_FROM.includes(venue.status)) {
-    statusUpdate = "researching";
-  }
+  // even if the user toggles the heart. Partner-aware: heart-off only
+  // demotes to researching when the OTHER project member also doesn't
+  // favorite the venue. Otherwise owner removing their heart would
+  // silently drop the venue out of partner's "candidates" chip even
+  // though partner still loves it. Computed inside the tx after the
+  // toggle so the count is post-change.
+  const statusUpdate = await prisma.$transaction(
+    async (tx): Promise<VenueStatus | null> => {
+      if (existing) {
+        await tx.venueFavorite.delete({ where: { id: existing.id } });
+      } else {
+        await tx.venueFavorite.create({
+          data: { venueId, userId: user.id },
+        });
+      }
 
-  await prisma.$transaction(async (tx) => {
-    if (existing) {
-      await tx.venueFavorite.delete({ where: { id: existing.id } });
-    } else {
-      await tx.venueFavorite.create({ data: { venueId, userId: user.id } });
-    }
-    if (statusUpdate) {
-      await tx.venue.update({
-        where: { id: venueId },
-        data: { status: statusUpdate },
-      });
-    }
-  });
+      if (nextFavorite && HEART_ON_PROMOTE_FROM.includes(venue.status)) {
+        await tx.venue.update({
+          where: { id: venueId },
+          data: { status: "shortlisted" },
+        });
+        return "shortlisted";
+      }
+      if (!nextFavorite && HEART_OFF_DEMOTE_FROM.includes(venue.status)) {
+        // Only demote when zero members favorite the venue now. If
+        // partner still has a heart on it, the "shortlisted" signal
+        // is still legitimate project-wide.
+        const remaining = await tx.venueFavorite.count({
+          where: { venueId },
+        });
+        if (remaining === 0) {
+          await tx.venue.update({
+            where: { id: venueId },
+            data: { status: "researching" },
+          });
+          return "researching";
+        }
+      }
+      return null;
+    },
+  );
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
   if (statusUpdate) {

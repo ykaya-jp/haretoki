@@ -54,7 +54,8 @@ export async function getOrCreateProject() {
         // Reassign every child FK that pointed at the placeholder. Keep
         // this list in sync with `model User { ... }` relations in
         // `prisma/schema.prisma`. Missing tables here means silent data
-        // loss on the placeholder delete, so prefer explicit coverage
+        // loss on the placeholder delete (onDelete: Cascade would drop
+        // the row instead of remapping), so prefer explicit coverage
         // over generic reflection.
         await tx.projectMember.updateMany({
           where: { userId: placeholder.id },
@@ -68,6 +69,48 @@ export async function getOrCreateProject() {
           where: { userId: placeholder.id },
           data: { userId: user.id },
         });
+        // Below were missing from the original migration list. They
+        // rarely trigger (placeholders usually only hold a membership
+        // row) but the cascade would destroy legit data if a partner
+        // ever managed to produce one of these before signing up.
+        await tx.notification.updateMany({
+          where: { userId: placeholder.id },
+          data: { userId: user.id },
+        });
+        await tx.savedSearch.updateMany({
+          where: { userId: placeholder.id },
+          data: { userId: user.id },
+        });
+        await tx.coupleAgreement.updateMany({
+          where: { createdBy: placeholder.id },
+          data: { createdBy: user.id },
+        });
+        await tx.projectInvitation.updateMany({
+          where: { createdBy: placeholder.id },
+          data: { createdBy: user.id },
+        });
+        // NotificationPreference has a 1:1 userId @unique. If the
+        // placeholder somehow grew one we move it; if the real user
+        // *also* has one, drop the placeholder's to avoid a duplicate
+        // on the unique index.
+        const placeholderPref = await tx.notificationPreference.findUnique({
+          where: { userId: placeholder.id },
+        });
+        if (placeholderPref) {
+          const realPref = await tx.notificationPreference.findUnique({
+            where: { userId: user.id },
+          });
+          if (realPref) {
+            await tx.notificationPreference.delete({
+              where: { userId: placeholder.id },
+            });
+          } else {
+            await tx.notificationPreference.update({
+              where: { userId: placeholder.id },
+              data: { userId: user.id },
+            });
+          }
+        }
         // Finally delete the placeholder. Its FK children have all been
         // moved so the cascade is a no-op; email uniqueness was already
         // shifted onto the real row by the upsert above (both rows

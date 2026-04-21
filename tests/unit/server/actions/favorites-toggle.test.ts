@@ -21,18 +21,26 @@ const findUniqueFavoriteMock = vi.fn();
 const deleteFavoriteMock = vi.fn();
 const createFavoriteMock = vi.fn();
 const updateVenueMock = vi.fn();
-const transactionMock = vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
-  // Our transactional closure only uses venueFavorite + venue tables on tx.
-  await cb({
-    venueFavorite: {
-      delete: deleteFavoriteMock,
-      create: createFavoriteMock,
-    },
-    venue: {
-      update: updateVenueMock,
-    },
-  });
-});
+// Count reflects remaining favorites after toggle; tests override as needed.
+// Default 0 means "no other members still favorite this venue" → the
+// shortlisted → researching demotion is allowed to proceed.
+const countFavoritesMock = vi.fn(async () => 0);
+const transactionMock = vi.fn(
+  async (cb: (tx: unknown) => Promise<unknown>) => {
+    // Our transactional closure uses venueFavorite + venue on tx. The
+    // new partner-aware demotion path also calls venueFavorite.count.
+    return await cb({
+      venueFavorite: {
+        delete: deleteFavoriteMock,
+        create: createFavoriteMock,
+        count: countFavoritesMock,
+      },
+      venue: {
+        update: updateVenueMock,
+      },
+    });
+  },
+);
 
 type VenueStatus =
   | "researching"

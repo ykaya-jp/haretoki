@@ -6,7 +6,6 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import {
   requireUser,
   requireProjectMembership,
-  requireOwner,
   requireVenueAccess,
 } from "@/server/auth";
 import { captureServerEvent } from "@/lib/analytics/server";
@@ -24,7 +23,11 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   }
 
   const user = await requireUser();
-  const { projectId } = await requireOwner(user.id);
+  // Both owner and partner can decide: 結婚式場選びはふたりで決めるものが
+  // 大前提なので、owner-only だと partner が決定ボタンを押せず体験が壊れる。
+  // Audit L0: makeDecision/cancelDecision は project membership のみで認可。
+  // 片方が誤タップしたら互いにキャンセルできるので最悪ケースも recoverable。
+  const { projectId } = await requireProjectMembership(user.id);
   await requireVenueAccess(user.id, validation.data.selectedVenueId);
 
   let decision;
@@ -91,7 +94,8 @@ export async function getDecision() {
  */
 export async function cancelDecision() {
   const user = await requireUser();
-  const { projectId } = await requireOwner(user.id);
+  // Same "ふたりで決める" rule as makeDecision — either member can cancel.
+  const { projectId } = await requireProjectMembership(user.id);
 
   const existing = await prisma.decision.findUnique({
     where: { projectId },
