@@ -28,6 +28,7 @@ import { PartnerComparisonSummary } from "@/components/ratings/partner-compariso
 import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
+import { EstimateTimeline } from "@/components/estimates/estimate-timeline";
 import { VenueDetailBackLink } from "@/components/venues/back-link";
 import { VenueOverflowMenu } from "@/components/venues/venue-overflow-menu";
 import { VenueHeroRibbon } from "@/components/venues/venue-hero-ribbon";
@@ -388,6 +389,21 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
               item.upgradeProbability != null
                 ? Number(item.upgradeProbability)
                 : null,
+          })),
+        }))}
+      />
+
+      {/* Version timeline — v1 → v2 → v3 の推移。version が 1 件だけの
+          ときは component 側で null を返すので render しても副作用なし。 */}
+      <EstimateTimeline
+        estimates={estimates.map((e) => ({
+          id: e.id,
+          version: e.version,
+          total: e.total,
+          createdAt: e.createdAt,
+          items: e.items.map((item) => ({
+            category: item.category,
+            amount: Number(item.amount),
           })),
         }))}
       />
