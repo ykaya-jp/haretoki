@@ -8,6 +8,8 @@ import type { VenueInput } from "@/server/actions/venue-schema";
 import { Prisma, type VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
 import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
+import { computeInputHash } from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
 import { computeCompositeScore } from "@/lib/venue-score";
 import {
@@ -1165,9 +1167,21 @@ export async function addVenueFromUrl(url: string): Promise<{
     });
     const structured = parseJsonLd(jsonLdBlobs);
 
-    const claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
-      maxTokens: 4096,
-    });
+    const urlExtractionHash = computeInputHash(
+      JSON.stringify({ system: URL_EXTRACTION_SYSTEM_PROMPT, user: prompt }),
+    );
+    const cachedExtraction = await getCachedResponse(urlExtractionHash);
+    let claudeResponse: string | null;
+    if (cachedExtraction) {
+      claudeResponse = cachedExtraction;
+    } else {
+      claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
+        maxTokens: 4096,
+      });
+      if (claudeResponse) {
+        await setCachedResponse(urlExtractionHash, claudeResponse, "claude-haiku-4-5-20251001");
+      }
+    }
 
     // If Claude failed entirely, try to rescue with JSON-LD + og metadata
     // alone. This is lower-confidence but gives zexy / hanayume pages a

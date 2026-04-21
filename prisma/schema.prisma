@@ -729,3 +729,15 @@ model CoupleAgreement {
   @@index([createdBy])
   @@map("couple_agreements")
 }
+
+/// AI response cache — deduplicates identical Claude inputs across all call sites.
+/// TTL = 30 days (enforced in application logic, not DB).
+model AiCache {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inputHash String   @unique @map("input_hash")
+  response  String
+  model     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_cache")
+}

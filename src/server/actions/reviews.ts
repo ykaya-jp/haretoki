@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
 import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
@@ -291,12 +292,20 @@ async function analyzeVenueReviewsInner(
 
     // Send to Claude for analysis
     const strippedContent = stripPII(textContent);
-    const claudeResponse = await withRetry(() =>
+    const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name);
+    const reviewCacheHash = computeInputHash(
+      JSON.stringify({ system: REVIEW_SUMMARY_PROMPT.system, user: reviewUserMessage }),
+    );
+    const cachedReview = await getCachedResponse(reviewCacheHash);
+    const claudeResponse = cachedReview ?? await withRetry(() =>
       askClaude({
         system: REVIEW_SUMMARY_PROMPT.system,
-        userMessage: REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name),
+        userMessage: reviewUserMessage,
       })
     );
+    if (!cachedReview) {
+      await setCachedResponse(reviewCacheHash, claudeResponse, "claude-haiku-4-5-20251001");
+    }
 
     // Claude occasionally wraps the JSON in ```json …``` fences or adds
     // a short preamble like "Here's the analysis:" before the object.

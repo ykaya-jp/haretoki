@@ -2,7 +2,8 @@
 
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
+import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { MODEL } from "@/lib/models";
 
 type VenueRow = {
@@ -112,27 +113,37 @@ export async function recommendVenuesFromConditions(): Promise<RecommendVenuesRe
     `【候補式場リスト】\n${venueList}\n\n` +
     "上記リストの中から最大3件を選び、JSON形式で返してください。summaryは60〜100字でふたりへのメッセージを書いてください。";
 
+  const recCacheHash = computeInputHash(
+    JSON.stringify({ system: systemPrompt, user: userMessage, model: MODEL.HAIKU }),
+  );
+
   try {
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("timed out")), 20_000),
     );
 
+    const cachedRec = await getCachedResponse(recCacheHash);
     let response: string;
-    try {
-      response = await Promise.race([
-        withRetry(() =>
-          askClaude({
-            system: systemPrompt,
-            userMessage,
-            model: MODEL.HAIKU,
-            maxTokens: 1024,
-          }),
-        ),
-        timeoutPromise,
-      ]);
-    } catch (err) {
-      console.error("[recommendVenuesFromConditions] Claude error:", err instanceof Error ? err.message : err);
-      return null;
+    if (cachedRec) {
+      response = cachedRec;
+    } else {
+      try {
+        response = await Promise.race([
+          withRetry(() =>
+            askClaude({
+              system: systemPrompt,
+              userMessage,
+              model: MODEL.HAIKU,
+              maxTokens: 1024,
+            }),
+          ),
+          timeoutPromise,
+        ]);
+      } catch (err) {
+        console.error("[recommendVenuesFromConditions] Claude error:", err instanceof Error ? err.message : err);
+        return null;
+      }
+      await setCachedResponse(recCacheHash, response, MODEL.HAIKU);
     }
 
     // Strip markdown code fences

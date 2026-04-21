@@ -2,7 +2,8 @@
 
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { askClaude, withRetry, isClaudeAvailable, sanitizeForPrompt } from "@/lib/anthropic";
+import { askClaude, withRetry, isClaudeAvailable, sanitizeForPrompt, computeInputHash } from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 
 export interface AIChecklistItem {
   item: string;
@@ -103,8 +104,13 @@ export async function generateAIChecklistForVenue(
     "日本語、各項目は 20-40 字の質問形、reason は 40-80 字でなぜそれを確認すべきかを書く。" +
     'JSON形式のみで返答: {"items": [{"item": "...", "reason": "..."}]}';
 
+  const checklistCacheHash = computeInputHash(
+    JSON.stringify({ system, user: venueInfo, model: "claude-haiku-4-5-20251001" }),
+  );
+
   try {
-    const raw = await withRetry(() =>
+    const cached = await getCachedResponse(checklistCacheHash);
+    const raw = cached ?? await withRetry(() =>
       askClaude({
         system,
         userMessage: venueInfo,
@@ -112,6 +118,9 @@ export async function generateAIChecklistForVenue(
         maxTokens: 1024,
       }),
     );
+    if (!cached) {
+      await setCachedResponse(checklistCacheHash, raw, "claude-haiku-4-5-20251001");
+    }
 
     const parsed = JSON.parse(stripJsonResponse(raw)) as {
       items: AIChecklistItem[];

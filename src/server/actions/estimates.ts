@@ -5,6 +5,8 @@ import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
+import { computeInputHash } from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
 
 const estimateSchema = z.object({
@@ -167,10 +169,20 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     }
 
     // Send to Claude for analysis
-    const claudeResponse = await askClaude(
-      ESTIMATE_ANALYSIS_SYSTEM_PROMPT,
-      `以下は結婚式場の見積書のテキスト内容です。構造化データとして抽出してください:\n\n${pdfText}`,
+    const estimateUserMessage = `以下は結婚式場の見積書のテキスト内容です。構造化データとして抽出してください:\n\n${pdfText}`;
+    const estimateCacheHash = computeInputHash(
+      JSON.stringify({ system: ESTIMATE_ANALYSIS_SYSTEM_PROMPT, user: estimateUserMessage }),
     );
+    const cachedEstimate = await getCachedResponse(estimateCacheHash);
+    let claudeResponse: string | null;
+    if (cachedEstimate) {
+      claudeResponse = cachedEstimate;
+    } else {
+      claudeResponse = await askClaude(ESTIMATE_ANALYSIS_SYSTEM_PROMPT, estimateUserMessage);
+      if (claudeResponse) {
+        await setCachedResponse(estimateCacheHash, claudeResponse, "claude-haiku-4-5-20251001");
+      }
+    }
 
     if (!claudeResponse) {
       return { error: "AI がうまく読めませんでした。少し時間をおいてもう一度お試しください" };
