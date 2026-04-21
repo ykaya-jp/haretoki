@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { SkyChip, weatherLabel } from "@/components/home/sky-chip";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,8 +10,6 @@ import { cn } from "@/lib/utils";
 import { isLikelyAssetUrl } from "@/lib/url-import/extract-images";
 import type { Weather } from "@/lib/prompts/ritual";
 import { markRitualActed, markRitualSeen } from "@/server/actions/ritual";
-
-const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 interface CoverVenue {
   id: string;
@@ -62,7 +59,6 @@ export function HomeCover({
   isRitualCta = false,
   hasRitual = false,
 }: HomeCoverProps) {
-  const prefersReduced = useReducedMotion();
   const seenRef = useRef(false);
   useEffect(() => {
     if (seenRef.current) return;
@@ -87,12 +83,9 @@ export function HomeCover({
     coverVenue?.photoUrls?.find((u) => !isLikelyAssetUrl(u)) ?? null;
 
   return (
-    <motion.section
+    <section
       aria-label="今日のカバー"
-      className="relative -mx-5 sm:-mx-8"
-      initial={prefersReduced ? false : { opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: prefersReduced ? 0 : 0.9, ease: LUXURY_EASE }}
+      className="relative -mx-5 sm:-mx-8 animate-cover-fade-in"
     >
       {/* Height policy: 4:5 portrait on mobile (brand intent — poster
           crop for the venue photo) but cap to 16:9 landscape + ~64vh on
@@ -195,6 +188,6 @@ export function HomeCover({
           </Link>
         </HaloTap>
       </div>
-    </motion.section>
+    </section>
   );
 }
