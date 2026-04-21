@@ -4,7 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Check, ChevronsUpDown, Loader2, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  Loader2,
+  MessageSquareHeart,
+  Sparkles,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import {
   getUnifiedComparisonData,
@@ -15,8 +23,16 @@ import {
   getMatrixInsight,
   type MatrixInsight,
 } from "@/server/actions/matrix-insight";
+import { getPartnerRatings } from "@/server/actions/ratings";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { cn } from "@/lib/utils";
+import {
+  aggregatePartnerDiffAcrossVenues,
+  classifyAdvantage,
+  computePartnerOpinionDiff,
+  type Advantage,
+  type PartnerOpinionDiff,
+} from "@/lib/comparison-advantage";
 
 /**
  * CompareRedesigned — horizontal multi-select comparison table.
@@ -89,6 +105,22 @@ export function CompareRedesigned() {
     () => new Set(initialVenueIds),
   );
   const [diffOnly, setDiffOnly] = useState(false);
+  // W11-1 Feature B: "意見差を上に" toggle. When on, dimension rows are
+  // re-ordered by the couple's |owner − partner| magnitude so the
+  // most-split rows surface first and the top 1-2 get a "話し合いましょう"
+  // chip. Off by default — the natural Tier-1 order is still the best
+  // first read for most couples.
+  const [sortByPartnerDiff, setSortByPartnerDiff] = useState(false);
+  // venueId → { ownerRatings, partnerRatings } map. Populated lazily
+  // the first time the couple flips the partner-diff sort on, keyed by
+  // the currently-selected venues. We deliberately reuse the existing
+  // per-venue `getPartnerRatings` server action here instead of adding
+  // a matrix-wide one — the constraint is "no server/schema changes"
+  // and N calls for N selected venues (typically 2-4) is cheap enough.
+  const [partnerMap, setPartnerMap] = useState<
+    Record<string, { owner: Record<string, number> | null; partner: Record<string, number> | null }>
+  >({});
+  const [partnerLoading, setPartnerLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +145,65 @@ export function CompareRedesigned() {
       cancelled = true;
     };
   }, []);
+
+  // Stable join of the currently-selected venue ids so the effect
+  // below only re-fires when the *set* actually changes. The Set
+  // identity itself changes on every toggle, which would otherwise
+  // thrash the fetch.
+  const selectedKey = useMemo(
+    () => Array.from(selected).sort().join(","),
+    [selected],
+  );
+
+  // Lazily fetch per-venue partner ratings the first time the user
+  // enables the "意見差を上に" sort (and any time the selection
+  // changes while it's on). Skips venues already cached in
+  // `partnerMap` so toggling off/on is free after the first fetch.
+  //
+  // Every setState is deferred through `queueMicrotask` so we don't
+  // trip React 19's `set-state-in-effect` guard. The fetch is async
+  // anyway — the body just kicks it off, the awaited `.then()` runs
+  // after the current render cycle.
+  useEffect(() => {
+    if (!sortByPartnerDiff) return;
+    const ids = selectedKey ? selectedKey.split(",").filter(Boolean) : [];
+    const missing = ids.filter((id) => !(id in partnerMap));
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setPartnerLoading(true);
+    });
+    void Promise.all(
+      missing.map((id) =>
+        getPartnerRatings(id)
+          .then((r) => ({
+            id,
+            owner: r.ownerRatings?.ratings ?? null,
+            partner: r.partnerRatings?.ratings ?? null,
+          }))
+          .catch(() => ({ id, owner: null, partner: null })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      setPartnerMap((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          next[r.id] = { owner: r.owner, partner: r.partner };
+        }
+        return next;
+      });
+      setPartnerLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // partnerMap intentionally omitted — including it would re-trigger
+    // the effect every time we set it, creating an infinite loop. The
+    // `missing` guard above handles cache invalidation on selection
+    // change explicitly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortByPartnerDiff, selectedKey]);
 
   // Pool defines which venues are eligible for the chip picker. The
   // owner filter narrows the pool; selected venues that fall outside
@@ -202,6 +293,12 @@ export function CompareRedesigned() {
   const venueIds = selectedVenues.map((v) => v.id);
   const canRender = venueIds.length >= 2;
 
+  // Exactly-2 mode unlocks the head-to-head arrow cue: when the couple
+  // is deciding between two venues, the matrix stops being a table and
+  // starts being a "左 vs 右" read. Arrows only render in this mode;
+  // 3+ venues fall back to the existing winner tint.
+  const isHeadToHead = venueIds.length === 2;
+
   // Build matrix rows with per-dimension winner detection. "Winner"
   // semantics reused from the server payload; we only compute the
   // "ほぼ同じ (|Δ| < 0.5)" tie flag locally so the UI can tint
@@ -217,11 +314,66 @@ export function CompareRedesigned() {
       max !== null && hasMeaningfulDiff
         ? venueIds[scores.findIndex((s) => s === max)] ?? null
         : null;
-    return { dim: d, scores, winnerId, hasMeaningfulDiff, spread };
+    // W11-1 Feature A: classify head-to-head advantage. Null when
+    // more than 2 venues are selected so the cell renderer can skip
+    // the arrow entirely.
+    const advantage: Advantage | null = isHeadToHead
+      ? classifyAdvantage(scores[0], scores[1])
+      : null;
+    return { dim: d, scores, winnerId, hasMeaningfulDiff, spread, advantage };
   });
 
-  const visibleRows = diffOnly ? rows.filter((r) => r.hasMeaningfulDiff) : rows;
+  // W11-1 Feature B: when the partner-diff sort is on, re-order rows
+  // by MAX |owner - partner| across selected venues (desc). Ties keep
+  // the original Tier-1 order — stable sort via index tie-breaker.
+  const partnerDiffByDim: Record<string, number> = {};
+  if (sortByPartnerDiff) {
+    const perVenueDiffs: PartnerOpinionDiff[][] = venueIds.map((id) => {
+      const cached = partnerMap[id];
+      return computePartnerOpinionDiff(
+        data.dimensions.map((d) => d.id),
+        cached?.owner ?? null,
+        cached?.partner ?? null,
+      );
+    });
+    for (const d of data.dimensions) {
+      partnerDiffByDim[d.id] = aggregatePartnerDiffAcrossVenues(
+        perVenueDiffs,
+        d.id,
+      );
+    }
+  }
+  const sortedRows = sortByPartnerDiff
+    ? [...rows]
+        .map((row, idx) => ({ row, idx }))
+        .sort((a, b) => {
+          const da = partnerDiffByDim[a.row.dim.id] ?? 0;
+          const db = partnerDiffByDim[b.row.dim.id] ?? 0;
+          if (db !== da) return db - da;
+          return a.idx - b.idx;
+        })
+        .map(({ row }) => row)
+    : rows;
+
+  const visibleRows = diffOnly
+    ? sortedRows.filter((r) => r.hasMeaningfulDiff)
+    : sortedRows;
   const diffCount = rows.filter((r) => r.hasMeaningfulDiff).length;
+
+  // Top-2 "話し合いましょう" chip eligibility — only meaningful while
+  // the partner-diff sort is on, partner data has loaded for at least
+  // one venue, and the magnitude itself is non-trivial (>= 1.0 on the
+  // 5-point scale means a full-star gap, which is a real conversation
+  // trigger, not just noise).
+  const discussDimIds = new Set<string>();
+  if (sortByPartnerDiff) {
+    const ranked = Object.entries(partnerDiffByDim)
+      .filter(([, v]) => v >= 1.0)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 2)
+      .map(([id]) => id);
+    for (const id of ranked) discussDimIds.add(id);
+  }
 
   // One CSS variable drives every grid row — no more template drift.
   // Using inline style since Tailwind arbitrary values don't compose
@@ -375,34 +527,56 @@ export function CompareRedesigned() {
               wanted to tweak which dimensions mattered had to back out
               two screens first. Inlining the link keeps the editor one
               tap away from where the need arises. */}
-          <div className="flex items-center justify-between gap-2 px-3">
+          <div className="flex flex-col gap-2 px-3">
             <p className="text-[11px] text-muted-foreground">
               {selectedVenues.length} 件 比較中 · 差のある項目{" "}
               <span className="tabular-nums text-foreground/80">
                 {diffCount}
               </span>
             </p>
-            <div className="flex items-center gap-2">
+            <div className="-mx-3 flex items-center gap-2 overflow-x-auto px-3 scrollbar-hide">
               <Link
                 href="/checklist"
-                className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-3 text-[11px] text-muted-foreground transition-colors active:scale-[0.97] hover:text-foreground"
+                className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-[11px] text-muted-foreground transition-colors active:scale-[0.97] hover:text-foreground"
               >
                 項目を編集
               </Link>
               <button
-              type="button"
-              onClick={() => setDiffOnly((v) => !v)}
-              aria-pressed={diffOnly}
-              className={cn(
-                "inline-flex min-h-8 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors active:scale-[0.97]",
-                diffOnly
-                  ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
-                  : "border-border text-muted-foreground",
-              )}
-            >
-              <ChevronsUpDown className="h-3 w-3" strokeWidth={2} />
-              差がある項目だけ
-            </button>
+                type="button"
+                onClick={() => setDiffOnly((v) => !v)}
+                aria-pressed={diffOnly}
+                className={cn(
+                  "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors active:scale-[0.98]",
+                  diffOnly
+                    ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                <ChevronsUpDown className="h-3 w-3" strokeWidth={2} />
+                差がある項目だけ
+              </button>
+              {/* W11-1 Feature B toggle. `active:scale-[0.98]` matches
+                  the house tap-feedback rule. We intentionally surface
+                  this even before partner data loads — the press is
+                  what triggers the fetch. */}
+              <button
+                type="button"
+                onClick={() => setSortByPartnerDiff((v) => !v)}
+                aria-pressed={sortByPartnerDiff}
+                className={cn(
+                  "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors active:scale-[0.98]",
+                  sortByPartnerDiff
+                    ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                {partnerLoading && sortByPartnerDiff ? (
+                  <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2} />
+                ) : (
+                  <MessageSquareHeart className="h-3 w-3" strokeWidth={2} />
+                )}
+                意見差を上に
+              </button>
             </div>
           </div>
 
@@ -499,34 +673,82 @@ export function CompareRedesigned() {
                 差のある項目はありません。
               </p>
             ) : (
-              visibleRows.map((row, idx) => (
-                <div
-                  key={row.dim.id}
-                  className={cn(
-                    "grid items-center gap-0",
-                    idx !== visibleRows.length - 1 && "border-b border-border/60",
-                  )}
-                  style={{ gridTemplateColumns: "var(--cmp-grid)" }}
-                >
+              visibleRows.map((row, idx) => {
+                const shouldDiscuss = discussDimIds.has(row.dim.id);
+                const adv = row.advantage;
+                return (
                   <div
-                    className="sticky left-0 z-10 bg-card px-3 py-2.5 text-[12px] font-medium text-foreground/80"
-                    style={{ width: LABEL_COL_PX }}
+                    key={row.dim.id}
+                    className={cn(
+                      "grid items-center gap-0",
+                      idx !== visibleRows.length - 1 && "border-b border-border/60",
+                      shouldDiscuss &&
+                        "bg-[color-mix(in_oklab,var(--gold-warm)_6%,transparent)]",
+                    )}
+                    style={{ gridTemplateColumns: "var(--cmp-grid)" }}
                   >
-                    {row.dim.label}
-                  </div>
-                  {row.scores.map((score, colIdx) => {
-                    const venueId = venueIds[colIdx];
-                    const isWinner = row.winnerId === venueId;
-                    return (
-                      <DimensionCell
-                        key={venueId}
-                        score={score}
-                        isWinner={isWinner}
+                    <div
+                      className={cn(
+                        "sticky left-0 z-10 px-3 py-2.5 text-[12px] font-medium text-foreground/80",
+                        shouldDiscuss
+                          ? "bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--card))]"
+                          : "bg-card",
+                      )}
+                      style={{ width: LABEL_COL_PX }}
+                    >
+                      <span className="block truncate">{row.dim.label}</span>
+                      {shouldDiscuss && (
+                        <span className="mt-0.5 inline-flex items-center gap-0.5 rounded-full bg-[var(--gold-warm)]/15 px-1.5 py-[1px] text-[9.5px] font-medium text-[var(--gold-warm)]">
+                          <MessageSquareHeart
+                            className="h-2.5 w-2.5"
+                            strokeWidth={2}
+                          />
+                          話し合いましょう
+                        </span>
+                      )}
+                    </div>
+                    {row.scores.map((score, colIdx) => {
+                      const venueId = venueIds[colIdx];
+                      const isWinner = row.winnerId === venueId;
+                      // Highlight the winning side more strongly in
+                      // head-to-head mode so the arrow + winner tint
+                      // read together as "ここが優勢".
+                      const advantageWinner =
+                        isHeadToHead && adv
+                          ? adv.kind === "left" || adv.kind === "left-strong"
+                            ? colIdx === 0
+                            : adv.kind === "right" || adv.kind === "right-strong"
+                              ? colIdx === 1
+                              : false
+                          : isWinner;
+                      const isStrong =
+                        isHeadToHead &&
+                        (adv?.kind === "left-strong" || adv?.kind === "right-strong") &&
+                        advantageWinner;
+                      return (
+                        <DimensionCell
+                          key={venueId}
+                          score={score}
+                          isWinner={advantageWinner}
+                          strong={isStrong}
+                        />
+                      );
+                    })}
+                    {/* W11-1 Feature A: head-to-head advantage caption.
+                        Spans the whole venue-cell block underneath via
+                        grid-column full-span so the arrow is centered
+                        between both scores. Only renders when exactly
+                        2 venues are selected. */}
+                    {isHeadToHead && adv && (
+                      <AdvantageCaption
+                        advantage={adv}
+                        leftName={selectedVenues[0]?.name ?? ""}
+                        rightName={selectedVenues[1]?.name ?? ""}
                       />
-                    );
-                  })}
-                </div>
-              ))
+                    )}
+                  </div>
+                );
+              })
             )}
             </div>
           </div>
@@ -566,13 +788,18 @@ export function CompareRedesigned() {
  * numeric score underneath. Stars were replaced because 5 glyphs × N
  * columns wrap on 375px below ~80px per column; a bar + number stays
  * legible at 112px and reads as a "how close to full marks" signal.
+ *
+ * `strong` lifts the gold fill to a slightly deeper tint when the gap
+ * against the opponent is >= 1.0 (W11-1 Feature A "明確に優勢").
  */
 function DimensionCell({
   score,
   isWinner,
+  strong = false,
 }: {
   score: number | null;
   isWinner: boolean;
+  strong?: boolean;
 }) {
   if (score === null) {
     return (
@@ -580,6 +807,7 @@ function DimensionCell({
         className={cn(
           "flex flex-col items-center justify-center gap-1 px-2 py-2.5",
           isWinner && "bg-[color-mix(in_oklab,var(--gold-warm)_5%,transparent)]",
+          strong && "bg-[color-mix(in_oklab,var(--gold-warm)_14%,transparent)]",
         )}
       >
         <div className="h-1.5 w-[70%] rounded-full bg-muted" />
@@ -593,6 +821,7 @@ function DimensionCell({
       className={cn(
         "flex flex-col items-center justify-center gap-1 px-2 py-2.5",
         isWinner && "bg-[color-mix(in_oklab,var(--gold-warm)_8%,transparent)]",
+        strong && "bg-[color-mix(in_oklab,var(--gold-warm)_14%,transparent)]",
       )}
     >
       <div
@@ -621,6 +850,103 @@ function DimensionCell({
       >
         {score.toFixed(1)}
       </span>
+    </div>
+  );
+}
+
+/**
+ * W11-1 Feature A — advantage caption under each head-to-head
+ * dimension row. Spans the venue-cell columns (skips the sticky label
+ * column) so the arrow sits visually between the two scores.
+ *
+ * Shape of the caption by advantage kind:
+ *   - `tie`          → muted "ほぼ同じ" pill, no arrow
+ *   - `left` / `right`          → single Chevron, gold-warm
+ *   - `left-strong` / `right-strong` → double Chevron + "明確に優勢"
+ *     pill, stronger gold
+ *   - `unknown`      → nothing (one side lacks a score)
+ */
+function AdvantageCaption({
+  advantage,
+  leftName,
+  rightName,
+}: {
+  advantage: Advantage;
+  leftName: string;
+  rightName: string;
+}) {
+  if (advantage.kind === "unknown") return null;
+
+  // Grid column start = 2 (after the sticky label col), span both
+  // venue cells. `min-w-0` because venue names may be long and we let
+  // them truncate rather than push the row wider.
+  const spanClass =
+    "col-start-2 col-end-4 flex items-center justify-center gap-1 px-2 pb-2 pt-0 text-[10.5px] leading-none";
+
+  if (advantage.kind === "tie") {
+    return (
+      <div className={spanClass} aria-hidden="true">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+          ほぼ同じ
+        </span>
+      </div>
+    );
+  }
+
+  const isLeft =
+    advantage.kind === "left" || advantage.kind === "left-strong";
+  const isStrong =
+    advantage.kind === "left-strong" || advantage.kind === "right-strong";
+  const winnerName = isLeft ? leftName : rightName;
+  const Icon = isLeft ? ChevronLeft : ChevronRight;
+  const absDelta = Math.abs(advantage.delta);
+
+  return (
+    <div
+      className={cn(
+        spanClass,
+        "tabular-nums",
+        isStrong ? "text-[var(--gold-warm)]" : "text-[var(--gold-warm)]/85",
+      )}
+      role="note"
+      aria-label={`${winnerName} が ${absDelta.toFixed(1)} 点 ${
+        isStrong ? "明確に優勢" : "優勢"
+      }`}
+    >
+      {/* Left arrow cluster — renders only when the left side wins */}
+      {isLeft && (
+        <span className="inline-flex items-center">
+          <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+          {isStrong && (
+            <Icon
+              className="-ml-2 h-3.5 w-3.5 opacity-80"
+              strokeWidth={2.5}
+            />
+          )}
+        </span>
+      )}
+      <span
+        className={cn(
+          "rounded-full px-2 py-0.5",
+          isStrong
+            ? "bg-[var(--gold-warm)] text-white"
+            : "bg-[var(--gold-warm)]/15",
+        )}
+      >
+        {isStrong ? "明確に優勢" : "優勢"} · {absDelta.toFixed(1)}
+      </span>
+      {/* Right arrow cluster */}
+      {!isLeft && (
+        <span className="inline-flex items-center">
+          {isStrong && (
+            <Icon
+              className="-mr-2 h-3.5 w-3.5 opacity-80"
+              strokeWidth={2.5}
+            />
+          )}
+          <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
+        </span>
+      )}
     </div>
   );
 }
