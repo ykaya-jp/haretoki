@@ -81,7 +81,21 @@ export function ExploreContent({
   vibeChips,
   searchQuery = "",
 }: ExploreContentProps) {
+  // Render-phase reset (React 19 pattern): track the last server-provided
+  // snapshot identity so that when the parent re-renders with a different
+  // `initialVenues` (e.g. user removed a personalized chip → URL params
+  // update → server re-fetch), our local venue state resets to that snapshot.
+  // Without this, the sheet-driven `setVenues` branch stayed in a stale
+  // snapshot and chip removals had no visible effect — that was the
+  // "ハッシュタグを消しても画面変わらない" bug. This is the allowed
+  // "reset on prop change" pattern; we avoid `useEffect(() => setState())`
+  // because it violates React 19's set-state-in-effect rule.
   const [venues, setVenues] = useState(initialVenues);
+  const [lastInitial, setLastInitial] = useState(initialVenues);
+  if (lastInitial !== initialVenues) {
+    setLastInitial(initialVenues);
+    setVenues(initialVenues);
+  }
   const [activeFilter, setActiveFilter] = useState("all");
   const [advancedFilters, setAdvancedFilters] = useState<VenueFilters>({});
   const [isPending, startTransition] = useTransition();
@@ -92,6 +106,13 @@ export function ExploreContent({
   // Read URL params for keyword and vibe tags (managed by parent components).
   const searchParams = useSearchParams();
 
+  // TODO(myreview-02 item 3): ホームの totalVenues と explore の "すべて"
+  // 件数が乖離する問題。原因は URL params (areas / styles / vibe / q)
+  // が残ったまま "すべて" を押すと、ここで数える venues はすでに
+  // サーバ側で絞り込まれているため。根本解決にはサーバ fetch と
+  // クライアント表示の母集合を揃える (全件 fetch + クライアント絞込) か、
+  // 絞込が効いているバッジを "3 / 7 件" のように分子/分母で見せる
+  // 必要あり。後者が小さく、次 PR で対応予定。
   const chips = STATUS_FILTERS.map((f) => {
     const count = f.id === "all"
       ? venues.length
