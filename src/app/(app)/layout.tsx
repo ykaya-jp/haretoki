@@ -6,6 +6,7 @@ import { getOrCreateProject } from "@/server/actions/projects";
 import { requireUser } from "@/server/auth";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { ServiceWorkerRegistry } from "@/components/pwa/service-worker-registry";
 import { BfcacheRefresh } from "@/components/app/bfcache-refresh";
 import { prisma } from "@/server/db";
 
@@ -93,6 +94,7 @@ export default async function AppLayout({
         {children}
       </main>
       <InstallPrompt />
+      <ServiceWorkerRegistry />
       {/* Stream nav: shell (BottomNav without counts) flushes first while
           getOrCreateProject + badge DB round-trips resolve in the background. */}
       <Suspense fallback={<BottomNav />}>
