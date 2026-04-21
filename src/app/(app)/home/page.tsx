@@ -59,12 +59,25 @@ export default async function HomePage() {
 
   const progress = homeData.progress;
   const firstVenue = homeData.recentVenues[0] ?? null;
+  // Top 2 favorite ids feed the duel CTA when favoriteCount === 2.
+  // homeData may or may not expose them directly; derive from the
+  // recentVenues array as a best-effort (venue.isFavorite flag if
+  // present, otherwise fall back to nulls so the stage helper routes
+  // to the generic compare page instead of a broken URL).
+  const favoriteVenueIds = (
+    homeData.recentVenues as Array<{ id: string; isFavorite?: boolean }>
+  )
+    .filter((v) => v.isFavorite !== false)
+    .slice(0, 2)
+    .map((v) => v.id);
   const stage = getHomeStage({
     totalVenues: progress.totalVenues,
     visitedVenues: progress.visitedVenues,
     favoriteCount: progress.favoriteCount,
     hasDecision: progress.hasDecision,
     firstVenueId: firstVenue?.id ?? null,
+    favoriteAId: favoriteVenueIds[0] ?? null,
+    favoriteBId: favoriteVenueIds[1] ?? null,
   });
 
   // Prefer AI-generated ritual copy + CTA, fall back to stage-derived.

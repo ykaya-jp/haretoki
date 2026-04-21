@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, ChevronsUpDown, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -66,11 +67,27 @@ const LABEL_COL_PX = 120;
 const VENUE_COL_PX = 112;
 
 export function CompareRedesigned() {
+  const searchParams = useSearchParams();
+  // `?venueIds=a,b,c` preseeds the selection — used by the venue detail
+  // page's "比べる" CTA so a couple taps once and lands on the compare
+  // matrix with the current venue already picked. Safe to parse
+  // lazily; we fall back to the auto-seed below when the param is
+  // missing or all ids get filtered out by the owner pool.
+  const initialVenueIds = useMemo(() => {
+    const raw = searchParams?.get("venueIds") ?? "";
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }, [searchParams]);
+
   const [data, setData] = useState<UnifiedComparisonData | null>(null);
   const [insight, setInsight] = useState<MatrixInsight | null>(null);
   const [loading, setLoading] = useState(true);
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(initialVenueIds),
+  );
   const [diffOnly, setDiffOnly] = useState(false);
 
   useEffect(() => {

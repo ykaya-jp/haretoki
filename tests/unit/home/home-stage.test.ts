@@ -52,20 +52,37 @@ describe("getHomeStage — Lexicon §5.4 pinning", () => {
     expect(r.ctaLabel).toBe("印象を残す");
   });
 
-  it("exactly 2 favorites → duel (情景で決める)", () => {
-    const r = getHomeStage({ ...EMPTY, totalVenues: 2, favoriteCount: 2 });
+  it("exactly 2 favorites with both ids → duel route with a/b params", () => {
+    const r = getHomeStage({
+      ...EMPTY,
+      totalVenues: 2,
+      favoriteCount: 2,
+      favoriteAId: "venue-a",
+      favoriteBId: "venue-b",
+    });
     expect(r.key).toBe("comparing");
     expect(r.headline).toBe("2 件で迷ったら、情景で決める");
     expect(r.ctaLabel).toBe("情景で決める");
-    expect(r.ctaHref).toBe("/candidates?tab=duel");
+    // duel page requires both a+b — previous /candidates?tab=duel URL
+    // was unreachable (no such tab in Tab union). Fix: route directly
+    // to /candidates/duel with the pair preselected.
+    expect(r.ctaHref).toBe("/candidates/duel?a=venue-a&b=venue-b");
   });
 
-  it("3+ favorites → side-by-side compare", () => {
+  it("exactly 2 favorites without ids → fall back to compare view", () => {
+    const r = getHomeStage({ ...EMPTY, totalVenues: 2, favoriteCount: 2 });
+    expect(r.key).toBe("comparing");
+    expect(r.ctaHref).toBe("/candidates?view=compare");
+  });
+
+  it("3+ favorites → side-by-side compare inside candidates", () => {
     const r = getHomeStage({ ...EMPTY, totalVenues: 5, favoriteCount: 3 });
     expect(r.key).toBe("comparing");
     expect(r.headline).toBe("ふたりで並べて、見比べてみましょう");
     expect(r.ctaLabel).toBe("比べる");
-    expect(r.ctaHref).toBe("/compare");
+    // Consolidated compare lives inside /candidates now; standalone
+    // /compare route is still deep-linkable but no longer the default.
+    expect(r.ctaHref).toBe("/candidates?view=compare");
   });
 
   it("decided stage routes to 当日の準備", () => {

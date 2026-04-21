@@ -28,13 +28,15 @@ export function VenueActionBar({ venueId, venueName, isFavorite }: VenueActionBa
         <ShareButton venueName={venueName} />
         <HaloTap className="flex-1 rounded-full">
           <Link
-            href={isFavorite ? "/compare" : "/candidates"}
+            href={`/candidates?view=compare&venueIds=${venueId}`}
             prefetch={true}
             className="flex min-h-[44px] w-full items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
           >
             {/* Verb unified to "比べる" across both states so the CTA's
                 action doesn't seem to change when the couple toggles
-                the heart. */}
+                the heart. The destination is now the consolidated
+                compare view with the current venue preselected, so
+                ♡ vs non-♡ no longer branches to different routes. */}
             {isFavorite ? "ほかの式場と比べる" : "候補に入れて比べる"}
           </Link>
         </HaloTap>

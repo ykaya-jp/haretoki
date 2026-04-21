@@ -6,6 +6,11 @@ export interface HomeStageInput {
   favoriteCount: number;
   hasDecision: boolean;
   firstVenueId?: string | null;
+  /** Top 2 favorited venue ids — drives the "2-件迷っている" duel CTA.
+   *  Both optional; when either is missing we fall back to the generic
+   *  /candidates route instead of routing to a broken URL. */
+  favoriteAId?: string | null;
+  favoriteBId?: string | null;
 }
 
 export interface HomeStageContent {
@@ -38,12 +43,20 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
   // Lexicon §5.4 — favorite == 2 is the unique duel case ("迷っている"
   // moment), favorite >= 3 shifts to side-by-side compare.
   if (p.favoriteCount === 2) {
+    // Duel UI lives at /candidates/duel?a=…&b=…. Without both ids the
+    // route returns notFound, so we require the pair before emitting
+    // the duel CTA — otherwise fall through to the generic compare
+    // destination.
+    const duelHref =
+      p.favoriteAId && p.favoriteBId
+        ? `/candidates/duel?a=${p.favoriteAId}&b=${p.favoriteBId}`
+        : "/candidates?view=compare";
     return {
       key: "comparing",
       headline: "2 件で迷ったら、情景で決める",
       sub: "ふたりの心がどちらに寄っているか、静かに知る時間を",
       ctaLabel: "情景で決める",
-      ctaHref: "/candidates?tab=duel",
+      ctaHref: duelHref,
       fallbackWeather: "clear",
     };
   }
@@ -53,7 +66,10 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
       headline: "ふたりで並べて、見比べてみましょう",
       sub: `本命 ${p.favoriteCount} 件。比べるほど、輪郭が見えてきます`,
       ctaLabel: "比べる",
-      ctaHref: "/compare",
+      // Keep the compare experience consolidated inside /candidates so
+      // the user stays in the same tab surface; the standalone /compare
+      // route is kept for deep-link backwards compatibility.
+      ctaHref: "/candidates?view=compare",
       fallbackWeather: "clear",
     };
   }
