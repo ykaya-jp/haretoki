@@ -5,11 +5,15 @@ import { updateVenueStatus } from "@/server/actions/venues";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { toast } from "sonner";
 
+// Labels must match src/components/explore/explore-content.tsx STATUS_FILTERS
+// so the same enum value surfaces the same Japanese word everywhere.
+// (researching / shortlisted had drifted between the two files — that
+// was the "検討中 / 候補 / 調査中 の関係が地獄" feedback.)
 const STATUS_OPTIONS: { value: VenueStatus; label: string }[] = [
-  { value: "researching", label: "調査中" },
+  { value: "researching", label: "気になる" },
   { value: "visit_scheduled", label: "見学予定" },
   { value: "visited", label: "見学済み" },
-  { value: "shortlisted", label: "候補" },
+  { value: "shortlisted", label: "検討中" },
   { value: "rejected", label: "見送り" },
 ];
 

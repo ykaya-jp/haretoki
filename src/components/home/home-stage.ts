@@ -64,7 +64,7 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
     return {
       key: "comparing",
       headline: "ふたりで並べて、見比べてみましょう",
-      sub: `本命 ${p.favoriteCount} 件。比べるほど、輪郭が見えてきます`,
+      sub: `候補 ${p.favoriteCount} 件。比べるほど、輪郭が見えてきます`,
       ctaLabel: "比べる",
       // Keep the compare experience consolidated inside /candidates so
       // the user stays in the same tab surface; the standalone /compare

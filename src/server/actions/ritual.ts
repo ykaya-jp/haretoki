@@ -125,7 +125,7 @@ function templateRitual(ctx: RitualContext): DailyRitualView {
     return {
       weather: "clear",
       headline: "ふたりで、並べてみよう。",
-      mood: `本命 ${ctx.favoriteCount} 件。比べるほど、輪郭が見えてきます。`,
+      mood: `候補 ${ctx.favoriteCount} 件。比べるほど、輪郭が見えてきます。`,
       ctaLabel: "比べる",
       ctaHref: "/candidates",
       fallback: true,
@@ -136,7 +136,7 @@ function templateRitual(ctx: RitualContext): DailyRitualView {
       weather: "break",
       headline: "印象を、忘れないうちに。",
       mood: ctx.hasUnratedFavorite
-        ? "本命にまだ印象を残していない式場があります。"
+        ? "候補にまだ印象を残していない式場があります。"
         : "気になったこと、写真と一緒に残しておきましょう。",
       ctaLabel: "印象を残す",
       ctaHref: "/candidates",

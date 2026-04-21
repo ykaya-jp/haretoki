@@ -32,8 +32,8 @@ export default function DemoHomePage() {
         <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground">デモ進捗</p>
         <div className="mt-3 grid grid-cols-3 divide-x divide-border/40 text-center">
           <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{totalVenues}</span><span className="text-[10px] text-muted-foreground">気になる</span></div>
-          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{visitedVenues}</span><span className="text-[10px] text-muted-foreground">印象メモ</span></div>
-          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{favoriteCount}</span><span className="text-[10px] text-muted-foreground">本命</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{visitedVenues}</span><span className="text-[10px] text-muted-foreground">見学済み</span></div>
+          <div><span className="block font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums">{favoriteCount}</span><span className="text-[10px] text-muted-foreground">候補</span></div>
         </div>
       </div>
 

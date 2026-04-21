@@ -16,10 +16,15 @@ interface HomePulseProps {
  * Replaces the EditorialHero metrics block.
  */
 export function HomePulse(props: HomePulseProps) {
+  // 用語統一 (CLAUDE.md 用語対応表):
+  //   totalVenues   — "気になる" (= status researching 相当を含む全 Venue)
+  //   visitedVenues — "見学済み"
+  //   favoriteCount — "候補" (VenueFavorite = ハートで追加 = bottom-nav の候補タブと同一)
+  // 旧 "本命 / 印象メモ" ラベルは用語対応表と衝突していたため削除。
   const metrics = [
     { label: "気になる", value: props.totalVenues },
-    { label: "印象メモ", value: props.visitedVenues },
-    { label: "本命", value: props.favoriteCount },
+    { label: "見学済み", value: props.visitedVenues },
+    { label: "候補", value: props.favoriteCount },
   ];
 
   return (

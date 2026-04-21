@@ -38,7 +38,7 @@ export function AcceptInviteForm({ invitationId }: AcceptInviteFormProps) {
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
           合流すると、式場の閲覧・評価・比較を一緒に進められます。
-          見学メモや「本命」もふたりで共有できます。
+          見学メモや「候補」もふたりで共有できます。
         </p>
         <Button
           onClick={handleAccept}
