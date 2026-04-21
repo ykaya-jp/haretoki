@@ -27,7 +27,7 @@ export default function CandidatesLoading() {
           key={i}
           className="space-y-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]"
         >
-          <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+          <Skeleton className="aspect-[3/2] w-full rounded-xl" />
           <Skeleton className="h-5 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
         </div>

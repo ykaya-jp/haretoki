@@ -26,7 +26,7 @@ const PhotoCarouselEmbla = dynamic(
     loading: () => (
       <div
         aria-hidden
-        className="aspect-[4/3] w-full animate-pulse rounded-2xl bg-muted"
+        className="aspect-[3/2] w-full animate-pulse rounded-2xl bg-muted"
       />
     ),
   },

@@ -59,7 +59,7 @@ export default function HomeLoading() {
               key={i}
               className="w-[280px] shrink-0 space-y-2 rounded-2xl bg-card shadow-sm"
             >
-              <div className="aspect-[4/3] w-full rounded-t-2xl bg-muted" />
+              <div className="aspect-[3/2] w-full rounded-t-2xl bg-muted" />
               <div className="space-y-2 p-3">
                 <div className="h-4 w-3/4 rounded bg-muted" />
                 <div className="h-3 w-1/2 rounded bg-muted" />

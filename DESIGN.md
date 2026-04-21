@@ -340,7 +340,7 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 │ [エリア▼][人数▼][予算▼][+]  │ ← filter chips (horizontal scroll)
 ├─────────────────────────────┤
 │ ┌───────────────────────┐  │
-│ │ [4:3 Photo]       [♡] │  │ ← venue card
+│ │ [3:2 Photo]       [♡] │  │ ← venue card
 │ │ [見学済]               │  │ ← status badge (pill, top-left)
 │ │ ← ● ● ● →             │  │ ← carousel dots
 │ ├───────────────────────┤  │
@@ -351,7 +351,7 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 │ └───────────────────────┘  │
 │                             │
 │ ┌───────────────────────┐  │
-│ │ [4:3 Photo]       [♡] │  │ ← next card
+│ │ [3:2 Photo]       [♡] │  │ ← next card
 │ │ ...                    │  │
 │ └───────────────────────┘  │
 ├─────────────────────────────┤
@@ -364,8 +364,8 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 | Element | Spec |
 |---------|------|
 | Card width | 100% (mobile 1col), 50% (tablet 2col), 33% (desktop 3col) |
-| Photo ratio | 4:3, object-fit: cover |
-| Photo占有率 | ~65% of card height |
+| Photo ratio | 3:2, object-fit: cover (myreview-02 item 12 — 4:3 made the feed feel top-heavy) |
+| Photo占有率 | ~60% of card height |
 | Border radius | 16px |
 | Shadow (rest) | 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06) |
 | Shadow (hover) | 0 4px 12px rgba(0,0,0,0.06), 0 20px 40px rgba(0,0,0,0.1) |
@@ -523,7 +523,7 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 式場カードタップで遷移。全情報をここに集約。
 
 **セクション構成**:
-1. フォトギャラリー (横スワイプ、4:3)
+1. フォトギャラリー (横スワイプ、3:2 — カードと詳細で比率を揃える)
 2. 基本情報 (名前、住所、アクセス、収容人数、スタイル)
 3. 評価 (6次元星評価 + パートナー比較ビュー)
 4. 見積もり (バージョン一覧 + AI分析)

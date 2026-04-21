@@ -24,7 +24,7 @@ export default function ExploreLoading() {
           key={i}
           className="space-y-3 rounded-2xl bg-card shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]"
         >
-          <div className="aspect-[4/3] w-full rounded-t-2xl bg-muted" />
+          <div className="aspect-[3/2] w-full rounded-t-2xl bg-muted" />
           <div className="space-y-2 p-4">
             <div className="h-5 w-3/4 rounded bg-muted" />
             <div className="h-4 w-1/2 rounded bg-muted" />

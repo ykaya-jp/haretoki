@@ -36,9 +36,9 @@ const VIRTUALIZE_THRESHOLD = 50;
  * Rough estimate of a VenueCard's rendered height at 375px viewport.
  * The virtualizer measures real heights after mount via the `measureElement`
  * ref, so this only controls the initial scrollbar size. Keep it in the
- * ballpark of the common case (photo 4:3 + header + price + one chip row).
+ * ballpark of the common case (photo 3:2 + header + price + one chip row).
  */
-const CARD_ESTIMATE_HEIGHT_PX = 420;
+const CARD_ESTIMATE_HEIGHT_PX = 390;
 
 interface ExploreContentProps {
   venues: VenueWithRelations[];
