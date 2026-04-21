@@ -47,6 +47,19 @@ interface ExploreContentProps {
   // (from URL search params or project.conditions). Pass them in so the
   // filter-sheet merges ON TOP of them instead of silently clobbering them.
   baseFilters?: VenueFilters;
+  /**
+   * Unfiltered denominator — total venues owned by the project, regardless of
+   * any URL / sheet filter. Used to render "3 / 7件表示中" so users can tell
+   * whether some venues are hidden by a URL param they forgot was there
+   * (myreview-02 item 3).
+   */
+  totalVenueCount?: number;
+  /**
+   * True when the server-side fetch was already narrowed by a URL filter
+   * (query / areas / styles / guestCount / budgetMax / vibe). Drives the
+   * "絞り込みを解除" escape hatch above the list.
+   */
+  hasServerFilter?: boolean;
   /** E-2 Fit Reason map { venueId: "◯◯ — ふたりの..." | null } */
   fitReasons?: Record<string, string | null>;
   /** Number of saved searches already stored (for limit check). */
@@ -75,6 +88,8 @@ export function ExploreContent({
   venues: initialVenues,
   favoriteIds,
   baseFilters,
+  totalVenueCount,
+  hasServerFilter = false,
   fitReasons = {},
   savedSearchCount = 0,
   conditionChips,
@@ -106,13 +121,11 @@ export function ExploreContent({
   // Read URL params for keyword and vibe tags (managed by parent components).
   const searchParams = useSearchParams();
 
-  // TODO(myreview-02 item 3): ホームの totalVenues と explore の "すべて"
-  // 件数が乖離する問題。原因は URL params (areas / styles / vibe / q)
-  // が残ったまま "すべて" を押すと、ここで数える venues はすでに
-  // サーバ側で絞り込まれているため。根本解決にはサーバ fetch と
-  // クライアント表示の母集合を揃える (全件 fetch + クライアント絞込) か、
-  // 絞込が効いているバッジを "3 / 7 件" のように分子/分母で見せる
-  // 必要あり。後者が小さく、次 PR で対応予定。
+  // myreview-02 item 3 — "すべて" の status chip は client 側の絞込しか解除
+  // しないので、URL param (query/areas/styles/guestCount/budgetMax/vibe) で
+  // サーバ絞込がかかっていると home の totalVenues と件数が一致しない。
+  // 数値バッジを「分子 / 分母件表示中」に変更し、絞込がかかっている場合は
+  // /explore に戻す「絞り込みを解除」リンクを出して escape hatch を提供。
   const chips = STATUS_FILTERS.map((f) => {
     const count = f.id === "all"
       ? venues.length
@@ -200,14 +213,37 @@ export function ExploreContent({
           + count, and let vertical rhythm (space-y-5) separate the
           groups. */}
       <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-eyebrow text-muted-foreground">
             絞り込み
           </span>
           <span className="tabular-nums text-[13px] font-normal text-[var(--gold-warm)]">
-            {filteredVenues.length}件
+            {typeof totalVenueCount === "number" &&
+            totalVenueCount > filteredVenues.length
+              ? `${filteredVenues.length} / ${totalVenueCount}件表示中`
+              : `${filteredVenues.length}件`}
           </span>
         </div>
+
+        {/* Escape hatch: when URL params narrowed the server-side result,
+            a single tap on /explore clears everything and restores the full
+            project venue list. Without this, users had to manually strip
+            query params or retry the search box to "see everything". */}
+        {hasServerFilter && typeof totalVenueCount === "number" &&
+          totalVenueCount > venues.length && (
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 px-3 py-2 text-[12px] text-muted-foreground">
+              <span>
+                {totalVenueCount - venues.length}件が URL の絞り込みで隠れています
+              </span>
+              <Link
+                href="/explore"
+                prefetch={false}
+                className="inline-flex min-h-9 items-center rounded-full border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                絞り込みを解除
+              </Link>
+            </div>
+          )}
 
         {conditionChips && <div>{conditionChips}</div>}
 

@@ -98,13 +98,23 @@ export default async function ExplorePage({
   };
 
   const hasAnyFilter = Object.keys(venueFilters).length > 0;
+  const hasAnyVibe = activeVibes.length > 0;
 
-  const [venuesFromFilters, vibeVenues, favorites, aiSeed, savedSearches] = await Promise.all([
+  // Resolve the authenticated project once so we can count the unfiltered
+  // denominator alongside the filtered list fetch. Without this, the Explore
+  // count pill showed only the numerator (e.g. "3件") while Home's Pulse
+  // showed the unfiltered total (e.g. "7件 登録中"), leaving users unsure
+  // whether "すべて" on Explore really meant everything (myreview-02 item 3).
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const [venuesFromFilters, vibeVenues, favorites, aiSeed, savedSearches, totalVenueCount] = await Promise.all([
     getVenues(hasAnyFilter ? venueFilters : undefined),
-    activeVibes.length > 0 ? filterVenuesByVibe(activeVibes) : Promise.resolve(null),
+    hasAnyVibe ? filterVenuesByVibe(activeVibes) : Promise.resolve(null),
     getFavorites("mine"),
     getExploreAIRecommendationsSeed(),
     listSavedSearches().catch(() => []),
+    prisma.venue.count({ where: { projectId } }),
   ]);
 
   // When vibe filter is active, intersect with vibe results (OR match across vibes,
@@ -167,6 +177,8 @@ export default async function ExplorePage({
         venues={venues}
         favoriteIds={favoriteIds}
         baseFilters={hasAnyFilter ? venueFilters : undefined}
+        totalVenueCount={totalVenueCount}
+        hasServerFilter={hasAnyFilter || hasAnyVibe}
         fitReasons={fitReasons}
         savedSearchCount={savedSearches.length}
         conditionChips={
