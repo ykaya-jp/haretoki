@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback } from "react";
 import { updateChecklistItemStatus } from "@/server/actions/visits";
-import { Check, X, ChevronDown, MessageSquare, Camera, Loader2 } from "lucide-react";
+import { Check, X, ChevronDown, MessageSquare, Camera, Loader2, Sparkles, Plus } from "lucide-react";
 import Image from "next/image";
 import { addChecklistPhoto } from "@/server/actions/visits";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { CHECKLIST_TEMPLATES } from "@/lib/checklist-templates";
+import { generateAIChecklistForVenue } from "@/server/actions/ai-visit-checklist";
+import type { AIChecklistItem } from "@/server/actions/ai-visit-checklist";
 
 interface ChecklistItem {
   id: string;
@@ -22,6 +24,7 @@ interface ChecklistItem {
 
 interface VisitChecklistProps {
   items: ChecklistItem[];
+  venueId?: string;
 }
 
 const CATEGORY_ORDER = ["chapel", "facility", "banquet", "dress_item", "staff_estimate", "cuisine_drink"] as const;
@@ -36,7 +39,7 @@ function getCategoryLabel(category: string): string {
   return CHECKLIST_TEMPLATES[category]?.label ?? category;
 }
 
-export function VisitChecklist({ items }: VisitChecklistProps) {
+export function VisitChecklist({ items, venueId }: VisitChecklistProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(CATEGORY_ORDER));
   const [expandedMemos, setExpandedMemos] = useState<Set<string>>(new Set());
   const [memoValues, setMemoValues] = useState<Record<string, string>>(() => {
@@ -48,6 +51,29 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
   });
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // AI checklist state
+  const [aiItems, setAiItems] = useState<AIChecklistItem[] | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateAI = useCallback(async () => {
+    if (!venueId) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await generateAIChecklistForVenue(venueId);
+      if ("error" in result) {
+        setAiError(result.error);
+      } else {
+        setAiItems(result.items);
+      }
+    } catch {
+      setAiError("AI提案の取得中にエラーが発生しました");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [venueId]);
 
   // Group items by category
   const grouped = new Map<string, ChecklistItem[]>();
@@ -106,6 +132,73 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-medium">見学の確認リスト</p>
+
+      {/* AI-generated venue-specific checklist section */}
+      {venueId && (
+        <div className="rounded-xl border border-[color-mix(in_oklab,var(--gold,#b8972a)_30%,var(--border))] overflow-hidden">
+          {/* Section header */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-[color-mix(in_oklab,var(--gold,#b8972a)_6%,var(--background))] border-l-[3px] border-l-[var(--gold,#b8972a)]">
+            <Sparkles className="h-4 w-4 text-[var(--gold,#b8972a)] shrink-0" />
+            <p className="text-sm font-medium text-foreground">この式場で確認すべきこと (AI 提案)</p>
+          </div>
+
+          <div className="px-4 py-3">
+            {/* Initial state: show generate button */}
+            {!aiItems && !aiLoading && !aiError && (
+              <button
+                type="button"
+                onClick={handleGenerateAI}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[color-mix(in_oklab,var(--gold,#b8972a)_12%,var(--background))] border border-[color-mix(in_oklab,var(--gold,#b8972a)_40%,var(--border))] px-4 py-2 text-sm text-[color-mix(in_oklab,var(--gold,#b8972a)_80%,var(--foreground))] transition-colors duration-200 active:scale-[0.98] active:bg-[color-mix(in_oklab,var(--gold,#b8972a)_20%,var(--background))]"
+              >
+                <Sparkles className="h-4 w-4" />
+                AIに提案してもらう
+              </button>
+            )}
+
+            {/* Loading state */}
+            {aiLoading && (
+              <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>式場の特徴を分析しています…</span>
+              </div>
+            )}
+
+            {/* Error state */}
+            {aiError && !aiLoading && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{aiError}</p>
+                <button
+                  type="button"
+                  onClick={handleGenerateAI}
+                  className="text-xs text-[color-mix(in_oklab,var(--gold,#b8972a)_80%,var(--foreground))] underline underline-offset-2"
+                >
+                  もう一度試す
+                </button>
+              </div>
+            )}
+
+            {/* Results */}
+            {aiItems && (
+              <div className="space-y-3">
+                {aiItems.map((ai, idx) => (
+                  <AIChecklistRow
+                    key={idx}
+                    item={ai}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={handleGenerateAI}
+                  className="mt-1 text-xs text-muted-foreground underline underline-offset-2 active:text-foreground"
+                >
+                  再生成する
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {sortedCategories.map((cat) => {
         const catItems = grouped.get(cat) ?? [];
         const checkedCount = catItems.filter(i => i.status !== "unchecked").length;
@@ -241,6 +334,31 @@ export function VisitChecklist({ items }: VisitChecklistProps) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function AIChecklistRow({ item }: { item: AIChecklistItem }) {
+  const [added, setAdded] = useState(false);
+
+  return (
+    <div className={cn(
+      "flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 transition-colors duration-200",
+      added && "opacity-50"
+    )}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm leading-snug">{item.item}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{item.reason}</p>
+      </div>
+      <button
+        type="button"
+        disabled={added}
+        onClick={() => setAdded(true)}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold,#b8972a)_40%,var(--border))] text-[color-mix(in_oklab,var(--gold,#b8972a)_80%,var(--foreground))] transition-colors duration-200 active:bg-[color-mix(in_oklab,var(--gold,#b8972a)_12%,var(--background))] disabled:opacity-40"
+        aria-label="確認リストに追加"
+      >
+        {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+      </button>
     </div>
   );
 }

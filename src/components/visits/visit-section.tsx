@@ -209,7 +209,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
 
           {/* Checklist */}
           {visit.checklist.length > 0 && (
-            <VisitChecklist items={visit.checklist} />
+            <VisitChecklist items={visit.checklist} venueId={venueId} />
           )}
 
           {/* Star rating — completed visits only */}
