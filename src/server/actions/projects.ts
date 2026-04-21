@@ -89,6 +89,10 @@ export async function getOrCreateProject() {
           where: { createdBy: placeholder.id },
           data: { createdBy: user.id },
         });
+        await tx.visitNote.updateMany({
+          where: { userId: placeholder.id },
+          data: { userId: user.id },
+        });
         // NotificationPreference has a 1:1 userId @unique. If the
         // placeholder somehow grew one we move it; if the real user
         // *also* has one, drop the placeholder's to avoid a duplicate

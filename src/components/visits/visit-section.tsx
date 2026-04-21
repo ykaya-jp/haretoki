@@ -25,6 +25,7 @@ interface Visit {
     id: string;
     content: string;
     tags: string[];
+    userId: string | null;
     locationLat: number | null;
     locationLng: number | null;
     createdAt: Date;
@@ -39,9 +40,13 @@ interface VisitSectionProps {
   venueName: string;
   visits: Visit[];
   projectId: string;
+  /** Current signed-in user id — used to label notes "自分" vs "パートナー" */
+  currentUserId?: string;
+  /** Partner's user id — used to label notes "パートナー" */
+  partnerUserId?: string;
 }
 
-export function VisitSection({ venueId, visits }: VisitSectionProps) {
+export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: VisitSectionProps) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleMemo, setScheduleMemo] = useState("");
@@ -316,23 +321,38 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
           {visit.notes.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">メモ</p>
-              {visit.notes.map((note) => (
-                <div key={note.id} className="rounded-lg bg-muted/50 p-3 text-sm">
-                  <p>{note.content}</p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="tabular-nums">{new Date(note.createdAt).toLocaleString("ja-JP")}</span>
-                    {note.locationLat && <><MapPin className="h-3 w-3" /> GPS</>}
-                  </div>
-                  {note.media.length > 0 && (
-                    <div className="mt-2 flex gap-2">
-                      {note.media.map((m) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={m.id} src={m.mediaUrl} alt="見学写真" className="h-16 w-16 rounded-lg object-cover" />
-                      ))}
+              {visit.notes.map((note) => {
+                const authorLabel =
+                  note.userId && currentUserId
+                    ? note.userId === currentUserId
+                      ? "自分"
+                      : note.userId === partnerUserId
+                        ? "パートナー"
+                        : null
+                    : null;
+                return (
+                  <div key={note.id} className="rounded-lg bg-muted/50 p-3 text-sm">
+                    <p>{note.content}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="tabular-nums">{new Date(note.createdAt).toLocaleString("ja-JP")}</span>
+                      {note.locationLat && <><MapPin className="h-3 w-3" /> GPS</>}
+                      {authorLabel && (
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+                          {authorLabel}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {note.media.length > 0 && (
+                      <div className="mt-2 flex gap-2">
+                        {note.media.map((m) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={m.id} src={m.mediaUrl} alt="見学写真" className="h-16 w-16 rounded-lg object-cover" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

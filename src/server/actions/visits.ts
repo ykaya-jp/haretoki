@@ -105,6 +105,7 @@ export async function addVisitNote(
   const note = await prisma.visitNote.create({
     data: {
       visitId,
+      userId: user.id,
       content: parsed.data.content,
       tags: parsed.data.tags ?? [],
       locationLat: parsed.data.locationLat,

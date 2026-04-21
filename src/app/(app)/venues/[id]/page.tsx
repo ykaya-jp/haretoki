@@ -9,6 +9,7 @@ import {
 import { getPartnerRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
 import { requireUser, requireProjectMembership } from "@/server/auth";
+import { prisma } from "@/server/db";
 import { VibeTagEditor } from "@/components/venues/vibe-tag-editor";
 import { getVenueReviews, getVenueReviewEstimateAggregate } from "@/server/actions/reviews";
 import { getVenuePlans } from "@/server/actions/plans";
@@ -511,11 +512,21 @@ async function VisitsContent({
 }) {
   const user = await requireUser();
   const visits = await getVenueVisits(venueId);
+
+  // Resolve partner userId for "誰が書いたか" note labels
+  const allMembers = await prisma.projectMember.findMany({
+    where: { projectId },
+    select: { userId: true },
+  });
+  const partnerUserId = allMembers.find((m) => m.userId !== user.id)?.userId ?? undefined;
+
   return (
     <VisitSection
       venueId={venueId}
       venueName={venueName}
       projectId={projectId}
+      currentUserId={user.id}
+      partnerUserId={partnerUserId}
       visits={visits.map((v) => ({
         id: v.id,
         scheduledAt: v.scheduledAt,
@@ -537,6 +548,7 @@ async function VisitsContent({
             id: n.id,
             content: n.content,
             tags: n.tags,
+            userId: n.userId,
             locationLat: n.locationLat ? Number(n.locationLat) : null,
             locationLng: n.locationLng ? Number(n.locationLng) : null,
             createdAt: n.createdAt,

@@ -75,7 +75,9 @@ export async function submitWayHome(
             prisma.visitNote.create({
               data: {
                 visitId,
+                userId: user.id,
                 content: input.goodNote?.trim() ?? "",
+                // legacy by:<uuid> tag kept for historical compatibility
                 tags: ["way_home_good", `by:${user.id}`, ...input.goodTags],
               },
             }),
@@ -89,7 +91,9 @@ export async function submitWayHome(
             prisma.visitNote.create({
               data: {
                 visitId,
+                userId: user.id,
                 content: input.concernNote?.trim() ?? "",
+                // legacy by:<uuid> tag kept for historical compatibility
                 tags: ["way_home_concern", `by:${user.id}`, ...input.concernTags],
               },
             }),
