@@ -3,10 +3,13 @@ import { requireUser } from "@/server/auth";
 import { ThemeSwitcher } from "@/components/settings/theme-switcher";
 import { LogoutButton } from "@/components/settings/logout-button";
 import { DataManagement } from "@/components/settings/data-management";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { getMyNotificationPreference } from "@/server/actions/notification-preferences";
 import { ChevronLeft } from "lucide-react";
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const notificationPref = await getMyNotificationPreference();
 
   return (
     <div className="space-y-10 pb-[env(safe-area-inset-bottom)]">
@@ -48,6 +51,21 @@ export default async function SettingsPage() {
             </p>
           </div>
           <ThemeSwitcher />
+        </div>
+      </section>
+
+      {/* Notifications */}
+      <section className="space-y-3">
+        <div className="flex items-baseline gap-2">
+          <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
+            Notifications
+          </p>
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light tracking-wide text-foreground">
+            お知らせ
+          </h3>
+        </div>
+        <div className="rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
+          <NotificationSettings initialFrequency={notificationPref.frequency} />
         </div>
       </section>
 

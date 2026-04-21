@@ -226,6 +226,14 @@ async function getAIInsightsImpl(): Promise<AIInsight[]> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
+  // Respect notification frequency preference: off → no insights.
+  const notifPref = await prisma.notificationPreference.findUnique({
+    where: { userId: user.id },
+    select: { frequency: true },
+  });
+  const frequency = notifPref?.frequency ?? "auto";
+  if (frequency === "off") return [];
+
   // Throttle: skip generation if any AI analysis was recorded within 3 days.
   // Uses the most recent AiAnalysis row as a proxy for "last generated" time.
   const lastAnalysis = await prisma.aiAnalysis.findFirst({
@@ -240,7 +248,14 @@ async function getAIInsightsImpl(): Promise<AIInsight[]> {
     }
   }
 
-  return fetchAIInsights(projectId, user.id);
+  const raw = await fetchAIInsights(projectId, user.id);
+
+  // quiet mode: only surface high-priority insights (priority <= 2).
+  if (frequency === "quiet") {
+    return raw.filter((i) => i.priority <= 2);
+  }
+
+  return raw;
 }
 
 // Per-request memoization: dedupes calls from home + coach layouts in one SSR
