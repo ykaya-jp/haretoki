@@ -35,7 +35,10 @@ export function VisitRatingForm({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
-  function handleChange(dimension: string, score: number) {
+  function handleChange(
+    dimension: (typeof TIER1_DIMENSIONS)[number],
+    score: number,
+  ) {
     const next = { ...ratings, [dimension]: score };
     setRatings(next);
     setSaveStatus("idle");

@@ -7,6 +7,7 @@ import { requireUser, requireProjectMembership, requireVisitAccess } from "@/ser
 import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 import { getAllChecklistItems } from "@/lib/checklist-templates";
 import { uploadChecklistPhoto } from "@/lib/supabase/storage";
+import type { ScoreDimension } from "@/generated/prisma/client";
 
 const scheduleVisitSchema = z.object({
   scheduledAt: z.coerce.date(),
@@ -373,7 +374,7 @@ export async function getPastVisits(): Promise<VisitSummary[]> {
 
 export async function upsertVisitRating(
   visitId: string,
-  dimension: string,
+  dimension: ScoreDimension,
   score: number,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await requireUser();
