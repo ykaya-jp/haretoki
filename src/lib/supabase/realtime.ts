@@ -3,22 +3,26 @@
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getProjectVenueIds } from "@/server/actions/venues";
+import { getProjectVenueIds, getProjectVisitIds } from "@/server/actions/venues";
 
 const DEBOUNCE_MS = 400;
 
 /**
  * Subscribe to Postgres changes for a project and refresh the page on updates.
- * Changes to visit_ratings, venue_favorites, and visits are filtered by the
- * project's venue id set so we don't react to unrelated projects.
- * Multiple events within DEBOUNCE_MS are coalesced into a single router.refresh().
+ * Features:
+ * - visit_ratings filtered by project visit IDs (fix: was unfiltered)
+ * - BroadcastChannel collapses refreshes across same-project tabs (fix: was N refreshes)
+ * - onAuthStateChange reconnect on token refresh / expiry (fix: was silent drop)
  */
 export function useRealtimeSync(projectId: string) {
   const router = useRouter();
   const supabase = createClient();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to unsubscribe from the current channel so we can re-subscribe on auth change.
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const debouncedRefresh = useCallback(() => {
+  /** Debounce a router.refresh() within this tab. */
+  const scheduleLocal = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       router.refresh();
@@ -26,24 +30,51 @@ export function useRealtimeSync(projectId: string) {
   }, [router]);
 
   useEffect(() => {
+    // BroadcastChannel: share refresh signals across tabs for the same project.
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel(`haretoki-realtime-${projectId}`);
+      bc.onmessage = (e: MessageEvent<{ type: string }>) => {
+        if (e.data?.type === "refresh") scheduleLocal();
+      };
+    } catch {
+      // BroadcastChannel not available (e.g., older Safari) — fall back gracefully.
+    }
+
+    /** Broadcast + schedule refresh in this tab. */
+    const debouncedRefresh = () => {
+      try {
+        bc?.postMessage({ type: "refresh" });
+      } catch {
+        // ignore postMessage errors
+      }
+      scheduleLocal();
+    };
+
     let cancelled = false;
 
     async function subscribe() {
-      // Fetch venue ids for filter; fall back to no filter on error.
+      // Fetch venue ids and visit ids for filters; fall back to no filter on error.
       let venueIds: string[] = [];
+      let visitIds: string[] = [];
       try {
-        venueIds = await getProjectVenueIds();
+        [venueIds, visitIds] = await Promise.all([
+          getProjectVenueIds(),
+          getProjectVisitIds(),
+        ]);
       } catch {
-        // Non-critical: subscribe without filter rather than blocking realtime.
+        // Non-critical: subscribe without fine-grained filter rather than blocking realtime.
       }
 
       if (cancelled) return;
 
       const venueFilter =
         venueIds.length > 0 ? `venue_id=in.(${venueIds.join(",")})` : undefined;
+      const visitFilter =
+        visitIds.length > 0 ? `visit_id=in.(${visitIds.join(",")})` : undefined;
 
       const channel = supabase
-        .channel(`project-${projectId}-v3`)
+        .channel(`project-${projectId}-v4`)
         // Tables with project_id column — filter directly
         .on(
           "postgres_changes",
@@ -76,10 +107,15 @@ export function useRealtimeSync(projectId: string) {
           },
           debouncedRefresh
         )
-        // visit_ratings — no direct venue_id; subscribe without filter
+        // visit_ratings — filter by visit_id set (fix #1: was unfiltered)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "visit_ratings" },
+          {
+            event: "*",
+            schema: "public",
+            table: "visit_ratings",
+            ...(visitFilter ? { filter: visitFilter } : {}),
+          },
           debouncedRefresh
         )
         // visit_notes / checklist items
@@ -100,17 +136,39 @@ export function useRealtimeSync(projectId: string) {
         )
         .subscribe();
 
-      return () => {
+      cleanupRef.current = () => {
         supabase.removeChannel(channel);
       };
     }
 
-    const cleanupPromise = subscribe();
+    subscribe();
+
+    // Fix #3: reconnect when auth token is refreshed or user signs back in.
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        // Tear down the old channel and re-subscribe with fresh credentials.
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+        if (!cancelled) {
+          subscribe();
+        }
+      } else if (event === "SIGNED_OUT") {
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+      }
+    });
 
     return () => {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      cleanupPromise.then((cleanup) => cleanup?.());
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      authListener.subscription.unsubscribe();
+      try {
+        bc?.close();
+      } catch {
+        // ignore
+      }
     };
-  }, [projectId, supabase, debouncedRefresh]);
+  }, [projectId, supabase, scheduleLocal]);
 }

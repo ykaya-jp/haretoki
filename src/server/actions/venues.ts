@@ -1963,3 +1963,14 @@ export async function getProjectVenueIds(): Promise<string[]> {
   });
   return venues.map((v: { id: string }) => v.id);
 }
+
+/** Return all visit IDs belonging to the current user's project (for visit_ratings Realtime filtering). */
+export async function getProjectVisitIds(): Promise<string[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  const visits = await prisma.visit.findMany({
+    where: { venue: { projectId } },
+    select: { id: true },
+  });
+  return visits.map((v: { id: string }) => v.id);
+}
