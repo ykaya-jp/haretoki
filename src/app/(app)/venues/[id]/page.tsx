@@ -32,6 +32,7 @@ import { VenueDetailBackLink } from "@/components/venues/back-link";
 import { VenueOverflowMenu } from "@/components/venues/venue-overflow-menu";
 import { VenueHeroRibbon } from "@/components/venues/venue-hero-ribbon";
 import { VenueUpdatedBanner } from "@/components/venues/venue-updated-banner";
+import { VenueFreshnessChip } from "@/components/venues/venue-freshness-chip";
 import { VenueSegmentsNav } from "@/components/venues/venue-segments-nav";
 import { VenueFactSheet } from "@/components/venues/venue-fact-sheet";
 import { VenueAmenitiesSection } from "@/components/venues/venue-amenities-section";
@@ -127,6 +128,15 @@ export default async function VenueDetailPage({
         capacityMax={venue.capacityMax}
         ceremonyStyles={venue.ceremonyStyles}
         status={venue.status}
+      />
+
+      {/* Freshness chip — surfaces when the imported fields were last
+          updated, and offers a one-tap re-import for URL-sourced venues.
+          Past 30d it switches to a gold-warm "情報が古い可能性" style. */}
+      <VenueFreshnessChip
+        venueId={venue.id}
+        updatedAt={venue.updatedAt}
+        hasSourceUrl={(venue.sourceUrls ?? []).length > 0}
       />
 
       {/* Sticky segmented control — scroll-spy via IntersectionObserver */}

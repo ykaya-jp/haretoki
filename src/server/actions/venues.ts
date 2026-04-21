@@ -352,6 +352,10 @@ export async function getVenueHeader(id: string) {
       cuisineTypes: true,
       chefCredentials: true,
       reviewClusters: true,
+      // Drives the freshness chip on the PDP — how recently the imported
+      // fields were last written. Prisma's @updatedAt stamps the row on
+      // any column change, including refreshVenueFromSource merges.
+      updatedAt: true,
     },
   });
 }
@@ -1943,6 +1947,11 @@ export async function refreshVenueFromSource(venueId: string): Promise<
   const allUpdatedFields = new Set<string>();
   let totalPhotoAdded = 0;
   let totalReviewCount = 0;
+  // Track how many source URLs we actually managed to re-extract. When
+  // this stays at 0, every remote fetch failed — we surface that as an
+  // actionable error ("情報サイトにつながりませんでした") instead of a
+  // misleading "success, no updates" result.
+  let extractedCount = 0;
 
   // Snapshot of the current row; subsequent merges compose on top so that
   // a later URL can still contribute a field an earlier URL didn't have.
@@ -1959,6 +1968,10 @@ export async function refreshVenueFromSource(venueId: string): Promise<
 
     const parsed = extractedVenueSchema.safeParse(extractResult.extracted);
     if (!parsed.success) continue;
+
+    // At least one source URL yielded a validated payload — we can
+    // report back whether downstream merges changed anything.
+    extractedCount += 1;
 
     let origin: string | undefined;
     try {
@@ -2036,6 +2049,15 @@ export async function refreshVenueFromSource(venueId: string): Promise<
         console.warn("[refreshVenueFromSource] saveExtractedReviews failed:", err);
       }
     }
+  }
+
+  // Every registered source URL failed to fetch or extract. Surface a
+  // user-actionable error rather than a hollow "success, no changes".
+  if (extractedCount === 0) {
+    return {
+      success: false,
+      error: "式場の情報サイトにつながりませんでした。しばらくしてからもう一度お試しください。",
+    };
   }
 
   revalidateTag(`project:${projectId}`, { expire: 0 });

@@ -48,14 +48,26 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
   function handleRefresh() {
     setOpen(false);
     startRefreshTransition(async () => {
-      const result = await refreshVenueFromSource(venueId);
-      if (result.success) {
-        const count = result.updatedFields.length;
-        const photos = result.photoAddedCount;
-        const photoMsg = photos > 0 ? ` · 写真 ${photos} 枚` : "";
-        toast.success(`${count} 件の情報を更新しました${photoMsg}`);
-      } else {
-        toast.error(result.error ?? "更新に失敗しました");
+      try {
+        const result = await refreshVenueFromSource(venueId);
+        if (result.success) {
+          const count = result.updatedFields.length;
+          const photos = result.photoAddedCount;
+          if (count === 0 && photos === 0) {
+            toast.info("最新情報と変わりませんでした");
+          } else {
+            const photoMsg = photos > 0 ? ` · 写真 ${photos} 枚` : "";
+            toast.success(`${count} 件の情報を更新しました${photoMsg}`);
+          }
+        } else {
+          toast.error(result.error ?? "更新に失敗しました");
+        }
+      } catch {
+        // Network / route-handler level failure — the action itself
+        // threw rather than returning a structured error.
+        toast.error(
+          "式場の情報サイトにつながりませんでした。しばらくしてからもう一度",
+        );
       }
     });
   }
