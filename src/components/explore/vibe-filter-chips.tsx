@@ -60,19 +60,24 @@ export function VibeFilterChips({ activeVibes, hideHeader = false }: VibeFilterC
           )}
         </div>
       )}
-      {hideHeader && activeCount > 0 && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              const params = new URLSearchParams(searchParams.toString());
-              params.delete("vibe");
-              router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-            }}
-            className="text-[11px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
-          >
-            すべて外す
-          </button>
+      {hideHeader && (
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+            式場の雰囲気で絞り込み（例: 自然光、ガーデン）
+          </p>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("vibe");
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+              }}
+              className="shrink-0 text-[11px] text-muted-foreground underline-offset-4 hover:underline hover:text-[var(--gold-warm)]"
+            >
+              すべて外す
+            </button>
+          )}
         </div>
       )}
       <div

@@ -38,7 +38,7 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
       const merged = Array.from(new Set([...localTags, ...tags]));
       setOptimisticTags(merged);
       setLocalTags(merged);
-      showToast("success", "AI が気分を見立てました");
+      showToast("success", "AI が雰囲気を見立てました");
     });
   };
 
@@ -46,7 +46,7 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
     startTransition(async () => {
       const result = await updateVenueVibeTags(venueId, localTags);
       if (result.success) {
-        showToast("success", "気分タグを保存しました");
+        showToast("success", "雰囲気タグを保存しました");
       } else {
         showToast("error", result.error ?? "保存に失敗しました");
       }

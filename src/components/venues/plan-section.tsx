@@ -69,13 +69,16 @@ export function PlanSection({ venueId, plans }: PlanSectionProps) {
             Packages
           </p>
           <h2 className="mt-0.5 font-[family-name:var(--font-display)] text-[15px] font-light tracking-[-0.005em]">
-            お式のプラン
+            式場プラン
           </h2>
         </div>
         <PlanEditorSheet venueId={venueId} />
       </div>
-      <p className="text-[12px] text-muted-foreground mb-3">
-        式場のプランを記録して、見積もりと比較できます
+      <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
+        式場が提示する「基本料金パッケージ」を記録する場所です。
+        見学でもらう『○○プラン』『○○フェア』に書かれている内容
+        （含まれるもの／別途かかるもの／持ち込み可否）を保存すると、
+        他の式場と横並びに見比べられます。
       </p>
       {plans.length === 0 && (
         <div className="flex flex-col items-center gap-4 py-8 text-center">
