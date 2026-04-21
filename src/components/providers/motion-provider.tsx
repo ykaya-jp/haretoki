@@ -8,12 +8,17 @@ import type { ReactNode } from "react";
  * shared First-Load JS chunk. Features are fetched once on the client and
  * cached by the browser thereafter.
  *
+ * Uses `domMax` instead of `domAnimation` because SwipeCompare /
+ * swipe-card.tsx relies on drag gestures (drag / dragConstraints /
+ * dragElastic) which `domAnimation` omits. `domMax` adds ~6KB gz over
+ * `domAnimation` but is required for drag to work at runtime.
+ *
  * `reducedMotion="user"` makes every framer animation automatically shrink
  * to a near-zero-duration cross-fade when the user has
  * `prefers-reduced-motion: reduce` set at the OS level.
  */
 const loadFeatures = () =>
-  import("framer-motion").then((m) => m.domAnimation);
+  import("framer-motion").then((m) => m.domMax);
 
 export function MotionProvider({ children }: { children: ReactNode }) {
   return (
