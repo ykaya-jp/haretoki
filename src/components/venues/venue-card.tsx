@@ -124,6 +124,11 @@ export function VenueCard({
       }
     >
       {/* Photo section — 4:3 editorial ratio, gold hairline below. */}
+      {/* TODO(myreview-02 item 12): 写真が 4:3 だと探す画面で縦に圧迫する
+          という妻フィードバックあり。3:2 や 16:10 への変更は VenueCard /
+          VenuePhotoGallery / DESIGN.md / candidates の並び の 4 か所
+          (= 1 ブランチを越える) にまたがるので別 PR で対応する。
+          参照: docs/myreview/problems_02.md item 12. */}
       <div className="relative border-b border-[var(--gold-subtle)]/40">
         <PrefetchLink href={`/venues/${venue.id}`}>
           <PhotoCarousel
