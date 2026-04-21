@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { HaloTap } from "@/components/ui/halo-tap";
+import { VenueImage } from "@/components/ui/venue-image";
+import { SkyChip } from "@/components/home/sky-chip";
 
 type CeremonyPhase = "celebration" | "summary" | "reason";
+// 曇り → 晴れ間 → 晴れの日 の 3 段階。ブランドメタファーそのもの。
+type SkyStage = "cloudy" | "break" | "sunny";
 
 interface DecisionCeremonyProps {
   venueName: string;
   userName: string;
   projectId?: string;
+  photoUrl?: string | null;
   journeyStats: {
     totalVenues: number;
     shortlisted: number;
@@ -19,6 +24,18 @@ interface DecisionCeremonyProps {
 }
 
 const REASON_TAGS = ["雰囲気", "料理", "コスパ", "アクセス", "サービス", "設備"];
+
+// Celebration timings (ms). Total linger before summary = 3400ms.
+// 押した瞬間から summary へ自動遷移するまでの呼吸を、3 段階の朝で区切る。
+const TIMING = {
+  cloudy: 0,          // 曇り — 不安の記憶
+  breakIn: 900,       // 晴れ間 — 雲が割れて光が射す
+  sunny: 1800,        // 晴れの日 — 確信の朝
+  heroCardIn: 1900,   // 記念カードが立ち上がる
+  confetti: 2250,     // 控えめに祝福
+  ctaIn: 2900,        // 次の一歩を案内
+  autoAdvance: 3400,  // summary へ
+} as const;
 
 function formatJaDate(d: Date): string {
   const y = d.getFullYear();
@@ -31,10 +48,12 @@ export function DecisionCeremony({
   venueName,
   userName,
   projectId,
+  photoUrl,
   journeyStats,
   onRecordReason,
 }: DecisionCeremonyProps) {
   const [phase, setPhase] = useState<CeremonyPhase>("celebration");
+  const [skyStage, setSkyStage] = useState<SkyStage>("cloudy");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [reasonText, setReasonText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -43,19 +62,32 @@ export function DecisionCeremony({
   useEffect(() => {
     if (phase !== "celebration") return;
 
-    // Longer linger — 2.6s — so the card breathes before summary.
-    const timer = setTimeout(() => setPhase("summary"), 2600);
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Reduced-motion path: skip the cloud→break→sunny sequence entirely,
+    // show the hero card immediately, auto-advance fast.
+    // Defer setSkyStage via rAF so it doesn't fire synchronously inside
+    // the effect (React 19 cascading-render lint rule).
+    if (prefersReducedMotion) {
+      const rafId = requestAnimationFrame(() => setSkyStage("sunny"));
+      const quick = setTimeout(() => setPhase("summary"), 1400);
+      return () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(quick);
+      };
+    }
+
+    // Stage transitions: cloudy → break → sunny
+    const breakT = setTimeout(() => setSkyStage("break"), TIMING.breakIn);
+    const sunnyT = setTimeout(() => setSkyStage("sunny"), TIMING.sunny);
+    const advanceT = setTimeout(() => setPhase("summary"), TIMING.autoAdvance);
+
+    // Confetti after sunny peak — 28 particles only (DESIGN.md v4.2).
+    // canvas-confetti loaded lazily to keep initial bundle small.
     let cancelled = false;
-    const prefersReducedMotion = window
-      .matchMedia("(prefers-reduced-motion: reduce)")
-      .matches;
-    let confettiTimer: ReturnType<typeof setTimeout> | undefined;
-
-    if (!prefersReducedMotion) {
-      // Resolve brand colors from CSS var() so confetti respects light/dark
-      // tokens. canvas-confetti needs literal color strings, so we snapshot
-      // the computed values at effect time.
+    const confettiT = setTimeout(() => {
       const root = getComputedStyle(document.documentElement);
       const pick = (name: string, fallback: string) =>
         root.getPropertyValue(name).trim() || fallback;
@@ -63,26 +95,26 @@ export function DecisionCeremony({
       const goldSoft = pick("--gold-light", "#E8D89A");
       const ink = pick("--foreground", "#6B5D4D");
 
-      confettiTimer = setTimeout(() => {
-        void import("canvas-confetti").then((mod) => {
-          if (cancelled) return;
-          mod.default({
-            particleCount: 28,
-            spread: 55,
-            startVelocity: 28,
-            gravity: 0.9,
-            ticks: 120,
-            origin: { y: 0.42 },
-            colors: [gold, goldSoft, ink],
-          });
+      void import("canvas-confetti").then((mod) => {
+        if (cancelled) return;
+        mod.default({
+          particleCount: 28,
+          spread: 55,
+          startVelocity: 28,
+          gravity: 0.9,
+          ticks: 120,
+          origin: { y: 0.42 },
+          colors: [gold, goldSoft, ink],
         });
-      }, 900);
-    }
+      });
+    }, TIMING.confetti);
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
-      if (confettiTimer !== undefined) clearTimeout(confettiTimer);
+      clearTimeout(breakT);
+      clearTimeout(sunnyT);
+      clearTimeout(advanceT);
+      clearTimeout(confettiT);
     };
   }, [phase]);
 
@@ -126,72 +158,164 @@ export function DecisionCeremony({
 
   if (phase === "celebration") {
     const today = formatJaDate(new Date());
+    const hasPhoto = Boolean(photoUrl);
+
+    // Background wash — three stacked radial gradients, each full-opacity
+    // only when its stage is active. CSS opacity transitions cleanly across
+    // stages (1.2s), while CSS cannot interpolate gradient strings directly.
+    const washByStage: Record<SkyStage, string> = {
+      cloudy:
+        "radial-gradient(80% 60% at 50% 35%, color-mix(in oklab, var(--muted-foreground) 14%, transparent) 0%, transparent 70%)",
+      break:
+        "radial-gradient(80% 60% at 50% 32%, color-mix(in oklab, var(--gold-warm) 12%, transparent) 0%, color-mix(in oklab, var(--primary) 5%, transparent) 45%, transparent 80%)",
+      sunny:
+        "radial-gradient(80% 60% at 50% 30%, color-mix(in oklab, var(--gold-warm) 22%, transparent) 0%, color-mix(in oklab, var(--gold-light) 8%, transparent) 55%, transparent 80%)",
+    };
+
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: prefersReduced ? 0 : 0.5 }}
+        transition={{ duration: prefersReduced ? 0 : 0.4 }}
         className="relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden px-6"
       >
-        {/* Morning-light wash backdrop */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(80% 60% at 50% 30%, color-mix(in oklab, var(--gold-warm) 18%, transparent) 0%, transparent 70%)",
-          }}
-        />
+        {/* Morning-light wash — three stacked gradient layers, each fading
+            in/out by opacity as the sky stage progresses. CSS gradients
+            cannot cross-fade their color stops, so we fade the containers
+            themselves instead. */}
+        {(["cloudy", "break", "sunny"] as const).map((stage) => (
+          <div
+            key={stage}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-1000 ease-out"
+            style={{
+              background: washByStage[stage],
+              opacity: skyStage === stage ? 1 : 0,
+            }}
+          />
+        ))}
 
-        {/* Commemorative card */}
+        {/* Stage 1-2: SkyChip animating through cloudy → break → sunny.
+            Fades out as the venue hero card rises. */}
+        <AnimatePresence mode="wait">
+          {skyStage !== "sunny" && !prefersReduced && (
+            <motion.div
+              key={skyStage}
+              initial={{ opacity: 0, scale: 0.92, y: 0 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.08, y: -16 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-[22%] flex flex-col items-center gap-3"
+            >
+              <SkyChip mood={skyStage} size={96} />
+              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                {skyStage === "cloudy" ? "迷いの朝" : "光が射してきた"}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Stage 3: Venue hero card — rises from below after the sky clears.
+            If a photo exists, it fills the card as atmospheric background
+            with a soft darkened overlay so the venue name stays legible. */}
         <motion.div
-          initial={prefersReduced ? false : { opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={
+            prefersReduced ? false : { opacity: 0, scale: 0.94, y: 24 }
+          }
+          animate={
+            skyStage === "sunny"
+              ? { opacity: 1, scale: 1, y: 0 }
+              : { opacity: 0, scale: 0.94, y: 24 }
+          }
           transition={{
-            delay: prefersReduced ? 0 : 0.4,
-            duration: prefersReduced ? 0 : 0.7,
+            duration: prefersReduced ? 0 : 0.9,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="relative w-full max-w-[340px] rounded-[22px] bg-card/90 px-8 py-12 text-center backdrop-blur-sm"
+          className="relative w-full max-w-[340px] overflow-hidden rounded-[22px] text-center"
           style={{
             border:
               "2px solid color-mix(in oklab, var(--gold-warm) 55%, transparent)",
+            background: hasPhoto
+              ? "var(--card)"
+              : "color-mix(in oklab, var(--card) 90%, transparent)",
             boxShadow:
-              "0 1px 0 rgba(255,255,255,0.6) inset, 0 24px 64px color-mix(in oklab, var(--gold-warm) 16%, transparent), 0 2px 8px rgba(42,35,32,0.06)",
+              "0 1px 0 rgba(255,255,255,0.6) inset, 0 24px 64px color-mix(in oklab, var(--gold-warm) 18%, transparent), 0 2px 8px rgba(42,35,32,0.06)",
           }}
         >
-          <p className="font-[family-name:var(--font-display)] text-[12.5px] uppercase tracking-[0.24em] text-[var(--gold-warm)]">
-            ふたりが選んだ場所
-          </p>
-
-          <div
-            aria-hidden="true"
-            className="mx-auto mt-5 h-px w-10"
-            style={{
-              background:
-                "linear-gradient(to right, transparent, color-mix(in oklab, var(--gold-warm) 60%, transparent), transparent)",
-            }}
-          />
-
-          <h1 className="mt-5 font-[family-name:var(--font-display)] text-[30px] font-light leading-[1.25] tracking-[-0.005em] text-foreground">
-            {venueName}
-          </h1>
-
-          <p className="mt-6 tabular-nums text-[13px] tracking-wider text-muted-foreground">
-            {today}
-          </p>
-          {userName && (
-            <p className="mt-1 text-[11.5px] text-muted-foreground/80">
-              {userName}さん · おふたりの決定
-            </p>
+          {/* Venue photo as atmospheric backdrop (optional) */}
+          {hasPhoto && photoUrl && (
+            <div className="relative h-[180px] w-full overflow-hidden">
+              <VenueImage
+                src={photoUrl}
+                alt=""
+                fill
+                sizes="340px"
+                tone="hero"
+                className="object-cover"
+                priority
+              />
+              {/* Bottom fade so the eyebrow/name below always read cleanly */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(180deg, color-mix(in oklab, var(--foreground) 8%, transparent) 0%, transparent 40%, color-mix(in oklab, var(--card) 85%, transparent) 100%)",
+                }}
+              />
+              {/* Soft gold sunlight glow from top-left — "morning light" */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(60% 50% at 20% 10%, color-mix(in oklab, var(--gold-warm) 25%, transparent), transparent 70%)",
+                }}
+              />
+            </div>
           )}
+
+          <div className={hasPhoto ? "px-8 pb-12 pt-7" : "px-8 py-12"}>
+            <p className="font-[family-name:var(--font-display)] text-[12.5px] uppercase tracking-[0.24em] text-[var(--gold-warm)]">
+              ふたりが選んだ場所
+            </p>
+
+            <div
+              aria-hidden="true"
+              className="mx-auto mt-5 h-px w-10"
+              style={{
+                background:
+                  "linear-gradient(to right, transparent, color-mix(in oklab, var(--gold-warm) 60%, transparent), transparent)",
+              }}
+            />
+
+            <h1 className="mt-5 font-[family-name:var(--font-display)] text-[30px] font-light leading-[1.25] tracking-[-0.005em] text-foreground">
+              {venueName}
+            </h1>
+
+            <p className="mt-6 tabular-nums text-[13px] tracking-wider text-muted-foreground">
+              {today}
+            </p>
+            {userName && (
+              <p className="mt-1 text-[11.5px] text-muted-foreground/80">
+                {userName}さん · おふたりの決定
+              </p>
+            )}
+          </div>
         </motion.div>
 
-        {/* Bottom CTAs, appear after card */}
+        {/* Bottom CTAs — appear after the sunny stage settles */}
         <motion.div
           initial={prefersReduced ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: prefersReduced ? 0 : 1.1, duration: 0.5 }}
+          animate={
+            skyStage === "sunny"
+              ? { opacity: 1, y: 0 }
+              : { opacity: 0, y: 6 }
+          }
+          transition={{
+            delay: prefersReduced ? 0 : 0.6,
+            duration: 0.5,
+          }}
           className="mt-8 flex items-center gap-3"
         >
           <HaloTap className="rounded-full">

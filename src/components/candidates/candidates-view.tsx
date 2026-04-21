@@ -75,7 +75,7 @@ interface DecisionData {
 
 interface CandidatesViewProps {
   initialFavorites: FavoriteVenue[];
-  venueOptions: Array<{ id: string; name: string }>;
+  venueOptions: Array<{ id: string; name: string; photoUrl?: string | null }>;
   initialDecision?: DecisionData | null;
   userName?: string;
   initialTab?: "shortlist" | "compare" | "decision";
@@ -95,6 +95,10 @@ export function CandidatesView({
   const [showCeremony, setShowCeremony] = useState(false);
   const [ceremonyVenueName, setCeremonyVenueName] = useState("");
   const [ceremonyProjectId, setCeremonyProjectId] = useState<string | undefined>(undefined);
+  // Photo used as the atmospheric backdrop inside the ceremony hero card.
+  // Null when the chosen venue has no photo — ceremony falls back to the
+  // gold-gradient card layout.
+  const [ceremonyPhotoUrl, setCeremonyPhotoUrl] = useState<string | null>(null);
   const [decision, setDecision] = useState(initialDecision ?? null);
   const [isDeciding, setIsDeciding] = useState(false);
   const router = useRouter();
@@ -159,6 +163,7 @@ export function CandidatesView({
 
       setCeremonyVenueName(venue.name);
       setCeremonyProjectId("decision" in result ? result.decision.projectId : undefined);
+      setCeremonyPhotoUrl(venue.photoUrl ?? null);
       setShowCeremony(true);
       setTab("decision");
     } finally {
@@ -352,6 +357,7 @@ export function CandidatesView({
                 venueName={ceremonyVenueName}
                 userName={userName ?? ""}
                 projectId={ceremonyProjectId ?? decision?.projectId}
+                photoUrl={ceremonyPhotoUrl}
                 journeyStats={{
                   totalVenues: venueOptions.length,
                   shortlisted: favorites.length,

@@ -96,7 +96,14 @@ async function CandidatesContent({
     getCurrentUserName(),
   ]);
 
-  const venueOptions = venues.map((v) => ({ id: v.id, name: v.name }));
+  // venueOptions carries the minimum fields the view + ceremony need: id/name
+  // for selection, photoUrls[0] so the DecisionCeremony hero card can paint
+  // the chosen venue's photo as its atmospheric backdrop.
+  const venueOptions = venues.map((v) => ({
+    id: v.id,
+    name: v.name,
+    photoUrl: v.photoUrls?.[0] ?? null,
+  }));
 
   return (
     <CandidatesView
