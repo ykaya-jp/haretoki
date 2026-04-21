@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { useEffect, useRef } from "react";
 import { SkyChip, weatherLabel } from "@/components/home/sky-chip";
 import { buttonVariants } from "@/components/ui/button";
@@ -171,9 +171,8 @@ export function HomeCover({
 
       <div className="px-5 pt-5">
         <HaloTap className="w-full rounded-[14px]">
-          <Link
+          <PrefetchLink
             href={ctaHref}
-            prefetch={true}
             onClick={isRitualCta ? () => void markRitualActed() : undefined}
             className={cn(
               buttonVariants({ variant: "default", size: "default" }),
@@ -185,7 +184,7 @@ export function HomeCover({
             }}
           >
             {ctaLabel}
-          </Link>
+          </PrefetchLink>
         </HaloTap>
       </div>
     </section>

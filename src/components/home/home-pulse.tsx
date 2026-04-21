@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { JourneyRing } from "@/components/home/journey-ring";
 import { AnimatedPercentage } from "@/components/home/animated-percentage";
 
@@ -33,13 +34,23 @@ export function HomePulse(props: HomePulseProps) {
       className="rounded-3xl border border-border/60 bg-card px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
     >
       <div className="flex items-center gap-3">
-        <JourneyRing
-          totalVenues={props.totalVenues}
-          visitedVenues={props.visitedVenues}
-          favoriteCount={props.favoriteCount}
-          hasDecision={props.hasDecision}
-          upcomingVisits={props.upcomingVisits}
-        />
+        {/* Tapping the ring navigates to the candidates list — the natural
+            "next step" at any journey stage. prefetch={true} starts
+            fetching as soon as this component mounts. */}
+        <Link
+          href="/candidates"
+          prefetch={true}
+          aria-label="候補一覧を見る"
+          className="shrink-0 rounded-full transition-transform active:scale-[0.95]"
+        >
+          <JourneyRing
+            totalVenues={props.totalVenues}
+            visitedVenues={props.visitedVenues}
+            favoriteCount={props.favoriteCount}
+            hasDecision={props.hasDecision}
+            upcomingVisits={props.upcomingVisits}
+          />
+        </Link>
         <div className="flex-1 border-l border-border/40 pl-3">
           <div className="grid grid-cols-3 divide-x divide-border/40">
             {metrics.map((m) => (

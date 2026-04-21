@@ -1,7 +1,7 @@
-import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight, Star, Building2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 
 interface RecentVenue {
   id: string;
@@ -41,14 +41,13 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
             先日ご覧になった式場
           </h2>
         </div>
-        <Link
+        <PrefetchLink
           href="/candidates?view=recent"
-          prefetch={true}
           className="inline-flex items-center gap-0.5 text-[12px] text-muted-foreground underline-offset-4 hover:underline hover:text-foreground"
         >
           View all
           <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} aria-hidden="true" />
-        </Link>
+        </PrefetchLink>
       </div>
 
       {/* Horizontal carousel — 4:5 portrait ratio (Phase 2 uplift from 3:2). */}
@@ -56,11 +55,10 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
         {venues.map((venue) => {
           const avg = calcAvg(venue.scores);
           return (
-            <Link
+            <PrefetchLink
               key={venue.id}
               href={`/venues/${venue.id}`}
-              prefetch={true}
-              className="min-w-[260px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98]"
+              className="min-w-[260px] snap-start overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98] active:bg-muted/40"
             >
               {/* Photo — 4:5 portrait, no gradient overlay on photo */}
               {venue.photoUrls[0] ? (
@@ -107,7 +105,7 @@ export function RecentVenues({ venues }: { venues: RecentVenue[] }) {
                   </p>
                 )}
               </div>
-            </Link>
+            </PrefetchLink>
           );
         })}
       </div>

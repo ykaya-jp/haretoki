@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { Sparkles, Receipt, Users, ClipboardCheck, BarChart3, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import type { LucideIcon } from "lucide-react";
 
 type InsightType = "estimate" | "partner" | "visit" | "comparison" | "reminder";
@@ -65,17 +65,16 @@ export function AIInsightCard({
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {actions.map((action) => (
-            <Link
+            <PrefetchLink
               key={action.href}
               href={action.href}
-              prefetch={true}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "default" }),
                 "rounded-full px-4 transition-[transform,background-color] duration-200 active:scale-[0.98] active:bg-[var(--gold-subtle)]/60",
               )}
             >
               {action.label}
-            </Link>
+            </PrefetchLink>
           ))}
         </div>
       )}
