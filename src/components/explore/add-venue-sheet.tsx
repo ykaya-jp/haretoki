@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Loader2, ImagePlus, X, ChevronRight, Sparkles, Layers } from "lucide-react";
 import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } from "@/server/actions/venues";
 import { showToast } from "@/lib/toast";
+import { parseBulkUrls, BULK_URL_LIMIT } from "@/lib/url-bulk-parse";
 import { useRouter } from "next/navigation";
 
 interface ExtractedIndividualReview {
@@ -187,6 +188,11 @@ export function AddVenueSheet({
   const [urlInput, setUrlInput] = useState("");
   const [urlStates, setUrlStates] = useState<UrlProcessState[]>([]);
   const [urlLoading, setUrlLoading] = useState(false);
+  // Running counter for sequential bulk processing: "N / M 完了" caption.
+  // null when not currently processing.
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
 
   // Manual form collapse state
   const [manualOpen, setManualOpen] = useState(false);
@@ -200,12 +206,13 @@ export function AddVenueSheet({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  /** Parse the textarea into trimmed, non-empty URL strings */
-  const parseUrls = (raw: string): string[] =>
-    raw
-      .split("\n")
-      .map((u) => u.trim())
-      .filter((u) => u.length > 0);
+  /**
+   * Parse the textarea into http(s) URLs.
+   * Delegates to the shared, unit-tested parseBulkUrls so the preview chip,
+   * submit gate, and tests all agree on what counts as a URL.
+   */
+  const parsedUrls = parseBulkUrls(urlInput);
+  const overLimit = parsedUrls.length > BULK_URL_LIMIT;
 
   /** Simulate progressive field fill with timed reveals */
   const animateFill = (
@@ -227,22 +234,27 @@ export function AddVenueSheet({
   };
 
   const handleUrlSubmit = async () => {
-    const urls = parseUrls(urlInput);
-    if (urls.length === 0) return;
+    if (parsedUrls.length === 0) return;
+    // The submit button is disabled past the limit, but guard anyway —
+    // this keeps the invariant "we never dispatch more than BULK_URL_LIMIT
+    // requests per submit" testable from a single place.
+    if (overLimit) {
+      showToast("error", `1回に取り込めるのは ${BULK_URL_LIMIT} 件までです`);
+      return;
+    }
 
-    const MAX = 10;
-    const processing = urls.slice(0, MAX);
-    const skipped = urls.slice(MAX);
+    const processing = parsedUrls;
 
-    // Init skeleton states
+    // Init skeleton states — all rows start pending; the current row
+    // flips to "loading" as the sequential loop reaches it.
     const initial: UrlProcessState[] = processing.map((url) => ({
       url,
-      status: "loading",
-      stage: "extract",
+      status: "pending",
       filledFields: [],
     }));
     setUrlStates(initial);
     setUrlLoading(true);
+    setProgress({ done: 0, total: processing.length });
 
     type UrlSubmitResult =
       | {
@@ -259,129 +271,137 @@ export function AddVenueSheet({
         }
       | { index: number; success: false };
 
-    // Parallel processing with Promise.allSettled
-    const results = await Promise.allSettled<UrlSubmitResult>(
-      processing.map(async (url, index): Promise<UrlSubmitResult> => {
-        try {
-          const extractResult = await addVenueFromUrl(url);
-          if (extractResult.error || !extractResult.extracted) {
-            setUrlStates((prev) =>
-              prev.map((s, i) =>
-                i === index
-                  ? { ...s, status: "error", error: extractResult.error ?? "読み取りに失敗" }
-                  : s
-              )
-            );
-            return { index, success: false };
-          }
+    const results: UrlSubmitResult[] = [];
 
-          const extracted = extractResult.extracted;
+    // Sequential for-await. Parallel would hammer per-domain CDN
+    // rate-limits (ゼクシィ / ハナユメ / みんなのウェディング) and
+    // multiplies the Claude summary cost. We trade wall-clock for
+    // stability + predictable spend. Each URL still fails independently —
+    // we never bail the whole batch on one failure.
+    for (let index = 0; index < processing.length; index++) {
+      const url = processing[index];
+      // Mark this row active.
+      setUrlStates((prev) =>
+        prev.map((s, i) =>
+          i === index ? { ...s, status: "loading", stage: "extract" } : s,
+        ),
+      );
 
-          // Animate fields progressively
-          const fieldsToFill: ("name" | "location" | "access" | "photo")[] = ["name"];
-          if (extracted.location) fieldsToFill.push("location");
-          if (extracted.accessInfo) fieldsToFill.push("access");
-          if (extracted.photoUrls.length > 0) fieldsToFill.push("photo");
-
-          setUrlStates((prev) =>
-            prev.map((s, i) =>
-              i === index ? { ...s, extracted, filledFields: [] } : s
-            )
-          );
-          animateFill(index, fieldsToFill);
-
-          // Wait for animation then confirm
-          await new Promise((r) => setTimeout(r, fieldsToFill.length * 200 + 100));
-
-          // Advance to the "reviews" stage before kicking off confirm —
-          // the server action will save individual reviews before the
-          // summary step, so this caption aligns with the expected first
-          // phase of backend work. The "summary" stage is surfaced right
-          // after to cover the ~5-15s Claude analysis window.
-          const hasExtractedReviews = extracted.reviews.length > 0;
-          if (hasExtractedReviews) {
-            setUrlStates((prev) =>
-              prev.map((s, i) =>
-                i === index ? { ...s, stage: "reviews" } : s,
-              ),
-            );
-            // Small nudge so the user *sees* the reviews caption before
-            // we flip to "summary" (rather than skipping past it).
-            await new Promise((r) => setTimeout(r, 350));
-            setUrlStates((prev) =>
-              prev.map((s, i) =>
-                i === index ? { ...s, stage: "summary" } : s,
-              ),
-            );
-          }
-
-          const confirmResult = await confirmVenueFromUrl(extracted, url);
-          if (!confirmResult.success) {
-            setUrlStates((prev) =>
-              prev.map((s, i) =>
-                i === index ? { ...s, status: "error", error: "登録に失敗" } : s
-              )
-            );
-            return { index, success: false };
-          }
-
-          const mode = confirmResult.mode;
-          const updatedFields = confirmResult.updatedFields ?? [];
-          const venueId = confirmResult.venue.id;
-          const existingName =
-            mode === "merged" ? confirmResult.venue.name : undefined;
-          const photoUploadedCount = confirmResult.photoUploadedCount ?? 0;
-          const photoRequestedCount = confirmResult.photoRequestedCount ?? 0;
-          const reviewSummaryStatus = confirmResult.reviewSummaryStatus;
-          const individualReviewCount = confirmResult.individualReviewCount;
-
+      try {
+        const extractResult = await addVenueFromUrl(url);
+        if (extractResult.error || !extractResult.extracted) {
           setUrlStates((prev) =>
             prev.map((s, i) =>
               i === index
-                ? {
-                    ...s,
-                    status: "success",
-                    stage: undefined,
-                    mode,
-                    updatedFields,
-                    venueId,
-                    existingName,
-                    reviewSummaryStatus,
-                    individualReviewCount,
-                  }
+                ? { ...s, status: "error", error: extractResult.error ?? "読み取りに失敗" }
                 : s,
             ),
           );
-          return {
-            index,
-            success: true as const,
-            name: extracted.name,
-            venueId,
-            mode,
-            updatedFieldsCount: updatedFields.length,
-            photoUploadedCount,
-            photoRequestedCount,
-            reviewSummaryStatus,
-            individualReviewCount,
-          };
-        } catch {
+          results.push({ index, success: false });
+          setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
+          continue;
+        }
+
+        const extracted = extractResult.extracted;
+
+        // Animate fields progressively
+        const fieldsToFill: ("name" | "location" | "access" | "photo")[] = ["name"];
+        if (extracted.location) fieldsToFill.push("location");
+        if (extracted.accessInfo) fieldsToFill.push("access");
+        if (extracted.photoUrls.length > 0) fieldsToFill.push("photo");
+
+        setUrlStates((prev) =>
+          prev.map((s, i) =>
+            i === index ? { ...s, extracted, filledFields: [] } : s,
+          ),
+        );
+        animateFill(index, fieldsToFill);
+
+        // Wait for animation then confirm
+        await new Promise((r) => setTimeout(r, fieldsToFill.length * 200 + 100));
+
+        const hasExtractedReviews = extracted.reviews.length > 0;
+        if (hasExtractedReviews) {
           setUrlStates((prev) =>
             prev.map((s, i) =>
-              i === index ? { ...s, status: "error", error: "予期しないエラー" } : s
-            )
+              i === index ? { ...s, stage: "reviews" } : s,
+            ),
           );
-          return { index, success: false };
+          await new Promise((r) => setTimeout(r, 350));
+          setUrlStates((prev) =>
+            prev.map((s, i) =>
+              i === index ? { ...s, stage: "summary" } : s,
+            ),
+          );
         }
-      })
-    );
+
+        const confirmResult = await confirmVenueFromUrl(extracted, url);
+        if (!confirmResult.success) {
+          setUrlStates((prev) =>
+            prev.map((s, i) =>
+              i === index ? { ...s, status: "error", error: "登録に失敗" } : s,
+            ),
+          );
+          results.push({ index, success: false });
+          setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
+          continue;
+        }
+
+        const mode = confirmResult.mode;
+        const updatedFields = confirmResult.updatedFields ?? [];
+        const venueId = confirmResult.venue.id;
+        const existingName =
+          mode === "merged" ? confirmResult.venue.name : undefined;
+        const photoUploadedCount = confirmResult.photoUploadedCount ?? 0;
+        const photoRequestedCount = confirmResult.photoRequestedCount ?? 0;
+        const reviewSummaryStatus = confirmResult.reviewSummaryStatus;
+        const individualReviewCount = confirmResult.individualReviewCount;
+
+        setUrlStates((prev) =>
+          prev.map((s, i) =>
+            i === index
+              ? {
+                  ...s,
+                  status: "success",
+                  stage: undefined,
+                  mode,
+                  updatedFields,
+                  venueId,
+                  existingName,
+                  reviewSummaryStatus,
+                  individualReviewCount,
+                }
+              : s,
+          ),
+        );
+        results.push({
+          index,
+          success: true as const,
+          name: extracted.name,
+          venueId,
+          mode,
+          updatedFieldsCount: updatedFields.length,
+          photoUploadedCount,
+          photoRequestedCount,
+          reviewSummaryStatus,
+          individualReviewCount,
+        });
+      } catch {
+        setUrlStates((prev) =>
+          prev.map((s, i) =>
+            i === index ? { ...s, status: "error", error: "予期しないエラー" } : s,
+          ),
+        );
+        results.push({ index, success: false });
+      }
+      setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
+    }
 
     setUrlLoading(false);
+    setProgress(null);
 
     const successResults = results.filter(
-      (
-        r,
-      ): r is PromiseFulfilledResult<Extract<UrlSubmitResult, { success: true }>> =>
-        r.status === "fulfilled" && r.value.success,
+      (r): r is Extract<UrlSubmitResult, { success: true }> => r.success,
     );
     const successCount = successResults.length;
     const failCount = processing.length - successCount;
@@ -390,7 +410,7 @@ export function AddVenueSheet({
       // If exactly one URL succeeded, tailor the toast to the mode so
       // merged cases positively surface "added to existing venue".
       if (successCount === 1) {
-        const only = successResults[0].value;
+        const only = successResults[0];
         // Photo count fragment: "· 写真 N/M 枚". Shown so the user sees
         // how many photos actually landed (Phase A).
         const photoFragment =
@@ -436,19 +456,19 @@ export function AddVenueSheet({
         }
       } else {
         const mergedCount = successResults.filter(
-          (r) => r.value.mode === "merged",
+          (r) => r.mode === "merged",
         ).length;
         const createdCount = successCount - mergedCount;
         const totalPhotosUploaded = successResults.reduce(
-          (sum, r) => sum + r.value.photoUploadedCount,
+          (sum, r) => sum + r.photoUploadedCount,
           0,
         );
         const totalPhotosRequested = successResults.reduce(
-          (sum, r) => sum + r.value.photoRequestedCount,
+          (sum, r) => sum + r.photoRequestedCount,
           0,
         );
         const timeoutCount = successResults.filter(
-          (r) => r.value.reviewSummaryStatus === "timeout",
+          (r) => r.reviewSummaryStatus === "timeout",
         ).length;
         const parts: string[] = [];
         if (createdCount > 0) parts.push(`${createdCount}件追加`);
@@ -468,10 +488,6 @@ export function AddVenueSheet({
       }
     } else if (failCount > 0) {
       showToast("error", "URLから読み取れませんでした");
-    }
-
-    if (skipped.length > 0) {
-      showToast("info", `11件目以降 ${skipped.length} 件はスキップされました`);
     }
   };
 
@@ -582,6 +598,7 @@ export function AddVenueSheet({
     setUrlInput("");
     setUrlStates([]);
     setUrlLoading(false);
+    setProgress(null);
     setManualOpen(false);
     setManualName("");
     setManualLocation("");
@@ -661,12 +678,37 @@ export function AddVenueSheet({
                 style={{ minHeight: 120 }}
               />
             </div>
-            <p className="text-[12.5px] text-muted-foreground leading-relaxed">
-              ゼクシィ・ハナユメ・Wedding Park 等に対応しています
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[12.5px] text-muted-foreground leading-relaxed">
+                ゼクシィ・ハナユメ・Wedding Park 等に対応しています
+              </p>
+              {/* Preview chip — shows the detected URL count so the user
+                  can confirm their paste was parsed correctly before
+                  submitting. Surfaces only when at least one URL is
+                  detected and we're not already running. */}
+              {parsedUrls.length > 0 && !urlLoading && (
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] tracking-[0.04em] tabular-nums ${
+                    overLimit
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
+                  }`}
+                  aria-live="polite"
+                >
+                  {overLimit
+                    ? `${parsedUrls.length} 件検出・${BULK_URL_LIMIT}件まで`
+                    : `${parsedUrls.length} 件取り込みます`}
+                </span>
+              )}
+            </div>
+            {overLimit && (
+              <p className="text-[12px] text-destructive leading-relaxed" role="alert">
+                1回に取り込めるのは {BULK_URL_LIMIT} 件までです。減らしてから送信してください。
+              </p>
+            )}
             <Button
               onClick={handleUrlSubmit}
-              disabled={urlLoading || parseUrls(urlInput).length === 0}
+              disabled={urlLoading || parsedUrls.length === 0 || overLimit}
               className="w-full h-12 rounded-[14px] text-[14.5px] font-medium tracking-wide bg-[var(--gold-warm)] hover:bg-[var(--gold-warm)]/90 text-white active:scale-[0.98] transition-transform"
               style={{
                 boxShadow:
@@ -676,8 +718,12 @@ export function AddVenueSheet({
               {urlLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  読み込んでいます…
+                  {progress
+                    ? `読み込んでいます… ${progress.done}/${progress.total}`
+                    : "読み込んでいます…"}
                 </>
+              ) : parsedUrls.length > 1 ? (
+                `まとめて取り込む (${parsedUrls.length})`
               ) : (
                 "URL から取り込む"
               )}
@@ -865,7 +911,8 @@ function UrlSkeletonCard({
   onForceNew,
 }: UrlSkeletonCardProps) {
   const { status, extracted, filledFields, error, url, mode, forcingNew, stage } = state;
-  const isLoading = status === "loading" && !extracted;
+  const isPending = status === "pending";
+  const isLoading = (status === "loading" || isPending) && !extracted;
   const isMerged = status === "success" && mode === "merged";
   const updatedFieldChips = dedupeFieldLabels(state.updatedFields ?? []);
   // Show the stage caption while the server action is still running after
@@ -1035,6 +1082,20 @@ function UrlSkeletonCard({
             >
               <Loader2 className="h-3 w-3 animate-spin text-[var(--gold-warm)]" />
               <span>{STAGE_CAPTIONS[stage]}</span>
+            </motion.div>
+          )}
+          {isPending && (
+            <motion.div
+              key="queued"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-1.5 pt-1 text-[11px] text-muted-foreground/70"
+              role="status"
+              aria-live="polite"
+            >
+              <span>順番待ち…</span>
             </motion.div>
           )}
         </AnimatePresence>
