@@ -509,6 +509,7 @@ async function VisitsContent({
   venueName: string;
   projectId: string;
 }) {
+  const user = await requireUser();
   const visits = await getVenueVisits(venueId);
   return (
     <VisitSection
@@ -546,6 +547,9 @@ async function VisitsContent({
                 mediaUrl: m.mediaUrl,
               })) ?? [],
           })) ?? [],
+        ratings: (v.ratings ?? [])
+          .filter((r) => r.userId === user.id)
+          .map((r) => ({ dimension: r.dimension, score: Number(r.score) })),
       }))}
     />
   );

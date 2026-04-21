@@ -4,13 +4,14 @@ import { useEffect, useState, useTransition } from "react";
 import { scheduleVisit, completeVisit, addVisitNote } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, Check, FileText, MapPin, Loader2 } from "lucide-react";
+import { Calendar, Check, FileText, MapPin, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { cn } from "@/lib/utils";
 import { VisitChecklist } from "@/components/visits/visit-checklist";
+import { VisitRatingForm } from "@/components/visits/visit-rating-form";
 
 interface Visit {
   id: string;
@@ -29,6 +30,8 @@ interface Visit {
     createdAt: Date;
     media: Array<{ id: string; type: string; mediaUrl: string }>;
   }>;
+  /** Current user's VisitRating entries for this visit. */
+  ratings?: Array<{ dimension: string; score: number }>;
 }
 
 interface VisitSectionProps {
@@ -44,6 +47,7 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
   const [scheduleMemo, setScheduleMemo] = useState("");
   const [noteText, setNoteText] = useState("");
   const [showNoteForm, setShowNoteForm] = useState(false);
+  const [expandedRatingVisitId, setExpandedRatingVisitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const geo = useGeolocation();
@@ -207,6 +211,57 @@ export function VisitSection({ venueId, visits }: VisitSectionProps) {
           {visit.checklist.length > 0 && (
             <VisitChecklist items={visit.checklist} />
           )}
+
+          {/* Star rating — completed visits only */}
+          {visit.status === "completed" && (() => {
+            const existingRatings = Object.fromEntries(
+              (visit.ratings ?? []).map((r) => [r.dimension, r.score]),
+            );
+            const hasRatings = (visit.ratings ?? []).length > 0;
+            const isExpanded = expandedRatingVisitId === visit.id;
+
+            return (
+              <div className="space-y-2 border-t border-border pt-3">
+                {!isExpanded ? (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedRatingVisitId(visit.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors active:bg-muted",
+                      hasRatings
+                        ? "text-muted-foreground hover:text-foreground"
+                        : "bg-[var(--gold-subtle)] text-[color-mix(in_oklab,var(--gold-warm)_80%,var(--foreground))]",
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Star className="h-4 w-4" strokeWidth={1.5} />
+                      {hasRatings ? "星評価を書き直す" : "印象を残す"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">→</span>
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-light">各項目の印象を星で残す</p>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedRatingVisitId(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        閉じる
+                      </button>
+                    </div>
+                    <VisitRatingForm
+                      visitId={visit.id}
+                      venueId={venueId}
+                      existingRatings={existingRatings}
+                      onSaved={() => setExpandedRatingVisitId(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Quick capture bar */}
           <div className="flex items-center gap-3 border-t border-border pt-3">

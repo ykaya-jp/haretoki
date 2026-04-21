@@ -371,6 +371,36 @@ export async function getPastVisits(): Promise<VisitSummary[]> {
   });
 }
 
+export async function upsertVisitRating(
+  visitId: string,
+  dimension: string,
+  score: number,
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireVisitAccess(user.id, visitId);
+
+  if (score < 1 || score > 5) {
+    return { success: false, error: "スコアは1〜5で指定してください" };
+  }
+
+  const visit = await prisma.visit.findUnique({
+    where: { id: visitId },
+    select: { venueId: true },
+  });
+  if (!visit) return { success: false, error: "見学記録が見つかりません" };
+
+  await prisma.visitRating.upsert({
+    where: { visitId_userId_dimension: { visitId, userId: user.id, dimension } },
+    create: { visitId, userId: user.id, dimension, score },
+    update: { score },
+  });
+
+  revalidatePath(`/venues/${visit.venueId}`);
+  revalidatePath("/visits");
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  return { success: true };
+}
+
 export async function getVisitsByProject() {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);

@@ -92,7 +92,7 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
     });
   }
 
-  // 3. Visit reminder: venues visited but not rated
+  // 3. Visit reminder: venues visited but not rated (generic)
   for (const venue of venues) {
     const hasVisit = venue.visits.some((v) => v.status === "completed");
     const hasRating = venue.scores.length > 0;
@@ -106,6 +106,45 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
         venueName: venue.name,
         actions: [{ label: "評価する", href: `/venues/${venue.id}` }],
         priority: 4,
+      });
+    }
+  }
+
+  // 3b. Visit reminder (visit_reminder): completed 3+ days ago, VisitRating empty for current user
+  {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const venueIds = venues.map((v) => v.id);
+    const staleVisits = venueIds.length > 0
+      ? await prisma.visit.findMany({
+          where: {
+            venueId: { in: venueIds },
+            status: "completed",
+            completedAt: { lte: threeDaysAgo },
+          },
+          select: {
+            id: true,
+            venueId: true,
+            completedAt: true,
+            ratings: { where: { userId }, select: { id: true } },
+          },
+        })
+      : [];
+
+    for (const sv of staleVisits) {
+      if (sv.ratings.length > 0) continue;
+      const venueName = venues.find((v) => v.id === sv.venueId)?.name ?? sv.venueId;
+      const daysDiff = Math.floor(
+        (Date.now() - (sv.completedAt?.getTime() ?? 0)) / (24 * 60 * 60 * 1000),
+      );
+      insights.push({
+        id: `visit-reminder-${sv.id}`,
+        type: "reminder",
+        title: "見学の印象を星で残しませんか？",
+        body: `${venueName}を見学してから${daysDiff}日。印象が薄れる前に、星で残してみませんか？`,
+        venueId: sv.venueId,
+        venueName,
+        actions: [{ label: "評価する", href: `/venues/${sv.venueId}#visit` }],
+        priority: 3,
       });
     }
   }
