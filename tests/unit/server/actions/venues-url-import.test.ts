@@ -91,9 +91,11 @@ vi.mock("@/lib/analytics/server", () => ({
   captureServerEvent: vi.fn(),
 }));
 
+const mockCaptureMessage = vi.fn();
+const mockCaptureError = vi.fn();
 vi.mock("@/lib/sentry", () => ({
-  captureError: vi.fn(),
-  captureMessage: vi.fn(),
+  captureError: (...args: unknown[]) => mockCaptureError(...args),
+  captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
 }));
 
 describe("confirmVenueFromUrl", () => {
@@ -338,5 +340,128 @@ describe("confirmVenueFromUrl", () => {
     // render them — the "timeout" only affects the aggregate summary.
     expect(mockReviewUpsert).toHaveBeenCalledTimes(1);
     expect(mockAnalyzeVenueReviews).toHaveBeenCalledTimes(1);
+  });
+
+  it("emits aggregate pipeline summary as info Sentry event on a healthy batch", async () => {
+    const { confirmVenueFromUrl } = await import(
+      "@/server/actions/venues"
+    );
+    const extracted = {
+      name: "Summary Venue",
+      location: null,
+      accessInfo: null,
+      capacityMin: null,
+      capacityMax: null,
+      ceremonyStyles: [],
+      estimatedPrice: null,
+      features: [],
+      photoUrls: [
+        "https://cdn.zexy.net/photo-a.jpg",
+        "https://cdn.zexy.net/photo-b.jpg",
+      ],
+      confidence: "high" as const,
+      costMin: null,
+      costMax: null,
+      paymentMethodEnums: [],
+      dressBringIn: null,
+      dressBringInFee: null,
+      maxInstallments: null,
+      vibeTags: [],
+      reviews: [],
+    };
+
+    await confirmVenueFromUrl(extracted, "https://zexy.net/wedding/c_1/");
+
+    // Exactly one summary event should be emitted per confirm call. The
+    // per-failure warning channel is separate and only fires when an upload
+    // fails — on this healthy path it should stay silent.
+    const summaryEvents = mockCaptureMessage.mock.calls.filter(
+      ([name]) => name === "url_import_photos_summary",
+    );
+    expect(summaryEvents).toHaveLength(1);
+    const [, opts] = summaryEvents[0] as [
+      string,
+      { level: string; extra: Record<string, unknown> },
+    ];
+    expect(opts.level).toBe("info");
+    expect(opts.extra).toMatchObject({
+      mode: "create",
+      venueId: "venue-1",
+      sourceHost: "zexy.net",
+      requestedCount: 2,
+      uploadedCount: 2,
+      successRate: 1,
+    });
+    // No silent-failure event on a healthy batch.
+    expect(
+      mockCaptureMessage.mock.calls.some(
+        ([name]) => name === "url_import_photos_silent_failure",
+      ),
+    ).toBe(false);
+  });
+
+  it("escalates to silent-failure Sentry warning when 0/N photos upload", async () => {
+    // All uploads fail terminally (no fallback URL retained — timeout is
+    // classified as "don't keep original" so uploadedCount stays at 0).
+    mockUploadVenuePhotoFromUrl.mockImplementation(async (src: string) => ({
+      ok: false as const,
+      reason: "timeout" as const,
+      srcUrl: src,
+      detail: "TimeoutError",
+    }));
+    const { confirmVenueFromUrl } = await import(
+      "@/server/actions/venues"
+    );
+    const extracted = {
+      name: "Silent Fail Venue",
+      location: null,
+      accessInfo: null,
+      capacityMin: null,
+      capacityMax: null,
+      ceremonyStyles: [],
+      estimatedPrice: null,
+      features: [],
+      photoUrls: [
+        "https://cdn.slow.example.com/a.jpg",
+        "https://cdn.slow.example.com/b.jpg",
+      ],
+      confidence: "medium" as const,
+      costMin: null,
+      costMax: null,
+      paymentMethodEnums: [],
+      dressBringIn: null,
+      dressBringInFee: null,
+      maxInstallments: null,
+      vibeTags: [],
+      reviews: [],
+    };
+
+    await confirmVenueFromUrl(
+      extracted,
+      "https://zexy.net/wedding/c_slow/",
+    );
+
+    const silentEvents = mockCaptureMessage.mock.calls.filter(
+      ([name]) => name === "url_import_photos_silent_failure",
+    );
+    expect(silentEvents).toHaveLength(1);
+    const [, opts] = silentEvents[0] as [
+      string,
+      { level: string; extra: Record<string, unknown> },
+    ];
+    expect(opts.level).toBe("warning");
+    expect(opts.extra).toMatchObject({
+      mode: "create",
+      requestedCount: 2,
+      uploadedCount: 0,
+      successRate: 0,
+      failedReasons: {
+        "403": 0,
+        timeout: 2,
+        "invalid-ct": 0,
+        "size-limit": 0,
+        network: 0,
+      },
+    });
   });
 });

@@ -1441,6 +1441,7 @@ export async function confirmVenueFromUrl(
       "size-limit": 0,
       network: 0,
     };
+    const mergePhotoStartedAt = Date.now();
     if (uniquePhotoUrls.length > 0) {
       const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
         uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
@@ -1457,6 +1458,15 @@ export async function confirmVenueFromUrl(
         }
       }
     }
+    reportPhotoPipelineSummary({
+      mode: "merge",
+      venueId: existing.id,
+      sourceHost: safeHost(sourceUrl),
+      requestedCount: uniquePhotoUrls.length,
+      uploadedCount: uploadedPhotoUrls.length,
+      failedReasons: photoFailedReasons,
+      durationMs: Date.now() - mergePhotoStartedAt,
+    });
 
     const existingBag: VenueFieldBag = {
       ...existing,
@@ -1601,6 +1611,7 @@ export async function confirmVenueFromUrl(
     "size-limit": 0,
     network: 0,
   };
+  const createPhotoStartedAt = Date.now();
   if (uniquePhotoUrls.length > 0) {
     const uploadResults = await limitedAll(uniquePhotoUrls, 3, (src) =>
       uploadVenuePhotoFromUrl(src, projectId, venue.id, origin),
@@ -1623,6 +1634,15 @@ export async function confirmVenueFromUrl(
       });
     }
   }
+  reportPhotoPipelineSummary({
+    mode: "create",
+    venueId: venue.id,
+    sourceHost: safeHost(sourceUrl),
+    requestedCount: uniquePhotoUrls.length,
+    uploadedCount: uploadedPhotoUrls.length,
+    failedReasons: photoFailedReasons,
+    durationMs: Date.now() - createPhotoStartedAt,
+  });
 
   const reviewSource = reviewSourceFromUrl(sourceUrl);
   if (reviewSource && parsed.data.reviews.length > 0) {
@@ -1679,6 +1699,65 @@ function shouldKeepOriginalUrl(
   failure: PhotoUploadResult & { ok: false },
 ): boolean {
   return RECOVERABLE_UPLOAD_REASONS.has(failure.reason);
+}
+
+/**
+ * Extract hostname from a URL for log aggregation. Falls back to
+ * `(unknown)` on malformed input — logs should never throw.
+ */
+function safeHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "(unknown)";
+  }
+}
+
+/**
+ * Emit a single aggregate log line per URL-import photo batch so prod
+ * can answer "did the user's add-venue actually save any photos?" with a
+ * single grep. Without this, only per-failure warnings land and a fully
+ * successful batch shows up as silence — impossible to distinguish from
+ * "code never ran" in incident triage.
+ *
+ * Always logs (success or failure) because a 0-of-N success is the exact
+ * signal we need to detect silent pipeline breakage.
+ */
+function reportPhotoPipelineSummary(params: {
+  mode: "create" | "merge";
+  venueId: string;
+  sourceHost: string;
+  requestedCount: number;
+  uploadedCount: number;
+  failedReasons: Record<PhotoUploadReason, number>;
+  durationMs: number;
+}): void {
+  const { requestedCount, uploadedCount, failedReasons, durationMs } = params;
+  const successRate =
+    requestedCount === 0 ? 1 : uploadedCount / requestedCount;
+  const payload = {
+    mode: params.mode,
+    venueId: params.venueId,
+    sourceHost: params.sourceHost,
+    requestedCount,
+    uploadedCount,
+    successRate: Number(successRate.toFixed(2)),
+    failedReasons,
+    durationMs,
+  };
+  console.info("[url_import_photos]", payload);
+  // Sentry as info/warning: warning when nothing uploaded despite requests
+  // (silent pipeline break signal); info otherwise (healthy traffic).
+  const silentFailure = requestedCount > 0 && uploadedCount === 0;
+  captureMessage(
+    silentFailure
+      ? "url_import_photos_silent_failure"
+      : "url_import_photos_summary",
+    {
+      level: silentFailure ? "warning" : "info",
+      extra: payload,
+    },
+  );
 }
 
 /**
@@ -1890,6 +1969,14 @@ export async function refreshVenueFromSource(venueId: string): Promise<
 
     const incomingPhotoUrls = Array.from(new Set(parsed.data.photoUrls)).slice(0, 15);
     const uploadedPhotoUrls: string[] = [];
+    const refreshPhotoFailedReasons: Record<PhotoUploadReason, number> = {
+      "403": 0,
+      timeout: 0,
+      "invalid-ct": 0,
+      "size-limit": 0,
+      network: 0,
+    };
+    const refreshPhotoStartedAt = Date.now();
     if (incomingPhotoUrls.length > 0) {
       const uploadResults = await limitedAll(incomingPhotoUrls, 3, (src) =>
         uploadVenuePhotoFromUrl(src, projectId, existing.id, origin),
@@ -1898,6 +1985,8 @@ export async function refreshVenueFromSource(venueId: string): Promise<
         if (r.ok) {
           uploadedPhotoUrls.push(r.url);
         } else {
+          refreshPhotoFailedReasons[r.reason] =
+            (refreshPhotoFailedReasons[r.reason] ?? 0) + 1;
           reportPhotoUploadFailure(r);
           if (shouldKeepOriginalUrl(r)) {
             uploadedPhotoUrls.push(r.srcUrl);
@@ -1905,6 +1994,15 @@ export async function refreshVenueFromSource(venueId: string): Promise<
         }
       }
     }
+    reportPhotoPipelineSummary({
+      mode: "merge",
+      venueId: existing.id,
+      sourceHost: safeHost(sourceUrl),
+      requestedCount: incomingPhotoUrls.length,
+      uploadedCount: uploadedPhotoUrls.length,
+      failedReasons: refreshPhotoFailedReasons,
+      durationMs: Date.now() - refreshPhotoStartedAt,
+    });
 
     const incomingBag: VenueFieldBag = {
       ...buildVenueFieldBag(parsed.data, sourceUrl),

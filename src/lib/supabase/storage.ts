@@ -111,10 +111,37 @@ export async function uploadEstimatePdf(
 }
 
 /**
+ * Supabase storage error messages that are worth retrying. Transient 5xx
+ * and gateway-level hiccups occasionally surface here even when the rest
+ * of the pipeline is healthy — a single retry typically resolves them
+ * without user-visible failure.
+ *
+ * NOT retryable: bucket-not-found, RLS, mime rejection, size-limit — those
+ * are config/input errors that won't fix themselves.
+ */
+function isRetryableSupabaseStorageError(message: string): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  if (m.includes("bucket not found")) return false;
+  if (m.includes("policy")) return false;
+  if (m.includes("mime")) return false;
+  if (m.includes("allowed_mime_types")) return false;
+  if (m.includes("the resource already exists")) return false;
+  if (m.includes("duplicate")) return false;
+  if (m.includes("exceeds maximum")) return false;
+  // Everything else (network blips, 5xx, timeouts) gets a single retry.
+  return true;
+}
+
+/**
  * Upload a venue photo to Supabase Storage.
  *
  * NOTE: The "venue-photos" bucket must be created in the Supabase Dashboard.
  * Go to Storage → New Bucket → name: "venue-photos". Set it as public.
+ *
+ * Retries once on transient errors (not on config/input errors) — Supabase
+ * Storage occasionally returns 5xx under load; a single retry after a short
+ * backoff saves a user-visible failure without hammering the service.
  */
 export async function uploadVenuePhoto(
   file: Buffer,
@@ -139,31 +166,41 @@ export async function uploadVenuePhoto(
           ? "image/heic"
           : "image/jpeg";
 
-  const { data, error } = await supabase.storage
-    .from("venue-photos")
-    .upload(path, file, { contentType, upsert: false });
+  const maxAttempts = 2;
+  let lastError: { message: string } | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const { data, error } = await supabase.storage
+      .from("venue-photos")
+      .upload(path, file, { contentType, upsert: false });
 
-  if (error) {
-    // Bubble up the *full* Supabase error so production logs show the
-    // real cause ("Bucket not found", RLS policy error, mime rejection,
-    // etc.) instead of a truncated "Bu..." that reveals nothing.
-    console.error("[uploadVenuePhoto] Supabase storage upload failed", {
-      bucket: "venue-photos",
-      path,
-      contentType,
-      byteLength: file.byteLength,
-      supabaseError: error,
-    });
-    throw new Error(
-      `写真のアップロードに失敗しました (bucket=venue-photos, path=${path}): ${error.message}`,
-    );
+    if (!error) {
+      const { data: urlData } = supabase.storage
+        .from("venue-photos")
+        .getPublicUrl(data.path);
+      return urlData.publicUrl;
+    }
+
+    lastError = error;
+    const retryable = isRetryableSupabaseStorageError(error.message);
+    if (!retryable || attempt === maxAttempts) break;
+    // Short backoff — Supabase 5xx clears quickly. Jitter avoids
+    // thundering-herd when a whole batch retries on the same tick.
+    await new Promise((r) => setTimeout(r, 200 + Math.random() * 200));
   }
 
-  const { data: urlData } = supabase.storage
-    .from("venue-photos")
-    .getPublicUrl(data.path);
-
-  return urlData.publicUrl;
+  // Bubble up the *full* Supabase error so production logs show the
+  // real cause ("Bucket not found", RLS policy error, mime rejection,
+  // etc.) instead of a truncated "Bu..." that reveals nothing.
+  console.error("[uploadVenuePhoto] Supabase storage upload failed", {
+    bucket: "venue-photos",
+    path,
+    contentType,
+    byteLength: file.byteLength,
+    supabaseError: lastError,
+  });
+  throw new Error(
+    `写真のアップロードに失敗しました (bucket=venue-photos, path=${path}): ${lastError?.message ?? "unknown"}`,
+  );
 }
 
 /**

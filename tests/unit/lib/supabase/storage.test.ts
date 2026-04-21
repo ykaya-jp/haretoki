@@ -11,7 +11,21 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const getPublicUrlMock = vi.fn(() => ({
   data: { publicUrl: "https://supabase.co/storage/v1/object/public/venue-photos/imported.jpg" },
 }));
-const uploadMock = vi.fn(async () => ({ data: { path: "p/v/imported.jpg" }, error: null }));
+
+/**
+ * Supabase `storage.from(...).upload()` returns a union of success / error
+ * shapes. Typed explicitly so retry tests can `mockResolvedValueOnce`
+ * either variant without triggering TS inference to narrow the mock
+ * permanently.
+ */
+type UploadResultShape = {
+  data: { path: string } | null;
+  error: { message: string } | null;
+};
+const uploadMock = vi.fn<() => Promise<UploadResultShape>>(async () => ({
+  data: { path: "p/v/imported.jpg" },
+  error: null,
+}));
 
 const storageClientStub = {
   storage: {
@@ -76,7 +90,15 @@ describe("uploadVenuePhotoFromUrl", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    uploadMock.mockClear();
+    // Reset mockResolvedValue state between tests so per-test overrides
+    // don't bleed into the next test when they set `mockResolvedValue`
+    // (not just `mockResolvedValueOnce`). Without this, the retry tests
+    // below would pollute any test that runs after them.
+    uploadMock.mockReset();
+    uploadMock.mockResolvedValue({
+      data: { path: "p/v/imported.jpg" },
+      error: null,
+    });
     getPublicUrlMock.mockClear();
     fetchMock = vi.fn();
     global.fetch = fetchMock as unknown as typeof global.fetch;
@@ -233,5 +255,54 @@ describe("uploadVenuePhotoFromUrl", () => {
       expect.objectContaining({ ok: false, reason: "network" }),
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("retries Supabase upload once on transient 5xx and succeeds", async () => {
+    fetchMock.mockResolvedValueOnce(makeImageResponse({}));
+    // First Supabase upload fails with a generic server error (retryable);
+    // second attempt succeeds.
+    uploadMock
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: "Internal Server Error" },
+      })
+      .mockResolvedValueOnce({
+        data: { path: "p/v/imported.jpg" },
+        error: null,
+      });
+    const { uploadVenuePhotoFromUrl } = await import("@/lib/supabase/storage");
+
+    const result = await uploadVenuePhotoFromUrl(
+      "https://cdn.zexy.net/retry.jpg",
+      "p",
+      "v",
+    );
+
+    expect(result.ok).toBe(true);
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    // External fetch only happens once — retry is on the Supabase side.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT retry Supabase upload on config errors (bucket / mime / policy)", async () => {
+    fetchMock.mockResolvedValueOnce(makeImageResponse({}));
+    uploadMock.mockResolvedValue({
+      data: null,
+      error: { message: "Bucket not found" },
+    });
+    const { uploadVenuePhotoFromUrl } = await import("@/lib/supabase/storage");
+
+    const result = await uploadVenuePhotoFromUrl(
+      "https://cdn.zexy.net/a.jpg",
+      "p",
+      "v",
+    );
+
+    // Config error surfaces as a failure Result (never throws) — caller
+    // handles as `{ok:false, reason:'network', detail: supabase: ...}`.
+    expect(result.ok).toBe(false);
+    // Only one Supabase attempt — don't hammer the service for an error
+    // that'll never fix itself.
+    expect(uploadMock).toHaveBeenCalledTimes(1);
   });
 });
