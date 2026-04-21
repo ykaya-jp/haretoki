@@ -17,6 +17,9 @@ import type { ReactNode } from "react";
  * to a near-zero-duration cross-fade when the user has
  * `prefers-reduced-motion: reduce` set at the OS level.
  */
+// NOTE: features must be `domMax` (or include drag features).
+// Switching back to `domAnimation` will silently break SwipeCompare.
+// See tests/unit/components/providers/motion-provider.test.tsx
 const loadFeatures = () =>
   import("framer-motion").then((m) => m.domMax);
 
