@@ -1938,3 +1938,14 @@ export async function refreshVenueFromSource(venueId: string): Promise<
     reviewCount: totalReviewCount,
   };
 }
+
+/** Return all venue IDs belonging to the current user's project (for Realtime filtering). */
+export async function getProjectVenueIds(): Promise<string[]> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+  const venues = await prisma.venue.findMany({
+    where: { projectId },
+    select: { id: true },
+  });
+  return venues.map((v: { id: string }) => v.id);
+}
