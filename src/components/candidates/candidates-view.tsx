@@ -97,42 +97,13 @@ export function CandidatesView({
   const [ceremonyProjectId, setCeremonyProjectId] = useState<string | undefined>(undefined);
   const [decision, setDecision] = useState(initialDecision ?? null);
   const [isDeciding, setIsDeciding] = useState(false);
-  // Multi-select (比較モード): flip cards into tap-to-toggle, pick 2-10,
-  // jump to /compare?venueIds=a,b,c with the selection preserved.
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
-  const toggleSelected = (venueId: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(venueId)) {
-        next.delete(venueId);
-      } else if (next.size >= COMPARE_MAX_VENUES) {
-        // Fail loud: tell the user why the next tap didn't add.
-        toast.info(`比較は ${COMPARE_MAX_VENUES} 件までが見やすいです`);
-        return prev;
-      } else {
-        next.add(venueId);
-      }
-      return next;
-    });
-  };
-
-  const exitSelectMode = () => {
-    setSelectMode(false);
-    setSelectedIds(new Set());
-  };
-
-  const launchCompare = () => {
-    if (selectedIds.size < 2) {
-      toast.info("比較には 2 件以上選んでください");
-      return;
-    }
-    // Preserve the order the user picked (Set iterates insertion order).
-    const ids = Array.from(selectedIds);
-    router.push(`/compare?venueIds=${ids.join(",")}`);
-  };
+  // Compare-mode UI (shortlist tab → tap-to-toggle → sticky CTA → /compare)
+  // was removed in favour of the "比べる" sub-tab, which now owns venue
+  // selection via CompareRedesigned's chip picker. Keeping two selection
+  // surfaces forced couples to learn both paths; consolidating on one
+  // matches the user's mental model ("tap 比べる, pick venues, see matrix").
 
   useEffect(() => {
     // Refetch when filter changes
@@ -228,32 +199,6 @@ export function CandidatesView({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <FavoriteFilter active={filter} onChange={setFilter} />
-
-            {/* 比較モード toggle — only surface when the user has >= 2
-                favorites, otherwise the feature is dead (nothing to compare). */}
-            {favorites.length >= 2 && (
-              <div className="mt-3 flex items-center justify-end">
-                {selectMode ? (
-                  <button
-                    type="button"
-                    onClick={exitSelectMode}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 text-[12px] text-muted-foreground transition-colors active:bg-muted"
-                  >
-                    <X className="h-3.5 w-3.5" strokeWidth={2} />
-                    モードを終わる
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSelectMode(true)}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--background))] px-3 text-[12px] font-medium text-[var(--gold-warm)] transition-colors active:bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))]"
-                  >
-                    <GitCompare className="h-3.5 w-3.5" strokeWidth={2} />
-                    比較モード
-                  </button>
-                )}
-              </div>
-            )}
 
             {favorites.length === 0 ? (
               <motion.div
@@ -357,13 +302,7 @@ export function CandidatesView({
                       exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
                       transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <VenueCard
-                        venue={fav.venue}
-                        isFavorite={true}
-                        selectMode={selectMode}
-                        isSelected={selectedIds.has(fav.venue.id)}
-                        onToggleSelect={toggleSelected}
-                      />
+                      <VenueCard venue={fav.venue} isFavorite={true} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -467,42 +406,6 @@ export function CandidatesView({
         )}
       </AnimatePresence>
 
-      {/* 比較モード sticky CTA — lives above the bottom nav. Only renders
-          while selectMode is active, so normal browsing never sees it. */}
-      <AnimatePresence>
-        {selectMode && tab === "shortlist" && (
-          <motion.div
-            key="compare-cta"
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4"
-          >
-            <div className="flex w-full max-w-sm items-center gap-2 rounded-full border border-border/50 bg-background/95 p-1.5 shadow-[var(--shadow-elevated)] backdrop-blur-md">
-              <span className="flex-1 pl-3 text-[12.5px] text-muted-foreground tabular-nums">
-                <span className="font-semibold text-foreground">{selectedIds.size}</span>
-                <span> / {COMPARE_MAX_VENUES} 件</span>
-              </span>
-              <button
-                type="button"
-                onClick={launchCompare}
-                disabled={selectedIds.size < 2}
-                className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-all ${
-                  selectedIds.size >= 2
-                    ? "bg-[var(--gold-warm)] text-background hover:brightness-105 active:scale-[0.98]"
-                    : "cursor-not-allowed bg-muted text-muted-foreground"
-                }`}
-              >
-                <GitCompare className="h-3.5 w-3.5" strokeWidth={2} />
-                {selectedIds.size >= 2
-                  ? `この ${selectedIds.size} 件を比較`
-                  : "2件以上選ぶ"}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

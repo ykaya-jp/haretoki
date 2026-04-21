@@ -7,7 +7,7 @@ import { PartnerInvite } from "@/components/partner/partner-invite";
 import { InviteLinkPanel } from "@/components/partner/invite-link-panel";
 import { getCurrentInvitationLink } from "@/server/actions/invitation-links";
 import { NameEdit } from "@/components/mypage/name-edit";
-import { Settings, ChevronRight, Bookmark, Bell } from "lucide-react";
+import { Settings, ChevronRight, Bookmark } from "lucide-react";
 import Link from "next/link";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -187,28 +187,13 @@ export default async function MyPage() {
           </h3>
         </div>
         <div className="space-y-3">
-          {/* Notification inbox */}
-          <Link
-            href="/notifications"
-            prefetch
-            className="flex items-center justify-between rounded-2xl bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-[var(--gold-warm)]" />
-              <div>
-                <p className="font-medium">通知</p>
-                <p className="text-xs text-muted-foreground">新着のお知らせ</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--destructive)] px-1 text-[11px] font-medium text-primary-foreground tabular-nums">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </Link>
+          {/* Notification inbox row removed — hero has a
+              NotificationBadge (top-right) that surfaces unread count
+              and links to /notifications. The separate list row was
+              duplicating the affordance and competing with the frequency
+              setting in /settings (the two "通知" items confused users
+              into thinking mypage's "通知" was the frequency control).
+              Frequency mode lives only in /settings now. */}
 
           {/* E-10: Saved search conditions */}
           <Link

@@ -155,24 +155,25 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {/* Upcoming visits nudge — shown when at least 1 scheduled visit exists */}
+      {/* Upcoming visits nudge — lifted off the gold pill styling in
+          favour of a quieter hairline row. Cover CTA is the only gold
+          primary on Home; this nudge now reads as tertiary alongside
+          the Journey link above. */}
       {progress.upcomingVisits > 0 && (
         <Link
           href="/visits"
           prefetch={true}
-          className="flex min-h-[44px] items-center gap-3 rounded-2xl border border-[color-mix(in_oklab,var(--gold-warm)_30%,transparent)] bg-[var(--gold-subtle)] px-4 py-3 active:scale-[0.98] active:bg-muted transition-transform"
+          className="flex min-h-[44px] items-center gap-2 py-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          <span className="text-[var(--gold-warm)]" aria-hidden>📅</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-light text-foreground">
-              見学予定が{" "}
-              <span className="tabular-nums font-medium text-[var(--gold-warm)]">
-                {progress.upcomingVisits}
-              </span>{" "}
-              件あります
-            </p>
-          </div>
-          <span aria-hidden className="text-muted-foreground text-[13px]">→</span>
+          <span aria-hidden>📅</span>
+          <span>
+            見学予定が{" "}
+            <span className="tabular-nums font-medium text-foreground">
+              {progress.upcomingVisits}
+            </span>{" "}
+            件 あります
+          </span>
+          <span aria-hidden className="ml-auto">→</span>
         </Link>
       )}
 

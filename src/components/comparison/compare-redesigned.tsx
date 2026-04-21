@@ -369,15 +369,27 @@ export function CompareRedesigned() {
 
       {canRender ? (
         <>
-          {/* Toolbar: diff toggle */}
-          <div className="flex items-center justify-between px-3">
+          {/* Toolbar: diff toggle + checklist-editor entry.
+              The audit flagged that /checklist was buried on
+              candidates-level only; couples who reached the matrix and
+              wanted to tweak which dimensions mattered had to back out
+              two screens first. Inlining the link keeps the editor one
+              tap away from where the need arises. */}
+          <div className="flex items-center justify-between gap-2 px-3">
             <p className="text-[11px] text-muted-foreground">
               {selectedVenues.length} 件 比較中 · 差のある項目{" "}
               <span className="tabular-nums text-foreground/80">
                 {diffCount}
               </span>
             </p>
-            <button
+            <div className="flex items-center gap-2">
+              <Link
+                href="/checklist"
+                className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-3 text-[11px] text-muted-foreground transition-colors active:scale-[0.97] hover:text-foreground"
+              >
+                項目を編集
+              </Link>
+              <button
               type="button"
               onClick={() => setDiffOnly((v) => !v)}
               aria-pressed={diffOnly}
@@ -391,6 +403,7 @@ export function CompareRedesigned() {
               <ChevronsUpDown className="h-3 w-3" strokeWidth={2} />
               差がある項目だけ
             </button>
+            </div>
           </div>
 
           {/* Matrix — horizontal scroll container. A gold-hint gradient
