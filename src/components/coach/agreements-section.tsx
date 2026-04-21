@@ -204,7 +204,7 @@ export function AgreementsSection({ initialAgreements }: Props) {
           <button
             type="submit"
             disabled={!inputText.trim() || isPending}
-            className="min-h-[44px] rounded-full bg-[color:var(--primary)] px-4 text-[12.5px] text-white disabled:opacity-40 active:scale-[0.97]"
+            className="min-h-[44px] rounded-full bg-[color:var(--primary)] px-4 text-[12.5px] text-primary-foreground disabled:opacity-40 active:scale-[0.97]"
           >
             追加
           </button>
