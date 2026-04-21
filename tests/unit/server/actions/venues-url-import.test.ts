@@ -22,6 +22,14 @@ vi.mock("@/server/db", () => ({
     review: {
       upsert: (...args: unknown[]) => mockReviewUpsert(...args),
     },
+    venueFavorite: {
+      // auto-favorite on create/merge needs this to be a no-op upsert.
+      upsert: vi.fn(async () => ({
+        venueId: "v-mock",
+        userId: "user-1",
+        createdAt: new Date(),
+      })),
+    },
   },
 }));
 

@@ -13,15 +13,33 @@ const getPublicUrlMock = vi.fn(() => ({
 }));
 const uploadMock = vi.fn(async () => ({ data: { path: "p/v/imported.jpg" }, error: null }));
 
+const storageClientStub = {
+  storage: {
+    from: vi.fn(() => ({
+      upload: uploadMock,
+      getPublicUrl: getPublicUrlMock,
+      // ensureBucket() calls createBucket() at first write — stub as
+      // idempotent "already exists" error so the code path treats the
+      // bucket as present and proceeds to the upload under test.
+      createBucket: undefined as never,
+    })),
+    createBucket: vi.fn(async () => ({
+      data: null,
+      error: { message: "already exists" },
+    })),
+  },
+};
+
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
-    storage: {
-      from: vi.fn(() => ({
-        upload: uploadMock,
-        getPublicUrl: getPublicUrlMock,
-      })),
-    },
-  })),
+  createClient: vi.fn(async () => storageClientStub),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  // When SUPABASE_SERVICE_ROLE_KEY is unset the admin factory returns
+  // null and getStorageClient falls through to the user-scoped client.
+  // Keeping this stub returning null lets the existing createClient
+  // mock continue to receive the upload calls.
+  createAdminClient: vi.fn(() => null),
 }));
 
 vi.mock("next/headers", () => ({
