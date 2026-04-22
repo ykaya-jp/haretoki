@@ -65,12 +65,17 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
     return templateInsight(input);
   }
 
-  // Hash covers all inputs that would change the output
+  // Hash covers everything that would change Claude's output — including the
+  // model, so switching between haiku/sonnet doesn't return stale cached text.
   const inputHash = computeInputHash(
     JSON.stringify({
       venues: input.venues,
       winners: input.winners,
       conditions: input.conditions,
+      model: MATRIX_INSIGHT_PROMPT.model,
+      // Bump this when the prompt semantics change so old cached entries
+      // (pre-tradeoff-framing) aren't served after a deploy.
+      promptVersion: 2,
     }),
   );
 
@@ -109,14 +114,26 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
   }
 
   try {
-    const raw = await withRetry(() =>
-      askClaude({
-        system: MATRIX_INSIGHT_PROMPT.system,
-        userMessage: MATRIX_INSIGHT_PROMPT.buildUserMessage(input),
-        model: "claude-sonnet-4-6",
-        maxTokens: MATRIX_INSIGHT_PROMPT.maxTokens,
-      }),
+    // Hard 15s timeout so a stalled upstream can't block the /compare board
+    // render. Template fallback is fast and always available.
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("matrix-insight timed out")),
+        MATRIX_INSIGHT_PROMPT.timeoutMs,
+      ),
     );
+
+    const raw = await Promise.race([
+      withRetry(() =>
+        askClaude({
+          system: MATRIX_INSIGHT_PROMPT.system,
+          userMessage: MATRIX_INSIGHT_PROMPT.buildUserMessage(input),
+          model: MATRIX_INSIGHT_PROMPT.model,
+          maxTokens: MATRIX_INSIGHT_PROMPT.maxTokens,
+        }),
+      ),
+      timeoutPromise,
+    ]);
 
     // Claude occasionally wraps JSON in ```json blocks — strip them.
     const cleaned = raw
