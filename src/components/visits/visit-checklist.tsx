@@ -356,7 +356,7 @@ function AIChecklistRow({ item }: { item: AIChecklistItem }) {
         onClick={() => setAdded(true)}
         // Visual chip stays 32px to fit the row's density; touch-target
         // expanded to 44px via `before:` pseudo-layer (WCAG 2.5.5).
-        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold,#b8972a)_40%,var(--border))] text-[color-mix(in_oklab,var(--gold,#b8972a)_80%,var(--foreground))] transition-colors duration-200 active:bg-[color-mix(in_oklab,var(--gold,#b8972a)_12%,var(--background))] disabled:opacity-40 before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
+        className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold,#b8972a)_40%,var(--border))] text-[color-mix(in_oklab,var(--gold,#b8972a)_80%,var(--foreground))] transition-colors duration-200 active:bg-[color-mix(in_oklab,var(--gold,#b8972a)_12%,var(--background))] disabled:opacity-40 before:absolute before:inset-[-6px] before:content-['']"
         aria-label="確認リストに追加"
       >
         {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
