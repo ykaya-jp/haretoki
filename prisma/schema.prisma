@@ -386,6 +386,12 @@ model Estimate {
 
   @@index([venueId])
   @@index([projectId])
+  // Many hot paths (matrix, venues detail, comparison, coach context) select
+  // the latest estimate for a venue via `orderBy: { version: desc }, take: 1`.
+  // A composite (venueId, version desc) index lets Postgres resolve that in
+  // an index-only scan instead of re-reading the single-column venueId index
+  // and then sorting in memory.
+  @@index([venueId, version(sort: Desc)])
   @@map("estimates")
 }
 
@@ -443,6 +449,10 @@ model VisitChecklistItem {
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
   @@index([visitId])
+  // `visit-questions.ts` and `checklist-comparison.ts` read the checklist
+  // ordered by `sortOrder asc`. A (visitId, sortOrder) composite index
+  // avoids the per-query sort for visits with many items.
+  @@index([visitId, sortOrder])
   @@map("visit_checklist_items")
 }
 
