@@ -1,0 +1,248 @@
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+
+/**
+ * Tests for the PDF estimate extraction path.
+ *
+ * The unit surface is split into two layers, each tested independently so
+ * failures point at the right seam:
+ *
+ *  1. `stripJsonFence` + `parseEstimateExtraction` — pure, no I/O. Covers
+ *     the "Claude wrapped its output weirdly" failure modes we've hit on
+ *     review-summary / onboarding paths before.
+ *  2. `extractEstimateItems` — the orchestration layer. Anthropic SDK
+ *     calls and Supabase signed-URL issuance are mocked; what we verify
+ *     is the call shape (document-block URL source, sonnet-4-6 model,
+ *     max_tokens=4096) and the error-path contract (`{ok:false,error}`
+ *     never throws).
+ */
+
+describe("stripJsonFence", () => {
+  it("unwraps a ```json ... ``` fenced block", async () => {
+    const { stripJsonFence } = await import("@/lib/estimate-ai-parser");
+    const raw = '```json\n{"total": 3000000, "items": []}\n```';
+    expect(stripJsonFence(raw)).toBe('{"total": 3000000, "items": []}');
+  });
+
+  it("unwraps a bare ``` ... ``` fence", async () => {
+    const { stripJsonFence } = await import("@/lib/estimate-ai-parser");
+    const raw = '```\n{"a":1}\n```';
+    expect(stripJsonFence(raw)).toBe('{"a":1}');
+  });
+
+  it("slices from the first '{' to the last '}' when preamble exists", async () => {
+    const { stripJsonFence } = await import("@/lib/estimate-ai-parser");
+    const raw = 'Here is the extraction:\n{"total": 1, "nested": {"k": 2}}\nDone.';
+    expect(stripJsonFence(raw)).toBe('{"total": 1, "nested": {"k": 2}}');
+  });
+
+  it("returns the trimmed input when the payload is already clean JSON", async () => {
+    const { stripJsonFence } = await import("@/lib/estimate-ai-parser");
+    const raw = '  {"ok":true}  ';
+    expect(stripJsonFence(raw)).toBe('{"ok":true}');
+  });
+});
+
+describe("parseEstimateExtraction", () => {
+  const validPayload = {
+    total: 3500000,
+    items: [
+      {
+        category: "cuisine",
+        itemName: "洋食コース A",
+        amount: 1200000,
+        unit: "名",
+        quantity: 80,
+        tier: "standard",
+      },
+      {
+        category: "attire",
+        itemName: "ウェディングドレス",
+        amount: 300000,
+        tier: "minimum",
+      },
+    ],
+    predictedFinal: 4100000,
+    analysisNote: "衣裳と料理で一般的な追加幅を見込みました。",
+  };
+
+  it("accepts a complete, well-shaped payload", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const res = parseEstimateExtraction(JSON.stringify(validPayload));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.total).toBe(3500000);
+      expect(res.data.items).toHaveLength(2);
+      expect(res.data.items[0].quantity).toBe(80);
+    }
+  });
+
+  it("accepts fenced JSON (end-to-end with the stripper)", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const res = parseEstimateExtraction(
+      "```json\n" + JSON.stringify(validPayload) + "\n```",
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("rejects malformed JSON without throwing", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const res = parseEstimateExtraction("{not-json");
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/parse failed/);
+  });
+
+  it("rejects payload missing required fields (schema mismatch)", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const res = parseEstimateExtraction(
+      JSON.stringify({ total: 100, items: [] }),
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/schema validation/);
+  });
+
+  it("rejects when items[].amount is negative", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const bad = {
+      ...validPayload,
+      items: [{ ...validPayload.items[0], amount: -10 }],
+    };
+    const res = parseEstimateExtraction(JSON.stringify(bad));
+    expect(res.ok).toBe(false);
+  });
+});
+
+// --- extractEstimateItems: orchestration layer -----------------------------
+
+// Claude SDK call is mocked — we never hit the real API in unit tests.
+const messagesCreateMock = vi.fn();
+
+vi.mock("@anthropic-ai/sdk", () => {
+  class APIError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "APIError";
+    }
+  }
+  // getAnthropicClient does `new Anthropic({...})`, so the default export
+  // must be a real constructor (not a plain factory fn). Class shape
+  // mirrors the SDK's public surface we exercise in this file.
+  class AnthropicStub {
+    messages = { create: messagesCreateMock };
+    constructor(_opts: unknown) {}
+  }
+  // Attach APIError as a static so the `err instanceof Anthropic.APIError`
+  // branch in extractEstimateItems still works in tests.
+  (AnthropicStub as unknown as { APIError: typeof APIError }).APIError = APIError;
+  return { default: AnthropicStub };
+});
+
+// Signed-URL issuance is mocked — extractEstimateItems hands the signed
+// URL to Claude as a document-block URL source.
+vi.mock("@/lib/supabase/storage", () => ({
+  createEstimateSignedUrl: vi.fn(
+    async (pdfUrl: string) => `${pdfUrl}?signed=1`,
+  ),
+}));
+
+describe("extractEstimateItems", () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    delete process.env.DISABLE_AI;
+    messagesCreateMock.mockReset();
+  });
+
+  afterEach(() => {
+    delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("calls Claude with a document-block URL source and sonnet-4-6 model", async () => {
+    messagesCreateMock.mockResolvedValueOnce({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            total: 2800000,
+            items: [
+              {
+                category: "venue_fee",
+                itemName: "会場使用料",
+                amount: 300000,
+                tier: "unknown",
+              },
+            ],
+            predictedFinal: 3200000,
+            analysisNote: "標準的な上振れ幅を見込みました。",
+          }),
+        },
+      ],
+    });
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+
+    const result = await extractEstimateItems(
+      "https://cdn.supabase.co/storage/v1/object/public/estimates/p/v/e.pdf",
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.modelId).toBe("claude-sonnet-4-6");
+      expect(result.data.total).toBe(2800000);
+    }
+    expect(messagesCreateMock).toHaveBeenCalledTimes(1);
+    const callArgs = messagesCreateMock.mock.calls[0][0];
+    expect(callArgs.model).toBe("claude-sonnet-4-6");
+    expect(callArgs.max_tokens).toBe(4096);
+    const userMessage = callArgs.messages[0];
+    expect(userMessage.role).toBe("user");
+    expect(userMessage.content[0]).toEqual({
+      type: "document",
+      source: {
+        type: "url",
+        url: expect.stringContaining("?signed=1"),
+      },
+    });
+  });
+
+  it("returns ok:false when ANTHROPIC_API_KEY is missing (never throws)", async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems("https://x/y.pdf");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/ANTHROPIC_API_KEY/);
+  });
+
+  it("returns ok:false when Claude returns malformed JSON", async () => {
+    messagesCreateMock.mockResolvedValueOnce({
+      content: [{ type: "text", text: "definitely not json {{{" }],
+    });
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems("https://x/y.pdf");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/読み取れ/);
+  });
+
+  it("returns ok:false (not throw) when the SDK rejects with a non-billing error", async () => {
+    messagesCreateMock.mockRejectedValueOnce(new Error("network down"));
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems("https://x/y.pdf");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/network down/);
+  });
+});

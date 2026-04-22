@@ -245,6 +245,54 @@ export async function downloadEstimatePdf(pdfUrl: string): Promise<Buffer> {
 }
 
 /**
+ * Extract the storage key (path inside the bucket) from a public Supabase
+ * estimates URL. Returns null when the input doesn't look like one — the
+ * caller should fall back to passing the URL as-is.
+ *
+ * Supabase public URLs look like:
+ *   https://<proj>.supabase.co/storage/v1/object/public/estimates/<projectId>/<venueId>/estimates/<file>
+ * and signed URLs mirror the same path under `/sign/`. We only need the
+ * part after the bucket name.
+ */
+export function estimatePathFromPublicUrl(publicUrl: string): string | null {
+  const match = publicUrl.match(/\/object\/(?:public|sign)\/estimates\/(.+?)(?:\?|$)/);
+  if (!match) return null;
+  return match[1];
+}
+
+/**
+ * Issue a short-lived signed URL for an estimates-bucket PDF.
+ *
+ * The estimates bucket is private, so public URLs won't resolve when Claude
+ * fetches them via a document-block URL source. A signed URL is both the
+ * simplest way to hand Anthropic a one-off read capability and the cheapest
+ * for privacy — it expires, so a leaked link loses value quickly.
+ *
+ * Returns the original URL on unexpected failure rather than throwing so
+ * the caller can still hand it to Claude — if the bucket is actually public
+ * in some envs, the passthrough still works.
+ */
+export async function createEstimateSignedUrl(
+  pdfUrl: string,
+  expiresInSeconds: number = 300,
+): Promise<string> {
+  const path = estimatePathFromPublicUrl(pdfUrl);
+  if (!path) return pdfUrl;
+  const supabase = await getStorageClient();
+  const { data, error } = await supabase.storage
+    .from("estimates")
+    .createSignedUrl(path, expiresInSeconds);
+  if (error || !data?.signedUrl) {
+    console.warn("[createEstimateSignedUrl] failed", {
+      path,
+      error: error?.message,
+    });
+    return pdfUrl;
+  }
+  return data.signedUrl;
+}
+
+/**
  * Result shape for `uploadVenuePhotoFromUrl` — callers use the discriminator
  * to aggregate success / per-reason failure counts without try/catch churn.
  *

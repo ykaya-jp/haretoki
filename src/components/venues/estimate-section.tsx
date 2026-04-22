@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EstimateForm } from "@/components/venues/estimate-form";
 import { EstimateBreakdown } from "@/components/venues/estimate-breakdown";
-import { Plus, ChevronDown, ChevronUp, Receipt } from "lucide-react";
+import { EstimatePdfUpload } from "@/components/venues/estimate-pdf-upload";
+import { Plus, ChevronDown, ChevronUp, Receipt, FilePlus2, Pencil } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 
 type EstimateItem = {
@@ -26,6 +27,16 @@ type Estimate = {
   createdAt: Date;
 };
 
+/**
+ * Mode state for the add-estimate action row.
+ *
+ * `null` = neither form open. `pdf` = PDF upload + AI extraction flow.
+ * `manual` = legacy hand-input form. Kept as a discriminated value rather
+ * than two booleans so we can never end up with both forms open at once
+ * (a real bug we hit when the previous boolean pair had independent state).
+ */
+type EntryMode = null | "pdf" | "manual";
+
 export function EstimateSection({
   venueId,
   estimates,
@@ -33,11 +44,11 @@ export function EstimateSection({
   venueId: string;
   estimates: Estimate[];
 }) {
-  const [showForm, setShowForm] = useState(false);
+  const [entryMode, setEntryMode] = useState<EntryMode>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const latest = estimates[0]; // already sorted by version desc
 
-  if (!latest && !showForm) {
+  if (!latest && entryMode === null) {
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center">
         <div
@@ -49,17 +60,27 @@ export function EstimateSection({
         <div className="space-y-1">
           <p className="text-sm font-light">見積もりはまだありません</p>
           <p className="text-xs text-muted-foreground">
-            見学でもらった見積もりを記録すると、最終費用の予測や式場比較ができます
+            PDFをアップロードして自動入力、または手入力で記録できます
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="inline-flex min-h-11 items-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          見積もりを記録する
-        </button>
+        <div className="flex w-full max-w-sm flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setEntryMode("pdf")}
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 active:scale-[0.98]"
+          >
+            <FilePlus2 className="mr-1 h-4 w-4" />
+            PDFで自動入力
+          </button>
+          <button
+            type="button"
+            onClick={() => setEntryMode("manual")}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-6 text-sm text-foreground transition-all duration-200 active:scale-[0.98] active:bg-muted"
+          >
+            <Pencil className="mr-1 h-4 w-4" />
+            手入力で記録
+          </button>
+        </div>
       </div>
     );
   }
@@ -143,33 +164,53 @@ export function EstimateSection({
         </div>
       )}
 
-      {/* Add new estimate */}
-      {showForm ? (
+      {/* Add new estimate — two entry paths (AI / manual). We only show
+          one form at a time so the section stays scannable on mobile. */}
+      {entryMode !== null ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium">新しい見積もり</h4>
+            <h4 className="text-sm font-medium">
+              {entryMode === "pdf" ? "PDFで自動入力" : "新しい見積もり"}
+            </h4>
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => setEntryMode(null)}
               className="text-sm text-muted-foreground hover:text-foreground min-h-[44px] px-2"
             >
               キャンセル
             </button>
           </div>
-          <EstimateForm
-            venueId={venueId}
-            onSaved={() => setShowForm(false)}
-          />
+          {entryMode === "pdf" ? (
+            <EstimatePdfUpload
+              venueId={venueId}
+              onSaved={() => setEntryMode(null)}
+            />
+          ) : (
+            <EstimateForm
+              venueId={venueId}
+              onSaved={() => setEntryMode(null)}
+            />
+          )}
         </div>
       ) : (
-        <Button
-          variant="outline"
-          onClick={() => setShowForm(true)}
-          className="w-full"
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          見積もりを追加
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setEntryMode("pdf")}
+            className="w-full"
+          >
+            <FilePlus2 className="mr-1 h-4 w-4" />
+            PDFで追加
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setEntryMode("manual")}
+            className="w-full"
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            手入力で追加
+          </Button>
+        </div>
       )}
     </div>
   );

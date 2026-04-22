@@ -4,10 +4,9 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { askClaude, isClaudeAvailable } from "@/lib/claude";
-import { computeInputHash } from "@/lib/anthropic";
-import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
+import { isClaudeAvailable } from "@/lib/claude";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
+import { extractEstimateItems } from "@/server/actions/estimate-ai";
 
 const estimateSchema = z.object({
   venueId: z.string().uuid(),
@@ -85,35 +84,15 @@ export async function getEstimatesForVenue(venueId: string) {
 }
 
 // --- PDF Estimate Analysis ---
-
-const ESTIMATE_ANALYSIS_SYSTEM_PROMPT = `You are an expert at analyzing Japanese wedding venue estimates (見積書).
-Extract structured data from the provided PDF text content.
-
-Japanese wedding estimate upgrade patterns (use these to predict final cost):
-- Attire (dress, tuxedo): 62% upgrade rate, typical +¥200,000-400,000
-- Cuisine (course upgrade): 65% upgrade rate, typical +¥150,000-300,000
-- Photo/Video/Endroll: 50% upgrade rate, typical +¥200,000-350,000
-- Flowers/Table decor: 45% upgrade rate, typical +¥100,000-250,000
-- Performances/Effects: 40% upgrade rate, typical +¥50,000-150,000
-- AV/Sound equipment: 30% upgrade rate, typical +¥30,000-80,000
-
-Return ONLY valid JSON (no markdown, no code fences) with this structure:
-{
-  "total": <number, total estimate amount in yen>,
-  "items": [
-    {
-      "category": "<one of: attire, cuisine, photo_video, flowers, performance, av_equipment, venue_fee, other>",
-      "itemName": "<item name in Japanese>",
-      "amount": <number, amount in yen>,
-      "tier": "<one of: minimum, standard, premium, unknown>"
-    }
-  ],
-  "predictedFinal": <number, predicted final cost after typical upgrades>,
-  "analysisNote": "<brief note in Japanese about the prediction reasoning>"
-}
-
-Frame predictions positively: describe typical adjustments other couples make rather than warning about hidden costs.
-If you cannot extract certain fields, use reasonable defaults. Always return valid JSON.`;
+//
+// Pipeline: FormData → validate → upload to Supabase Storage → signed URL
+// → Claude document-block extraction (sonnet-4-6) → parsed JSON.
+//
+// Previously we ran pdf-parse locally and shipped the flattened text to
+// Claude Haiku. That collapsed on scan-only PDFs (empty text) and lost
+// the columnar structure a venue estimate relies on. Document-block lets
+// Claude read the PDF natively — layout intact — so per-line unit/quantity
+// recovery works and scans go through vision instead of dying silently.
 
 const PDF_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -150,97 +129,21 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage. ensureBucket() inside handles the
+    // "estimates" bucket's first-run creation (private, 20 MB cap,
+    // application/pdf only) so the pipeline self-heals on fresh envs.
     const fileName = `${Date.now()}-${file.name}`;
     const pdfUrl = await uploadEstimatePdf(buffer, fileName, projectId, venueId);
 
-    // Extract text from PDF using pdf-parse v3 class-based API
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const textResult = await parser.getText();
-    await parser.destroy();
-    const pdfText = textResult.text;
-
-    if (!pdfText || pdfText.trim().length === 0) {
-      return {
-        error:
-          "PDFからうまく読み取れませんでした。スキャン画像の PDF なら手入力をお試しください",
-      };
+    // Hand the PDF URL to Claude via document-block. `extractEstimateItems`
+    // issues its own signed URL so the private bucket stays locked down.
+    const result = await extractEstimateItems(pdfUrl);
+    if (!result.ok) {
+      return { error: result.error };
     }
-
-    // Send to Claude for analysis
-    const estimateUserMessage = `以下は結婚式場の見積書のテキスト内容です。構造化データとして抽出してください:\n\n${pdfText}`;
-    const estimateCacheHash = computeInputHash(
-      JSON.stringify({ system: ESTIMATE_ANALYSIS_SYSTEM_PROMPT, user: estimateUserMessage }),
-    );
-    const cachedEstimate = await getCachedResponse(estimateCacheHash);
-    let claudeResponse: string | null;
-    if (cachedEstimate) {
-      claudeResponse = cachedEstimate;
-    } else {
-      claudeResponse = await askClaude(ESTIMATE_ANALYSIS_SYSTEM_PROMPT, estimateUserMessage);
-      if (claudeResponse) {
-        await setCachedResponse(estimateCacheHash, claudeResponse, "claude-haiku-4-5-20251001");
-      }
-    }
-
-    if (!claudeResponse) {
-      return { error: "AI がうまく読めませんでした。少し時間をおいてもう一度お試しください" };
-    }
-
-    // Parse and validate Claude's JSON response with zod. Claude
-    // occasionally wraps its output in ```json … ``` fences or adds a
-    // brief preamble ("Here's the analysis:") before the object — the
-    // review-summary path hit the same breakage so we apply the same
-    // forgiving extraction here: prefer a fenced block, otherwise
-    // slice from the first "{" to the last "}".
-    const stripped = (() => {
-      const fenced = claudeResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (fenced) return fenced[1].trim();
-      const first = claudeResponse.indexOf("{");
-      const last = claudeResponse.lastIndexOf("}");
-      if (first !== -1 && last !== -1 && last > first) {
-        return claudeResponse.slice(first, last + 1).trim();
-      }
-      return claudeResponse.trim();
-    })();
-    let rawJson: unknown;
-    try {
-      rawJson = JSON.parse(stripped);
-    } catch (err) {
-      console.warn("[analyzeEstimatePdf] JSON parse failed", {
-        venueId,
-        rawPreview: claudeResponse.slice(0, 400),
-        strippedPreview: stripped.slice(0, 400),
-        err,
-      });
-      return {
-        error: "AI の応答をうまく読み取れませんでした。もう一度お試しください",
-      };
-    }
-
-    const AnalysisResultSchema = z.object({
-      total: z.number(),
-      items: z.array(
-        z.object({
-          category: z.string(),
-          itemName: z.string(),
-          amount: z.number(),
-          tier: z.string(),
-        }),
-      ),
-      predictedFinal: z.number(),
-      analysisNote: z.string(),
-    });
-
-    const parsed = AnalysisResultSchema.safeParse(rawJson);
-    if (!parsed.success) {
-      return { error: "AI の読み取りが途中で止まりました。もう一度お試しください" };
-    }
-    const analysis = parsed.data;
 
     return {
-      analysis,
+      analysis: result.data,
       pdfUrl,
       venueId,
       projectId,
