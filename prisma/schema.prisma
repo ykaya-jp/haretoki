@@ -422,6 +422,18 @@ model Visit {
   title          String?
   memo           String?
   reminderSentAt DateTime?   @map("reminder_sent_at")
+  /// F2 (W15 audit): iCalendar SEQUENCE counter. Incremented on every visit
+  /// re-schedule so external calendars (Google / Apple / Outlook) reliably
+  /// overwrite existing events via the same UID. RFC 5545 §3.8.7.4 requires
+  /// a non-negative integer; we start at 0 and use `{ increment: 1 }`.
+  sequence           Int        @default(0)
+  /// F2 (W15 audit): timestamp when the user successfully downloaded the
+  /// .ics for this visit. Null = never exported. Set by the
+  /// `markVisitCalendarExported` server action *after* the client-side
+  /// download completes (not inside the route handler, to avoid prefetch /
+  /// link-preview false positives). Also used to exclude externally-managed
+  /// visits from the push-reminder cron.
+  calendarExportedAt DateTime?  @map("calendar_exported_at")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
