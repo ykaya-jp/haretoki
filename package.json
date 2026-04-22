@@ -8,8 +8,8 @@
     "build:local": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --reporter=verbose",
-    "test:watch": "vitest --reporter=verbose",
+    "test": "prisma generate && vitest run --reporter=verbose",
+    "test:watch": "prisma generate && vitest --reporter=verbose",
     "test:e2e": "playwright test"
   },
   "dependencies": {
