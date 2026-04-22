@@ -53,15 +53,19 @@ export async function markNotificationRead(
 ): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
   const user = await requireUser();
 
-  const notification = await prisma.notification.findUnique({ where: { id } });
-  if (!notification || notification.userId !== user.id) {
-    return { ok: false, reason: "not_found" };
-  }
-
-  await prisma.notification.update({
-    where: { id },
+  // Single atomic write: updateMany matches on (id, userId) so a row owned
+  // by someone else or missing entirely yields count=0 and we return
+  // not_found. This replaces the previous findUnique → check → update
+  // sequence, which both doubled the round-trips and opened a tiny TOCTOU
+  // window between the read and the write.
+  const result = await prisma.notification.updateMany({
+    where: { id, userId: user.id },
     data: { read: true, readAt: new Date() },
   });
+
+  if (result.count === 0) {
+    return { ok: false, reason: "not_found" };
+  }
 
   revalidatePath("/notifications");
   return { ok: true };
