@@ -120,7 +120,10 @@ export function VenueFreshnessChip({ venueId, updatedAt, hasSourceUrl }: Props) 
           type="button"
           onClick={onRefresh}
           disabled={pending}
-          className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2.5 text-[11px] leading-none text-muted-foreground transition-all duration-200 hover:text-foreground hover:border-foreground/30 active:scale-95 disabled:opacity-60"
+          // Visible chip stays h-7 for a compact info row; hit-area expanded
+          // to ≥44px via an invisible `before:` pseudo-layer (Apple HIG /
+          // WCAG 2.5.5). Keeps layout unchanged while meeting touch-target.
+          className="relative inline-flex h-7 items-center gap-1 rounded-full border border-border bg-card px-2.5 text-[11px] leading-none text-muted-foreground transition-all duration-200 hover:text-foreground hover:border-foreground/30 active:scale-95 disabled:opacity-60 before:absolute before:inset-x-0 before:top-1/2 before:-translate-y-1/2 before:h-11 before:content-['']"
           aria-label="登録元のページから最新情報を取り込む"
         >
           {pending ? (
