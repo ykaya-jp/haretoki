@@ -5,7 +5,7 @@ import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership, requireVenueAccess } from "@/server/auth";
 import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/checklist-presets";
-import { getChecklistItemsForDimension, getDimensionForPreset, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
+import { getChecklistItemsForDimension, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
 import { calculateDimensionScore } from "@/lib/checklist-score-calculator";
 import type { Tier1Dimension } from "@/lib/constants";
 import {

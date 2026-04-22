@@ -9,7 +9,6 @@ import {
   type DimensionWeights,
 } from "@/lib/weighted-score";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 import type { VenueStatus } from "@/generated/prisma/client";
 
 /** Minimal venue shape VenueCard reads — compatible with full Prisma Venue and lean DTOs. */

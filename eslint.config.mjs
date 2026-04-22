@@ -16,6 +16,26 @@ const eslintConfig = defineConfig([
     // node_modules / .next and shouldn't be linted from the main repo.
     ".claude/worktrees/**",
   ]),
+  {
+    // Respect the `_arg` / `_opts` convention used widely in test mock
+    // signatures ("this parameter is intentionally unused but must match
+    // the real function shape"). Without this, every mock like
+    //   (_opts: Options) => ({ ok: true })
+    // raises @typescript-eslint/no-unused-vars and pollutes `npm run lint`
+    // output — making it harder to spot new genuinely-unused imports.
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          args: "after-used",
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

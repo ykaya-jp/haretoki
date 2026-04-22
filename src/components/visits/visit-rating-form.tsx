@@ -25,7 +25,7 @@ interface VisitRatingFormProps {
 
 export function VisitRatingForm({
   visitId,
-  venueId: _venueId, // eslint-disable-line @typescript-eslint/no-unused-vars
+  venueId: _venueId,
   existingRatings = {},
   onSaved,
 }: VisitRatingFormProps) {

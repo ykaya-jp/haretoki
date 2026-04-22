@@ -145,7 +145,6 @@ export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
           >
             <VenueCardView
               venue={venue}
-              items={items}
               answers={answers}
               visibleFields={visibleFields}
               fieldsByGroup={fieldsByGroup}
@@ -162,7 +161,6 @@ export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
 
 function VenueCardView({
   venue,
-  items,
   answers,
   visibleFields,
   fieldsByGroup,
@@ -171,7 +169,6 @@ function VenueCardView({
   weights,
 }: {
   venue: ComparisonVenue;
-  items: ComparisonMatrix["items"];
   answers: ComparisonMatrix["answers"];
   visibleFields: CompareField[];
   fieldsByGroup: Map<FieldGroup, CompareField[]>;
