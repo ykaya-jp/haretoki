@@ -59,8 +59,13 @@ export function InstallPrompt() {
         <p className="text-xs text-muted-foreground">オフラインでも使えます</p>
       </div>
       <Button size="sm" onClick={handleInstall}>インストール</Button>
-      <button type="button" onClick={handleDismiss} className="shrink-0 p-1">
-        <X className="h-4 w-4 text-muted-foreground" />
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="インストール案内を閉じる"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full -mr-2 transition-colors active:bg-muted"
+      >
+        <X className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </button>
     </div>
   );
