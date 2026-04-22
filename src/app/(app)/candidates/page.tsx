@@ -6,7 +6,7 @@ import { getFavorites } from "@/server/actions/favorites";
 import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
 import { getCurrentUserName } from "@/server/actions/home";
-import { getMyWeights } from "@/server/actions/weights";
+import { getCoupleWeights } from "@/server/actions/weights";
 import { CandidatesView } from "@/components/candidates/candidates-view";
 import { CoupleGapSection } from "@/components/candidates/couple-gap-section";
 
@@ -90,16 +90,18 @@ async function CandidatesContent({
 }: {
   initialTab: "shortlist" | "compare" | "decision" | undefined;
 }) {
-  const [favorites, venues, decision, userName, weights] = await Promise.all([
+  const [favorites, venues, decision, userName, coupleWeights] = await Promise.all([
     getFavorites("mine"),
     getVenues(),
     getDecision(),
     getCurrentUserName(),
-    // W12-1: fetch the viewer's dimension weights so VenueCard ★ and the
-    // compare-view header reflect "自分の重み付け". If this fails (e.g. no
+    // W12-1 → W13-1: fetch both the viewer's weights AND the couple mix
+    // in a single round-trip so the候補 tab can offer a "自分 / 二人の合成"
+    // toggle without a second fetch after hydrate. If this fails (e.g. no
     // project yet — shouldn't happen past requireProjectMembership, but
-    // stays defensive) we fall back to null → equal weights.
-    getMyWeights().catch(() => null),
+    // stays defensive) we fall back to null → the view behaves exactly as
+    // W11 did (equal weights, no couple toggle).
+    getCoupleWeights().catch(() => null),
   ]);
 
   // venueOptions carries the minimum fields the view + ceremony need: id/name
@@ -122,7 +124,8 @@ async function CandidatesContent({
       }
       userName={userName}
       initialTab={initialTab}
-      weights={weights}
+      weights={coupleWeights?.mine ?? null}
+      coupleWeights={coupleWeights}
     />
   );
 }

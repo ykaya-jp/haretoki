@@ -8,7 +8,9 @@ import { requireUser, requireProjectMembership } from "@/server/auth";
 import { TIER1_DIMENSIONS, type Tier1Dimension } from "@/lib/constants";
 import {
   coerceWeights,
+  computeCoupleWeights,
   defaultWeights,
+  opinionAlignmentScore,
   WEIGHT_MIN,
   WEIGHT_MAX,
   type Weights,
@@ -109,4 +111,93 @@ export async function updateMyWeights(
   revalidatePath("/mypage");
 
   return { success: true, weights: full };
+}
+
+/**
+ * W13-1: fetch both members' weights and the synthesised couple mix.
+ *
+ * Contract:
+ *  - `mine` is always the viewer's record (coerced → no nulls).
+ *  - `partner` is null when no accepted partner exists on the project.
+ *    When partner exists but their `weights` row is unset/null, we still
+ *    return `coerceWeights(null)` (all 3s) and flag `partnerHasWeights: false`
+ *    so the UI can show a "パートナーはまだ重みを設定していません" chip.
+ *  - `couple` is always a safe, fully-populated Weights map — callers can
+ *    pass it straight into computeWeighted() without null-guards.
+ *  - `alignment` is a 0-100 integer when a partner exists, else null.
+ *  - `hasPartner` is true only when an accepted ProjectMember other than
+ *    the viewer exists. We check `acceptedAt != null` to match the
+ *    CoupleGapSection gating rule — pending invitations don't count.
+ *
+ * Scoped by the caller's membership (same pattern as getMyWeights) so no
+ * foreign-project leaks are possible from the client.
+ */
+export interface CoupleWeightsResult {
+  mine: Weights;
+  partner: Weights | null;
+  couple: Weights;
+  alignment: number | null;
+  hasPartner: boolean;
+  partnerHasWeights: boolean;
+  partnerName: string | null;
+}
+
+export async function getCoupleWeights(): Promise<CoupleWeightsResult> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const members = await prisma.projectMember.findMany({
+    where: { projectId, acceptedAt: { not: null } },
+    select: {
+      userId: true,
+      weights: true,
+      user: { select: { name: true } },
+    },
+  });
+
+  const me = members.find((m) => m.userId === user.id);
+  const partner = members.find((m) => m.userId !== user.id);
+
+  const mine = coerceWeights(me?.weights ?? null);
+
+  if (!partner) {
+    // Solo project — no couple mode available. Returning mine as the
+    // couple mix keeps downstream math valid in case a caller forgets
+    // to gate on hasPartner, but alignment is null so UI can suppress
+    // the badge cleanly.
+    return {
+      mine,
+      partner: null,
+      couple: mine,
+      alignment: null,
+      hasPartner: false,
+      partnerHasWeights: false,
+      partnerName: null,
+    };
+  }
+
+  // partnerHasWeights: distinguish "unset NULL row" from "explicit all-3s"
+  // so the UI chip can nudge the partner to express their preferences.
+  // Prisma returns Prisma.JsonNull / DB NULL as `null`, and a saved {} or
+  // full map as an object — checking `!= null && typeof === 'object'` is
+  // the clean discriminator.
+  const rawPartnerWeights = partner.weights;
+  const partnerHasWeights =
+    rawPartnerWeights !== null &&
+    rawPartnerWeights !== undefined &&
+    typeof rawPartnerWeights === "object";
+
+  const partnerWeights = coerceWeights(rawPartnerWeights ?? null);
+  const couple = computeCoupleWeights(mine, partnerWeights);
+  const alignment = opinionAlignmentScore(mine, partnerWeights);
+
+  return {
+    mine,
+    partner: partnerWeights,
+    couple,
+    alignment,
+    hasPartner: true,
+    partnerHasWeights,
+    partnerName: partner.user?.name ?? null,
+  };
 }

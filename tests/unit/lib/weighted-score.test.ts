@@ -6,6 +6,9 @@ import {
   coerceWeights,
   normalizeWeight,
   defaultWeights,
+  computeCoupleWeights,
+  opinionAlignmentScore,
+  alignmentBucket,
   WEIGHT_DEFAULT,
 } from "@/lib/weighted-score";
 
@@ -145,6 +148,112 @@ describe("aggregateScoresByDimension", () => {
       { source: "user_rating", dimension: "cuisine", score: 4 },
     ]);
     expect(result.cuisine).toBe(4);
+  });
+});
+
+describe("computeCoupleWeights (W13-1)", () => {
+  it("returns arithmetic mean per dimension when both partners have set weights", () => {
+    const couple = computeCoupleWeights(
+      { cuisine: 5, hospitality: 1, overall: 4 },
+      { cuisine: 3, hospitality: 3, overall: 2 },
+    );
+    // mean(5,3)=4, mean(1,3)=2, mean(4,2)=3
+    expect(couple.cuisine).toBe(4);
+    expect(couple.hospitality).toBe(2);
+    expect(couple.overall).toBe(3);
+  });
+
+  it("treats null partner as neutral 3s (mine shifted halfway to center)", () => {
+    const couple = computeCoupleWeights({ cuisine: 5, hospitality: 1 }, null);
+    // mine cuisine=5, partner cuisine=3 (default) → mean = 4
+    expect(couple.cuisine).toBe(4);
+    // mine hospitality=1, partner default=3 → mean = 2
+    expect(couple.hospitality).toBe(2);
+    // mine overall=default 3, partner default 3 → mean = 3
+    expect(couple.overall).toBe(3);
+  });
+
+  it("returns all-3 defaults when both inputs are null", () => {
+    const couple = computeCoupleWeights(null, null);
+    for (const v of Object.values(couple)) expect(v).toBe(3);
+  });
+
+  it("is commutative — swapping mine/partner yields the same couple map", () => {
+    const a = { cuisine: 5, hospitality: 1, cost_contract: 4 };
+    const b = { cuisine: 2, hospitality: 4, cost_contract: 3 };
+    expect(computeCoupleWeights(a, b)).toEqual(computeCoupleWeights(b, a));
+  });
+
+  it("clamps fractional means into [1,5] even with malformed input", () => {
+    // @ts-expect-error — malformed on purpose
+    const couple = computeCoupleWeights({ cuisine: "nope" }, { cuisine: 5 });
+    // cuisine coerces to 3 default, partner is 5 → mean 4
+    expect(couple.cuisine).toBe(4);
+    expect(couple.cuisine).toBeGreaterThanOrEqual(1);
+    expect(couple.cuisine).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("opinionAlignmentScore (W13-1)", () => {
+  it("returns 100 when two members have identical weights", () => {
+    const w = { cuisine: 5, hospitality: 2, overall: 4 };
+    expect(opinionAlignmentScore(w, w)).toBe(100);
+  });
+
+  it("returns 100 when both are null (both equal to defaults)", () => {
+    expect(opinionAlignmentScore(null, null)).toBe(100);
+  });
+
+  it("drops below 100 when members disagree strongly on one dimension", () => {
+    const mine = { cuisine: 5, hospitality: 1 };
+    const partner = { cuisine: 1, hospitality: 5 };
+    const score = opinionAlignmentScore(mine, partner);
+    expect(score).toBeLessThan(100);
+    // Cosine similarity here is ~0.84 on 8 dims (6 defaults + flipped pair),
+    // mapped to ~92 — still above "discuss" floor but below "aligned".
+    expect(score).toBeGreaterThan(0);
+  });
+
+  it("scales monotonically — bigger disagreement → lower score", () => {
+    const mild = opinionAlignmentScore(
+      { cuisine: 4 },
+      { cuisine: 3 },
+    );
+    const severe = opinionAlignmentScore(
+      { cuisine: 5, hospitality: 1 },
+      { cuisine: 1, hospitality: 5 },
+    );
+    expect(mild).toBeGreaterThan(severe);
+  });
+
+  it("stays in [0, 100] and returns integer", () => {
+    const s = opinionAlignmentScore({ cuisine: 5 }, { cuisine: 1 });
+    expect(Number.isInteger(s)).toBe(true);
+    expect(s).toBeGreaterThanOrEqual(0);
+    expect(s).toBeLessThanOrEqual(100);
+  });
+
+  it("is commutative", () => {
+    const a = { cuisine: 5, hospitality: 1 };
+    const b = { cuisine: 1, hospitality: 5 };
+    expect(opinionAlignmentScore(a, b)).toBe(opinionAlignmentScore(b, a));
+  });
+});
+
+describe("alignmentBucket (W13-1)", () => {
+  it("classifies near-perfect matches as aligned", () => {
+    expect(alignmentBucket(100)).toBe("aligned");
+    expect(alignmentBucket(95)).toBe("aligned");
+    expect(alignmentBucket(92)).toBe("aligned");
+  });
+  it("classifies mid-band as close", () => {
+    expect(alignmentBucket(91)).toBe("close");
+    expect(alignmentBucket(78)).toBe("close");
+  });
+  it("classifies low matches as discuss", () => {
+    expect(alignmentBucket(77)).toBe("discuss");
+    expect(alignmentBucket(50)).toBe("discuss");
+    expect(alignmentBucket(0)).toBe("discuss");
   });
 });
 

@@ -188,3 +188,120 @@ export function computeWeightedComposite(
   const byDim = aggregateScoresByDimension(scores);
   return computeWeighted(byDim, weights);
 }
+
+/**
+ * W13-1: synthesize a "couple weights" map from the two members' personal
+ * weights. We use an **arithmetic mean** per dimension.
+ *
+ * Why mean (not max-respect)?
+ * - Symmetric: neither voice silently outranks the other, matching the
+ *   product stance "2人の好みは違って当たり前 — どちらも尊重".
+ * - Max-respect would let whoever pushed more sliders to 5 dominate,
+ *   which creates a perverse incentive to "inflate" everything. A mean
+ *   keeps the ranking honest.
+ * - Commutative + associative — easier to reason about in tests.
+ *
+ * Either / both arguments may be null / undefined (partner hasn't set
+ * weights, or the caller hasn't fetched yet) — null falls back to
+ * `defaultWeights()` (all 3s, neutral), so a couple mode with an unset
+ * partner still produces a sane ranking that equals the mine-only result
+ * shifted halfway toward neutral. The UI surfaces this with a "パートナー
+ * はまだ重みを設定していません" chip so couples know the mix is lopsided.
+ *
+ * Result is fully-populated and clamped into [WEIGHT_MIN, WEIGHT_MAX] —
+ * safe to pass directly into `computeWeighted()` / `computeWeightedComposite()`.
+ */
+export function computeCoupleWeights(
+  mine: DimensionWeights | null | undefined,
+  partner: DimensionWeights | null | undefined,
+): Weights {
+  const a = coerceWeights(mine ?? undefined);
+  const b = coerceWeights(partner ?? undefined);
+  const out = defaultWeights();
+  for (const dim of TIER1_DIMENSIONS) {
+    const avg = (a[dim] + b[dim]) / 2;
+    // Explicit clamp belt-and-suspenders — coerceWeights already did it,
+    // but arithmetic could produce fractional values at the edges and we
+    // want the result to stay in the documented range.
+    out[dim] = Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, avg));
+  }
+  return out;
+}
+
+/**
+ * W13-1: 0-100 "opinion alignment" score between two members' weights.
+ *
+ * Formula: cosine similarity between the two weight vectors, re-mapped
+ * from [-1, 1] to [0, 100]. In practice weights are all positive (1-5),
+ * so the cosine stays in [0, 1] — but we use the full symmetric mapping
+ * so future changes (e.g. preference vectors with negatives) don't
+ * break the contract.
+ *
+ * Why cosine (not absolute-diff)?
+ * - Cosine captures **relative priority shape**: two people who both
+ *   rank "cuisine > cost > space" are treated as aligned even if one
+ *   uses (5,3,2) and the other (4,3,2). That matches couples' lived
+ *   experience — agreeing on what matters more matters more than
+ *   agreeing on the absolute volume knob.
+ * - Absolute-diff would flag (3,3,3) vs (3,3,3) and (5,5,5) vs (5,5,5)
+ *   identically — both "perfect agreement" — but in the second pair
+ *   the couple actually cares a lot about everything, which is a more
+ *   fragile agreement. Cosine still returns 100 (direction matches),
+ *   but combined with a "話し合い要" threshold tuned on real couples
+ *   it's the right primitive.
+ *
+ * Edge case: if either vector is the zero vector (impossible with 1-5
+ * clamping, but defensive), return 50 (neutral — neither aligned nor
+ * opposed) so a degenerate DB row can't force the UI into a misleading
+ * "perfect match" state.
+ *
+ * @returns integer 0-100. 100 = identical priority shape, 50 = orthogonal,
+ *          0 = opposite.
+ */
+export function opinionAlignmentScore(
+  mine: DimensionWeights | null | undefined,
+  partner: DimensionWeights | null | undefined,
+): number {
+  const a = coerceWeights(mine ?? undefined);
+  const b = coerceWeights(partner ?? undefined);
+
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (const dim of TIER1_DIMENSIONS) {
+    dot += a[dim] * b[dim];
+    normA += a[dim] * a[dim];
+    normB += b[dim] * b[dim];
+  }
+
+  if (normA === 0 || normB === 0) return 50;
+
+  const cosine = dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  // Map [-1, 1] → [0, 100]. Clamp against floating-point drift that can
+  // nudge cosine to 1.0000000002 and trip downstream >= comparisons.
+  const mapped = Math.round(((cosine + 1) / 2) * 100);
+  return Math.max(0, Math.min(100, mapped));
+}
+
+/**
+ * W13-1: classify an alignment score into a UI-level bucket so the badge
+ * renderer doesn't need to know the thresholds.
+ *
+ * Thresholds (tunable):
+ *  - aligned:     >= 92  → gold chip "ふたりの視点がぴったり"
+ *  - close:       >= 78  → subtle chip "おおむね一致"
+ *  - discuss:     <  78  → neutral chip "話し合いの余地"
+ *
+ * The 92 threshold is deliberately tight: for 8-dim vectors drawn from
+ * {1..5}, two slider shifts of ±2 already drops cosine below 0.98 → 99%
+ * mapped, so "ぴったり" really means "ほぼ同じ向き". The 78 floor comes
+ * from the case where one partner maxes cuisine (5) and the other zeros
+ * it (1) — that single disagreement should land in "話し合いの余地".
+ */
+export type AlignmentBucket = "aligned" | "close" | "discuss";
+
+export function alignmentBucket(score: number): AlignmentBucket {
+  if (score >= 92) return "aligned";
+  if (score >= 78) return "close";
+  return "discuss";
+}

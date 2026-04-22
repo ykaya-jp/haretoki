@@ -10,7 +10,7 @@ import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
 import { DecisionSummaryCard } from "@/components/candidates/decision-summary-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles, GitCompare, X } from "lucide-react";
+import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles, GitCompare, X, Info } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ import type { VenueStatus } from "@/generated/prisma/client";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { buildDecisionSummary, type SummaryVenueInput } from "@/lib/decision-summary";
 import type { DimensionWeights } from "@/lib/weighted-score";
+import { WeightModeToggle, type WeightMode } from "@/components/candidates/weight-mode-toggle";
+import { AlignmentBadge } from "@/components/candidates/alignment-badge";
 
 /* ── Tab content split via next/dynamic ───────────────────────────────────
    Shortlist is the default tab (99% of first-paint traffic). The other 4
@@ -89,6 +91,19 @@ interface CandidatesViewProps {
    * site can opt in incrementally.
    */
   weights?: DimensionWeights | null;
+  /**
+   * W13-1: optional couple mix + alignment. Null when no partner exists
+   * on the project — in that case the mode toggle stays hidden and the
+   * shortlist ranks by `weights` (mine) alone, matching W12-1 behaviour.
+   */
+  coupleWeights?: {
+    mine: DimensionWeights;
+    couple: DimensionWeights;
+    alignment: number | null;
+    hasPartner: boolean;
+    partnerHasWeights: boolean;
+    partnerName: string | null;
+  } | null;
 }
 
 export function CandidatesView({
@@ -98,9 +113,19 @@ export function CandidatesView({
   userName,
   initialTab,
   weights = null,
+  coupleWeights = null,
 }: CandidatesViewProps) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
+  // W13-1: "自分" vs "二人の合成". Default is "mine" per product stance —
+  // the user's own perspective is the least surprising starting point,
+  // and couple mode is opt-in. Only rendered when hasPartner is true.
+  const [weightMode, setWeightMode] = useState<WeightMode>("mine");
+  const hasPartner = Boolean(coupleWeights?.hasPartner);
+  const activeWeights: DimensionWeights | null =
+    weightMode === "couple" && coupleWeights
+      ? coupleWeights.couple
+      : weights;
   const [favorites, setFavorites] = useState(initialFavorites);
   const [showSwipe, setShowSwipe] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
@@ -234,6 +259,41 @@ export function CandidatesView({
           >
             <FavoriteFilter active={filter} onChange={setFilter} />
 
+            {/* W13-1: couple ranking mode toggle.
+                Hidden for solo projects (hasPartner=false) and when the
+                shortlist is empty — there's nothing to rank yet, the
+                toggle would be cognitive noise. */}
+            {hasPartner && favorites.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <WeightModeToggle
+                  value={weightMode}
+                  onChange={setWeightMode}
+                  partnerName={coupleWeights?.partnerName ?? null}
+                />
+                {weightMode === "couple" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {coupleWeights?.alignment !== null &&
+                      coupleWeights?.alignment !== undefined && (
+                        <AlignmentBadge score={coupleWeights.alignment} />
+                      )}
+                    {coupleWeights && !coupleWeights.partnerHasWeights && (
+                      <span
+                        role="note"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-[11px] text-muted-foreground"
+                      >
+                        <Info
+                          aria-hidden="true"
+                          className="h-3 w-3 shrink-0"
+                          strokeWidth={1.8}
+                        />
+                        パートナーはまだ重みを設定していません
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {favorites.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
@@ -336,7 +396,7 @@ export function CandidatesView({
                       exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
                       transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <VenueCard venue={fav.venue} isFavorite={true} weights={weights} />
+                      <VenueCard venue={fav.venue} isFavorite={true} weights={activeWeights} />
                       {/* W11-2: per-venue "この式場を選ぶなら" summary card.
                           Rendered under the venue card as a folded
                           disclosure — client-side math on the already-
