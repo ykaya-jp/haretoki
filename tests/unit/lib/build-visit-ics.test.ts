@@ -36,13 +36,15 @@ const baseVenue = {
     location: "東京都渋谷区神宮前",
 };
 
+type VisitForBuilder = Parameters<typeof buildVisitIcs>[0]["visit"];
+
 function build(overrides?: {
-    visit?: Partial<typeof baseVisit>;
+    visit?: Partial<VisitForBuilder>;
     venue?: Partial<typeof baseVenue>;
     attendees?: Array<{ email: string; name?: string }>;
 }) {
     return buildVisitIcs({
-        visit: { ...baseVisit, ...overrides?.visit },
+        visit: { ...baseVisit, ...overrides?.visit } as VisitForBuilder,
         venue: { ...baseVenue, ...overrides?.venue },
         attendees: overrides?.attendees,
         now: FIXED_NOW,

@@ -36,6 +36,9 @@ export async function scheduleVisit(
       title: parsed.data.title ?? `${venue.name} 見学`,
       memo: parsed.data.memo,
       status: "scheduled",
+      // F2: RFC 5545 SEQUENCE starts at 0 for a fresh event. Advanced by
+      // `rescheduleVisit` or any future edit path via { increment: 1 }.
+      sequence: 0,
     },
   });
 
@@ -52,6 +55,41 @@ export async function scheduleVisit(
   revalidatePath("/home");
   revalidatePath("/explore");
   return { success: true, visitId: visit.id };
+}
+
+/**
+ * F2 (W15 audit): persist "user successfully downloaded the .ics".
+ *
+ * Called from the client *after* the download network request completes,
+ * never from the route handler. See `docs/designs/f2-visit-calendar-ics.md`
+ * §2.2a for the reasoning (link-prefetch + preview-bot false positives).
+ *
+ * Idempotent: re-calling simply refreshes `calendarExportedAt`, which is
+ * fine — the success metric is "user exported at least once", and the
+ * reminder cron filter (`calendarExportedAt IS NULL`) stays correct.
+ */
+export async function markVisitCalendarExported(
+  visitId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireUser();
+  try {
+    const { projectId } = await requireVisitAccess(user.id, visitId);
+
+    await prisma.visit.update({
+      where: { id: visitId },
+      data: { calendarExportedAt: new Date() },
+    });
+
+    revalidateTag(`project:${projectId}`, { expire: 0 });
+    revalidatePath("/visits");
+    return { success: true };
+  } catch (err) {
+    // Auth errors throw — surface a friendly message rather than propagating
+    // the raw redirect/Error to a form transition.
+    const message =
+      err instanceof Error ? err.message : "カレンダー登録を記録できませんでした";
+    return { success: false, error: message };
+  }
 }
 
 export async function completeVisit(visitId: string): Promise<{ success: boolean }> {
@@ -292,6 +330,8 @@ export interface VisitSummary {
   status: string;
   title: string | null;
   memo: string | null;
+  /** F2: null = never exported, Date = last successful .ics download. */
+  calendarExportedAt: Date | null;
   checklistProgress: { total: number; checked: number };
 }
 
@@ -323,6 +363,7 @@ export async function getUpcomingVisits(): Promise<VisitSummary[]> {
       status: visit.status,
       title: visit.title,
       memo: visit.memo,
+      calendarExportedAt: visit.calendarExportedAt,
       checklistProgress: {
         total: visit.checklist.length,
         checked: visit.checklist.filter(c => c.status !== "unchecked").length,
@@ -361,6 +402,7 @@ export async function getPastVisits(): Promise<VisitSummary[]> {
       status: visit.status,
       title: visit.title,
       memo: visit.memo,
+      calendarExportedAt: visit.calendarExportedAt,
       checklistProgress: {
         total: visit.checklist.length,
         checked: visit.checklist.filter(c => c.status !== "unchecked").length,
