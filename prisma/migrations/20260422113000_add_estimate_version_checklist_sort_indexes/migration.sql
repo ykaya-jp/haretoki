@@ -13,8 +13,8 @@
 --    the composite makes the query index-ordered and survives future growth
 --    of auto-generated AI checklists.
 
-CREATE INDEX IF NOT EXISTS "estimates_venue_id_version_idx"
+CREATE INDEX "estimates_venue_id_version_idx"
   ON "estimates" ("venue_id", "version" DESC);
 
-CREATE INDEX IF NOT EXISTS "visit_checklist_items_visit_id_sort_order_idx"
+CREATE INDEX "visit_checklist_items_visit_id_sort_order_idx"
   ON "visit_checklist_items" ("visit_id", "sort_order");

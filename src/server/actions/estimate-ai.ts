@@ -104,31 +104,45 @@ export async function extractEstimateItems(
 
   const client = getAnthropicClient();
   let response;
+  // PDF extraction can take tens of seconds on long estimates.
+  // Cap at 55s so we return gracefully before Vercel's 60s function limit.
+  const PDF_EXTRACT_TIMEOUT_MS = 55_000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PDF_EXTRACT_TIMEOUT_MS);
   try {
-    response = await client.messages.create({
-      model: MODEL.SONNET,
-      max_tokens: 4096,
-      system: ESTIMATE_EXTRACT_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: {
-                type: "url",
-                url: fetchableUrl,
+    response = await client.messages.create(
+      {
+        model: MODEL.SONNET,
+        max_tokens: 4096,
+        system: ESTIMATE_EXTRACT_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "url",
+                  url: fetchableUrl,
+                },
               },
-            },
-            {
-              type: "text",
-              text: "このPDFから構造化データを抽出してJSONで返してください。",
-            },
-          ],
-        },
-      ],
-    });
+              {
+                type: "text",
+                text: "このPDFから構造化データを抽出してJSONで返してください。",
+              },
+            ],
+          },
+        ],
+      },
+      { signal: controller.signal },
+    );
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return {
+        ok: false,
+        error: "AI分析が時間内に完了しませんでした。ページ数の少ないPDFでお試しください",
+      };
+    }
     if (err instanceof Anthropic.APIError) {
       if (err.message.includes("credit balance") || err.message.includes("billing")) {
         return { ok: false, error: "AI利用枠が一時的に上限に達しました。少し時間をおいてお試しください" };
@@ -141,6 +155,8 @@ export async function extractEstimateItems(
           ? `AI分析に失敗しました: ${err.message}`
           : "AI分析に失敗しました",
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const textBlock = response.content.find((b) => b.type === "text");
