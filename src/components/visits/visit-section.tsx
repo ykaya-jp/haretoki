@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { scheduleVisit, completeVisit, addVisitNote } from "@/server/actions/visits";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { scheduleVisit, completeVisit, addVisitNote, markVisitCalendarExported } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, Check, FileText, MapPin, Loader2, Star } from "lucide-react";
@@ -12,6 +12,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { cn } from "@/lib/utils";
 import { VisitChecklist } from "@/components/visits/visit-checklist";
 import { VisitRatingForm } from "@/components/visits/visit-rating-form";
+import { CalendarExportButton } from "@/components/visits/calendar-export-button";
 
 interface Visit {
   id: string;
@@ -20,6 +21,8 @@ interface Visit {
   completedAt: Date | null;
   title: string | null;
   memo: string | null;
+  /** F2: iCalendar export timestamp (null = never exported). */
+  calendarExportedAt?: Date | null;
   checklist: Array<{ id: string; item: string; category: string | null; status: string; memo: string | null; photoUrls: string[] }>;
   notes: Array<{
     id: string;
@@ -46,7 +49,7 @@ interface VisitSectionProps {
   partnerUserId?: string;
 }
 
-export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: VisitSectionProps) {
+export function VisitSection({ venueId, venueName, visits, currentUserId, partnerUserId }: VisitSectionProps) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleMemo, setScheduleMemo] = useState("");
@@ -56,6 +59,53 @@ export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: 
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const geo = useGeolocation();
+  // F2: avoid double-triggering the ics fetch if the toast action is tapped
+  // twice, or if the user schedules → tap → re-schedules within the toast window.
+  const icsBusyRef = useRef(false);
+
+  // F2 (W15 audit): download + persist .ics for a visit the user just created.
+  // Kept inside the component (not a helper) so it has router/toast scope.
+  const triggerIcsDownload = async (visitId: string) => {
+    if (icsBusyRef.current) return;
+    icsBusyRef.current = true;
+    try {
+      const res = await fetch(`/api/visits/${visitId}/ics`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      let filename = "haretoki-visit.ics";
+      const cd = res.headers.get("Content-Disposition");
+      if (cd) {
+        const m = cd.match(/filename="([^"]+)"/);
+        if (m) filename = m[1];
+      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+
+      const result = await markVisitCalendarExported(visitId);
+      if (!result.success) {
+        console.warn("markVisitCalendarExported failed", result.error);
+      }
+      router.refresh();
+      toast.success("ふたりのカレンダーに入りました", {
+        description: "次の画面で「追加」を押してください",
+        duration: 6000,
+      });
+    } catch (err) {
+      console.error("calendar export failed", err);
+      toast.error("うまく渡せませんでした。また試してみてください");
+    } finally {
+      icsBusyRef.current = false;
+    }
+  };
 
   // Only a *scheduled* visit should hide the "schedule new" button. Completed
   // visits should not block the user from booking another visit.
@@ -77,7 +127,22 @@ export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: 
         memo: scheduleMemo || undefined,
       });
       if (result.success) {
-        toast.success("見学の予定を追加しました");
+        // F2 (W15 audit): at peak intent, offer to push the event into the
+        // couple's personal calendar. 8s duration gives enough time to tap
+        // without feeling rushed.
+        const newVisitId = result.visitId;
+        toast.success("見学の予定を残しました", {
+          description: "ふたりのカレンダーに入れておきますか？",
+          action: newVisitId
+            ? {
+                label: "カレンダーに追加",
+                onClick: () => {
+                  void triggerIcsDownload(newVisitId);
+                },
+              }
+            : undefined,
+          duration: 8000,
+        });
         setShowScheduleForm(false);
         setScheduleDate("");
         setScheduleMemo("");
@@ -198,7 +263,7 @@ export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: 
 
           {/* Complete + Prep buttons for scheduled visits */}
           {visit.status === "scheduled" && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => handleComplete(visit.id)} disabled={isPending} className="gap-1">
                 <Check className="h-4 w-4" /> 見学を終えた
               </Button>
@@ -209,6 +274,15 @@ export function VisitSection({ venueId, visits, currentUserId, partnerUserId }: 
               >
                 質問を用意する →
               </Link>
+              {/* F2 (W15 audit): third exposure point — next to the detail
+                  page's in-visit actions. See design §3.2.3. */}
+              <CalendarExportButton
+                visitId={visit.id}
+                venueName={venueName}
+                calendarExportedAt={visit.calendarExportedAt ?? null}
+                visitStatus={visit.status}
+                variant="compact"
+              />
             </div>
           )}
 

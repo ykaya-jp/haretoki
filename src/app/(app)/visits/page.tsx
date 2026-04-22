@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Calendar, CheckCircle2, MapPin } from "lucide-react";
+import { Calendar, CalendarPlus, CheckCircle2, MapPin } from "lucide-react";
 import { getUpcomingVisits, getPastVisits } from "@/server/actions/visits";
 import { VisitMonthCalendar } from "@/components/visits/visit-month-calendar";
+import { CalendarExportButton } from "@/components/visits/calendar-export-button";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -79,59 +80,93 @@ export default async function VisitsPage() {
           </h2>
           <div className="space-y-2">
             {upcoming.map(v => (
-              <Link
-                key={v.id}
-                href={`/venues/${v.venueId}#visit`}
-                className="flex min-h-[72px] items-start gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 active:scale-[0.98] active:bg-muted transition-transform"
-              >
-                {/* Date block */}
-                <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-[var(--gold-subtle)] py-1.5">
-                  {v.scheduledAt ? (
-                    <>
-                      <span className="text-[10px] font-medium tracking-widest text-[var(--gold-warm)]">
-                        {formatJST(v.scheduledAt, { month: "short" }).toUpperCase()}
-                      </span>
-                      <span className="font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums text-[var(--gold-warm)] leading-none">
-                        {formatJST(v.scheduledAt, { day: "numeric" })}
-                      </span>
-                    </>
-                  ) : (
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground line-clamp-1">
-                    {v.venueName}
-                  </p>
-                  {v.scheduledAt && (
-                    <p className="mt-0.5 text-[12px] tabular-nums text-muted-foreground">
-                      {formatJST(v.scheduledAt, { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+              // F2 (W15 audit): wrap the tappable card + export button in a
+              // relative container so the button can anchor to the row end
+              // without nesting <button> inside <a> (accessibility violation).
+              <div key={v.id} className="relative">
+                <Link
+                  href={`/venues/${v.venueId}#visit`}
+                  className="flex min-h-[72px] items-start gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 pr-3 active:scale-[0.98] active:bg-muted transition-transform"
+                >
+                  {/* Date block */}
+                  <div className="flex w-12 shrink-0 flex-col items-center rounded-xl bg-[var(--gold-subtle)] py-1.5">
+                    {v.scheduledAt ? (
+                      <>
+                        <span className="text-[10px] font-medium tracking-widest text-[var(--gold-warm)]">
+                          {formatJST(v.scheduledAt, { month: "short" }).toUpperCase()}
+                        </span>
+                        <span className="font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums text-[var(--gold-warm)] leading-none">
+                          {formatJST(v.scheduledAt, { day: "numeric" })}
+                        </span>
+                      </>
+                    ) : (
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="min-w-0 flex-1 pr-24">
+                    <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground line-clamp-1">
+                      {v.venueName}
                     </p>
-                  )}
-                  {v.venueLocation && (
-                    <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span className="line-clamp-1">{v.venueLocation}</span>
-                    </p>
-                  )}
-                  {v.checklistProgress.total > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <div className="h-1 flex-1 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--gold-warm)] transition-[width]"
-                          style={{ width: `${Math.round((v.checklistProgress.checked / v.checklistProgress.total) * 100)}%` }}
-                        />
+                    {v.scheduledAt && (
+                      <p className="mt-0.5 text-[12px] tabular-nums text-muted-foreground">
+                        {formatJST(v.scheduledAt, { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
+                    {v.venueLocation && (
+                      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="line-clamp-1">{v.venueLocation}</span>
+                      </p>
+                    )}
+                    {v.checklistProgress.total > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <div className="h-1 flex-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[var(--gold-warm)] transition-[width]"
+                            style={{ width: `${Math.round((v.checklistProgress.checked / v.checklistProgress.total) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] tabular-nums text-muted-foreground whitespace-nowrap">
+                          {v.checklistProgress.checked}/{v.checklistProgress.total}
+                        </span>
                       </div>
-                      <span className="text-[10px] tabular-nums text-muted-foreground whitespace-nowrap">
-                        {v.checklistProgress.checked}/{v.checklistProgress.total}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </Link>
+                {/* F2 (W15 audit): second exposure — row-end action. See design §3.2.2. */}
+                <div className="absolute right-3 bottom-3">
+                  <CalendarExportButton
+                    visitId={v.id}
+                    venueName={v.venueName}
+                    calendarExportedAt={v.calendarExportedAt}
+                    visitStatus={v.status}
+                    variant="compact"
+                  />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
+
+          {/* F2: bulk export — only surface when there are 2+ scheduled visits.
+              Matches design §4.4 "複数 visit の一括エクスポート". */}
+          {upcoming.length >= 2 && (
+            <div className="mt-4 flex justify-center">
+              <a
+                href="/api/projects/current/visits.ics"
+                download="haretoki-visits.ics"
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-xl px-5 text-[13px] font-medium",
+                  "bg-[var(--gold-subtle)] text-[color-mix(in_oklab,var(--gold-warm)_80%,var(--foreground))]",
+                  "transition-all duration-150 active:scale-[0.98]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)]/60",
+                )}
+              >
+                <CalendarPlus className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+                ふたりのカレンダーを まとめて 持ち出す
+              </a>
+            </div>
+          )}
         </section>
       )}
 

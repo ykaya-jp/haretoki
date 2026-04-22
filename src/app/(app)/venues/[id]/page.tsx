@@ -570,6 +570,7 @@ async function VisitsContent({
         completedAt: v.completedAt,
         title: v.title,
         memo: v.memo,
+        calendarExportedAt: v.calendarExportedAt,
         checklist:
           v.checklist?.map((c) => ({
             id: c.id,
