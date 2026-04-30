@@ -75,7 +75,13 @@ test.describe("Mobile 375px — Landing Page", () => {
     await saveScreenshot(page, "mobile-landing-full");
 
     const filtered = consoleErrors.filter(
-      (e) => !e.includes("favicon") && !e.includes("robots.txt")
+      (e) =>
+        !e.includes("favicon") &&
+        !e.includes("robots.txt") &&
+        // Vercel Toolbar feedback script is injected only on Preview
+        // deployments and is blocked by our CSP. It's noise we can't
+        // suppress at the page level.
+        !e.includes("vercel.live"),
     );
     expect(filtered, `Console errors: ${filtered.join(", ")}`).toHaveLength(0);
   });
@@ -328,7 +334,9 @@ test.describe("Desktop 1280px — Landing Page", () => {
       (e) =>
         !e.includes("favicon") &&
         !e.includes("robots.txt") &&
-        !e.includes("404")
+        !e.includes("404") &&
+        // Vercel Toolbar feedback script (Preview-only, blocked by CSP).
+        !e.includes("vercel.live"),
     );
     expect(filtered, `Console errors: ${filtered.join(", ")}`).toHaveLength(0);
   });
