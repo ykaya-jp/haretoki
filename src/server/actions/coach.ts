@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath } from "next/cache";
+import { revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, stripPII, withRetry } from "@/lib/anthropic";
 import { parseConditions } from "@/lib/schemas";
@@ -105,7 +105,10 @@ export async function createCoachSession(firstMessage: string): Promise<{ id: st
     select: { id: true },
   });
 
-  revalidatePath("/coach");
+  // W16-5: tag-based invalidation. revalidatePath("/coach") rebuilt the
+  // entire route tree on every send; tagged cache lets the session list
+  // and message stream invalidate independently.
+  revalidateTag(`coach-sessions:${projectId}`, { expire: 0 });
   return { id: session.id };
 }
 
@@ -120,6 +123,12 @@ export interface SessionListItem {
 export async function listCoachSessions(): Promise<SessionListItem[]> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return listCoachSessionsCached(projectId);
+}
+
+async function listCoachSessionsCached(projectId: string): Promise<SessionListItem[]> {
+  "use cache";
+  cacheTag(`coach-sessions:${projectId}`);
 
   const sessions = await prisma.coachSession.findMany({
     where: { projectId },
@@ -150,6 +159,16 @@ export interface SessionDetail {
 export async function getCoachSession(sessionId: string): Promise<SessionDetail | null> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getCoachSessionCached(sessionId, projectId);
+}
+
+async function getCoachSessionCached(
+  sessionId: string,
+  projectId: string,
+): Promise<SessionDetail | null> {
+  "use cache";
+  cacheTag(`coach-session:${sessionId}`);
+  cacheTag(`coach-sessions:${projectId}`);
 
   const session = await prisma.coachSession.findFirst({
     where: { id: sessionId, projectId },
@@ -190,7 +209,8 @@ export async function renameCoachSession(sessionId: string, title: string): Prom
     data: { title: title.trim().slice(0, 100) },
   });
 
-  revalidatePath("/coach");
+  revalidateTag(`coach-sessions:${projectId}`, { expire: 0 });
+  revalidateTag(`coach-session:${sessionId}`, { expire: 0 });
 }
 
 /** Deletes a session and all its messages (cascade). */
@@ -202,7 +222,8 @@ export async function deleteCoachSession(sessionId: string): Promise<void> {
     where: { id: sessionId, projectId },
   });
 
-  revalidatePath("/coach");
+  revalidateTag(`coach-sessions:${projectId}`, { expire: 0 });
+  revalidateTag(`coach-session:${sessionId}`, { expire: 0 });
 }
 
 /**
@@ -332,7 +353,8 @@ export async function sendCoachMessage(
         data: { updatedAt: new Date() },
       });
 
-      revalidatePath("/coach");
+      revalidateTag(`coach-session:${resolvedSessionId}`, { expire: 0 });
+      revalidateTag(`coach-sessions:${projectId}`, { expire: 0 });
       return { answer: response, suggestedActions: [], matched: true, sessionId: resolvedSessionId };
     } catch (err) {
       captureError(err, { action: "sendCoachMessage" });
@@ -384,17 +406,23 @@ async function matchFAQ(
     // Swallow DB errors — UI still gets a response from the return value
   }
 
-  revalidatePath("/coach");
+  revalidateTag(`coach-session:${sessionId}`, { expire: 0 });
+  revalidateTag(`coach-sessions:${projectId}`, { expire: 0 });
   return response;
 }
 
 export async function getCoachHistory(sessionId?: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getCoachHistoryCached(projectId, sessionId);
+}
 
-  const where = sessionId
-    ? { sessionId, projectId }
-    : { projectId };
+async function getCoachHistoryCached(projectId: string, sessionId?: string) {
+  "use cache";
+  cacheTag(`coach-sessions:${projectId}`);
+  if (sessionId) cacheTag(`coach-session:${sessionId}`);
+
+  const where = sessionId ? { sessionId, projectId } : { projectId };
 
   const messages = await prisma.coachMessage.findMany({
     where,
