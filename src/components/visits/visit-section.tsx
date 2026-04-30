@@ -9,10 +9,17 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { cn } from "@/lib/utils";
 import { VisitChecklist } from "@/components/visits/visit-checklist";
 import { VisitRatingForm } from "@/components/visits/visit-rating-form";
 import { CalendarExportButton } from "@/components/visits/calendar-export-button";
+import {
+  enqueueVisitNote,
+  peekQueue,
+  removeFromQueue,
+  type QueuedVisitNotePayload,
+} from "@/lib/visit-note-queue";
 
 interface Visit {
   id: string;
@@ -58,6 +65,11 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
   const [expandedRatingVisitId, setExpandedRatingVisitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const isOnline = useOnlineStatus();
+  // Guard so the auto-flush only fires once per online transition. Without
+  // this, a Strict-mode double-mount or a flapping connection would post
+  // the same queued note twice.
+  const flushingRef = useRef(false);
   const geo = useGeolocation();
   // F2: avoid double-triggering the ics fetch if the toast action is tapped
   // twice, or if the user schedules → tap → re-schedules within the toast window.
@@ -170,24 +182,105 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
     });
   };
 
+  // W20-1: retry a single queued note by its local id. Used by the toast's
+  // "もう一度送る" action — the note has already been displayed to the
+  // user as queued, so success here just removes it from local storage and
+  // refreshes the list without re-prompting.
+  const retryQueuedNote = (queueId: string, visitId: string) => {
+    const target = peekQueue().find((e) => e.id === queueId);
+    if (!target) {
+      // Already flushed by the online listener — nothing to do.
+      toast.success("送信済みでした");
+      return;
+    }
+    startTransition(async () => {
+      const result = await addVisitNote(visitId, target.payload);
+      if (result.success) {
+        removeFromQueue(queueId);
+        toast.success("メモを残しました");
+        router.refresh();
+      } else {
+        toast.error("まだ送れません。もう少し待ってからもう一度試してください");
+      }
+    });
+  };
+
   const handleAddNote = (visitId: string) => {
     if (!noteText.trim()) return;
+    const payload: QueuedVisitNotePayload = {
+      content: noteText,
+      locationLat: geo.latitude ?? undefined,
+      locationLng: geo.longitude ?? undefined,
+    };
     startTransition(async () => {
-      const result = await addVisitNote(visitId, {
-        content: noteText,
-        locationLat: geo.latitude ?? undefined,
-        locationLng: geo.longitude ?? undefined,
-      });
+      const result = await addVisitNote(visitId, payload);
       if (result.success) {
         toast.success("メモを残しました");
         setNoteText("");
         setShowNoteForm(false);
         router.refresh();
-      } else {
-        toast.error(result.error ?? "メモをうまく残せませんでした");
+        return;
       }
+      // W20-1: save failed (network drop on the venue floor / Server Action
+      // error). Persist the payload locally so the memo isn't lost. The
+      // online listener auto-flushes when the connection returns; the toast
+      // also offers a manual retry for users who want to try right now.
+      const queued = enqueueVisitNote(visitId, payload);
+      toast.error("メモは下書きとして残しました", {
+        description:
+          result.error ??
+          "電波が戻ったら自動で送ります。手動でも送れます。",
+        action: {
+          label: "もう一度送る",
+          onClick: () => retryQueuedNote(queued.id, visitId),
+        },
+        duration: 10000,
+      });
+      setNoteText("");
+      setShowNoteForm(false);
     });
   };
+
+  // W20-1: when the browser reports online again, flush any queued notes.
+  // Per-entry success removes from the queue; failures stay so the user
+  // can keep retrying. We only attempt notes whose visitId belongs to
+  // this venue's visits, so opening another venue's page doesn't fire
+  // their queue from here.
+  useEffect(() => {
+    if (!isOnline) return;
+    if (flushingRef.current) return;
+    const queue = peekQueue();
+    const ours = queue.filter((e) =>
+      visits.some((v) => v.id === e.visitId),
+    );
+    if (ours.length === 0) return;
+    flushingRef.current = true;
+    (async () => {
+      let succeeded = 0;
+      for (const entry of ours) {
+        try {
+          const result = await addVisitNote(entry.visitId, entry.payload);
+          if (result.success) {
+            removeFromQueue(entry.id);
+            succeeded++;
+          }
+        } catch {
+          // Network still flaky — leave the entry queued for the next
+          // online transition.
+        }
+      }
+      flushingRef.current = false;
+      if (succeeded > 0) {
+        toast.success(
+          succeeded === 1
+            ? "下書きのメモを送信しました"
+            : `下書きのメモ ${succeeded} 件を送信しました`,
+        );
+        router.refresh();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   // handleToggleCheck is now in VisitChecklist component
 
