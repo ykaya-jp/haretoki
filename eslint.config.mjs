@@ -15,6 +15,12 @@ const eslintConfig = defineConfig([
     // git worktrees used for parallel agent work — they have their own
     // node_modules / .next and shouldn't be linted from the main repo.
     ".claude/worktrees/**",
+    // Playwright HTML report bundles its own minified vendor JS
+    // (codeMirrorModule, defaultSettingsView, etc.) that trip every
+    // unused-expression / unused-vars rule. Generated artifact, never
+    // checked in — exclude from lint so CI / local runs stay clean.
+    "playwright-report/**",
+    "test-results/**",
   ]),
   {
     // Respect the `_arg` / `_opts` convention used widely in test mock
