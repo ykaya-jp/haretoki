@@ -296,7 +296,7 @@ Morning Light パレット（Cream #FAF8F3 / Rose #F8E9E4 / Gold #B88A4C）・No
 | **V-1** | **venue-header を editorial 2 層 dl 化**（eyebrow ceremony style + 明朝 h1 28px + gold hairline + label/value 2 層）— #14 震源地解決 | **P0** | M | `src/components/venues/venue-header.tsx:32-73` |
 | **V-2** | EstimateSection 金額 header を display-scale numeral 統一（32px 明朝 extralight + ¥/万 単位 11px + `v1 · 手入力` chip） | P1 | S | `src/components/venues/estimate-section.tsx:65-78` |
 | **V-3** | EstimateXRay 絵文字 👗🍽📸💐🎭🔊🏛📋💡⚠ を Lucide 16px に全置換、「Estimate X-Ray」gold dot eyebrow 化 | P1 | M | `src/components/venues/estimate-xray.tsx:14-23, 93-98` |
-| **V-4** | action-bar CTA を isFavorite で分岐（未=「候補に残す」→/candidates、既=「ほかと並べる」→/compare）、HaloTap wrap、rounded-lg→rounded-full | P2 | S | `src/components/venues/venue-action-bar.tsx:85-91` |
+| ~~**V-4**~~ | ~~action-bar CTA を isFavorite で分岐~~ → **unified に判定変更** (W18-4, 2026-04-30): heart toggle で verb / destination が変わると couple が「アクションが変わった」と感じて混乱するため、両 state を「ほかの式場と比べる / 候補に入れて比べる」+ destination `/candidates?view=compare&venueIds=...` に統一。HaloTap wrap / rounded-full は適用済 (`venue-action-bar.tsx:35-39` の inline コメント参照) | ✅ 完了 | — | — |
 | **V-5** | photo-carousel 1 photo 分岐に venue 名 caption overlay 追加（fold 内で venue 名が必ず見える） | P2 | S | `src/components/venues/photo-carousel.tsx:84-122` |
 | **V-6** | venue-detail を sticky Segmented Control `[概要][見積][見学][口コミ][AI解析]` + scroll-spy に再編 | P1 | L | `src/app/(app)/venues/[id]/page.tsx` |
 | **V-7** | 見積もり項目名 Combobox 化（プリセット 40 種 + インクリメンタル絞込 + 「自由入力で使う」最下行候補） | P2 | M | `src/components/venues/estimate-section.tsx` |

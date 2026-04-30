@@ -68,7 +68,7 @@
 | W18-2 | **Partner Level 2 (6 次元星評価)** (妻が guest を脱して評価入れる) | roadmap R3 から抜粋 | 中 |
 | ~~W18-3~~ | ~~**権限境界の明確化**~~ → 既に正しく実装済 (commit 確認済): `requireProjectMembership` は `role` 返却済、`requireOwner` 既存、個人データ (rating/note/favorite) は own-only ガード済、共有データは意図的に両方 OK。policy を `src/server/auth.ts` の冒頭コメントに明文化 | venues.ts (D-1 再判定) | ✅ 完了 |
 | W18-3a | (旧 W18-3 の代わり) Partner Level 2 完了後に **destruction 系 (deleteVenue) の dual-confirmation** を検討 (Phase 2 商用化前) | — | 小 |
-| W18-4 | **V-4: venue 詳細 action-bar 分岐** (isFavorite で「ほかと並べる」CTA) | audit-master-A V-4 | 小 |
+| ~~W18-4~~ | ~~**V-4: venue 詳細 action-bar 分岐**~~ → **unified 判定で完了** (2026-04-30): isFavorite で verb / destination が両方変わると couple が混乱するため、両 state「比べる」+ destination 統一。`venue-action-bar.tsx:35-39` のコメントで設計判断を明文化、audit-master-A V-4 行に反映 | audit-master-A V-4 | ✅ 完了 |
 | W18-5 | **V-7: 見積項目 Combobox 化** (プリセット 40 種) | audit-master-A V-7 | 中 |
 | W18-6 | **V-9: 星評価 0.5 刻み水平バー + 楽観更新** | audit-master-A V-9 | 中 |
 | W18-7 | **CMP-5: MatrixInsight AI 分析カード** (比較ボードに「この 2 つはこう違う」) | audit-master-A CMP-5 | 大 |
