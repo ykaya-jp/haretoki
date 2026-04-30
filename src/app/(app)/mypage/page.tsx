@@ -239,7 +239,7 @@ export default async function MyPage() {
           <SettingsRow
             icon={Bookmark}
             tone="accent"
-            label="保存した検索条件"
+            label="残した検索条件"
             meta="新しい式場が出たらお知らせ"
             href="/mypage/saved-searches"
           />

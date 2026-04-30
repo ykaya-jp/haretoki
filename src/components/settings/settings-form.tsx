@@ -165,8 +165,8 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
           </>
         ) : (
           <>
-            <Check className="mr-2 h-4 w-4" />
-            設定を保存
+            <Settings className="mr-2 h-4 w-4" />
+            設定を整える
           </>
         )}
       </Button>

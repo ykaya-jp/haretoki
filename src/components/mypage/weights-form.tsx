@@ -158,7 +158,7 @@ export function WeightsForm({ initialWeights }: WeightsFormProps) {
           ) : (
             <>
               <Sliders className="mr-2 h-4 w-4" />
-              重みを保存
+              重みを残す
             </>
           )}
         </Button>

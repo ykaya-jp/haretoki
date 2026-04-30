@@ -49,7 +49,7 @@ export default async function NotificationsPage() {
         <EmptyState
           icon={Bell}
           title="いまは静かな一日です"
-          description="保存した条件に合う式場が見つかったり、ふたりに届くお知らせがあれば、こちらにそっと並びます。"
+          description="残した条件に合う式場が見つかったり、ふたりに届くお知らせがあれば、こちらにそっと並びます。"
         />
       ) : (
         <div className="space-y-3">

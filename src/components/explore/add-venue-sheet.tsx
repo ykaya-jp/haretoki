@@ -143,7 +143,7 @@ function dedupeFieldLabels(fields: string[]): string[] {
  * separate so the toast copy stays co-located with the `ReviewSummaryStatus`
  * variants and is easy to tweak.
  *
- *   completed → "口コミ N 件を取り込み、まとめを保存しました"
+ *   completed → "口コミ N 件を取り込み、まとめを残しました"
  *   timeout   → "口コミは取り込みましたが、まとめは後ほど『AI 要約を再生成』ボタンで作成できます"
  *   skipped   → null (no review mention — the venue-added line stands alone)
  *   failed    → "口コミは取り込めましたが、まとめはまだ作れていません"
@@ -155,8 +155,8 @@ function buildReviewSummaryToastLine(
   if (!status || status === "skipped") return null;
   if (status === "completed") {
     const n = reviewCount ?? 0;
-    if (n === 0) return "口コミのまとめを保存しました";
-    return `✨ 口コミ ${n} 件を取り込み、まとめを保存しました`;
+    if (n === 0) return "口コミのまとめを残しました";
+    return `✨ 口コミ ${n} 件を取り込み、まとめを残しました`;
   }
   if (status === "timeout") {
     return "口コミは取り込みましたが、まとめは後ほど『AI 要約を再生成』ボタンで作成できます";

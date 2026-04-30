@@ -111,7 +111,7 @@ function RowMenu({ session, onClose }: RowMenuProps) {
           maxLength={100}
         />
         <Button type="submit" size="sm" variant="ghost" className="h-7 px-2 text-xs">
-          保存
+          残す
         </Button>
         <Button
           type="button"
@@ -161,7 +161,7 @@ function RowMenu({ session, onClose }: RowMenuProps) {
               onClick={handleDelete}
             >
               <Trash2 className="h-4 w-4" />
-              削除
+              手放す
             </button>
           </div>
         </>

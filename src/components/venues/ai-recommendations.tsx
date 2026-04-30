@@ -292,10 +292,10 @@ export function AIRecommendations({
           type="button"
           onClick={handleRestore}
           className="inline-flex min-h-11 items-center gap-1 text-xs text-foreground underline underline-offset-4"
-          aria-label="AI推薦を今すぐ表示する"
+          aria-label="AI推薦をここで表示する"
         >
           <RotateCcw className="h-3 w-3" />
-          今すぐ戻す
+          ここで戻す
         </button>
       </section>
     );
