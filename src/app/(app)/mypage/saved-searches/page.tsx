@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Bookmark, Search } from "lucide-react";
 import {
   listSavedSearches,
   matchesSavedSearchCount,
@@ -59,28 +59,38 @@ async function SavedSearchCard({
   const exploreUrl = buildExploreUrl(filters);
 
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
-      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-background">
-        <Bookmark className="h-4 w-4 text-[color-mix(in_oklab,var(--gold-warm)_70%,var(--muted-foreground))]" strokeWidth={1.6} />
+    <div className="group relative flex items-start gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
+      {/* Full-card tap target — behind interactive children */}
+      <Link
+        href={exploreUrl}
+        prefetch={false}
+        aria-label={`${label} の検索結果を見る（${count}件該当）`}
+        className="absolute inset-0 rounded-2xl"
+      />
+      {/* Bookmark icon well */}
+      <div className="relative mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-background">
+        <Bookmark
+          className="h-4 w-4 text-[color-mix(in_oklab,var(--gold-warm)_70%,var(--muted-foreground))]"
+          strokeWidth={1.6}
+        />
       </div>
-      <div className="min-w-0 flex-1">
+      {/* Content — pointer-events-none so the absolute link captures taps */}
+      <div className="relative min-w-0 flex-1 pointer-events-none">
         <p className="font-[family-name:var(--font-display)] font-light text-base leading-snug tracking-wide">
           {label}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
           <FilterPreview filters={filters} />
         </p>
-        <Link
-          href={exploreUrl}
-          prefetch={false}
-          className="mt-2 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-4"
-        >
-          <Search className="h-3 w-3" />
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
+          <Search className="h-3 w-3" strokeWidth={1.8} />
           <span className="tabular-nums">{count}件該当</span>
-          <span>— 検索する</span>
-        </Link>
+        </p>
       </div>
-      <SavedSearchDeleteButton id={id} />
+      {/* Delete button — z-index above the card link */}
+      <div className="relative">
+        <SavedSearchDeleteButton id={id} />
+      </div>
     </div>
   );
 }
@@ -97,7 +107,7 @@ export default async function SavedSearchesPage() {
             prefetch={false}
             className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
-            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" strokeWidth={1.6} />
             Back
           </Link>
           <span aria-hidden="true" className="opacity-30">/</span>
@@ -121,7 +131,7 @@ export default async function SavedSearchesPage() {
           action={{ href: "/explore", label: "式場をさがす" }}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {searches.map((s) => (
             <SavedSearchCard
               key={s.id}
@@ -130,8 +140,8 @@ export default async function SavedSearchesPage() {
               filters={s.filters}
             />
           ))}
-          <p className="text-center text-xs text-muted-foreground pt-2">
-            最大 5 件まで保存できます（現在 {searches.length} 件）
+          <p className="pt-4 text-center text-[10.5px] font-medium tracking-[0.2em] uppercase text-muted-foreground tabular-nums">
+            {searches.length} / 5 — 最大 5 件
           </p>
         </div>
       )}

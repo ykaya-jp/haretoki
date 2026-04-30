@@ -1,37 +1,22 @@
+"use client";
+
 import Link from "next/link";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SettingsRowProps {
-  /** lucide-react icon shown on the left. Stroke width is fixed (1.75) so
-   *  every row's icon weight matches across tones. */
   icon: LucideIcon;
   label: string;
-  /** Secondary line under the label. Kept short — full sentences belong on
-   *  the destination page, not in a list row. */
   meta?: string;
-  /** Optional trailing element shown before the chevron — typically an
-   *  unread count badge or a status pill. */
-  badge?: React.ReactNode;
+  badge?: ReactNode;
   href: string;
-  /** `accent` paints the icon with the brand gold so a row earns visual
-   *  weight without changing layout (used for "core" rows like 重み付け
-   *  /保存条件). `default` keeps the icon muted. */
+  /** "accent" = gold-warm icon; "default" = muted icon */
   tone?: "default" | "accent";
 }
 
-/**
- * W19-1: editorial settings row. Used inside a single rounded card with
- * `divide-y` so a list of rows reads as one composed surface, not as
- * stacked individual cards. Replaces the previous mypage pattern where
- * every link was a separate `rounded-2xl bg-card p-5 shadow` block — the
- * audit (audit-sub-A4 P0-1) flagged that as "並べただけ" and asked for
- * Linear-style settings rhythm instead.
- *
- * Layout contract: 44px minimum tap target, fixed `gap-3`, label/meta
- * column flex-1 so it truncates gracefully on long meta strings, chevron
- * always pinned to the right.
- */
+/** Unified list row for mypage navigation items (SettingsRow pattern). */
 export function SettingsRow({
   icon: Icon,
   label,
@@ -44,31 +29,36 @@ export function SettingsRow({
     <Link
       href={href}
       prefetch
-      className="flex min-h-[44px] items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/40 active:bg-muted/60"
+      className="group grid min-h-11 grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3.5 transition-colors active:bg-muted/40"
     >
       <Icon
+        aria-hidden="true"
         className={cn(
           "h-5 w-5 shrink-0",
           tone === "accent"
             ? "text-[var(--gold-warm)]"
-            : "text-muted-foreground",
+            : "text-muted-foreground"
         )}
-        strokeWidth={1.75}
-        aria-hidden
+        strokeWidth={1.6}
       />
-      <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-medium leading-tight">{label}</p>
-        {meta ? (
-          <p className="mt-0.5 truncate text-xs leading-relaxed text-muted-foreground">
+      <span className="min-w-0">
+        <span className="block text-[14px] font-medium leading-tight">
+          {label}
+        </span>
+        {meta && (
+          <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
             {meta}
-          </p>
-        ) : null}
-      </div>
-      {badge ? <span className="shrink-0">{badge}</span> : null}
-      <ChevronRight
-        className="h-4 w-4 shrink-0 text-muted-foreground/60"
-        aria-hidden
-      />
+          </span>
+        )}
+      </span>
+      <span className="flex items-center gap-2">
+        {badge}
+        <ChevronRight
+          aria-hidden="true"
+          className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          strokeWidth={1.6}
+        />
+      </span>
     </Link>
   );
 }
