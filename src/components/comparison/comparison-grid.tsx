@@ -123,9 +123,15 @@ export function ComparisonGrid({ matrix, weights = null }: ComparisonGridProps) 
             gridAutoRows: "minmax(52px, auto)",
           }}
         >
-          {/* Row 1: empty label cell + venue header columns, sticky top */}
+          {/* Row 1: empty label cell + venue header columns, sticky top.
+              W21-8: corner cell (row 1, col 1) sticks to BOTH top AND left
+              with z-30 so it stays above the row-only and column-only sticky
+              cells when the user scrolls in two axes at once. Without this,
+              horizontal scroll at 375px lets the leftmost venue header bleed
+              under where the empty corner used to be, leaving a visual gap
+              over the sticky label column. */}
           <div
-            className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-sm"
+            className="sticky left-0 top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur-sm"
             style={{ gridRow: 1, gridColumn: 1 }}
           />
           {venues.map((venue, i) => (
