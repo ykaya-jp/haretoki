@@ -1,7 +1,9 @@
-# VenueLens — 統合ロードマップ
+# Haretoki — 統合ロードマップ
 
 > 旧 Phase 1-5 と v2 Phase A-D を一つのリリース計画に統合。
 > すべてのデザイン・技術設計書のマスターインデックス。
+>
+> **進捗の現在地** (2026-04-30 時点): Release 1 は実装完了、その後の audit 起点 sprint で Wave 14 (URL 取込 v4) と Wave 15 (F1-F4: 式場名検索 / .ics export / 決定後 todo / partner invite Level 1) を develop に積んだ状態。Release 2-4 は **未実装** で、各機能の判断は [`PENDING.md`](PENDING.md) に集約。
 
 ---
 
@@ -12,7 +14,21 @@
 | [DESIGN.md](../DESIGN.md) | デザインシステム（Single Source of Truth） | ✅ 運用中 |
 | [非機能要件書](superpowers/specs/2026-04-13-nonfunctional-requirements.md) | パフォーマンス予算、タッチ応答性、ネットワーク耐性、バンドル管理、監視 | ✅ 運用中 |
 | [CLAUDE.md](../CLAUDE.md) | プロジェクト設定・実装ルール | ✅ 運用中 |
-| [docs/archive/](archive/) | 過去 Release 技術仕様・v2 UI 仕様など歴史資料 | 参照のみ |
+| [docs/designs/](designs/) | 進行中機能の 5 層設計 (W15: F1-F4) | ✅ 運用中 |
+| [docs/plans/](plans/) | 進行中の実装 plan | ✅ 運用中 |
+| [docs/PENDING.md](PENDING.md) | 計画したが未実装のもの一覧（やる/やらない判断材料） | ✅ 運用中 |
+| [docs/archive/](archive/) | 過去 Release 技術仕様・v2 UI 仕様・実行済み audit prompt | 参照のみ |
+
+---
+
+## 現在進行中 (Wave 単位)
+
+Release 1 完了後、ユーザーフィードバック (`docs/myreview/problems_02.md`) を起点に小規模な Wave で改善している:
+
+| Wave | 内容 | 状態 |
+|---|---|---|
+| W14 | URL 取込 v4 統合 | 実装済 ([archive/2026-04-19-v4-url-import-final.md](archive/2026-04-19-v4-url-import-final.md)) |
+| W15 | F1: 式場名検索追加 / F2: 見学 .ics export / F3: 決定後 todo + /preparation / F4: partner invite Level 1 (guest mode) | 実装済 ([plans/2026-04-30-w15-f1-f4-impl.md](plans/2026-04-30-w15-f1-f4-impl.md)) |
 
 ---
 

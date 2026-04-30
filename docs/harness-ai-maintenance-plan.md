@@ -1,5 +1,11 @@
 # Haretoki — Harness & AI Engineering Docs 自動整備プラン
 
+> ## ⚠️ ステータス: Phase 1 完了 / Phase 2-3 は **Future Plan**（未実装）
+>
+> 本ドキュメントは 2026-04-17 の Track C audit の output (plan only)。Phase 1 は **2026-04-18 までに完了済み** (`AGENTS.md`, `.claude/README.md`, `docs/harness/runbook.md`, `docs/harness/hooks.md`, `docs/ai/models.md`, `docs/ai/guardrails.md`, `docs/ai/prompts/coach.system.md` + `prompts/README.md` 作成、および本 plan 自体)。
+>
+> Phase 2 (drift 自動検知 hook + sync-docs / record-decision skill) と Phase 3 (docs-curator subagent) は **未実装**。やるかどうかの判断は [`docs/PENDING.md`](PENDING.md) の「Harness AI 自動化 Phase 2-3」項目で扱う。本ファイルは設計案として保持し、実施可否は別途決定。
+>
 > Track C 成果物 — branch: `audit/harness-ai-docs` (HEAD: ec8c4d2)
 > 目的: Claude Code / Agent SDK harness と AI engineering（プロンプト・モデル運用）の観点で
 > 必要なマークダウン資産を **棚卸し → 運用化 → 最小実装プラン化** する。
