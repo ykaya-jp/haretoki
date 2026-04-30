@@ -4,11 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PillOptions } from "@/components/ui/pill-options";
 import { saveOnboardingAnswers } from "@/server/actions/onboarding";
 import { toast } from "sonner";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 
 const STYLE_OPTIONS = [
   { id: "チャペル", label: "チャペル" },
@@ -63,7 +62,9 @@ const BUDGET_MAP: Record<string, { min: number; max: number }> = {
 };
 
 export function SettingsForm({ initialConditions }: SettingsFormProps) {
-  const [styles, setStyles] = useState<string[]>(initialConditions.style ?? []);
+  const [styles, setStyles] = useState<string[]>(
+    initialConditions.style ?? []
+  );
   const [guestCount, setGuestCount] = useState(
     initialConditions.guestCount?.toString() ?? ""
   );
@@ -96,10 +97,12 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Style */}
-      <div className="space-y-2">
-        <Label>希望スタイル</Label>
+      <div className="space-y-3">
+        <p className="text-[10.5px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
+          Style
+        </p>
         <PillOptions
           options={STYLE_OPTIONS}
           selected={styles}
@@ -111,9 +114,9 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
         />
       </div>
 
-      {/* Guests */}
-      <div className="space-y-2">
-        <Label htmlFor="guests">ゲスト人数</Label>
+      {/* Guests — label + input on same row */}
+      <div className="grid grid-cols-[96px_1fr] items-center gap-4">
+        <p className="text-[12px] text-muted-foreground">ゲスト人数</p>
         <Input
           id="guests"
           type="number"
@@ -121,13 +124,15 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
           value={guestCount}
           onChange={(e) => setGuestCount(e.target.value)}
           placeholder="例: 80"
-          className="max-w-[200px]"
+          className="h-11 max-w-[140px] tabular-nums"
         />
       </div>
 
       {/* Area */}
-      <div className="space-y-2">
-        <Label>希望エリア</Label>
+      <div className="space-y-3">
+        <p className="text-[10.5px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
+          Area
+        </p>
         <PillOptions
           options={AREA_OPTIONS}
           selected={areas}
@@ -140,8 +145,10 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
       </div>
 
       {/* Budget */}
-      <div className="space-y-2">
-        <Label>予算の目安</Label>
+      <div className="space-y-3">
+        <p className="text-[10.5px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
+          Budget
+        </p>
         <PillOptions
           options={BUDGET_OPTIONS}
           selected={budgetId}
@@ -158,7 +165,7 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
           </>
         ) : (
           <>
-            <Settings className="mr-2 h-4 w-4" />
+            <Check className="mr-2 h-4 w-4" />
             設定を保存
           </>
         )}
