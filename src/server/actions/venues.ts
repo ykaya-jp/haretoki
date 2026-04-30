@@ -326,6 +326,76 @@ export async function deleteVenue(
 }
 
 /**
+ * "戻す" the venue — W21-7 undo for a soft-deleted row.
+ *
+ * Couples sometimes 手放す a venue from /compare and immediately want it
+ * back (mistapped, partner just sent a "wait, I liked that one" message,
+ * etc.). The Sonner toast that fires after `deleteVenue` carries an
+ * action button that calls this — we reverse the same atomic flip and
+ * the row reappears everywhere it was filtered out by `deletedAt: null`.
+ *
+ * Cascade contract: only restore children whose `deletedAt` matches the
+ * parent venue's `deletedAt` to the millisecond. That's the timestamp
+ * `deleteVenue` stamped across the transaction, so it deterministically
+ * picks out children that were soft-deleted *with* this venue and leaves
+ * any that were hand-deleted at a different moment (a future
+ * per-record 手放す UI, e.g. dropping one note off a kept venue) alone.
+ */
+export async function restoreVenue(
+  venueId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const venue = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+    select: { id: true, deletedAt: true },
+  });
+  if (!venue) {
+    // Hard-deleted, foreign project, or non-existent — all surface the
+    // same opaque message so an attacker can't enumerate ids.
+    return { success: false, error: "式場が見つかりません" };
+  }
+  // Idempotent — restoring an already-live venue is a success no-op.
+  if (!venue.deletedAt) {
+    return { success: true };
+  }
+
+  const stamp = venue.deletedAt;
+  await prisma.$transaction([
+    prisma.visitRating.updateMany({
+      where: { visit: { venueId }, deletedAt: stamp },
+      data: { deletedAt: null },
+    }),
+    prisma.visitChecklistItem.updateMany({
+      where: { visit: { venueId }, deletedAt: stamp },
+      data: { deletedAt: null },
+    }),
+    prisma.visitNote.updateMany({
+      where: { visit: { venueId }, deletedAt: stamp },
+      data: { deletedAt: null },
+    }),
+    prisma.visit.updateMany({
+      where: { venueId, deletedAt: stamp },
+      data: { deletedAt: null },
+    }),
+    prisma.venue.update({
+      where: { id: venueId },
+      data: { deletedAt: null },
+    }),
+  ]);
+
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath("/explore");
+  revalidatePath("/home");
+  revalidatePath("/candidates");
+  revalidatePath("/compare");
+  revalidatePath(`/venues/${venueId}`);
+
+  return { success: true };
+}
+
+/**
  * Above-the-fold fields: name, location, photos, status, scores.
  *
  * Split into a thin auth wrapper + a cached inner function so we can use

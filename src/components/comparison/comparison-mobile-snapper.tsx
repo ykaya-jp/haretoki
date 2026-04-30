@@ -23,6 +23,7 @@ import {
   type FieldGroup,
 } from "./comparison-field-registry";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
+import { VenueRemoveButton } from "./venue-remove-button";
 import {
   buildFocusedSearchString,
   indexOfFocusedVenue,
@@ -254,7 +255,14 @@ function VenueCardView({
   const rating = composite ?? venue.externalRatingValue;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[var(--shadow-card)]">
+    <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-card shadow-[var(--shadow-card)]">
+      {/* W21-7: × overlay sits on top of the photo, outside the Link so
+          a tap on it doesn't navigate to the PDP. The button itself
+          stops propagation, but lifting it out of the Link tree also
+          keeps screen-reader semantics clean ("button" not "link"). */}
+      <div className="absolute right-3 top-3 z-20">
+        <VenueRemoveButton venueId={venue.id} venueName={venue.name} />
+      </div>
       {/* Header — photo 4:3 + name + rating */}
       <Link href={`/venues/${venue.id}`} className="block">
         <div className="relative aspect-[4/3] w-full bg-muted">
