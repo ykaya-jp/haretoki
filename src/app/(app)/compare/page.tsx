@@ -4,7 +4,7 @@ import {
   getComparisonMatrix,
   getFavoriteVenueIds,
 } from "@/server/actions/checklist";
-import { getMyWeights } from "@/server/actions/weights";
+import { getCoupleWeights } from "@/server/actions/weights";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -89,12 +89,14 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
 
 async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
   const ids = venueIds.length > 0 ? venueIds : await getFavoriteVenueIds();
-  // W12-1: hoist the viewer's weights in parallel with the matrix so the
-  // comparison column header ★ reflects their priorities. `.catch(null)`
-  // keeps the page usable when the weights row is absent (first visit).
-  const [matrix, weights] = await Promise.all([
+  // W18-1: hoist the couple's averaged weights (owner+partner per-dimension
+  // mean) in parallel with the matrix so each column ★ reflects both
+  // partners' priorities, not only the viewer's. `.catch(null)` keeps the
+  // page usable on the first visit when the weights row is absent and on
+  // solo projects (getCoupleWeights returns couple=mine in that case).
+  const [matrix, coupleWeights] = await Promise.all([
     getComparisonMatrix(ids),
-    getMyWeights().catch(() => null),
+    getCoupleWeights().catch(() => null),
   ]);
   const insufficient = matrix.venues.length === 1;
 
@@ -123,7 +125,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
           ctaHref="/candidates"
         />
       ) : (
-        <ComparisonBoard matrix={matrix} weights={weights} />
+        <ComparisonBoard matrix={matrix} weights={coupleWeights?.couple ?? null} />
       )}
     </div>
   );

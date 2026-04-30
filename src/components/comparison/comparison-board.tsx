@@ -18,7 +18,9 @@ export function ComparisonBoard({
   weights = null,
 }: {
   matrix: ComparisonMatrix;
-  /** W12-1: viewer's dimension weights (null → legacy unweighted). */
+  /** W18-1: couple's averaged dimension weights (owner+partner mean from
+   *  `getCoupleWeights().couple`). On solo projects equals the viewer's
+   *  weights. `null` → legacy unweighted composite. */
   weights?: DimensionWeights | null;
 }) {
   return (

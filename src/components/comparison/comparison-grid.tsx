@@ -38,8 +38,9 @@ import type { DimensionWeights } from "@/lib/weighted-score";
 
 interface ComparisonGridProps {
   matrix: ComparisonMatrix;
-  /** W12-1: viewer's per-dimension weights. Forwarded to the header
-   *  column so the ★ badge reflects their priority profile. */
+  /** W18-1: couple's averaged per-dimension weights (owner+partner mean).
+   *  Forwarded to the header column so each ★ badge reflects both
+   *  partners' priorities. `null` → unweighted (legacy). */
   weights?: DimensionWeights | null;
 }
 

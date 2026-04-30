@@ -43,7 +43,8 @@ import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 
 interface Props {
   matrix: ComparisonMatrix;
-  /** W12-1: viewer's dimension weights; null → unweighted (legacy). */
+  /** W18-1: couple's averaged dimension weights (owner+partner mean from
+   *  `getCoupleWeights().couple`); null → unweighted (legacy). */
   weights?: DimensionWeights | null;
 }
 
@@ -176,9 +177,10 @@ function VenueCardView({
   checklistGroups: Array<{ category: string; label: string; items: ComparisonMatrix["items"] }>;
   weights?: DimensionWeights | null;
 }) {
-  // W12-1: prefer weighted composite when viewer has set weights. Falls
-  // back to the unweighted composite for couples who haven't adjusted a
-  // single slider — so their compare screen stays bit-identical.
+  // W18-1: prefer the couple's weighted composite (owner+partner mean).
+  // Falls back to the unweighted composite when no weights row exists yet
+  // (first visit) — so the compare screen stays bit-identical until both
+  // members set their priorities.
   const composite = weights
     ? computeWeightedComposite(
         venue.scores.map((s) => ({

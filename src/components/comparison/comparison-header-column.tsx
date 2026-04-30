@@ -29,14 +29,14 @@ import {
 interface ComparisonHeaderColumnProps {
   venue: ComparisonVenue;
   /**
-   * W12-1: viewer's per-dimension weights. When supplied, the column ★
-   * reflects their priority profile; otherwise we fall back to the
-   * previous unweighted composite for backward compatibility.
-   *
-   * Note (TODO): partner weights are NOT mixed in yet. See the
-   * `ProjectMember.weights` TODO in the weights server action — we'll
-   * add a "ふたりの総合" line once the product direction on how to
-   * combine owner+partner is nailed down.
+   * W18-1: couple's averaged per-dimension weights — owner and partner are
+   * mixed via per-dim mean (`computeCoupleWeights`) at the page boundary
+   * (`compare/page.tsx` calls `getCoupleWeights()` and passes `.couple`).
+   * When supplied, the column ★ reflects both partners' priorities; on
+   * solo projects `couple === mine`, so the value is identical to the
+   * viewer's weights and no special-casing is needed here. `null` falls
+   * back to the unweighted composite for backward compatibility (e.g.
+   * when the weights fetch fails).
    */
   weights?: DimensionWeights | null;
 }

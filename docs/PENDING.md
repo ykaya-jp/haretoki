@@ -64,7 +64,7 @@
 
 | ID | タスク | 出典 | 所要 |
 |---|---|---|---|
-| W18-1 | **Partner weights を比較ボードに反映** (owner only → 両方統合) | comparison-header-column.tsx:36 TODO | 中 |
+| ~~W18-1~~ | ~~**Partner weights を比較ボードに反映**~~ → ✅ 完了 (2026-04-30): `compare/page.tsx` で `getMyWeights` → `getCoupleWeights` に差し替え、`coupleWeights?.couple ?? null` を渡すだけ。型・signature 据え置き、JSDoc 全箇所同期 (`comparison-board` / `-grid` / `-mobile-snapper` / `-header-column`)。candidates と一貫した average 統合 | comparison-header-column.tsx:36 TODO | ✅ 完了 |
 | W18-2 | **Partner Level 2 (6 次元星評価)** (妻が guest を脱して評価入れる) | roadmap R3 から抜粋 | 中 |
 | ~~W18-3~~ | ~~**権限境界の明確化**~~ → 既に正しく実装済 (commit 確認済): `requireProjectMembership` は `role` 返却済、`requireOwner` 既存、個人データ (rating/note/favorite) は own-only ガード済、共有データは意図的に両方 OK。policy を `src/server/auth.ts` の冒頭コメントに明文化 | venues.ts (D-1 再判定) | ✅ 完了 |
 | W18-3a | (旧 W18-3 の代わり) Partner Level 2 完了後に **destruction 系 (deleteVenue) の dual-confirmation** を検討 (Phase 2 商用化前) | — | 小 |
