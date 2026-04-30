@@ -26,8 +26,13 @@ export async function POST(
   const { token } = await params;
   const origin = new URL(req.url).origin;
 
+  // Status 303 forces the redirected request method to GET so that a POST
+  // from the welcome card's <form> lands on the GET-only Server Component
+  // pages (`/invite/[token]` and `/invite/[token]/view`). The Next.js
+  // default of 307 preserves the POST method and would 405 / error-boundary
+  // out of the destination.
   if (!/^[a-f0-9]{64}$/.test(token)) {
-    return NextResponse.redirect(new URL(`/invite/${token}`, origin));
+    return NextResponse.redirect(new URL(`/invite/${token}`, origin), 303);
   }
 
   const invitation = await prisma.projectInvitation.findUnique({
@@ -46,7 +51,7 @@ export async function POST(
     invitation.consumedAt ||
     invitation.expiresAt.getTime() < Date.now()
   ) {
-    return NextResponse.redirect(new URL(`/invite/${token}`, origin));
+    return NextResponse.redirect(new URL(`/invite/${token}`, origin), 303);
   }
 
   const cookieStore = await cookies();
@@ -66,6 +71,7 @@ export async function POST(
   ) {
     return NextResponse.redirect(
       new URL(`/invite/${token}?switch=1`, origin),
+      303,
     );
   }
 
@@ -75,7 +81,10 @@ export async function POST(
   });
   const signed = signGuestSession(payload);
 
-  const res = NextResponse.redirect(new URL(`/invite/${token}/view`, origin));
+  const res = NextResponse.redirect(
+    new URL(`/invite/${token}/view`, origin),
+    303,
+  );
   res.cookies.set({
     name: GUEST_COOKIE_NAME,
     value: signed,
