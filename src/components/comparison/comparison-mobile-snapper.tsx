@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Star, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeCompositeScore } from "@/lib/venue-score";
@@ -22,6 +23,11 @@ import {
   type FieldGroup,
 } from "./comparison-field-registry";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
+import {
+  buildFocusedSearchString,
+  indexOfFocusedVenue,
+  parseFocusedVenueId,
+} from "@/lib/compare-url-state";
 
 /**
  * Mobile-first view for /compare (<768px).
@@ -54,6 +60,18 @@ export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  // W21-9: persist the focused venue in the URL as ?focused=<venueId> so
+  // the back-from-PDP flow restores the same card the couple was looking
+  // at. We key on venueId (not index) because the order of `venues` is
+  // derived from `venueIds` and could be re-sorted by future work; an ID
+  // survives that. `index === 0` is the URL-clean default — no param
+  // needed for "first card".
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const restoredFocusRef = useRef(false);
+  const lastWrittenRef = useRef<string | null>(null);
+
   useEffect(() => {
     cardRefs.current = cardRefs.current.slice(0, venues.length);
   }, [venues.length]);
@@ -75,6 +93,48 @@ export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
     for (const el of cardRefs.current) if (el) observer.observe(el);
     return () => observer.disconnect();
   }, [venues.length]);
+
+  // Restore the focused card from `?focused=<venueId>` once on mount
+  // (or whenever the venue list changes — e.g. couple removes a venue
+  // and revisits the link). Uses jumpTo (no animation) since the user
+  // didn't initiate the scroll.
+  useEffect(() => {
+    if (restoredFocusRef.current) return;
+    const focusedId = parseFocusedVenueId(searchParams);
+    if (!focusedId) {
+      restoredFocusRef.current = true;
+      return;
+    }
+    const idx = indexOfFocusedVenue(
+      focusedId,
+      venues.map((v) => v.id),
+    );
+    if (idx > 0) {
+      const card = cardRefs.current[idx];
+      if (card) {
+        card.scrollIntoView({ behavior: "instant", inline: "start", block: "nearest" });
+        setActive(idx);
+        lastWrittenRef.current = focusedId;
+      }
+    }
+    restoredFocusRef.current = true;
+  }, [venues, searchParams]);
+
+  // Sync the active card back to the URL. Debounce so quick swipes
+  // through the stack don't churn the history. We use replace, not
+  // push, so the back button still goes to the previous *page*, not
+  // the previous *card*.
+  useEffect(() => {
+    if (!restoredFocusRef.current) return;
+    const focusedId = active === 0 ? null : (venues[active]?.id ?? null);
+    if (focusedId === lastWrittenRef.current) return;
+    const handle = setTimeout(() => {
+      const qs = buildFocusedSearchString(searchParams, focusedId);
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      lastWrittenRef.current = focusedId;
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [active, venues, pathname, router, searchParams]);
 
   const scrollTo = useCallback((idx: number) => {
     const card = cardRefs.current[idx];
