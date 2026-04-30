@@ -143,3 +143,9 @@
 - 解決: 「**worker pane は feature branch に commit / push までで停止、merge と deploy は中央のみが引き受ける**」プロトコルを最初に明示通知。今回は中央が tmux 外端末 → 後に tmux pane 0:0.2 に handoff
 - ルール: **3+ 並列の場合、必ず中央コーディネーター 1 人を立てる**。中央は実装しない（coordination に集中）。worker には「branch push まで、merge/deploy 禁止」をテキストで明示
 - ルール: **中央交代時は引継ぎ書を /tmp/<project>-central-handoff.md に書き、新中央には「最初に Read してから動け」と渡す**。直近の repo 状態 / 進行中タスク / プロトコル / 教訓 / Vercel project IDs を含める
+
+**tmux pane index は user 操作で reorder されうる、send-keys 前に必ず title 確認**
+- 状況: 3 ペイン (`0:0.0` central / `0:0.1` worker A / `0:0.2` worker B) で運用していたが、中央交代の handoff 後、ユーザーが pane を入れ替えたか tmux の reorder 操作 (`Ctrl-b {` / `}` 等) を行った結果、`0:0.0`=central、`0:0.1`=worker A、`0:0.2`=worker B に再配置されていた。当方は古い前提のまま `tmux send-keys -t 0:0.2 ...` で coordinator 向けメッセージ（docs branch 通知 / triage doc 共有）を送ってしまい、**実際は worker B に届いた**。worker B が誤って coordinator 行動を取れば二重 merge / push 衝突になる危険があった
+- 解決: 直後に `tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} | #{pane_title}'` で再確認して誤送信を発見、訂正メッセージを正しい central と誤受信した worker の両方に送って recovery
+- ルール: **`tmux send-keys -t <pane>` の前に必ず `tmux list-panes -a` か `tmux capture-pane -t <pane> -p | tail -3` で対象 pane の title / 直近内容を確認**。ペイン番号は user 操作で変わる前提で動く。長時間並列運用するなら `select-pane -T "<role>"` で role 名タイトル化 + `pane-border-status top` で常時可視化しておくと再配置に気づきやすい
+- ルール: **誤送信に気づいたら即座に「ignore this, you're <role>, your responsibility is <task>」を訂正として送る**。worker が coordinator 行動を取って二重 merge / push 等の衝突を起こす前に
