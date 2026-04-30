@@ -79,11 +79,12 @@ export function getGuestSecret(keyId: GuestKeyId): string | null {
   const envKey = keyId === "k1" ? "GUEST_COOKIE_SECRET_K1" : "GUEST_COOKIE_SECRET_K2";
   const value = process.env[envKey];
   if (value && value.length >= 16) return value;
-  // Dev-only fallback. Production must set both K1 and K2 with
-  // `openssl rand -hex 32`. We still accept verification with the fallback
-  // so tests don't need to mutate process.env aggressively.
-  if (process.env.NODE_ENV !== "production") {
-    return `dev-fallback-${keyId}-do-not-use-in-prod`;
+  // Test-only fallback. Production and preview must set both K1 and K2 with
+  // `openssl rand -hex 32`. Using "test" guard ensures preview/staging
+  // deployments fail loudly if secrets are missing rather than silently
+  // falling back to a predictable low-entropy value.
+  if (process.env.NODE_ENV === "test") {
+    return `test-fallback-${keyId}-do-not-use-outside-tests`;
   }
   return null;
 }
@@ -112,7 +113,9 @@ function computeSignature(payloadB64: string, secret: string): string {
 }
 
 /**
- * Encode + sign a payload. Always signs with the **current** key (k1).
+ * Encode + sign a payload. Signs with the secret indicated by `payload.keyId`.
+ * `buildGuestSession` and `bumpGuestSession` always set keyId to the current
+ * generation, so callers naturally sign with k1.
  */
 export function signGuestSession(payload: GuestSessionPayload): string {
   const secret = getGuestSecret(payload.keyId);

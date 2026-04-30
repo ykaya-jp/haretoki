@@ -6,13 +6,10 @@ import { connection } from "next/server";
 import { prisma } from "@/server/db";
 import {
   GUEST_COOKIE_NAME,
-  bumpGuestSession,
-  guestCookieOptions,
-  signGuestSession,
   verifyGuestSession,
 } from "@/lib/guest-session";
-import { recordGuestInvitationView } from "@/server/actions/invitation-links";
 import { GuestUpgradeChip } from "@/components/partner/guest-upgrade-chip";
+import { BumpOnMount } from "@/components/invite/bump-on-mount";
 
 /**
  * Level 1 Guest landing (`/invite/[token]/view`).
@@ -102,28 +99,10 @@ export default async function GuestViewPage({
     invitation.creator.email.split("@")[0] ??
     "相棒";
 
-  // --- cookie maintenance: bump screenCount, re-sign (rotation), and
-  // record the first view in DB so the owner can see "見てくれました".
-  //
-  // recordGuestInvitationView is called only on screenCount === 1 so
-  // the owner's counter isn't polluted by cheap reload loops within a
-  // single guest session. The guest's own counter still bumps every
-  // navigation for anti-abuse.
-  const wasFirstSeenInThisSession = payload.screenCount <= 1;
-  const bumped = bumpGuestSession(payload);
-  const reSigned = signGuestSession(bumped);
-  cookieStore.set({
-    name: GUEST_COOKIE_NAME,
-    value: reSigned,
-    ...guestCookieOptions(),
-  });
-  if (wasFirstSeenInThisSession) {
-    // Best-effort; never throw.
-    await recordGuestInvitationView(token);
-  }
-
   return (
     <div className="space-y-8">
+      {/* Bump guest session cookie via Route Handler (render phase cannot set cookies). */}
+      <BumpOnMount token={token} />
       {/* Editorial hero */}
       <header className="space-y-4 text-center">
         <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">

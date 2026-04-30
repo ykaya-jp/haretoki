@@ -6,12 +6,10 @@ import { connection } from "next/server";
 import { prisma } from "@/server/db";
 import {
   GUEST_COOKIE_NAME,
-  bumpGuestSession,
-  guestCookieOptions,
-  signGuestSession,
   verifyGuestSession,
 } from "@/lib/guest-session";
 import { ChevronLeft } from "lucide-react";
+import { BumpOnMount } from "@/components/invite/bump-on-mount";
 
 /**
  * Level 1 Guest venue detail (`/invite/[token]/venues/[venueId]`).
@@ -92,15 +90,6 @@ export default async function GuestVenueDetail({
     redirect(`/invite/${token}/view`);
   }
 
-  // Bump cookie on each navigation so screenCount reflects actual
-  // engagement (used by chip pulse heuristic, not user-visible).
-  const bumped = bumpGuestSession(payload);
-  cookieStore.set({
-    name: GUEST_COOKIE_NAME,
-    value: signGuestSession(bumped),
-    ...guestCookieOptions(),
-  });
-
   const firstPhoto = venue.photoUrls?.[0] ?? null;
   const noteSnippets = venue.visits
     .flatMap((v) => v.notes.map((n) => n.content))
@@ -109,6 +98,8 @@ export default async function GuestVenueDetail({
 
   return (
     <div className="space-y-6">
+      {/* Bump guest session cookie via Route Handler (render phase cannot set cookies). */}
+      <BumpOnMount token={token} />
       <Link
         href={`/invite/${token}/view`}
         className="inline-flex h-11 items-center gap-1 text-[13px] text-muted-foreground active:scale-[0.98]"

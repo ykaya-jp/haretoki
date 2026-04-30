@@ -1,9 +1,11 @@
 "use server";
 
 import { randomBytes } from "crypto";
+import { cookies } from "next/headers";
 import { prisma } from "@/server/db";
 import { requireUser, requireOwner } from "@/server/auth";
 import { revalidatePath } from "next/cache";
+import { GUEST_COOKIE_NAME } from "@/lib/guest-session";
 
 /**
  * Is the given project a throw-away auto-created project for `userId`?
@@ -66,6 +68,8 @@ export interface InvitationLink {
   lastViewedAt?: string | null; // ISO
   viewCount?: number;
   joined?: boolean;
+  /** ISO timestamp when the partner consumed the invitation (i.e. joined). */
+  joinedAt?: string | null; // ISO
   createdAt?: string; // ISO
 }
 
@@ -198,6 +202,11 @@ export async function consumeInvitationLink(token: string): Promise<
     });
   });
 
+  // Clean up the Level 1 guest cookie now that the partner has joined.
+  // Server Actions run in the 'action' phase, so cookies().delete() is safe.
+  const cookieStore = await cookies();
+  cookieStore.delete(GUEST_COOKIE_NAME);
+
   revalidatePath("/home");
   revalidatePath("/mypage");
   return { ok: true, projectId: invitation.projectId };
@@ -268,6 +277,7 @@ export async function getCurrentInvitationLink(): Promise<InvitationLink | null>
     lastViewedAt: invitation.lastViewedAt?.toISOString() ?? null,
     viewCount: invitation.viewCount ?? 0,
     joined: invitation.consumedAt !== null,
+    joinedAt: invitation.consumedAt?.toISOString() ?? null,
     createdAt: invitation.createdAt.toISOString(),
   };
 }

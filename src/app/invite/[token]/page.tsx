@@ -247,6 +247,7 @@ function JoinConfirmCard({
         <div className="space-y-2.5">
           <Link
             href={`/invite/${token}?confirm=join`}
+            prefetch={false}
             className="inline-flex h-12 w-full items-center justify-center rounded-[14px] bg-primary text-[14.5px] font-medium text-primary-foreground shadow-sm active:scale-[0.98] transition"
           >
             合流する

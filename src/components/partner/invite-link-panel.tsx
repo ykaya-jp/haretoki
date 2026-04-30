@@ -215,7 +215,7 @@ export function InviteLinkPanel({ initialLink }: InviteLinkPanelProps) {
             reacted={(link.viewCount ?? 0) >= 2}
             joined={!!link.joined}
             viewedAt={link.lastViewedAt}
-            joinedAt={link.joined ? link.expiresAt : null}
+            joinedAt={link.joinedAt ?? null}
           />
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-[11px] font-mono text-foreground">
             <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">

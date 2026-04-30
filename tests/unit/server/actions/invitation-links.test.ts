@@ -66,6 +66,17 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }));
 
+// M3: consumeInvitationLink now calls cookies().delete() to clean up the
+// Level 1 guest cookie after a successful join. Mock it here so existing
+// tests don't throw "cookies was called outside a request scope".
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+  })),
+}));
+
 function validInvitation() {
   return {
     token: "a".repeat(64),
