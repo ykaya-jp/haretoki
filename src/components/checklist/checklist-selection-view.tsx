@@ -97,7 +97,7 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
                 </span>
               </button>
               <button
-                className="min-h-[36px] rounded-md border border-border px-3 text-xs text-muted-foreground active:bg-muted"
+                className="min-h-11 rounded-full border border-border px-4 text-[11px] tracking-[0.1em] text-muted-foreground active:scale-[0.98] active:bg-muted"
                 onClick={() => handleBulkToggle(group.dimension, !allSelected)}
               >
                 {allSelected ? "すべて外す" : "すべて選ぶ"}

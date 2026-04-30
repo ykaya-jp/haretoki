@@ -113,7 +113,7 @@ export function ReviewEstimateEditSheet({
           <button
             type="button"
             aria-label="この口コミの見積もり情報を編集"
-            className="inline-flex min-h-[32px] items-center gap-1 rounded-full border border-[var(--gold-warm)]/30 bg-[color-mix(in_oklab,var(--gold-warm)_8%,transparent)] px-2.5 py-1 text-[11px] text-[var(--gold-warm)] transition-colors active:scale-[0.98]"
+            className="inline-flex min-h-11 items-center gap-1 rounded-full border border-[var(--gold-warm)]/30 bg-[color-mix(in_oklab,var(--gold-warm)_8%,transparent)] px-2.5 text-[11px] text-[var(--gold-warm)] transition-colors active:scale-[0.98]"
           />
         }
       >
