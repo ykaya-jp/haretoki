@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
@@ -305,10 +305,27 @@ export async function deleteVenue(
   return { success: true };
 }
 
-/** Above-the-fold fields: name, location, photos, status, scores. */
+/**
+ * Above-the-fold fields: name, location, photos, status, scores.
+ *
+ * Split into a thin auth wrapper + a cached inner function so we can use
+ * Next 16 `"use cache"` directive (which forbids dynamic APIs like cookies()
+ * called inside requireUser). Same pattern as insights.ts / fit-reason.ts.
+ *
+ * Cached on `venue:${id}` and `project:${projectId}` tags. Any mutation that
+ * already invalidates `project:${projectId}` (most do) refreshes this; an
+ * additional `revalidateTag(\`venue:${id}\`)` can target a single PDP.
+ */
 export async function getVenueHeader(id: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueHeaderCached(id, projectId);
+}
+
+async function getVenueHeaderCached(id: string, projectId: string) {
+  "use cache";
+  cacheTag(`venue:${id}`);
+  cacheTag(`project:${projectId}`);
 
   return prisma.venue.findFirst({
     where: { id, projectId },
@@ -375,6 +392,16 @@ export async function getVenueLatestEstimateTotal(
 ): Promise<number | null> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueLatestEstimateTotalCached(id, projectId);
+}
+
+async function getVenueLatestEstimateTotalCached(
+  id: string,
+  projectId: string,
+): Promise<number | null> {
+  "use cache";
+  cacheTag(`venue:${id}`);
+  cacheTag(`project:${projectId}`);
 
   const latest = await prisma.estimate.findFirst({
     where: { venueId: id, venue: { projectId } },
@@ -388,6 +415,13 @@ export async function getVenueLatestEstimateTotal(
 export async function getVenueEstimates(id: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueEstimatesCached(id, projectId);
+}
+
+async function getVenueEstimatesCached(id: string, projectId: string) {
+  "use cache";
+  cacheTag(`venue:${id}`);
+  cacheTag(`project:${projectId}`);
 
   const venue = await prisma.venue.findFirst({
     where: { id, projectId },
@@ -403,6 +437,13 @@ export async function getVenueEstimates(id: string) {
 export async function getVenueVisits(id: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueVisitsCached(id, projectId);
+}
+
+async function getVenueVisitsCached(id: string, projectId: string) {
+  "use cache";
+  cacheTag(`venue:${id}`);
+  cacheTag(`project:${projectId}`);
 
   const venue = await prisma.venue.findFirst({
     where: { id, projectId },

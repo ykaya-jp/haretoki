@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/server/db";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
 import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
@@ -472,6 +472,13 @@ async function analyzeVenueReviewsInner(
 export async function getVenueReviews(venueId: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueReviewsCached(venueId, projectId);
+}
+
+async function getVenueReviewsCached(venueId: string, projectId: string) {
+  "use cache";
+  cacheTag(`venue:${venueId}`);
+  cacheTag(`project:${projectId}`);
 
   return prisma.review.findMany({
     where: { venueId, venue: { projectId } },
@@ -555,6 +562,21 @@ export async function getVenueReviewEstimateAggregate(venueId: string): Promise<
 } | null> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+  return getVenueReviewEstimateAggregateCached(venueId, projectId);
+}
+
+async function getVenueReviewEstimateAggregateCached(
+  venueId: string,
+  projectId: string,
+): Promise<{
+  deltaYen: number | null;
+  deltaPct: number | null;
+  sampleCount: number | null;
+  standardDeviation: number | null;
+} | null> {
+  "use cache";
+  cacheTag(`venue:${venueId}`);
+  cacheTag(`project:${projectId}`);
 
   const venue = await prisma.venue.findFirst({
     where: { id: venueId, projectId },

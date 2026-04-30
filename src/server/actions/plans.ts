@@ -1,13 +1,20 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { prisma } from "@/server/db";
 import { requireUser, requireVenueAccess } from "@/server/auth";
 import { planInputSchema, type PlanInput } from "@/server/actions/plan-schema";
 
 export async function getVenuePlans(venueId: string) {
   const user = await requireUser();
-  await requireVenueAccess(user.id, venueId);
+  const { projectId } = await requireVenueAccess(user.id, venueId);
+  return getVenuePlansCached(venueId, projectId);
+}
+
+async function getVenuePlansCached(venueId: string, projectId: string) {
+  "use cache";
+  cacheTag(`venue:${venueId}`);
+  cacheTag(`project:${projectId}`);
 
   return prisma.venuePlan.findMany({
     where: { venueId },

@@ -36,6 +36,10 @@ vi.mock("@/server/auth", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
+  // `"use cache"`-marked inner functions call cacheTag(...) — see
+  // getVenueHeaderCached. The mock returns void; tag wiring is exercised
+  // in integration / e2e, not in this contract test.
+  cacheTag: vi.fn(),
 }));
 
 describe("getVenueHeader deep-detail select", () => {
