@@ -26,7 +26,7 @@ export default async function NotificationsPage() {
                 prefetch={false}
                 className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
               >
-                <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Back
               </Link>
               <span aria-hidden="true" className="opacity-30">/</span>

@@ -30,7 +30,7 @@ export function VenueDetailBackLink({ variant = "breadcrumb" }: VenueDetailBackL
         className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground hover:opacity-70"
         aria-label="戻る"
       >
-        <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         Back
       </button>
     );
@@ -44,7 +44,7 @@ export function VenueDetailBackLink({ variant = "breadcrumb" }: VenueDetailBackL
         className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
         aria-label="戻る"
       >
-        <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         Back
       </button>
       <span aria-hidden="true" className="opacity-30">/</span>
