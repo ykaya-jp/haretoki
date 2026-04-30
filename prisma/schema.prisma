@@ -760,3 +760,21 @@ model AiCache {
 
   @@map("ai_cache")
 }
+
+/// F1 venue-name-search: per-project, per-month counter of paid 3rd-party
+/// API calls. Used as the soft cap for Google Places Autocomplete so we
+/// can degrade gracefully (Tier 2 skip → Tier 3 only) instead of surprising
+/// the user with a hard billing spike. One row per (projectId, yearMonth).
+/// No FK on project_id to keep the counter resilient across project churn —
+/// if a project is deleted the row just becomes orphaned scoring data.
+model ApiUsageCounter {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId                String   @map("project_id") @db.Uuid
+  /// YYYY-MM key. Cheaper than a date range for upsert + index.
+  yearMonth                String   @map("year_month")
+  placesAutocompleteCount  Int      @default(0) @map("places_autocomplete_count")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@unique([projectId, yearMonth])
+  @@map("api_usage_counter")
+}
