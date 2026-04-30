@@ -10,6 +10,10 @@ import {
 } from "@/server/auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 import { captureError } from "@/lib/sentry";
+import {
+  _seedDecisionTodosForProject,
+  _resetDecisionTodosForProject,
+} from "@/server/actions/decision-todos";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -30,12 +34,39 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   const { projectId } = await requireProjectMembership(user.id);
   await requireVenueAccess(user.id, validation.data.selectedVenueId);
 
+  // F3: 決定前の状態を拾って、venue が変わったかを判定する材料にする。
+  //   - priorDecision: upsert 前の Decision 行（re-decision で上書きするケース）
+  //   - lastCancelled: 直前に cancelDecision で控えた venueId（cancel→make の連続ケース）
+  // どちらかの venueId が今回の selectedVenueId と異なれば、以前の todo 完了状態は
+  // 別 venue のものなので reset する（design §4.4 edge cases）。
+  const [priorDecision, projectRow] = await Promise.all([
+    prisma.decision.findUnique({
+      where: { projectId },
+      select: { selectedVenueId: true },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { lastCancelledVenueId: true },
+    }),
+  ]);
+  const priorVenueId =
+    priorDecision?.selectedVenueId ?? projectRow?.lastCancelledVenueId ?? null;
+  const venueChanged =
+    priorVenueId !== null && priorVenueId !== validation.data.selectedVenueId;
+
   let decision;
   try {
     decision = await prisma.$transaction(async (tx) => {
       await tx.venue.update({
         where: { id: validation.data.selectedVenueId, projectId },
         data: { status: "selected" },
+      });
+
+      // Clear the cancellation marker now that a new decision is being made.
+      // This prevents stale state from triggering future resets.
+      await tx.project.update({
+        where: { id: projectId },
+        data: { lastCancelledVenueId: null },
       });
 
       return tx.decision.upsert({
@@ -68,10 +99,37 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   revalidatePath("/home");
   revalidatePath("/explore");
 
+  // F3: Post-commit side effects — seed + (conditional) reset. これらは
+  // transaction 外で走らせる。理由は design §2.4: seed 失敗で決定そのものを
+  // ロールバックするべきでないため。失敗は Sentry に捕えて、lazy seed
+  // （/preparation 初回訪問）で救済する。
+  if (venueChanged) {
+    try {
+      await _resetDecisionTodosForProject(projectId);
+    } catch (err) {
+      captureError(err, {
+        action: "makeDecision.resetTodos",
+        projectId,
+        priorVenueId,
+        selectedVenueId: validation.data.selectedVenueId,
+      });
+    }
+  }
+  try {
+    await _seedDecisionTodosForProject(projectId);
+  } catch (err) {
+    captureError(err, {
+      action: "makeDecision.seedTodos",
+      projectId,
+      selectedVenueId: validation.data.selectedVenueId,
+    });
+  }
+
   await captureServerEvent(user.id, "decision_made", {
     projectId,
     venueId: validation.data.selectedVenueId,
     hasRationale: Boolean(validation.data.rationale),
+    venueChanged,
   });
 
   return { decision };
@@ -109,6 +167,14 @@ export async function cancelDecision() {
       prisma.venue.update({
         where: { id: existing.selectedVenueId },
         data: { status: "shortlisted" },
+      }),
+      // F3: 次の makeDecision 時に「同一 venue か別 venue か」を判定する材料。
+      // Decision 行は上で delete しているため、venueId をここに控えないと
+      // 比較できなくなる（cancel→make の連続ケースで再決定先の venue が
+      // 変わったかの判別が不能になる）。
+      prisma.project.update({
+        where: { id: projectId },
+        data: { lastCancelledVenueId: existing.selectedVenueId },
       }),
     ]);
   } catch (err) {
