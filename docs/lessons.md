@@ -102,3 +102,44 @@
 - 状況: F4 で `src/app/invite/[token]/(guest)/view/page.tsx` の Server Component 内で cookie の screenCount bump のために `cookieStore.set(...)` を呼んでいたが、Next.js 16 の readonly cookie adapter は phase !== 'action' で `ReadonlyRequestCookiesError` を必ず throw する。Level 1 guest 体験が完全に死んだ
 - 解決: bump を `src/app/invite/[token]/(guest)/bump/route.ts` の POST Route Handler に切り出し、client component (`BumpOnMount`) が mount 時に 1 回 fetch する形に
 - ルール: **Server Component は cookie を read のみ。set/delete は Server Action または Route Handler に切り出す**
+
+---
+
+## 2026-04-30: 並列セッション衝突 + /mypage SSR 事故
+
+### Server / Client 境界
+
+**`"use client"` + lucide-react icon prop で /mypage が壊れた**
+- 状況: W19-1 mypage refactor の `src/components/mypage/settings-row.tsx` に `"use client"` が付いており、Server Component のページから `<SettingsRow icon={Sliders} />` のように lucide-react アイコン（function component）を prop で渡していた。Next.js 16 は **Server → Client 境界で関数を serialize できない**ので runtime に `Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server"` を吐き、本番 /mypage が割れた状態で稼働。tsc / lint / vitest / build ALL GREEN だったので CI では検知できず
+- 解決: `settings-row.tsx` には state / useEffect / event handler が一切なく、アニメーションは全部 CSS-only (`hover:` `active:` `group-hover:`) だったので **`"use client"` を削除して Server Component に戻した** (commit `22ed96d`)。再発防止コメントを component 冒頭に明記
+- ルール: **`"use client"` は state / effect / event handler が必要なときだけ付ける。CSS だけで動くアニメーションのために付けるな。特に function component (lucide-react icon、shadcn/ui の polymorphic icon prop 系) を prop 経由で渡す前提のコンポーネントは、Server Component を維持しないと boundary error で死ぬ**
+- ルール: **「lint / tsc / vitest / build pass = 完了」ではない**。SSR/Client boundary error、auth redirect 不整合、prod-only DB state 等は build を貫通して runtime で初めて顕在化する。**deploy 前に dev server か `npm run start` で該当ページを実機ブラウザ（375px）で開いて確認**。CLAUDE.md の「動的スモーク必須ルール」を再確認
+
+### 並列開発: 衝突と救出
+
+**orphan commit を git reflog から救出した**
+- 状況: 2 つの Claude セッションが同じ `develop` ブランチで同じタスク (W19-1 mypage refactor) を別アプローチで実装。pane 0:0.1 が `develop` に直接 `61918b0 feat(mypage): unify the More section into a single SettingsRow list` を commit した直後、pane 0:0.0 が `wt-w19-mypage` worktree 経由の subagent 実装を `merge: W19-1` として develop に重ね、`61918b0` の branch reference が失われた（commit object 自体は git の object DB に残っているが、どの ref からも到達できない orphan 状態）
+- 解決: `git reflog` で orphan 化した SHA `61918b0` を発見 → `git branch feat/w19-1-pane01-recovered 61918b0` で復活 → `git show 61918b0` で diff 確認 → 後で「good-of-both refactor」 (commit `256839a`) として detail JSDoc + dual hover/active feedback + chevron `/60` だけを develop に上乗せ
+- ルール: **並列セッションが衝突して片方の commit が orphan 化したら `git reflog --date=iso` で SHA を回収し、即座に `git branch <recover> <SHA>` で永続化する**。git の auto-GC は通常 30 日後だが、安全のため発見即 branch 化
+- ルール: **並列セッションには「develop に直接 commit するな、feature branch に commit して push まで、merge は中央が引き受ける」を最初に通知**。直接 develop commit は orphan 化リスクが高い
+
+**「両方を捨てない」マージ戦略**
+- 状況: 上記の衝突で 2 つの実装が両方とも価値を持っていたケース。pane 0:0.0 版は野心的（Account/Partner セクション再構築 + a11y 強化）、pane 0:0.1 版は保守的（コメント JSDoc 詳細 + dual hover/active feedback）
+- 解決: scope の広い方 (0:0.0 版 = wt-w19-mypage) を base にして develop merge 済の状態から、orphan 救出した 0:0.1 版 (recovery branch) の **「真に上乗せの価値がある差分」だけを cherry-pick 的に手動取り込み**。stylistic / equivalent な差分（grid vs flex、stroke 1.6 vs 1.75 など）はゼロ取り込み (pure churn 回避)
+- ルール: **両者の良いとこ取りは「同等または好みの差は維持、明確な改善のみ取り込み」。layout 構造変更は churn になりがちなので避ける。docs JSDoc / interaction state / a11y 改善は取り込み価値が高い**
+
+### tmux 並列開発の運用
+
+**`tmux send-keys ... Enter` が submit しない（Claude Code TUI）**
+- 状況: 別ペインの Claude セッションに指示を送るために `tmux send-keys -t 0:0.X 'message' Enter` したが、相手 TUI の入力プロンプトに**メッセージが貼り付くだけで Enter が submit に解釈されないケースがある**。auto mode でも処理が始まらない
+- 解決: send-keys の直後に `tmux capture-pane -t 0:0.X -p | tail -5` で `Running…` / `Kneading…` / `Burrowing…` 等の処理サインを確認。サインが無ければ submit 失敗。対応:
+  1. 空 Enter を送る: `tmux send-keys -t 0:0.X '' Enter`
+  2. `C-m` を試す: `tmux send-keys -t 0:0.X 'message' C-m`
+  3. **ユーザーに「pane 0:0.X で Enter 押してください」と頼む**（最も確実）
+- ルール: **tmux send-keys ... Enter は submit を保証しない。送信後は capture-pane で必ず動作確認**
+
+**中央コーディネーター + worker 分担プロトコル**
+- 状況: 並列で複数の Claude が動くと、各々が独立に develop へ merge / push / `vercel --prod` までやってしまい、勝手にマージや prod 反映が走る。衝突・rollback 困難・想定外 deploy のリスクが高い
+- 解決: 「**worker pane は feature branch に commit / push までで停止、merge と deploy は中央のみが引き受ける**」プロトコルを最初に明示通知。今回は中央が tmux 外端末 → 後に tmux pane 0:0.2 に handoff
+- ルール: **3+ 並列の場合、必ず中央コーディネーター 1 人を立てる**。中央は実装しない（coordination に集中）。worker には「branch push まで、merge/deploy 禁止」をテキストで明示
+- ルール: **中央交代時は引継ぎ書を /tmp/<project>-central-handoff.md に書き、新中央には「最初に Read してから動け」と渡す**。直近の repo 状態 / 進行中タスク / プロトコル / 教訓 / Vercel project IDs を含める
