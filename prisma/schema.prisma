@@ -246,6 +246,11 @@ model ProjectInvitation {
   consumedAt  DateTime? @map("consumed_at")
   consumedBy  String?   @map("consumed_by") @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at")
+  // F4: guest view tracking — owner sees "相棒さんが見ました" without
+  // the partner needing a full account. Written by the guest route
+  // handler at most once per guest session (cookie screenCount gate).
+  lastViewedAt DateTime? @map("last_viewed_at")
+  viewCount    Int       @default(0) @map("view_count")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   creator User    @relation("ProjectInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
