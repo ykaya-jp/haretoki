@@ -125,3 +125,91 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 - **Claude API 429/529**: `src/lib/anthropic.ts` の `withRetry` が exponential backoff で処理（最大 3 回）
 - **SSE hang**: `streamClaude` 内 30s `AbortController` で強制終了
 - **Shell cwd が消えた worktree を指して動かない**: 別ディレクトリへの `cd` を含むコマンドを 1 回流せばリセットされる
+
+## tmux 多ペイン並列運用（中央 + N worker）
+
+並列で 2 つ以上の Claude セッションを別 tmux ペインで走らせる場合、**1 人を中央コーディネーターとして実装しない / 残りを worker** という役割分担で動かす。
+
+### Worker のルール（明示通知すること）
+
+1. 自分の `feat/<id>-pane<NN>` ブランチで commit
+2. origin に branch push まではやる
+3. **develop merge / `vercel --prod` は禁止、中央が引き受ける**
+4. 完了したら中央に `tmux send-keys` 経由で通知
+
+### Central のループ
+
+```bash
+# 1. worker 完了通知を受けたら同期
+git fetch && git checkout develop && git merge --ff-only origin/develop
+
+# 2. worker branch を merge（複数 worker なら順次）
+git merge --no-ff feat/<branch> -m "merge: <summary>"
+
+# 3. 検証
+npx tsc --noEmit && npm run lint && npm test && npm run build
+
+# 4. 動的スモーク必須（lessons.md 2026-04-30 参照）
+#    実機ブラウザ（375px）で該当機能を叩く
+
+# 5. push + deploy
+git push origin develop
+vercel --prod --yes        # main worktree から、または一時 worktree
+
+# 6. runtime logs で error 0 件確認
+#    MCP: mcp__plugin_vercel_vercel__get_runtime_logs
+#    projectId / teamId は .vercel/project.json から
+
+# 7. worker に完了通知 + 次タスク GO
+tmux send-keys -t 0:0.X '完了通知 + 次の指示' Enter
+```
+
+### `tmux send-keys` の罠
+
+`tmux send-keys -t 0:0.X 'message' Enter` を実行しても、**相手 TUI の入力欄にメッセージが貼り付くだけで submit されないことがある**（Claude Code TUI の入力ハンドリング由来）。
+
+対策:
+
+```bash
+# 送信後に必ず capture-pane で動作中サインを確認
+tmux send-keys -t 0:0.X 'message' Enter
+sleep 2
+tmux capture-pane -t 0:0.X -p | tail -5
+# Running… / Kneading… / Burrowing… 等が無ければ submit 失敗
+```
+
+submit 失敗時の対応:
+1. 空 Enter を送る: `tmux send-keys -t 0:0.X '' Enter`
+2. `C-m` 試す: `tmux send-keys -t 0:0.X 'message' C-m`
+3. **ユーザーに「pane 0:0.X で Enter 押してください」と頼む**（最確実）
+
+### 中央交代（handoff）
+
+中央セッションを別端末・別ペインに引き継ぐとき:
+
+1. 引継ぎ書を `/tmp/haretoki-central-handoff.md` に書く（repo 状態、進行中タスク、protocol、教訓、Vercel IDs を含む）
+2. 新中央のペインに「`/tmp/haretoki-central-handoff.md` を Read で全部読んでから動け」と send-keys
+3. 全 worker pane に「中央が pane 0:0.X に変更、今後の完了通知は 0:0.X へ」と通知
+4. 旧中央は数往復は監視を続ける（新中央が機能してることを確認してから降りる）
+
+### Orphan commit 救出
+
+並列セッションが両方 develop に直接 commit して片方が merge で orphan 化した場合:
+
+```bash
+# 1. orphan SHA を reflog で発見
+git reflog --date=iso | head -20
+# HEAD@{n}: commit: <message> がそれ
+
+# 2. 即座に branch 化（auto-GC が 30 日後に走るが、安全のため即実行）
+git branch <recover-branch-name> <SHA>
+
+# 3. diff 確認
+git show <SHA>
+
+# 4. 後で「両方の良いとこ取り refactor」を develop 上に手動で重ねる
+#    layout / structure 等の equivalent 差分は取り込まない（churn 回避）
+#    docs JSDoc / interaction state / a11y 改善 のみ取り込む
+```
+
+詳細は `docs/lessons.md` の「2026-04-30: 並列セッション衝突 + /mypage SSR 事故」参照。
