@@ -19,8 +19,10 @@ import {
     DEFAULT_APP_BASE_URL,
 } from "@/lib/ics/build-visit-ics";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// See note in src/app/api/visits/[visitId]/ics/route.ts — Next.js 16 with
+// cacheComponents rejects both `runtime` and `dynamic` config keys. The
+// auth call keeps responses per-user; we rely on the `Cache-Control:
+// private, max-age=300` header below rather than a route-segment directive.
 
 export async function GET(): Promise<Response> {
     const user = await requireUser();

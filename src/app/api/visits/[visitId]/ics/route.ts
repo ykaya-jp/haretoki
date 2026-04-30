@@ -18,8 +18,11 @@ import {
     DEFAULT_APP_BASE_URL,
 } from "@/lib/ics/build-visit-ics";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// Next.js 16 + cacheComponents rejects both `runtime` and `dynamic` route
+// segment config keys. Node.js runtime is the default. We rely on the
+// presence of `Cache-Control: no-store` on the response + an auth call
+// (`requireUser`) per request to prevent caching — Route Handlers with
+// runtime authentication are not statically rendered anyway.
 
 export async function GET(
     _req: Request,
