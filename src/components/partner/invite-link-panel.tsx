@@ -27,6 +27,125 @@ function formatExpiry(iso: string): string {
   });
 }
 
+/** Compact "昨日 19:32" / "今日 07:14" formatter — matches design §3.2. */
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const isYesterday =
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate();
+  const hhmm = d.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (sameDay) return `今日 ${hhmm}`;
+  if (isYesterday) return `昨日 ${hhmm}`;
+  return d.toLocaleDateString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+  });
+}
+
+/**
+ * 4-dot progression: 送信 / 閲覧 / 反応 / 合流 — see design §3.2.
+ * "反応" is a soft threshold (viewCount >= 2) since Level 1 cannot write
+ * any real reaction data. It's purely UI feedback for the owner.
+ */
+function ProgressionDots({
+  sent,
+  viewed,
+  reacted,
+  joined,
+  viewedAt,
+  joinedAt,
+}: {
+  sent: boolean;
+  viewed: boolean;
+  reacted: boolean;
+  joined: boolean;
+  viewedAt?: string | null;
+  joinedAt?: string | null;
+}) {
+  const steps = [
+    { label: "送りました", active: sent, when: null as string | null },
+    {
+      label: "そっと見てくれました",
+      active: viewed,
+      when: viewed ? viewedAt ?? null : null,
+    },
+    {
+      label: "ゆっくり見てくれています",
+      active: reacted,
+      when: reacted ? viewedAt ?? null : null,
+    },
+    {
+      label: "ふたりの場所になりました",
+      active: joined,
+      when: joined ? joinedAt ?? null : null,
+    },
+  ];
+  const activeIdx = [sent, viewed, reacted, joined].lastIndexOf(true);
+  const activeLabel = activeIdx >= 0 ? steps[activeIdx].label : steps[0].label;
+  const activeWhen =
+    activeIdx >= 0 ? steps[activeIdx].when : null;
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div
+        className="flex items-center gap-1.5"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={4}
+        aria-valuenow={activeIdx + 1}
+        aria-label="パートナーの合流ステップ"
+      >
+        {steps.map((s, i) => (
+          <span key={i} className="flex flex-1 items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block h-[10px] w-[10px] rounded-full"
+              style={{
+                background: s.active
+                  ? "var(--gold-warm)"
+                  : "transparent",
+                border: s.active
+                  ? "1px solid var(--gold-warm)"
+                  : "1px solid color-mix(in oklab, var(--muted-foreground) 30%, transparent)",
+              }}
+            />
+            {i < steps.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className="h-px flex-1"
+                style={{
+                  background: steps[i + 1].active
+                    ? "var(--gold-warm)"
+                    : "color-mix(in oklab, var(--muted-foreground) 20%, transparent)",
+                }}
+              />
+            ) : null}
+          </span>
+        ))}
+      </div>
+      <p className="font-[family-name:var(--font-display)] text-[14px] font-light">
+        {activeLabel}
+      </p>
+      {activeWhen ? (
+        <p className="text-[11px] tabular-nums text-muted-foreground">
+          {formatWhen(activeWhen)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function InviteLinkPanel({ initialLink }: InviteLinkPanelProps) {
   const [link, setLink] = useState<InvitationLink | null>(initialLink);
   const [copied, setCopied] = useState(false);
@@ -90,6 +209,14 @@ export function InviteLinkPanel({ initialLink }: InviteLinkPanelProps) {
 
       {link ? (
         <>
+          <ProgressionDots
+            sent={true}
+            viewed={!!link.lastViewedAt}
+            reacted={(link.viewCount ?? 0) >= 2}
+            joined={!!link.joined}
+            viewedAt={link.lastViewedAt}
+            joinedAt={link.joined ? link.expiresAt : null}
+          />
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-[11px] font-mono text-foreground">
             <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
               {link.url}

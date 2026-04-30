@@ -5,6 +5,54 @@ import { prisma } from "@/server/db";
 import { requireUser, requireOwner } from "@/server/auth";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Is the given project a throw-away auto-created project for `userId`?
+ *
+ * Mirrors `isAutoCreatedEmptyProject` in `invitations.ts` (the email-based
+ * accept flow). We duplicate rather than cross-import to avoid pulling the
+ * email code path into the link consume path and to keep both gates
+ * independently auditable — any drift between them is a security bug and
+ * should be caught in review. See design doc F4 §4.5: without this guard,
+ * a partner who had previously self-signed-up on Haretoki (and now sits on
+ * an auto-created empty project) is silently blocked from joining their
+ * owner's project via a link.
+ *
+ * Rules (all must hold): sole owner, no venues/estimates/decisions, only
+ * that owner as a member.
+ */
+async function isAutoCreatedEmptyProject(
+  projectId: string,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  if (role !== "owner") return false;
+
+  const [memberCount, venueCount, estimateCount, decisionCount] =
+    await Promise.all([
+      prisma.projectMember.count({ where: { projectId } }),
+      prisma.venue.count({ where: { projectId } }),
+      prisma.estimate.count({ where: { venue: { projectId } } }),
+      prisma.decision.count({ where: { projectId } }),
+    ]);
+
+  const singleOwnerMembership = await prisma.projectMember.findMany({
+    where: { projectId },
+    select: { userId: true, role: true },
+  });
+  const isSoleOwner =
+    singleOwnerMembership.length === 1 &&
+    singleOwnerMembership[0].userId === userId &&
+    singleOwnerMembership[0].role === "owner";
+
+  return (
+    isSoleOwner &&
+    memberCount === 1 &&
+    venueCount === 0 &&
+    estimateCount === 0 &&
+    decisionCount === 0
+  );
+}
+
 const TOKEN_BYTES = 32; // → 64 hex chars
 const DEFAULT_EXPIRY_DAYS = 7;
 
@@ -12,6 +60,13 @@ export interface InvitationLink {
   url: string;
   token: string;
   expiresAt: string; // ISO
+  // F4: progression state surfaced on /mypage/invite 4-dot timeline.
+  // `lastViewedAt` fills when the partner opens the guest view; `joined`
+  // becomes true once they signup + consume.
+  lastViewedAt?: string | null; // ISO
+  viewCount?: number;
+  joined?: boolean;
+  createdAt?: string; // ISO
 }
 
 /**
@@ -60,7 +115,7 @@ export async function createInvitationLink(): Promise<InvitationLink> {
  */
 export async function consumeInvitationLink(token: string): Promise<
   | { ok: true; projectId: string }
-  | { ok: false; reason: "invalid" | "expired" | "stale" | "self" }
+  | { ok: false; reason: "invalid" | "expired" | "stale" | "self" | "already_joined" }
 > {
   const user = await requireUser();
 
@@ -78,6 +133,46 @@ export async function consumeInvitationLink(token: string): Promise<
   if (invitation.createdBy === user.id) {
     // Owner shouldn't self-consume.
     return { ok: false, reason: "self" };
+  }
+
+  // F4 guard (mirrors acceptInvitation): if the partner already sits on
+  // another project as a full member, we must not silently take them out
+  // of it. Auto-created empty projects are safe to discard (they're a
+  // side-effect of getOrCreateProject on first /home visit). Projects
+  // with real data require a human decision → return "already_joined" so
+  // the UI can explain.
+  const existingMemberships = await prisma.projectMember.findMany({
+    where: {
+      userId: user.id,
+      acceptedAt: { not: null },
+      NOT: { projectId: invitation.projectId },
+    },
+    select: { id: true, projectId: true, role: true },
+  });
+
+  const discardable: Array<{ id: string; projectId: string; role: string }> = [];
+  for (const existing of existingMemberships) {
+    const canAutoDiscard = await isAutoCreatedEmptyProject(
+      existing.projectId,
+      user.id,
+      existing.role,
+    );
+    if (!canAutoDiscard) {
+      return { ok: false, reason: "already_joined" };
+    }
+    discardable.push(existing);
+  }
+
+  // Owner memberships trigger project deletion (cascades to venues etc.),
+  // non-owner memberships are just the row. Done outside the consume
+  // transaction because Prisma doesn't support nested transactions in
+  // the adapter path we use.
+  for (const existing of discardable) {
+    if (existing.role === "owner") {
+      await prisma.project.delete({ where: { id: existing.projectId } });
+    } else {
+      await prisma.projectMember.delete({ where: { id: existing.id } });
+    }
   }
 
   // Consume + upsert ProjectMember in a single transaction
@@ -109,17 +204,55 @@ export async function consumeInvitationLink(token: string): Promise<
 }
 
 /**
+ * F4: record a guest view against an invitation. Called from the
+ * `/invite/[token]/(guest)` route when a freshly-signed guest cookie
+ * becomes active. Idempotent per session — the caller only invokes us
+ * on the first request in a session (screenCount === 1 after bump).
+ *
+ * Writes:
+ *   - lastViewedAt = now()
+ *   - viewCount    = viewCount + 1
+ *
+ * Never throws — silent failures just mean "owner sees one-fewer view"
+ * which is preferable to breaking the guest landing.
+ */
+export async function recordGuestInvitationView(token: string): Promise<void> {
+  if (!/^[a-f0-9]{64}$/.test(token)) return;
+  try {
+    await prisma.projectInvitation.update({
+      where: { token },
+      data: {
+        lastViewedAt: new Date(),
+        viewCount: { increment: 1 },
+      },
+    });
+  } catch (err) {
+    // swallow — guest observation is best-effort
+    console.warn("recordGuestInvitationView failed", err);
+  }
+}
+
+/**
  * Fetch the current live link for the owner's project (if any).
  */
 export async function getCurrentInvitationLink(): Promise<InvitationLink | null> {
   const user = await requireUser();
   const { projectId } = await requireOwner(user.id);
 
+  // F4: also surface a just-consumed link for 24h so the owner sees the
+  // "合流しました" dot on /mypage/invite. `joined=true` swaps the UI into
+  // a completed state (no regeneration button).
   const invitation = await prisma.projectInvitation.findFirst({
     where: {
       projectId,
-      consumedAt: null,
-      expiresAt: { gt: new Date() },
+      OR: [
+        { consumedAt: null, expiresAt: { gt: new Date() } },
+        {
+          consumedAt: {
+            gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
+      ],
     },
     orderBy: { createdAt: "desc" },
   });
@@ -132,5 +265,9 @@ export async function getCurrentInvitationLink(): Promise<InvitationLink | null>
     url: `${base}/invite/${invitation.token}`,
     token: invitation.token,
     expiresAt: invitation.expiresAt.toISOString(),
+    lastViewedAt: invitation.lastViewedAt?.toISOString() ?? null,
+    viewCount: invitation.viewCount ?? 0,
+    joined: invitation.consumedAt !== null,
+    createdAt: invitation.createdAt.toISOString(),
   };
 }

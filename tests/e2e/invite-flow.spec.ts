@@ -50,4 +50,24 @@ test.describe("Invite link flow", () => {
     expect(response?.status()).toBeLessThan(500);
     await expect(page.getByText("うまく表示できませんでした")).not.toBeVisible();
   });
+
+  // F4 landing smoke. Unauthenticated visitor on a well-formed-but-
+  // nonexistent token must get the generic "invalid" card (enumeration
+  // mitigation: same copy as consumed tokens). No 500, no boundary.
+  test("/invite/<well-formed-but-missing> shows the generic invalid copy for guests", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    const fakeToken = "b".repeat(64);
+    const response = await page.goto(`/invite/${fakeToken}`);
+    expect(response?.status()).toBeLessThan(500);
+    // Invalid + stale share copy — either renders the generic sentence
+    // from InvalidCard or the welcome card (if a real token existed),
+    // but never the error boundary. For this well-formed-but-missing
+    // token we expect the InvalidCard path.
+    await expect(page.getByText("うまく表示できませんでした")).not.toBeVisible();
+    await expect(
+      page.getByText("この招待は、お渡しできませんでした。"),
+    ).toBeVisible();
+  });
 });
