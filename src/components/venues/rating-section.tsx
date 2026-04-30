@@ -155,17 +155,34 @@ export function RatingSection({
   const [justSaved, setJustSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // W18-6: track the last successfully-persisted rating per dimension so we
+  // can roll back the on-screen value when a Server Action fails. Without
+  // this the UI silently kept the optimistic value while the DB held the
+  // old one — the user's next visit would see the rating revert with no
+  // warning. Seeded from `initialRatings` (= what the DB returned) and
+  // advanced only on a successful save.
+  const lastSavedRef = useRef<Record<string, number>>({ ...initialRatings });
 
   const debouncedSave = useCallback(
-    (newRatings: Record<string, number>) => {
+    (delta: Record<string, number>) => {
       if (timerRef.current) clearTimeout(timerRef.current);
       setSaving(true);
       setJustSaved(false);
       timerRef.current = setTimeout(async () => {
+        const rollback = () => {
+          setRatings((prev) => {
+            const reverted = { ...prev };
+            for (const dim of Object.keys(delta)) {
+              reverted[dim] = lastSavedRef.current[dim] ?? 0;
+            }
+            return reverted;
+          });
+        };
         try {
-          const result = await saveDirectRatings(venueId, { ratings: newRatings });
+          const result = await saveDirectRatings(venueId, { ratings: delta });
           if (!result.success) {
             setSaving(false);
+            rollback();
             const detail =
               typeof result.error === "object" &&
               result.error &&
@@ -180,6 +197,8 @@ export function RatingSection({
             );
             return;
           }
+          // Advance the rollback baseline only after the DB confirms.
+          lastSavedRef.current = { ...lastSavedRef.current, ...delta };
           setSaving(false);
           setJustSaved(true);
           if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
@@ -187,6 +206,7 @@ export function RatingSection({
         } catch (err) {
           setSaving(false);
           console.error("[rating] save failed:", err);
+          rollback();
           showToast("error", "うまく残せませんでした。もう一度お試しください");
         }
       }, 500);
@@ -195,8 +215,13 @@ export function RatingSection({
   );
 
   const handleRate = (dimension: string, score: number) => {
-    // Update local state with the merged map (so the UI reflects all current
-    // sliders). Only send the *changed* dimension to the server though:
+    // W18-6 optimistic update: flip the on-screen value immediately. The
+    // debounced save below either commits the new value into lastSavedRef
+    // (success) or rolls this dimension back to its last successful value
+    // (failure / network error), so the UI can never stay out of sync with
+    // the DB.
+    //
+    // Only send the *changed* dimension to the server though:
     // initialRatings comes from VenueScore averages stored as Decimal(2,1),
     // which can land on non-0.5 increments like 3.6 — and the zod schema
     // enforces multipleOf(0.5). Re-sending those legacy averages would fail

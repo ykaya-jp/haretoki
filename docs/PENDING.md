@@ -70,7 +70,7 @@
 | W18-3a | (旧 W18-3 の代わり) Partner Level 2 完了後に **destruction 系 (deleteVenue) の dual-confirmation** を検討 (Phase 2 商用化前) | — | 小 |
 | ~~W18-4~~ | ~~**V-4: venue 詳細 action-bar 分岐**~~ → **unified 判定で完了** (2026-04-30): isFavorite で verb / destination が両方変わると couple が混乱するため、両 state「比べる」+ destination 統一。`venue-action-bar.tsx:35-39` のコメントで設計判断を明文化、audit-master-A V-4 行に反映 | audit-master-A V-4 | ✅ 完了 |
 | W18-5 | **V-7: 見積項目 Combobox 化** (プリセット 40 種) | audit-master-A V-7 | 中 |
-| W18-6 | **V-9: 星評価 0.5 刻み水平バー + 楽観更新** | audit-master-A V-9 | 中 |
+| ~~W18-6~~ | ~~**V-9: 星評価 0.5 刻み水平バー + 楽観更新**~~ → ✅ 完了 (2026-04-30): 0.5 刻み水平バー + setRatings 楽観更新は既に実装済 (`rating-section.tsx` の `RatingBar` + `HALF_STEPS`)。W18-6 では `lastSavedRef` + 失敗時 dim-scoped rollback + `formErrors` 詳細エラートースト を追加。debounce 維持のため useOptimistic は未採用 (transition lifecycle が debounce 内で auto-revert を壊す) | audit-master-A V-9 | ✅ 完了 |
 | W18-7 | **CMP-5: MatrixInsight AI 分析カード** (比較ボードに「この 2 つはこう違う」) | audit-master-A CMP-5 | 大 |
 
 **達成判定**: 妻が比較ボードを見て「私の意見が反映されてる」「AI のおすすめが出る」と認識
