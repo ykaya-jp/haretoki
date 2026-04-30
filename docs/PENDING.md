@@ -92,7 +92,7 @@
 
 | ID | タスク | 出典 | 所要 |
 |---|---|---|---|
-| W20-1 | **見学メモ save の retry / offline queue** (現地ネット死対策) | コード調査 (F-2) | 中 |
+| ~~W20-1~~ | ~~**見学メモ save の retry / offline queue**~~ → ✅ 完了 (2026-04-30): `src/lib/visit-note-queue.ts` (localStorage 上の versioned queue、SSR safe、defensive JSON parse)、visit-section.tsx の handleAddNote が失敗時に enqueue + Sonner toast に「もう一度送る」action、useOnlineStatus 復帰で auto-flush (flushingRef で Strict-mode 二重 flush 防止)。queue lib unit test 9 件 GREEN。photo / GPS の offline 戦略は W20-2 へ分離 (commit `031f4c0`) | コード調査 (F-2) | ✅ 完了 |
 | W20-2 | **見学当日のクイックキャプチャ** (写真 + GPS + timestamp 自動付与) | roadmap R3 から抜粋 | 中 |
 | W20-3 | **Soft delete 導入** (venue / visit / メモ / 評価。`deletedAt` カラム + filter) | コード調査 (B-2) | 中 |
 | W20-4 | **アカウント合流時の重複 project ハンドリング正常化** (auto-discard 判定明確化 + 確認 UI) | invitation-links.ts (D-2) | 中 |
