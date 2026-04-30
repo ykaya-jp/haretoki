@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { scheduleVisit, completeVisit, addVisitNote, markVisitCalendarExported } from "@/server/actions/visits";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { scheduleVisit, completeVisit, addVisitNote, addVisitNotePhoto, markVisitCalendarExported } from "@/server/actions/visits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, Check, FileText, MapPin, Loader2, Star } from "lucide-react";
+import { Calendar, Camera, Check, FileText, MapPin, Loader2, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -62,6 +62,11 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
   const [scheduleMemo, setScheduleMemo] = useState("");
   const [noteText, setNoteText] = useState("");
   const [showNoteForm, setShowNoteForm] = useState(false);
+  // W20-2: optional photo attached to the next memo. Held as a File so we
+  // can preview it locally before the upload completes; the URL is created
+  // with URL.createObjectURL on render and revoked when the picker resets.
+  const [notePhoto, setNotePhoto] = useState<File | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [expandedRatingVisitId, setExpandedRatingVisitId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -212,34 +217,76 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
       locationLat: geo.latitude ?? undefined,
       locationLng: geo.longitude ?? undefined,
     };
+    // W20-2: capture the photo at submit time so we can clear `notePhoto`
+    // optimistically without losing the file if the upload runs late.
+    const photoFile = notePhoto;
     startTransition(async () => {
       const result = await addVisitNote(visitId, payload);
-      if (result.success) {
-        toast.success("メモを残しました");
+      if (!result.success) {
+        // W20-1: save failed (network drop on the venue floor / Server
+        // Action error). Persist the payload locally so the memo isn't
+        // lost. The online listener auto-flushes when the connection
+        // returns; the toast also offers a manual retry for users who
+        // want to try right now. Photos do not survive the queue today —
+        // we keep the picker open so the user can decide whether to drop
+        // it or wait and re-attach.
+        const queued = enqueueVisitNote(visitId, payload);
+        toast.error("メモは下書きとして残しました", {
+          description:
+            result.error ??
+            "電波が戻ったら自動で送ります。手動でも送れます。",
+          action: {
+            label: "もう一度送る",
+            onClick: () => retryQueuedNote(queued.id, visitId),
+          },
+          duration: 10000,
+        });
         setNoteText("");
         setShowNoteForm(false);
-        router.refresh();
         return;
       }
-      // W20-1: save failed (network drop on the venue floor / Server Action
-      // error). Persist the payload locally so the memo isn't lost. The
-      // online listener auto-flushes when the connection returns; the toast
-      // also offers a manual retry for users who want to try right now.
-      const queued = enqueueVisitNote(visitId, payload);
-      toast.error("メモは下書きとして残しました", {
-        description:
-          result.error ??
-          "電波が戻ったら自動で送ります。手動でも送れます。",
-        action: {
-          label: "もう一度送る",
-          onClick: () => retryQueuedNote(queued.id, visitId),
-        },
-        duration: 10000,
-      });
+
+      // W20-2: text saved. Now try to attach the optional photo. We
+      // succeed-toast the note up front so the user sees confirmation
+      // even if the upload is slow (a multi-MB photo on poor reception
+      // can take several seconds), then surface the photo result
+      // separately. The note row stays in the UI either way.
+      toast.success("メモを残しました");
       setNoteText("");
+      setNotePhoto(null);
+      if (photoInputRef.current) photoInputRef.current.value = "";
       setShowNoteForm(false);
+
+      if (photoFile && result.noteId) {
+        const fd = new FormData();
+        fd.append("photo", photoFile);
+        const photoResult = await addVisitNotePhoto(result.noteId, fd);
+        if (!photoResult.success) {
+          toast.error(
+            photoResult.error ??
+              "写真は送れませんでした。あとで添付できます",
+          );
+        }
+      }
+
+      router.refresh();
     });
   };
+
+  // W20-2: thumbnail preview URL. Treat as a derived value via useMemo so
+  // the eslint `set-state-in-effect` rule stays clean (memo lives in the
+  // render phase, not in a useEffect setState dance). The companion
+  // useEffect's only job is the cleanup — it revokes the blob URL when
+  // `notePhoto` changes or the component unmounts, so we don't leak a
+  // fresh ObjectURL each time the user re-takes the shot.
+  const photoPreviewUrl = useMemo(
+    () => (notePhoto ? URL.createObjectURL(notePhoto) : null),
+    [notePhoto],
+  );
+  useEffect(() => {
+    if (!photoPreviewUrl) return;
+    return () => URL.revokeObjectURL(photoPreviewUrl);
+  }, [photoPreviewUrl]);
 
   // W20-1: when the browser reports online again, flush any queued notes.
   // Per-entry success removes from the queue; failures stay so the user
@@ -458,6 +505,62 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
                 rows={3}
                 maxLength={2000}
               />
+              {/* W20-2: optional photo. `capture="environment"` opens the
+                  rear camera on mobile so the couple can snap a wall /
+                  ceiling / banquet detail without leaving the form. The
+                  picker stays empty when no shot is selected — we don't
+                  pre-claim space, the form grows when needed. */}
+              {photoPreviewUrl ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreviewUrl}
+                    alt="添付する写真のプレビュー"
+                    className="h-16 w-16 shrink-0 rounded object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs text-foreground">
+                      {notePhoto?.name ?? "写真"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      残すと一緒に保存されます
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="写真を外す"
+                    onClick={() => {
+                      setNotePhoto(null);
+                      if (photoInputRef.current)
+                        photoInputRef.current.value = "";
+                    }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:border-[var(--gold-warm)]/60 hover:text-[var(--gold-warm)]"
+                >
+                  <Camera className="h-4 w-4" strokeWidth={1.6} />
+                  写真を添える
+                </button>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  if (!file) return;
+                  setNotePhoto(file);
+                }}
+              />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
                   {geo.latitude ? <><MapPin className="mr-1 inline h-3 w-3" />位置情報を取得済み</> : "位置情報なし"}
@@ -475,7 +578,11 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
               </div>
               <div className="flex items-center justify-end">
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)}>キャンセル</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setShowNoteForm(false);
+                    setNotePhoto(null);
+                    if (photoInputRef.current) photoInputRef.current.value = "";
+                  }}>キャンセル</Button>
                   <Button size="sm" onClick={() => handleAddNote(visit.id)} disabled={isPending || !noteText.trim()}>
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "残す"}
                   </Button>
