@@ -187,6 +187,66 @@ export async function addNoteMedia(
   return { success: true };
 }
 
+/**
+ * W20-2: upload a photo from the venue floor and attach it to an existing
+ * VisitNote in one call. Mirrors `addChecklistPhoto` but writes through
+ * `VisitNoteMedia` instead of `VisitChecklistItem.photoUrls`. Used by the
+ * quick-capture form in visit-section so the couple can drop a memo + a
+ * snapshot in a single tap without learning two separate flows.
+ *
+ * The bucket path reuses `uploadChecklistPhoto`'s `{projectId}/{venueId}/
+ * checklist/...` layout — the `venue-photos` bucket is shared, and the
+ * file name carries enough entropy (Date.now() + original name) to avoid
+ * collisions across the two attachment surfaces.
+ */
+export async function addVisitNotePhoto(
+  noteId: string,
+  formData: FormData,
+): Promise<{ success: boolean; mediaUrl?: string; error?: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const note = await prisma.visitNote.findUnique({
+    where: { id: noteId },
+    include: {
+      visit: {
+        include: { venue: { select: { projectId: true, id: true } } },
+      },
+    },
+  });
+  if (!note || note.visit.venue.projectId !== projectId) {
+    return { success: false, error: "メモが見つかりません" };
+  }
+
+  const file = formData.get("photo") as File | null;
+  if (!file || !file.type.startsWith("image/")) {
+    return { success: false, error: "画像ファイルを選んでください" };
+  }
+  // 10 MB hard cap — modern phone cameras land around 3-5 MB JPEG even at
+  // full resolution, so 10 MB tolerates HEIC/Live Photo without letting a
+  // pathological upload (a video accidentally renamed .jpg) through.
+  const TEN_MB = 10 * 1024 * 1024;
+  if (file.size > TEN_MB) {
+    return { success: false, error: "写真が大きすぎます（10MB まで）" };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `${Date.now()}-${file.name}`;
+  const photoUrl = await uploadChecklistPhoto(
+    buffer,
+    fileName,
+    projectId,
+    note.visit.venue.id,
+  );
+
+  await prisma.visitNoteMedia.create({
+    data: { visitNoteId: noteId, type: "photo", mediaUrl: photoUrl },
+  });
+
+  revalidatePath(`/venues/${note.visit.venue.id}`);
+  return { success: true, mediaUrl: photoUrl };
+}
+
 export async function updateChecklistItemStatus(
   itemId: string,
   status: "unchecked" | "yes" | "no",
