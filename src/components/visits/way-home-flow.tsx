@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sun, CloudSun, Cloud, CloudFog } from "lucide-react";
 import { toast } from "sonner";
 import { submitWayHome } from "@/server/actions/way-home";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,10 @@ interface WayHomeFlowProps {
 }
 
 const MOOD_OPTIONS = [
-  { value: 5, emoji: "☀️", label: "晴れやか", sub: "とても良かった" },
-  { value: 4, emoji: "🌤", label: "明るめ", sub: "良かった方" },
-  { value: 3, emoji: "☁️", label: "もやもや", sub: "迷いが残る" },
-  { value: 2, emoji: "🌫", label: "合わなかった", sub: "次を見たい" },
+  { value: 5, Icon: Sun, label: "晴れやか", sub: "とても良かった" },
+  { value: 4, Icon: CloudSun, label: "明るめ", sub: "良かった方" },
+  { value: 3, Icon: Cloud, label: "もやもや", sub: "迷いが残る" },
+  { value: 2, Icon: CloudFog, label: "合わなかった", sub: "次を見たい" },
 ] as const;
 
 const GOOD_TAGS = [
@@ -144,15 +144,21 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
                     type="button"
                     onClick={() => setMood(opt.value)}
                     aria-pressed={sel}
+                    aria-label={opt.label}
                     className={cn(
-                      "flex min-h-[110px] flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-4 transition active:scale-[0.98]",
+                      "transform-gpu flex min-h-[110px] flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-4 transition-all duration-200 ease-out active:scale-[0.98]",
                       sel &&
                         "bg-[var(--gold-subtle)] border-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)] shadow-sm",
                     )}
                   >
-                    <span className="text-[30px]" aria-hidden="true">
-                      {opt.emoji}
-                    </span>
+                    <opt.Icon
+                      className={cn(
+                        "h-8 w-8",
+                        sel ? "text-[var(--gold-warm)]" : "text-muted-foreground",
+                      )}
+                      strokeWidth={1.3}
+                      aria-hidden="true"
+                    />
                     <span
                       className={cn(
                         "text-[13px] font-medium",
@@ -256,12 +262,16 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
         )}
 
         {step === "done" && (
-          <section className="flex flex-col items-center gap-3 py-16 text-center">
+          <section className="flex flex-col items-center gap-4 py-16 text-center">
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+              className="flex h-16 w-16 items-center justify-center rounded-full"
               style={{ background: "var(--gold-subtle)" }}
             >
-              ☀
+              <Sun
+                className="h-8 w-8 text-[var(--gold-warm)]"
+                strokeWidth={1.3}
+                aria-hidden="true"
+              />
             </div>
             <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light">
               残しました。
