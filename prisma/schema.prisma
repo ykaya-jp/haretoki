@@ -163,6 +163,7 @@ model User {
   consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
   agreements             CoupleAgreement[]
   savedSearches          SavedSearch[]
+  decisionTodosCompleted DecisionTodo[]     @relation("decision_todo_completer")
 
   @@map("users")
 }
@@ -172,6 +173,10 @@ model Project {
   name        String
   conditions  Json?
   currentStep Int      @default(1) @map("current_step")
+  /// F3: cancelDecision 時に控えた直前の selectedVenueId。次の makeDecision
+  /// で同一 venue なら todo 完了状態を保ち、別 venue なら reset するための
+  /// 比較材料。cancel→make 以外では参照されない。
+  lastCancelledVenueId String? @map("last_cancelled_venue_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -188,6 +193,7 @@ model Project {
   invitations      ProjectInvitation[]
   agreements       CoupleAgreement[]
   savedSearches    SavedSearch[]
+  decisionTodos    DecisionTodo[]
 
   @@map("projects")
 }
@@ -552,6 +558,43 @@ model Decision {
   venue   Venue   @relation(fields: [selectedVenueId], references: [id])
 
   @@map("decisions")
+}
+
+/// F3: 決定後に発生する実務タスク。makeDecision の post-commit で 15 件 seed。
+/// ProjectChecklist とは用途が独立（観察 vs 行動）のため別モデル。
+model DecisionTodo {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId     String       @map("project_id") @db.Uuid
+  templateKey   String       @map("template_key")
+  source        TodoSource   @default(system)
+  title         String
+  description   String?
+  priority      TodoPriority @default(normal)
+  dueOffsetDays Int?         @map("due_offset_days")
+  orderIndex    Int          @map("order_index")
+  completedAt   DateTime?    @map("completed_at")
+  completedBy   String?      @map("completed_by") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  completer User?   @relation("decision_todo_completer", fields: [completedBy], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, templateKey])
+  @@index([projectId, completedAt])
+  @@index([projectId, orderIndex])
+  @@map("decision_todos")
+}
+
+enum TodoSource {
+  system
+  custom
+}
+
+enum TodoPriority {
+  high
+  normal
+  low
 }
 
 model PartnerReaction {

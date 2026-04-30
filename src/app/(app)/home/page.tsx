@@ -11,6 +11,7 @@ import { TimeEcho } from "@/components/home/time-echo";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { getHomeStage } from "@/components/home/home-stage";
+import { NextStepsCard } from "@/components/decision-todos/next-steps-card";
 
 export const metadata: Metadata = {
   title: "ホーム",
@@ -125,6 +126,11 @@ export default async function HomePage() {
         isRitualCta={isRitualCta}
         hasRitual={!!ritual}
       />
+
+      {/* F3: Post-decision "Next steps" card. Server Component — returns null
+          when there's no decision or all todos are complete, so heroes stay
+          unchanged for pre-decision users. */}
+      {progress.hasDecision && <NextStepsCard />}
 
       <HomePulse
         totalVenues={progress.totalVenues}
