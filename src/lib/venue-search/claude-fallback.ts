@@ -12,7 +12,7 @@
  */
 
 import { askClaude, isClaudeAvailable } from "@/lib/claude";
-import { computeInputHash } from "@/lib/anthropic";
+import { computeInputHash, sanitizeForPrompt } from "@/lib/anthropic";
 import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { guardExternalUrl } from "@/lib/url-guard";
 import { MODEL } from "@/lib/models";
@@ -46,7 +46,9 @@ function stripFences(raw: string): string {
  */
 export async function fetchClaudeFallback(query: string): Promise<VenueSearchHit[]> {
   if (!isClaudeAvailable()) return [];
-  const userMessage = `式場名の候補: ${query}`;
+  // Sanitize to prevent prompt injection from user-controlled query (guardrails.md).
+  const safeQuery = sanitizeForPrompt(query, 100);
+  const userMessage = `式場名の候補: ${safeQuery}`;
 
   const cacheKey = computeInputHash(`${SYSTEM_PROMPT}\n${userMessage}`);
   const cached = await getCachedResponse(cacheKey);

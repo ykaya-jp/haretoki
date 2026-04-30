@@ -75,7 +75,8 @@ export async function fetchPlacesAutocomplete(
         sessionToken,
         // JP bias — filter out obvious foreign matches. Not hard-restricted
         // so Japanese couples planning overseas weddings still get results.
-        regionCode: "jp",
+        // M5: ISO 3166-1 alpha-2 requires uppercase.
+        regionCode: "JP",
         languageCode: "ja",
         // establishment ≈ business / venue. Filters out pure addresses.
         includedPrimaryTypes: ["establishment"],
@@ -113,11 +114,12 @@ export async function fetchPlacesAutocomplete(
 }
 
 /**
- * Resolve a Places `placeId` to a usable URL for the import pipeline.
- * Preference: `websiteUri` (official venue site) → `googleMapsUri` (fallback).
+ * Resolve a Places `placeId` to the official venue website URL.
  *
- * Returns null if neither could be resolved — the caller treats that as
- * "cannot import this hit" and should show the Tier 3 / manual fallback.
+ * Returns null when `websiteUri` is absent — do NOT fall back to
+ * `googleMapsUri`: `stripTracking` drops the `cid` param, leaving only
+ * `https://maps.google.com/` which causes Claude extraction to fail (M1 fix).
+ * Callers should show the "公式サイトが見つかりませんでした" fallback UI.
  */
 export async function fetchPlaceWebsite(
   placeId: string,
@@ -135,15 +137,13 @@ export async function fetchPlaceWebsite(
       signal: controller.signal,
       headers: {
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "websiteUri,googleMapsUri",
+        // Only fetch websiteUri — googleMapsUri fallback removed (M1 fix).
+        "X-Goog-FieldMask": "websiteUri",
       },
     });
     if (!res.ok) return null;
-    const json = (await res.json()) as {
-      websiteUri?: string;
-      googleMapsUri?: string;
-    };
-    return json.websiteUri ?? json.googleMapsUri ?? null;
+    const json = (await res.json()) as { websiteUri?: string };
+    return json.websiteUri ?? null;
   } catch {
     return null;
   } finally {

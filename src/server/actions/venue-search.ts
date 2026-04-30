@@ -3,11 +3,11 @@
 /**
  * F1 venue-name-search — server action entry point.
  *
- * Pipeline (3-Tier, parallel):
+ * Pipeline (3-Tier, sequential):
  *   Tier 1  internal DB (Phase 2 — skipped in MVP; isPublic flag TODO)
  *   Tier 2  Google Places Autocomplete (silent skip if GOOGLE_PLACES_API_KEY
  *           missing or monthly cap reached)
- *   Tier 3  Claude fallback (used when Tier 1/2 are empty or disabled)
+ *   Tier 3  Claude fallback (only when Tier 2 returns 0 hits or is disabled)
  *
  * Auth: requireUser → requireProjectMembership. Rate-limited per-project
  * per-minute via the in-memory bucket in `quota.ts`.
@@ -50,6 +50,10 @@ const inputSchema = z.object({
  *
  * Short queries (`< MIN_QUERY_LENGTH`) return `{ hits: [] }` without
  * calling any upstream — saves both latency and quota.
+ *
+ * Pipeline is sequential by design (H2 fix):
+ *   Tier 2 (Places) is awaited first; Tier 3 (Claude) is only called
+ *   when Tier 2 returns no hits. "fallback only" semantics.
  */
 export async function searchVenuesByName(
   rawQuery: string,
@@ -88,17 +92,17 @@ export async function searchVenuesByName(
     }
   }
 
-  // Parallel upstream — each tier silently degrades to [] on failure.
-  const [placesHits, claudeHits] = await Promise.all([
-    placesAllowed
-      ? fetchPlacesAutocomplete(query, parsed.data.sessionToken).catch(() => [])
-      : Promise.resolve<VenueSearchHit[]>([]),
-    // Tier 3 triggers when Tier 2 is disabled OR as a safety net for exotic
-    // queries Places can't match. We call it unconditionally here and let
-    // the dedupe step trim duplicates — saves a round-trip of conditional
-    // latency for the common "Places returned 0" case.
-    fetchClaudeFallback(query).catch(() => []),
-  ]);
+  // Sequential upstream: Tier 2 first, Tier 3 only when Tier 2 returns nothing.
+  // (H2 fix: "Tier 3 = fallback only" — parallel was billing Claude on every
+  // call even when Places already returned hits.)
+  const placesHits: VenueSearchHit[] = placesAllowed
+    ? await fetchPlacesAutocomplete(query, parsed.data.sessionToken).catch(() => [])
+    : [];
+
+  const claudeHits: VenueSearchHit[] =
+    placesHits.length === 0
+      ? await fetchClaudeFallback(query).catch(() => [])
+      : [];
 
   // Bump quota for Places calls that actually returned data. Queries that
   // errored out don't increment (those are failed hits from our side).
