@@ -3,6 +3,7 @@ import { DemoBanner } from "@/components/demo/demo-banner";
 import { DemoBottomNav } from "@/components/demo/demo-bottom-nav";
 import { DemoBodyMarker } from "@/components/demo/demo-body-marker";
 import { DemoDataProvider } from "@/components/demo/demo-data-provider";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 // (demo) route group — unauthenticated walkthrough.
@@ -15,26 +16,30 @@ import { Toaster } from "@/components/ui/sonner";
 // Middleware skips auth for /demo (see src/middleware.ts +
 // src/lib/supabase/middleware.ts public-path allowlist).
 export default function DemoLayout({ children }: { children: ReactNode }) {
+  // W16-6: scope MotionProvider to (demo) — demo screens use framer-motion
+  // (demo-sequence). See comment in src/app/layout.tsx.
   return (
-    <DemoDataProvider>
-      <DemoBodyMarker />
-      <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
-        <a
-          href="#demo-main"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-        >
-          メインコンテンツへスキップ
-        </a>
-        <DemoBanner />
-        <main
-          id="demo-main"
-          className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
-        >
-          {children}
-        </main>
-        <DemoBottomNav />
-        <Toaster position="bottom-center" />
-      </div>
-    </DemoDataProvider>
+    <MotionProvider>
+      <DemoDataProvider>
+        <DemoBodyMarker />
+        <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
+          <a
+            href="#demo-main"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+          >
+            メインコンテンツへスキップ
+          </a>
+          <DemoBanner />
+          <main
+            id="demo-main"
+            className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
+          >
+            {children}
+          </main>
+          <DemoBottomNav />
+          <Toaster position="bottom-center" />
+        </div>
+      </DemoDataProvider>
+    </MotionProvider>
   );
 }

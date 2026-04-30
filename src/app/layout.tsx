@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { MotionProvider } from "@/components/providers/motion-provider";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -154,9 +153,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <PostHogProvider>
-            <Suspense>
-              <MotionProvider>{children}</MotionProvider>
-            </Suspense>
+            {/* W16-6 (performance-audit B-03 補完): MotionProvider is now
+                mounted only by routes that actually use framer-motion —
+                (app), (demo), and the landing page wrapper. Auth screens,
+                /accept-invite and /invite/[token] no longer pay the
+                LazyMotion features load (saves ~20-30ms FCP on those). */}
+            <Suspense>{children}</Suspense>
           </PostHogProvider>
         </ThemeProvider>
         <Analytics />

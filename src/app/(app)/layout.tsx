@@ -8,6 +8,7 @@ import { OfflineBanner } from "@/components/ui/offline-banner";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegistry } from "@/components/pwa/service-worker-registry";
 import { BfcacheRefresh } from "@/components/app/bfcache-refresh";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import { prisma } from "@/server/db";
 
 type Project = Awaited<ReturnType<typeof getOrCreateProject>>;
@@ -75,32 +76,37 @@ export default async function AppLayout({
   const user = await requireUser();
   const projectPromise = getOrCreateProject();
 
+  // W16-6: MotionProvider scoped to (app) — see comment in src/app/layout.tsx.
+  // Authenticated UI relies heavily on framer-motion (drag, layout, AnimatePresence),
+  // so loading LazyMotion features here is appropriate.
   return (
-    <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
-      {/* Skip link — WCAG 2.4.1 bypass-blocks. Keyboard users land on this
-          first and can jump over the persistent bottom nav / header chrome. */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-      >
-        メインコンテンツへスキップ
-      </a>
-      <OfflineBanner />
-      <BfcacheRefresh />
-      <main
-        id="main-content"
-        className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
-      >
-        {children}
-      </main>
-      <InstallPrompt />
-      <ServiceWorkerRegistry />
-      {/* Stream nav: shell (BottomNav without counts) flushes first while
-          getOrCreateProject + badge DB round-trips resolve in the background. */}
-      <Suspense fallback={<BottomNav />}>
-        <NavWithRealtime projectPromise={projectPromise} userId={user.id} />
-      </Suspense>
-      <Toaster position="bottom-center" />
-    </div>
+    <MotionProvider>
+      <div className="min-h-dvh bg-background pb-[calc(56px+env(safe-area-inset-bottom))]">
+        {/* Skip link — WCAG 2.4.1 bypass-blocks. Keyboard users land on this
+            first and can jump over the persistent bottom nav / header chrome. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+        >
+          メインコンテンツへスキップ
+        </a>
+        <OfflineBanner />
+        <BfcacheRefresh />
+        <main
+          id="main-content"
+          className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8"
+        >
+          {children}
+        </main>
+        <InstallPrompt />
+        <ServiceWorkerRegistry />
+        {/* Stream nav: shell (BottomNav without counts) flushes first while
+            getOrCreateProject + badge DB round-trips resolve in the background. */}
+        <Suspense fallback={<BottomNav />}>
+          <NavWithRealtime projectPromise={projectPromise} userId={user.id} />
+        </Suspense>
+        <Toaster position="bottom-center" />
+      </div>
+    </MotionProvider>
   );
 }
