@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useOptimistic, useState, useTransition, useCallback } from "react";
 import { updateChecklistItemStatus } from "@/server/actions/visits";
 import { Check, X, ChevronDown, MessageSquare, Camera, Loader2, Sparkles, Plus } from "lucide-react";
 import Image from "next/image";
@@ -52,6 +52,28 @@ export function VisitChecklist({ items, venueId }: VisitChecklistProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  // Optimistic UI for the 3-state toggle (unchecked → yes → no → unchecked).
+  // Without this, every tap waited for `router.refresh()` to finish (200-400ms
+  // round-trip) before the icon flipped — felt like the button was unresponsive.
+  // useOptimistic returns a snapshot that React auto-reverts when the wrapping
+  // transition rejects, so failures retire the optimistic state cleanly.
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    items,
+    (
+      current: ChecklistItem[],
+      update: { id: string; status?: string; memo?: string },
+    ) =>
+      current.map((it) =>
+        it.id === update.id
+          ? {
+              ...it,
+              ...(update.status !== undefined && { status: update.status }),
+              ...(update.memo !== undefined && { memo: update.memo }),
+            }
+          : it,
+      ),
+  );
+
   // AI checklist state
   const [aiItems, setAiItems] = useState<AIChecklistItem[] | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -75,9 +97,10 @@ export function VisitChecklist({ items, venueId }: VisitChecklistProps) {
     }
   }, [venueId]);
 
-  // Group items by category
+  // Group items by category — read from optimisticItems so the 3-state toggle
+  // and memo edits flip instantly even before the Server Action returns.
   const grouped = new Map<string, ChecklistItem[]>();
-  for (const item of items) {
+  for (const item of optimisticItems) {
     const cat = item.category ?? "other";
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat)!.push(item);
@@ -111,6 +134,9 @@ export function VisitChecklist({ items, venueId }: VisitChecklistProps) {
   const handleToggleCheck = (itemId: string, currentStatus: string) => {
     const nextStatus = currentStatus === "unchecked" ? "yes" : currentStatus === "yes" ? "no" : "unchecked";
     startTransition(async () => {
+      // Flip the icon immediately — applyOptimistic is only valid inside a
+      // transition, and React reverts it automatically if the action throws.
+      applyOptimistic({ id: itemId, status: nextStatus });
       const memo = memoValues[itemId];
       await updateChecklistItemStatus(itemId, nextStatus as "unchecked" | "yes" | "no", memo);
       router.refresh();
@@ -119,11 +145,12 @@ export function VisitChecklist({ items, venueId }: VisitChecklistProps) {
 
   const handleMemoSave = (itemId: string) => {
     const memo = memoValues[itemId] ?? "";
-    const item = items.find(i => i.id === itemId);
+    const item = optimisticItems.find((i) => i.id === itemId);
     // Dirty check: skip DB write when the textarea blurred without changes.
     // Normalize null↔"" so an untouched empty memo doesn't round-trip.
     if ((item?.memo ?? "") === memo) return;
     startTransition(async () => {
+      applyOptimistic({ id: itemId, memo });
       await updateChecklistItemStatus(itemId, (item?.status ?? "unchecked") as "unchecked" | "yes" | "no", memo);
       router.refresh();
     });
