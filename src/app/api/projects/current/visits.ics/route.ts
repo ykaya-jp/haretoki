@@ -22,7 +22,10 @@ import {
 // See note in src/app/api/visits/[visitId]/ics/route.ts — Next.js 16 with
 // cacheComponents rejects both `runtime` and `dynamic` config keys. The
 // auth call keeps responses per-user; we rely on the `Cache-Control:
-// private, max-age=300` header below rather than a route-segment directive.
+// no-store` header below rather than a route-segment directive. Earlier
+// drafts used `private, max-age=300` but the cache-pollution risk in
+// shared-device cases (and the lack of `Vary: Cookie`) outweighed the
+// 5-minute saving on a low-frequency action.
 
 export async function GET(): Promise<Response> {
     const user = await requireUser();
@@ -111,9 +114,11 @@ export async function GET(): Promise<Response> {
             "Content-Type": "text/calendar; charset=utf-8; method=PUBLISH",
             "Content-Disposition":
                 'attachment; filename="haretoki-visits.ics"',
-            // Design §2.2: short cache. 5 min tolerance on re-schedule
-            // visibility is acceptable for a bulk feed.
-            "Cache-Control": "private, max-age=300",
+            // No-store keeps each request authoritative and avoids cache
+            // pollution in shared-device cases. The auth call ensures each
+            // request is per-user; the bulk feed is low-frequency so the
+            // 5-minute saving is not worth the `Vary: Cookie` complexity.
+            "Cache-Control": "no-store",
         },
     });
 }

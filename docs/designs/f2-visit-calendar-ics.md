@@ -269,6 +269,8 @@ VALARM #2 (開始1時間前)
 | completeVisit | — | — | — | — | ics は再エクスポートしない（もう過去の予定）|
 | cancelVisit（未実装、R1 末追加） | CANCEL | +1 | CANCELLED | そのまま | visit.id |
 
+> **W15 実装メモ (2026-04-30)**: `Visit.sequence` カラムは追加済み・export 時に毎回その値が SEQUENCE: ヘッダに書かれる。ただし R1 時点では `rescheduleVisit` Server Action が UI に存在せず、見学日時の編集経路は「キャンセル → 再作成」のみ（visit.id が変わるので UID も変わり、外部カレンダーは別イベントとして扱う）。`sequence: { increment: 1 }` を発火する経路は **R1.5 で `rescheduleVisit` を追加するときに同時実装**する。それまで実 SEQUENCE は常に 0 で、本表 2 行目（編集 → SEQUENCE 2,3,...）は経路が出来てから機能する。
+
 UID が同じ + SEQUENCE が増える → 殆どのカレンダーアプリ（Google/Apple/Outlook）が既存 event を自動上書きする。これが ics の最大の強み。
 
 Prisma 側に `sequence Int @default(0)` + `calendarExportedAt DateTime?` の 2 列を**同一 migration** で追加:
