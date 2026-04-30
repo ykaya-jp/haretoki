@@ -19,12 +19,17 @@ import { NotificationBadge } from "@/components/layout/notification-badge";
 
 /**
  * Resolve the app's public origin for share URLs.
+ * Prefers Vercel-provided headers, falls back to the request's host so
+ * preview / local environments generate correct links instead of leaking
+ * into production.
  */
 async function getAppOrigin(): Promise<string> {
   const h = await headers();
   const forwardedHost = h.get("x-forwarded-host") ?? h.get("host");
   const forwardedProto = h.get("x-forwarded-proto") ?? "https";
   if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  // Last-resort fallback (should never hit in practice since Next always
+  // provides host on a request).
   return process.env.APP_URL ?? "http://localhost:3000";
 }
 
@@ -48,12 +53,19 @@ export default async function MyPage() {
         select: { conditions: true },
       }),
       getAppOrigin(),
+      // E-11: pre-fetch the current live 1-tap invitation link (if any).
+      // Catch to avoid crashing mypage when the owner guard fails — invite
+      // panel simply falls back to "generate" state.
       getCurrentInvitationLink().catch(() => null),
+      // Notification badge count — best-effort, never crash mypage.
       getUnreadCount().catch(() => 0),
     ]);
 
   const partner = members.find((m) => m.role === "partner");
   const hasPartner = partner?.acceptedAt != null;
+  // Distinguish "invited but not yet joined" from "no partner at all" so
+  // the mypage panel can show an "招待中…" state rather than re-offering
+  // the invite UI to a couple already mid-flow.
   const partnerPending = !!partner && !partner.acceptedAt;
 
   const conditions = (project?.conditions ?? {}) as {
