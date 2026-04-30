@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { PillOptions } from "@/components/ui/pill-options";
 import { saveOnboardingAnswers } from "@/server/actions/onboarding";
 import { toast } from "sonner";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
 
 const STYLE_OPTIONS = [
   { id: "チャペル", label: "チャペル" },
