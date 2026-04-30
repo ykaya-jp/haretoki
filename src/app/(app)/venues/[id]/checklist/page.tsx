@@ -57,7 +57,7 @@ export default async function VenueChecklistPage({
             href={`/venues/${id}`}
             className="inline-flex min-h-11 items-center gap-1 hover:opacity-70"
           >
-            <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             Back
           </Link>
           <span aria-hidden="true" className="opacity-30">/</span>
