@@ -67,12 +67,11 @@ export default async function PreparationPage() {
 
   // Lazy seed: 決定はあるが何らかの理由で post-commit seed が失敗している
   // ケースの救済。冪等（skipDuplicates）なので 2 回目以降の訪問は no-op。
-  let { todos, completedCount, totalCount, progress } = await getAllTodos();
+  let { todos, completedCount, totalCount } = await getAllTodos();
   if (totalCount === 0) {
     await seedDecisionTodos();
-    ({ todos, completedCount, totalCount, progress } = await getAllTodos());
+    ({ todos, completedCount, totalCount } = await getAllTodos());
   }
-  void progress;
 
   const customCount = todos.filter((t) => t.source === "custom").length;
 

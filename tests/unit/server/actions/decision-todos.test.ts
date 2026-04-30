@@ -343,30 +343,18 @@ describe("deleteCustomTodo — system 不可", () => {
   });
 });
 
-describe("_resetDecisionTodosForProject — 別 venue 再決定時の reset", () => {
-  it("resets completedAt/completedBy for all completed todos in the project", async () => {
-    decisionTodoUpdateMany.mockResolvedValue({ count: 4 });
-
-    const { _resetDecisionTodosForProject } = await import(
-      "@/server/actions/decision-todos"
-    );
-    const res = await _resetDecisionTodosForProject("proj-1");
-
-    expect(res).toEqual({ reset: 4 });
-    expect(decisionTodoUpdateMany).toHaveBeenCalledWith({
-      where: { projectId: "proj-1", completedAt: { not: null } },
-      data: { completedAt: null, completedBy: null },
-    });
+describe("security: internal helpers must not be exported from decision-todos Server Action", () => {
+  it("_seedDecisionTodosForProject is not exported (moved to lib/decision-todos/seed.ts)", async () => {
+    const actions = await import("@/server/actions/decision-todos");
+    expect(
+      (actions as Record<string, unknown>)["_seedDecisionTodosForProject"],
+    ).toBeUndefined();
   });
 
-  it("returns 0 when there is nothing to reset", async () => {
-    decisionTodoUpdateMany.mockResolvedValue({ count: 0 });
-
-    const { _resetDecisionTodosForProject } = await import(
-      "@/server/actions/decision-todos"
-    );
-    const res = await _resetDecisionTodosForProject("proj-1");
-
-    expect(res).toEqual({ reset: 0 });
+  it("_resetDecisionTodosForProject is not exported (moved to lib/decision-todos/seed.ts)", async () => {
+    const actions = await import("@/server/actions/decision-todos");
+    expect(
+      (actions as Record<string, unknown>)["_resetDecisionTodosForProject"],
+    ).toBeUndefined();
   });
 });

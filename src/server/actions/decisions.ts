@@ -11,9 +11,9 @@ import {
 import { captureServerEvent } from "@/lib/analytics/server";
 import { captureError } from "@/lib/sentry";
 import {
-  _seedDecisionTodosForProject,
-  _resetDecisionTodosForProject,
-} from "@/server/actions/decision-todos";
+  seedSystemTodos,
+  resetSystemTodosCompletion,
+} from "@/lib/decision-todos/seed";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -105,7 +105,7 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
   // （/preparation 初回訪問）で救済する。
   if (venueChanged) {
     try {
-      await _resetDecisionTodosForProject(projectId);
+      await resetSystemTodosCompletion(projectId);
     } catch (err) {
       captureError(err, {
         action: "makeDecision.resetTodos",
@@ -116,7 +116,7 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
     }
   }
   try {
-    await _seedDecisionTodosForProject(projectId);
+    await seedSystemTodos(projectId);
   } catch (err) {
     captureError(err, {
       action: "makeDecision.seedTodos",

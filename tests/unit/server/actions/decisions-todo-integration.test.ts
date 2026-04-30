@@ -77,9 +77,9 @@ vi.mock("@/lib/sentry", () => ({
   captureError: vi.fn(),
 }));
 
-vi.mock("@/server/actions/decision-todos", () => ({
-  _seedDecisionTodosForProject: (projectId: string) => seedSpy(projectId),
-  _resetDecisionTodosForProject: (projectId: string) => resetSpy(projectId),
+vi.mock("@/lib/decision-todos/seed", () => ({
+  seedSystemTodos: (projectId: string) => seedSpy(projectId),
+  resetSystemTodosCompletion: (projectId: string) => resetSpy(projectId),
 }));
 
 beforeEach(() => {

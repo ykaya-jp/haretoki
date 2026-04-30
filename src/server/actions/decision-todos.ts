@@ -111,57 +111,6 @@ export async function seedDecisionTodos(): Promise<{ seeded: number }> {
   }
 }
 
-/**
- * Internal seed helper that runs without auth — invoked from makeDecision
- * when the authenticated project is already known. Kept private so the
- * public server action keeps requireUser semantics.
- */
-export async function _seedDecisionTodosForProject(
-  projectId: string,
-): Promise<{ seeded: number }> {
-  const data = DECISION_TODO_PRESETS.map((p) => ({
-    projectId,
-    templateKey: p.templateKey,
-    source: "system" as const,
-    title: p.title,
-    description: p.description,
-    priority: p.priority,
-    dueOffsetDays: p.dueOffsetDays,
-    orderIndex: p.orderIndex,
-  }));
-
-  const result = await prisma.decisionTodo.createMany({
-    data,
-    skipDuplicates: true,
-  });
-  if (result.count > 0) {
-    revalidateTag(todosTag(projectId), { expire: 0 });
-    revalidatePath("/home");
-    revalidatePath("/preparation");
-  }
-  return { seeded: result.count };
-}
-
-/**
- * Reset completion state for all existing todos in a project.
- * Called from makeDecision when the decided venue changes (different
- * selectedVenueId) so that "contract_review (A)" completion doesn't
- * silently carry over to "contract_review (B)".
- */
-export async function _resetDecisionTodosForProject(
-  projectId: string,
-): Promise<{ reset: number }> {
-  const result = await prisma.decisionTodo.updateMany({
-    where: { projectId, completedAt: { not: null } },
-    data: { completedAt: null, completedBy: null },
-  });
-  if (result.count > 0) {
-    revalidateTag(todosTag(projectId), { expire: 0 });
-    revalidatePath("/home");
-    revalidatePath("/preparation");
-  }
-  return { reset: result.count };
-}
 
 /**
  * Home hero 下「次の一歩」 card 用: 未完了のうち orderIndex 昇順で最大 3 件。
@@ -189,7 +138,6 @@ export async function getAllTodos(options?: {
   todos: DecisionTodoView[];
   completedCount: number;
   totalCount: number;
-  progress: number;
 }> {
   const includeCompleted = options?.includeCompleted ?? true;
   const user = await requireUser();
@@ -204,6 +152,7 @@ export async function getAllTodos(options?: {
   });
 
   // totalCount / completedCount は常に全件を母数とする（進捗率の意味論維持）。
+  // includeCompleted: false のとき rows は未完了のみなので、完了数は別途 count する。
   const allCount = includeCompleted
     ? rows.length
     : await prisma.decisionTodo.count({ where: { projectId } });
@@ -213,13 +162,10 @@ export async function getAllTodos(options?: {
         where: { projectId, completedAt: { not: null } },
       });
 
-  const progress = allCount === 0 ? 0 : completedCount / allCount;
-
   return {
     todos: rows.map(toView),
     completedCount,
     totalCount: allCount,
-    progress,
   };
 }
 
