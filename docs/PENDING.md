@@ -36,14 +36,29 @@
 
 **達成判定**: LCP < 2.0s / INP < 180ms / CLS < 0.1 (Mobile)
 
-## Sprint W17 — AI 入口の完成（軸 C、約 3 営業日）
+## Sprint W17 — AI 入口の完成（軸 C）— ✅ 既に動作中（再確認の結果）
 
-| ID | タスク | 出典 | 所要 |
-|---|---|---|---|
-| W17-1 | **URL 取込 AI 抽出ロジック実装** (prompt は存在、本体未実装) | コード調査 (`url-extraction.ts`) | 2 日 |
-| W17-2 | **見積もり PDF 解析 UI 接続** (`extractEstimateItems` を呼び出し UI 実装) | コード調査 (`estimate-ai.ts`) | 1 日 |
+調査 (commit 696cc89 直後) で **両機能とも既に本実装が動いている** ことが判明:
 
-**達成判定**: 妻に URL / PDF を渡すだけで 80% 以上の項目が埋まる
+- **URL 取込 AI 抽出**: `src/server/actions/venues.ts` の `addVenueFromUrl` →
+  `confirmVenueFromUrl` パイプラインが Claude API を直接叩き、JSON-LD
+  fallback まで含めて完全実装。`add-venue-sheet.tsx` から呼ばれている。
+  当初疑った dead 状態 (prompt ファイルが孤立) は **別経路の inline prompt
+  に置き換わっていた** だけで、機能としては成立。
+- **見積もり PDF 解析**: `src/components/venues/estimate-pdf-upload.tsx` →
+  `analyzeEstimatePdf` (estimates.ts) → `extractEstimateItems`
+  (estimate-ai.ts) → Claude document-block API。`estimate-section.tsx`
+  にマウント済み。これも完全実装。
+
+副作用として 2 ファイルの dead code を削除:
+- `src/lib/prompts/url-extraction.ts` (どこからも import されていない)
+- `src/lib/prompts/estimate-analysis.ts` (同上)
+
+これに伴い `docs/ai/prompts/README.md` を実態に合わせて更新
+(inline prompt の存在を 📍 マークで明示)。
+
+**達成判定**: 妻に URL / PDF を渡すだけで 80% 以上の項目が埋まる ✅
+精度 tuning は Phase 2 (Release 2 AI Intelligence) のスコープ。
 
 ## Sprint W18 — 夫婦比較の正常化（軸 D、約 7 営業日）
 

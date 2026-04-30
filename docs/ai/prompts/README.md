@@ -7,6 +7,7 @@ Claude API に渡す system prompt の **人間が読む正本**。
 
 - ✅ md / ts 両方ある (drift 監視対象)
 - 🟡 ts のみ。md は未着手 ([`PENDING.md`](../../PENDING.md) 参照)
+- 📍 inline prompt — モジュール化されておらず、利用箇所のファイル内に直書き
 - ⏳ どちらも未実装 (Roadmap 該当 Release 待ち)
 
 ## ペアリング
@@ -15,12 +16,18 @@ Claude API に渡す system prompt の **人間が読む正本**。
 |---|---|---|---|
 | Coach chat | `src/lib/prompts/coach-chat.ts` | `coach.system.md` | ✅ |
 | Onboarding 推薦 | `src/lib/prompts/onboarding.ts` | `onboarding.system.md` | 🟡 |
-| URL 取込 | `src/lib/prompts/url-extraction.ts` | `url-extraction.system.md` | 🟡 |
-| 比較分析 | `src/lib/prompts/comparison.ts` | `comparison.system.md` | 🟡 |
+| 比較分析 (AI Insight Card) | `src/lib/prompts/comparison.ts` | `comparison.system.md` | 🟡 |
+| Decision Matrix Insight | `src/lib/prompts/matrix-insight.ts` | `matrix-insight.system.md` | 🟡 |
 | 口コミ要約 | `src/lib/prompts/review-summary.ts` | `review-summary.system.md` | 🟡 |
-| 見積解析 | `src/lib/prompts/estimate-analysis.ts` | `estimate-analysis.system.md` | 🟡 |
+| Fit Reason (1 行) | `src/lib/prompts/fit-reason.ts` | `fit-reason.system.md` | 🟡 |
+| Daily Ritual | `src/lib/prompts/ritual.ts` | `ritual.system.md` | 🟡 |
+| Vibe タグ自動サジェスト | `src/lib/prompts/vibe-suggest.ts` | `vibe-suggest.system.md` | 🟡 |
+| URL 取込 抽出 | `src/server/actions/venues.ts` 内 `URL_EXTRACTION_SYSTEM_PROMPT` | (inline) | 📍 |
+| 見積もり PDF 解析 | `src/server/actions/estimate-ai.ts` 内 `ESTIMATE_EXTRACT_SYSTEM_PROMPT` | (inline) | 📍 |
 
-> 🟡 のものは **コードでは動いている** が、md 仕様書がまだ書き起こされていない状態。`docs/PENDING.md` の "AI prompts md 化" 項目で扱い判断。
+> 🟡 のものは **コードでは動いている** が、md 仕様書がまだ書き起こされていない状態。`docs/PENDING.md` の Phase 2 "AI prompts md 化" で扱う。
+>
+> 📍 (inline) は addVenueFromUrl / analyzeEstimatePdf のパイプラインに溶け込んでおり、汎用モジュールとしては切り出されていない。Phase 2 でモジュール化検討。
 
 ## 更新プロトコル
 
