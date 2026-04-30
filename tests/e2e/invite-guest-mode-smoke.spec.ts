@@ -41,8 +41,16 @@ const DATABASE_URL = process.env.DATABASE_URL ?? "";
 const GUEST_SECRET = process.env.GUEST_COOKIE_SECRET_K1 ?? "";
 // hasEnv: basic DB seed is possible (tests 1–4 all need this).
 const hasEnv = Boolean(SUPABASE_URL && SERVICE_ROLE && DATABASE_URL);
+// When BASE_URL points at a remote deploy (preview / prod), the secret only
+// needs to live on the server. The local test runner's env doesn't matter
+// — `/guest-start` reads `process.env.GUEST_COOKIE_SECRET_K1` server-side.
+// For local dev runs (BASE_URL unset or localhost) we still gate on the
+// runner-local env so we don't loop on a 500.
+const TARGETS_REMOTE = Boolean(
+  process.env.BASE_URL && !process.env.BASE_URL.includes("localhost"),
+);
 // hasGuestSecret: /guest-start Route Handler can sign the cookie (tests 2–4).
-const hasGuestSecret = hasEnv && Boolean(GUEST_SECRET);
+const hasGuestSecret = hasEnv && (TARGETS_REMOTE || Boolean(GUEST_SECRET));
 
 // Lazy-init guard: createClient throws when secrets are empty strings.
 const admin = hasEnv

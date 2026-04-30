@@ -9,7 +9,9 @@ import { test, expect, Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 
-const BASE_URL = "https://haretoki.vercel.app";
+// Default targets the live prod alias; override via BASE_URL when pointing
+// at a Preview deployment (e.g. `BASE_URL=https://haretoki-... npx playwright test tests/e2e/prod-qa-smoke.spec.ts`).
+const BASE_URL = process.env.BASE_URL ?? "https://haretoki.vercel.app";
 const SCREENSHOT_DIR = path.join(process.cwd(), "test-results", "prod-qa");
 
 // Ensure screenshot directory exists
