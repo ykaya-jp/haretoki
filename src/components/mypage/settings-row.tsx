@@ -1,10 +1,15 @@
-"use client";
-
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Intentionally a Server Component: all animations are CSS-only
+// (`hover:`, `active:`, `group-hover:`), no state / effects / event
+// handlers. Marking this `"use client"` triggers a Server→Client function
+// serialization error when the page passes lucide-react icon components
+// as the `icon` prop (Functions cannot be passed directly to Client
+// Components — observed in prod 2026-04-30 on /mypage).
 
 interface SettingsRowProps {
   /** lucide-react icon shown on the left. Stroke width is fixed (1.6) so
