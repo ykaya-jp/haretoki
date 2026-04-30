@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
 interface ChatBubbleProps {
@@ -13,8 +12,10 @@ interface ChatBubbleProps {
 
 function TypingDots() {
   // Coach-3: tiny dots + language context so a blank bubble doesn't look
-  // stuck. Dots use a 2px bounce (y axis) instead of opacity pulse — feels
-  // more like "thinking" than a load spinner.
+  // stuck. Three dots bouncing 2px on the y axis, staggered 120ms apart.
+  // Pure CSS animation — framer-motion was holding the main thread during
+  // long Claude streams (W16-3 / performance-audit B-06). Keyframes live
+  // in globals.css under .animate-coach-typing-bounce.
   const dots = [0, 1, 2];
   return (
     <div
@@ -26,16 +27,10 @@ function TypingDots() {
       </span>
       <div className="flex items-center gap-1">
         {dots.map((i) => (
-          <motion.span
+          <span
             key={i}
-            className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--gold-warm)]"
-            animate={{ y: [0, -2, 0] }}
-            transition={{
-              duration: 0.7,
-              repeat: Infinity,
-              ease: [0.16, 1, 0.3, 1],
-              delay: i * 0.12,
-            }}
+            className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--gold-warm)] animate-coach-typing-bounce"
+            style={{ animationDelay: `${i * 120}ms` }}
           />
         ))}
       </div>
@@ -47,11 +42,11 @@ export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
   const showTyping = role === "assistant" && content.length === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: role === "user" ? 16 : -16, y: 8 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-      className={cn("flex gap-2.5", role === "user" ? "justify-end" : "justify-start")}
+    <div
+      className={cn(
+        "flex gap-2.5 animate-coach-bubble-enter",
+        role === "user" ? "justify-end" : "justify-start",
+      )}
     >
       {role === "assistant" && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)] shadow-[0_1px_4px_color-mix(in_oklab,var(--gold-warm)_22%,transparent)]">
@@ -94,6 +89,6 @@ export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
         {showTyping ? <TypingDots /> : content}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

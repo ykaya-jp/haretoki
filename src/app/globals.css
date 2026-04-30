@@ -663,6 +663,39 @@
   animation: cover-fade-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Coach chat — TypingDots replacement (was framer-motion).
+   Three dots bouncing on the y axis, staggered 120ms apart. CSS keeps
+   the main thread idle during long Claude streams. */
+@keyframes coach-typing-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-coach-typing-bounce {
+  animation: coach-typing-bounce 0.7s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Coach chat — bubble enter (was framer-motion initial/animate). Plain
+   opacity fade — drops the x-axis translate that thrashed layout when
+   streaming chunks landed back-to-back. 200ms target to stay under INP. */
+@keyframes coach-bubble-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-coach-bubble-enter {
+  animation: coach-bubble-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Photo lightbox — photo cross-fade on index change */
 @keyframes lightbox-photo-enter {
   from {
