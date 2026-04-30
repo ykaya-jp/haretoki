@@ -69,9 +69,9 @@
 | ~~W18-3~~ | ~~**権限境界の明確化**~~ → 既に正しく実装済 (commit 確認済): `requireProjectMembership` は `role` 返却済、`requireOwner` 既存、個人データ (rating/note/favorite) は own-only ガード済、共有データは意図的に両方 OK。policy を `src/server/auth.ts` の冒頭コメントに明文化 | venues.ts (D-1 再判定) | ✅ 完了 |
 | W18-3a | (旧 W18-3 の代わり) Partner Level 2 完了後に **destruction 系 (deleteVenue) の dual-confirmation** を検討 (Phase 2 商用化前) | — | 小 |
 | ~~W18-4~~ | ~~**V-4: venue 詳細 action-bar 分岐**~~ → **unified 判定で完了** (2026-04-30): isFavorite で verb / destination が両方変わると couple が混乱するため、両 state「比べる」+ destination 統一。`venue-action-bar.tsx:35-39` のコメントで設計判断を明文化、audit-master-A V-4 行に反映 | audit-master-A V-4 | ✅ 完了 |
-| W18-5 | **V-7: 見積項目 Combobox 化** (プリセット 40 種) | audit-master-A V-7 | 中 |
-| ~~W18-6~~ | ~~**V-9: 星評価 0.5 刻み水平バー + 楽観更新**~~ → ✅ 完了 (2026-04-30): 0.5 刻み水平バー + setRatings 楽観更新は既に実装済 (`rating-section.tsx` の `RatingBar` + `HALF_STEPS`)。W18-6 では `lastSavedRef` + 失敗時 dim-scoped rollback + `formErrors` 詳細エラートースト を追加。debounce 維持のため useOptimistic は未採用 (transition lifecycle が debounce 内で auto-revert を壊す) | audit-master-A V-9 | ✅ 完了 |
-| W18-7 | **CMP-5: MatrixInsight AI 分析カード** (比較ボードに「この 2 つはこう違う」) | audit-master-A CMP-5 | 大 |
+| ~~W18-5~~ | ~~**V-7: 見積項目 Combobox 化** (プリセット 40 種)~~ → ✅ 完了 (2026-04-30、並列セッション): estimate presets 55 件に拡張 + `defaultTier`、`tests/unit/lib/estimate-presets.test.ts` 5 件 GREEN (commit `051e673` / merge `979fda2`) | audit-master-A V-7 | ✅ 完了 |
+| ~~W18-6~~ | ~~**V-9: 星評価 0.5 刻み水平バー + 楽観更新**~~ → ✅ 完了 (2026-04-30): 0.5 刻み水平バー + setRatings 楽観更新は既に実装済 (`rating-section.tsx` の `RatingBar` + `HALF_STEPS`)。W18-6 では `lastSavedRef` + 失敗時 dim-scoped rollback + `formErrors` 詳細エラートースト を追加 (commit `b7d19f4`)。並列セッションで useOptimistic 版 (`c673307`、ブランチ `feat/w18-rating-optimistic` で保存中) も試作されたが debounce + jsdom test で auto-revert が再現できず、Phase 2 課題 (React 19 transition + debounce + jsdom 検証) として一旦留め置き | audit-master-A V-9 | ✅ 完了 |
+| ~~W18-7~~ | ~~**CMP-5: MatrixInsight AI 分析カード**~~ → ✅ 完了 (2026-04-30、並列セッション): `matrix-insight-card.tsx` 新規 + comparison-board に配置 + `compare/page.tsx` で SSR fetch (`getMatrixInsight().catch(() => null)`)、`tests/unit/components/comparison/matrix-insight-card.test.tsx` 3 件 GREEN (commit `a5da218` / merge `43fd0c8`) | audit-master-A CMP-5 | ✅ 完了 |
 
 **達成判定**: 妻が比較ボードを見て「私の意見が反映されてる」「AI のおすすめが出る」と認識
 
