@@ -12,6 +12,9 @@ import { addVenueFromUrl, confirmVenueFromUrl, createVenue, uploadVenuePhotos } 
 import { showToast } from "@/lib/toast";
 import { parseBulkUrls, BULK_URL_LIMIT } from "@/lib/url-bulk-parse";
 import { useRouter } from "next/navigation";
+import { VenueNameSearch } from "@/components/explore/venue-name-search";
+import type { VenueSearchHit } from "@/lib/venue-search/types";
+import { resolveVenueSearchHitUrl } from "@/server/actions/venue-search-resolve";
 
 interface ExtractedIndividualReview {
   title: string | null;
@@ -492,6 +495,130 @@ export function AddVenueSheet({
   };
 
   /**
+   * Run the 2-stage URL-import pipeline for a single URL and plug the
+   * result into `urlStates` so the skeleton card + success/merge UI fire
+   * exactly as they do for paste-based imports.
+   *
+   * Split out from `handleUrlSubmit` so the F1 name-search flow re-uses
+   * the same progressive-fill animation without duplicating the loop.
+   */
+  const runSingleUrlImport = async (url: string, displayName?: string) => {
+    setUrlInput(url);
+    // One-item state slot — mirrors what `handleUrlSubmit` populates.
+    setUrlStates([{ url, status: "loading", stage: "extract", filledFields: [] }]);
+    setUrlLoading(true);
+    setProgress({ done: 0, total: 1 });
+
+    try {
+      const extractResult = await addVenueFromUrl(url);
+      if (extractResult.error || !extractResult.extracted) {
+        setUrlStates((prev) =>
+          prev.map((s, i) =>
+            i === 0
+              ? { ...s, status: "error", error: extractResult.error ?? "読み取りに失敗" }
+              : s,
+          ),
+        );
+        return;
+      }
+      const extracted = extractResult.extracted;
+      const fieldsToFill: ("name" | "location" | "access" | "photo")[] = ["name"];
+      if (extracted.location) fieldsToFill.push("location");
+      if (extracted.accessInfo) fieldsToFill.push("access");
+      if (extracted.photoUrls.length > 0) fieldsToFill.push("photo");
+      setUrlStates((prev) =>
+        prev.map((s, i) => (i === 0 ? { ...s, extracted, filledFields: [] } : s)),
+      );
+      animateFill(0, fieldsToFill);
+      await new Promise((r) => setTimeout(r, fieldsToFill.length * 200 + 100));
+
+      const hasReviews = extracted.reviews.length > 0;
+      if (hasReviews) {
+        setUrlStates((prev) => prev.map((s, i) => (i === 0 ? { ...s, stage: "reviews" } : s)));
+        await new Promise((r) => setTimeout(r, 350));
+        setUrlStates((prev) => prev.map((s, i) => (i === 0 ? { ...s, stage: "summary" } : s)));
+      }
+
+      const confirmResult = await confirmVenueFromUrl(extracted, url);
+      if (!confirmResult.success) {
+        setUrlStates((prev) =>
+          prev.map((s, i) =>
+            i === 0 ? { ...s, status: "error", error: "登録に失敗" } : s,
+          ),
+        );
+        return;
+      }
+
+      const venueId = confirmResult.venue.id;
+      const mode = confirmResult.mode;
+      setUrlStates((prev) =>
+        prev.map((s, i) =>
+          i === 0
+            ? {
+                ...s,
+                status: "success",
+                stage: undefined,
+                mode,
+                updatedFields: confirmResult.updatedFields ?? [],
+                venueId,
+                existingName: mode === "merged" ? confirmResult.venue.name : undefined,
+                reviewSummaryStatus: confirmResult.reviewSummaryStatus,
+                individualReviewCount: confirmResult.individualReviewCount,
+              }
+            : s,
+        ),
+      );
+      const name = displayName ?? extracted.name;
+      if (mode === "merged") {
+        showToast("success", `✨ ${name} に情報を追加しました`);
+        router.push(`/venues/${venueId}?updated=1`);
+      } else {
+        showToast("success", `✨ ${name} を迎えました`);
+        router.push(`/venues/${venueId}`);
+      }
+    } catch (err) {
+      console.error("[runSingleUrlImport] failed", err);
+      setUrlStates((prev) =>
+        prev.map((s, i) =>
+          i === 0 ? { ...s, status: "error", error: "予期しないエラー" } : s,
+        ),
+      );
+    } finally {
+      setUrlLoading(false);
+      setProgress(null);
+    }
+  };
+
+  /**
+   * F1 name-search handoff.
+   *
+   * When the user taps a suggestion from the VenueNameSearch combobox we
+   * resolve the hit into a concrete URL (via a server action so the
+   * Google API key stays off the client bundle) and then re-use the same
+   * `addVenueFromUrl → confirmVenueFromUrl` pipeline the paste flow runs.
+   */
+  const handleNameSearchSelect = async (
+    hit: VenueSearchHit,
+    sessionToken: string,
+  ) => {
+    if (urlLoading) return;
+    try {
+      const { url } = await resolveVenueSearchHitUrl(hit, sessionToken);
+      if (!url) {
+        showToast(
+          "info",
+          "公式サイトが見つかりませんでした。URL を貼るか手動で入力してみてください",
+        );
+        return;
+      }
+      await runSingleUrlImport(url, hit.name);
+    } catch (err) {
+      console.error("[handleNameSearchSelect] failed", err);
+      showToast("error", "うまく取り込めませんでした。もう一度試してみてください");
+    }
+  };
+
+  /**
    * Escape hatch: user clicks "別の式場として追加" on a merged card because
    * the dedupe matcher landed on the wrong existing venue. We re-run the
    * confirm step with forceNew = true so a brand-new Venue row is created.
@@ -659,7 +786,32 @@ export function AddVenueSheet({
         </SheetHeader>
 
         <div className="space-y-5 pb-8">
-          {/* ── Primary: URL input — the hero of this sheet ── */}
+          {/* ── F1: Name search — the new primary entry point ── */}
+          <VenueNameSearch
+            disabled={urlLoading}
+            onSelect={(hit, token) => {
+              void handleNameSearchSelect(hit, token);
+            }}
+            onEscape={(target) => {
+              if (target === "manual") setManualOpen(true);
+              // "url" target: input is already visible below — no-op.
+            }}
+          />
+
+          {/* Hairline divider — gold gradient, same treatment as the
+              manual-form divider below the URL block. */}
+          <div
+            className="relative flex items-center py-0.5"
+            aria-hidden
+          >
+            <span className="flex-1 h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent" />
+            <span className="px-3 text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
+              または URL から
+            </span>
+            <span className="flex-1 h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent" />
+          </div>
+
+          {/* ── URL input — still supported for power users ── */}
           <div className="space-y-3">
             <div
               className="rounded-2xl p-0.5"
