@@ -159,7 +159,7 @@ export function SettingsForm({ initialConditions }: SettingsFormProps) {
         ) : (
           <>
             <Settings className="mr-2 h-4 w-4" />
-            設定を保存
+            設定を整える
           </>
         )}
       </Button>

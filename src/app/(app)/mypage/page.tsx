@@ -243,7 +243,7 @@ export default async function MyPage() {
             <div className="flex items-center gap-3">
               <Bookmark className="h-5 w-5 text-[var(--gold-warm)]" />
               <div>
-                <p className="font-medium">保存した検索条件</p>
+                <p className="font-medium">残した検索条件</p>
                 <p className="text-xs text-muted-foreground">新しい式場が出たらお知らせ</p>
               </div>
             </div>

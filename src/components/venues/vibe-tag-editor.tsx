@@ -46,7 +46,7 @@ export function VibeTagEditor({ venueId, initialTags }: VibeTagEditorProps) {
     startTransition(async () => {
       const result = await updateVenueVibeTags(venueId, localTags);
       if (result.success) {
-        showToast("success", "雰囲気タグを保存しました");
+        showToast("success", "雰囲気タグを残しました");
       } else {
         showToast("error", result.error ?? "保存に失敗しました");
       }

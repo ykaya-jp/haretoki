@@ -50,7 +50,7 @@ export function NotificationSettings({
     startTransition(async () => {
       try {
         await updateNotificationFrequency(mode);
-        toast.success("通知設定を保存しました");
+        toast.success("通知設定を残しました");
       } catch {
         setFrequency(prev);
         toast.error("保存できませんでした。もう一度お試しください。");

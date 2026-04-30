@@ -182,7 +182,7 @@ export function EstimatePdfUpload({
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-tone-success dark:text-tone-success">
           <Check className="h-4 w-4" />
-          <span>AI分析完了 — 内容を確認・編集してから保存してください</span>
+          <span>AI分析完了 — 内容を確認・編集してから残してください</span>
         </div>
 
         {/* Total */}
@@ -297,7 +297,7 @@ export function EstimatePdfUpload({
                 残しています…
               </>
             ) : (
-              "この内容で保存"
+              "この内容で残す"
             )}
           </Button>
           <Button variant="outline" onClick={handleReset}>

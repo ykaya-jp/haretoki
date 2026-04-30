@@ -130,7 +130,7 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
               className="flex w-full min-h-11 items-center gap-2 px-4 text-left text-sm text-destructive transition-colors hover:bg-destructive/5 active:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-              この式場を削除
+              この式場を手放す
             </button>
           </div>
         )}
@@ -148,10 +148,10 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm font-medium text-foreground">
-              「{venueName}」を削除しますか？
+              「{venueName}」を候補から外しますか？
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              評価・見積もり・見学記録もすべて削除されます。この操作は取り消せません。
+              評価・見積もり・見学記録もすべて手放します。この操作は取り消せません。
             </p>
             <div className="mt-4 flex gap-3">
               <button
@@ -168,7 +168,7 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
                 disabled={isPending}
                 className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-destructive text-sm font-medium text-destructive-foreground transition-transform active:scale-[0.98]"
               >
-                {isPending ? "削除中..." : "削除する"}
+                {isPending ? "手放しています..." : "手放す"}
               </button>
             </div>
           </div>

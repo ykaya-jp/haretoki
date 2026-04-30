@@ -47,11 +47,11 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
     startTransition(async () => {
       const result = await createSavedSearch(label.trim(), filters);
       if (result.ok) {
-        toast.success("保存しました");
+        toast.success("残しました");
         setOpen(false);
         setLabel("");
       } else if (result.reason === "limit") {
-        toast.error(`保存できる検索条件は最大 5 件です`);
+        toast.error(`残せる検索条件は最大 5 件です`);
         setOpen(false);
       } else {
         toast.error("保存に失敗しました。もう一度お試しください。");
@@ -66,18 +66,18 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
         render={
           <button
             type="button"
-            title={atLimit ? "保存できる検索条件は最大 5 件です" : "この条件を保存"}
+            title={atLimit ? "残せる検索条件は最大 5 件です" : "この条件を残す"}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--gold-warm)]/60 bg-[var(--gold-subtle)] px-3 text-xs text-[var(--gold-warm)] transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           />
         }
       >
         <Bookmark className="h-4 w-4" />
-        <span>この条件を保存</span>
+        <span>この条件を残す</span>
       </SheetTrigger>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader className="pb-2">
           <SheetTitle className="font-[family-name:var(--font-display)] font-light text-xl tracking-wide">
-            検索条件を保存
+            検索条件を残す
           </SheetTitle>
         </SheetHeader>
 
@@ -133,7 +133,7 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
             onClick={handleSave}
             disabled={isPending || !label.trim()}
           >
-            {isPending ? "残しています…" : "保存する"}
+            {isPending ? "残しています…" : "残す"}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -10,8 +10,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { SavedSearchFilters } from "@/lib/schemas";
 
 export const metadata: Metadata = {
-  title: "保存した検索条件",
-  description: "保存した検索条件と、現在の一致件数を確認できます。",
+  title: "残した検索条件",
+  description: "残した検索条件と、現在の一致件数を確認できます。",
 };
 
 function buildExploreUrl(filters: SavedSearchFilters): string {
@@ -106,7 +106,7 @@ export default async function SavedSearchesPage() {
           <span>Saved</span>
         </p>
         <h1 className="mt-2 text-h1 font-[family-name:var(--font-display)] font-light tracking-[-0.01em]">
-          保存した検索条件
+          残した検索条件
         </h1>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
           条件にあう新しい式場が出会ったら、そっとお知らせします。
@@ -131,7 +131,7 @@ export default async function SavedSearchesPage() {
             />
           ))}
           <p className="text-center text-xs text-muted-foreground pt-2">
-            最大 5 件まで保存できます（現在 {searches.length} 件）
+            最大 5 件まで残せます（現在 {searches.length} 件）
           </p>
         </div>
       )}

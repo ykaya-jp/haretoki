@@ -98,7 +98,7 @@ export function NameEdit({ currentName }: NameEditProps) {
         type="button"
         onClick={save}
         disabled={isPending}
-        aria-label="保存"
+        aria-label="残す"
         className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-all active:scale-[0.95] disabled:opacity-50"
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
