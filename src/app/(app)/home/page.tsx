@@ -12,6 +12,7 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { getHomeStage } from "@/components/home/home-stage";
 import { NextStepsCard } from "@/components/decision-todos/next-steps-card";
+import { InvitationArrivalToast } from "@/components/home/invitation-arrival-toast";
 
 export const metadata: Metadata = {
   title: "ホーム",
@@ -113,6 +114,10 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12">
+      {/* W20-4: surface invitation merge result via Sonner toast. Renders
+          nothing — reads `?invited=1&discarded=N` once on mount and
+          rewrites the URL so refreshes don't re-fire. */}
+      <InvitationArrivalToast />
       <HomeCover
         dateLabel={dateLabel}
         timeOfDayLabel={timeOfDayLabel}
