@@ -696,6 +696,25 @@
   animation: coach-bubble-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Explore venue card — entrance animation (was framer-motion AnimatePresence
+   + stagger + layout). The previous setup re-evaluated layout for every
+   card on each filter chip tap, costing 200-250ms INP. Pure CSS — staggered
+   per-row via inline animationDelay (capped at 4 to avoid an O(N) tail). */
+@keyframes venue-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-venue-card-enter {
+  animation: venue-card-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Photo lightbox — photo cross-fade on index change */
 @keyframes lightbox-photo-enter {
   from {

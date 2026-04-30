@@ -10,7 +10,6 @@ import { VenueCard } from "@/components/venues/venue-card";
 import { HeartCoachMark } from "@/components/venues/heart-coach-mark";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { getVenues } from "@/server/actions/venues";
 import type { VenueFilters } from "@/server/actions/venue-filters";
 import type { SavedSearchFilters } from "@/lib/schemas";
@@ -360,28 +359,27 @@ function VenueList({
   firstCardHeartRef: React.RefObject<HTMLDivElement | null>;
 }) {
   if (venues.length < VIRTUALIZE_THRESHOLD) {
+    // W16-4 (performance-audit B-04): the previous AnimatePresence +
+    // popLayout + layout setup re-measured every card on each filter tap,
+    // costing 200-250ms INP. CSS animation now fades in new rows; React
+    // reconciliation handles reorder/exit naturally without layout thrash.
     return (
       <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {venues.map((venue, i) => (
-            <motion.div
-              key={venue.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ delay: Math.min(i, 4) * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              layout
-            >
-              <VenueRowInner
-                venue={venue}
-                isFirst={i === 0}
-                isFavorite={favoriteSet.has(venue.id)}
-                fitReason={fitReasons[venue.id] ?? null}
-                firstCardHeartRef={firstCardHeartRef}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {venues.map((venue, i) => (
+          <div
+            key={venue.id}
+            className="animate-venue-card-enter"
+            style={{ animationDelay: `${Math.min(i, 4) * 50}ms` }}
+          >
+            <VenueRowInner
+              venue={venue}
+              isFirst={i === 0}
+              isFavorite={favoriteSet.has(venue.id)}
+              fitReason={fitReasons[venue.id] ?? null}
+              firstCardHeartRef={firstCardHeartRef}
+            />
+          </div>
+        ))}
       </div>
     );
   }
