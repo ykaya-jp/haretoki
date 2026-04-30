@@ -5,6 +5,7 @@ import {
   getFavoriteVenueIds,
 } from "@/server/actions/checklist";
 import { getCoupleWeights } from "@/server/actions/weights";
+import { getMatrixInsight } from "@/server/actions/matrix-insight";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -94,9 +95,10 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
   // partners' priorities, not only the viewer's. `.catch(null)` keeps the
   // page usable on the first visit when the weights row is absent and on
   // solo projects (getCoupleWeights returns couple=mine in that case).
-  const [matrix, coupleWeights] = await Promise.all([
+  const [matrix, coupleWeights, matrixInsight] = await Promise.all([
     getComparisonMatrix(ids),
     getCoupleWeights().catch(() => null),
+    getMatrixInsight().catch(() => null),
   ]);
   const insufficient = matrix.venues.length === 1;
 
@@ -125,7 +127,11 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
           ctaHref="/candidates"
         />
       ) : (
-        <ComparisonBoard matrix={matrix} weights={coupleWeights?.couple ?? null} />
+        <ComparisonBoard
+            matrix={matrix}
+            weights={coupleWeights?.couple ?? null}
+            matrixInsight={matrixInsight}
+          />
       )}
     </div>
   );
