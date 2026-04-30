@@ -1,3 +1,43 @@
+/**
+ * Auth & permission helpers — central definition of "who can do what".
+ *
+ * # Permission policy (W18-3 documentation)
+ *
+ * Two categories of data live under a Project; each enforces a different
+ * boundary. Server actions across this codebase already follow these
+ * rules consistently — this comment is the canonical reference.
+ *
+ * ## Shared data — both members can read AND mutate
+ *   Venue, Estimate, EstimateItem, VenuePlan, Visit, VenueChecklistItem,
+ *   AiAnalysis, ProjectMember (read), CoachSession.
+ *
+ * Either owner or partner can edit; cascade-delete via deleteVenue is
+ * intentionally allowed for both, with a UI confirm dialog as the actual
+ * guardrail (venue-overflow-menu.tsx). For Phase 1 (夫婦 2 人運用) this
+ * matches expectations — both decided to add the venue, both can let go.
+ *
+ * Use {@link requireProjectMembership} (returns `{ projectId, role }`).
+ *
+ * ## Personal data — owned by `userId`, only the owner can write
+ *   VenueFavorite, VisitRating, VisitNote, VisitNoteMedia (via VisitNote).
+ *
+ * Server actions hard-code `userId: user.id` on create/update/upsert,
+ * so a partner physically cannot set the other's heart / score / memo.
+ * No individual delete endpoints exist for these — the only path that
+ * removes them is the venue cascade above (deleteMany scoped by venueId).
+ *
+ * Use {@link requireProjectMembership} to confirm the user belongs to
+ * the project, then bind `userId: user.id` on the write itself.
+ *
+ * ## Owner-only operations
+ *   Issuing / revoking partner invitations, project lifecycle (delete /
+ *   transfer). These call {@link requireOwner}.
+ *
+ * Anything outside the three buckets above should be evaluated case by
+ * case before adding a new server action — append it to this comment
+ * once decided so future readers don't have to reverse-engineer the rule.
+ */
+
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/server/db";
 import { redirect } from "next/navigation";
