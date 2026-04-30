@@ -131,8 +131,10 @@ export async function getVenues(filters?: VenueFilters) {
     orderBy = { reviewEstimateDeltaPct: { sort: "asc", nulls: "last" } };
   }
 
+  // W20-3: anchor the filter at the call site so buildVenueWhere stays a
+  // pure unit-testable helper and the soft-delete guard rides in here once.
   const venues = await prisma.venue.findMany({
-    where,
+    where: { ...where, deletedAt: null },
     include: {
       scores: {
         select: { dimension: true, score: true, source: true },
@@ -235,8 +237,10 @@ export async function getVenue(id: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
+  // W20-3: a 手放された venue must look gone to every UI surface, so the
+  // PDP shouldn't render it from a stale link either.
   const venue = await prisma.venue.findFirst({
-    where: { id, projectId },
+    where: { id, projectId, deletedAt: null },
     include: {
       scores: true,
       estimates: { include: { items: true }, orderBy: { version: "desc" } },
@@ -253,48 +257,64 @@ export async function getVenue(id: string) {
   return venue;
 }
 
-/** Delete a venue and all related data (scores, estimates, visits, etc). */
+/**
+ * "手放す" the venue — W20-3 soft delete.
+ *
+ * Stamps `deletedAt` on the venue and on every per-visit record (visits,
+ * notes, ratings, checklist items) so the couple's PDP / candidates /
+ * compare views immediately stop surfacing the row, but nothing is
+ * physically removed. Their evidence stays queryable for an eventual
+ * 戻す UX, audit recovery, or a Phase 2 cleanup cron — none of which a
+ * hard `DELETE` would allow.
+ *
+ * What we DON'T mark deleted:
+ *  - `Estimate` / `EstimateItem` / `VenueScore` / `Review` / `VenueFavorite`
+ *    / `VenuePlan` / `VenueChecklistAnswer` are joined to a venue, but every
+ *    read path that surfaces them filters the parent venue first
+ *    (getVenueHeader, getComparisonMatrix, fetchFavorites, etc), so the
+ *    parent's `deletedAt` already hides them. Adding columns there would
+ *    inflate the migration without buying another guarantee.
+ *  - `VisitNoteMedia` is only ever read through its parent `VisitNote`,
+ *    same reason.
+ */
 export async function deleteVenue(
   venueId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Verify venue belongs to user's project
+  // Verify venue belongs to user's project AND is still live — calling
+  // deleteVenue twice is a no-op rather than a confusing "404."
   const venue = await prisma.venue.findFirst({
-    where: { id: venueId, projectId },
+    where: { id: venueId, projectId, deletedAt: null },
     select: { id: true },
   });
   if (!venue) {
     return { success: false, error: "式場が見つかりません" };
   }
 
-  // Cascade delete — Prisma schema should handle relations,
-  // but explicitly delete in order to be safe
+  const now = new Date();
   await prisma.$transaction([
-    prisma.venueChecklistAnswer.deleteMany({ where: { venueId } }),
-    prisma.venueFavorite.deleteMany({ where: { venueId } }),
-    prisma.venueScore.deleteMany({ where: { venueId } }),
-    prisma.review.deleteMany({ where: { venueId } }),
-    prisma.estimateItem.deleteMany({
-      where: { estimate: { venueId } },
+    prisma.visitRating.updateMany({
+      where: { visit: { venueId }, deletedAt: null },
+      data: { deletedAt: now },
     }),
-    prisma.estimate.deleteMany({ where: { venueId } }),
-    prisma.visitRating.deleteMany({
-      where: { visit: { venueId } },
+    prisma.visitChecklistItem.updateMany({
+      where: { visit: { venueId }, deletedAt: null },
+      data: { deletedAt: now },
     }),
-    prisma.visitChecklistItem.deleteMany({
-      where: { visit: { venueId } },
+    prisma.visitNote.updateMany({
+      where: { visit: { venueId }, deletedAt: null },
+      data: { deletedAt: now },
     }),
-    prisma.visitNoteMedia.deleteMany({
-      where: { visitNote: { visit: { venueId } } },
+    prisma.visit.updateMany({
+      where: { venueId, deletedAt: null },
+      data: { deletedAt: now },
     }),
-    prisma.visitNote.deleteMany({
-      where: { visit: { venueId } },
+    prisma.venue.update({
+      where: { id: venueId },
+      data: { deletedAt: now },
     }),
-    prisma.visit.deleteMany({ where: { venueId } }),
-    prisma.venuePlan.deleteMany({ where: { venueId } }),
-    prisma.venue.delete({ where: { id: venueId } }),
   ]);
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
@@ -328,7 +348,7 @@ async function getVenueHeaderCached(id: string, projectId: string) {
   cacheTag(`project:${projectId}`);
 
   return prisma.venue.findFirst({
-    where: { id, projectId },
+    where: { id, projectId, deletedAt: null },
     select: {
       id: true,
       projectId: true,
@@ -424,7 +444,7 @@ async function getVenueEstimatesCached(id: string, projectId: string) {
   cacheTag(`project:${projectId}`);
 
   const venue = await prisma.venue.findFirst({
-    where: { id, projectId },
+    where: { id, projectId, deletedAt: null },
     select: {
       estimates: { include: { items: true }, orderBy: { version: "desc" } },
     },
@@ -445,14 +465,22 @@ async function getVenueVisitsCached(id: string, projectId: string) {
   cacheTag(`venue:${id}`);
   cacheTag(`project:${projectId}`);
 
+  // W20-3: filter the parent venue and the per-relation `deletedAt` so a
+  // 手放された visit / note / rating that pre-dates the parent venue's
+  // own soft-delete (e.g. via a future per-record 手放す UI) doesn't
+  // leak back into the PDP.
   const venue = await prisma.venue.findFirst({
-    where: { id, projectId },
+    where: { id, projectId, deletedAt: null },
     select: {
       visits: {
+        where: { deletedAt: null },
         include: {
-          ratings: true,
-          notes: { include: { media: true } },
-          checklist: true,
+          ratings: { where: { deletedAt: null } },
+          notes: {
+            where: { deletedAt: null },
+            include: { media: true },
+          },
+          checklist: { where: { deletedAt: null } },
         },
       },
     },
@@ -465,9 +493,11 @@ export async function updateVenueStatus(id: string, status: VenueStatus) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
 
-  // Verify venue belongs to project
+  // Verify venue belongs to project AND is still live — refuse to change
+  // status on a 手放された row so a stale tab can't accidentally bring it
+  // back through the side door.
   const venue = await prisma.venue.findFirst({
-    where: { id, projectId },
+    where: { id, projectId, deletedAt: null },
   });
   if (!venue) throw new Error("式場が見つかりません");
 
@@ -514,7 +544,7 @@ export async function uploadVenuePhotos(
   let venueForUpload: { id: string } | null = null;
   if (venueId) {
     const venue = await prisma.venue.findFirst({
-      where: { id: venueId, projectId },
+      where: { id: venueId, projectId, deletedAt: null },
       select: { id: true },
     });
     if (!venue) return { success: false, error: "式場が見つかりません" };

@@ -343,6 +343,12 @@ model Venue {
 
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
+  /// W20-3: soft delete marker. `null` = live row, non-null timestamp = the
+  /// couple has 手放した the venue but the row stays in place so we can
+  /// surface 戻す later and audit the decision rather than vaporising the
+  /// data on a stray tap. Every read path that surfaces venues to the
+  /// user MUST `where: { deletedAt: null }`.
+  deletedAt      DateTime?   @map("deleted_at")
 
   project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   scores           VenueScore[]
@@ -360,6 +366,7 @@ model Venue {
   @@index([projectId, status])
   @@index([projectId, normalizedName])
   @@index([latitude, longitude])
+  @@index([projectId, deletedAt])
   @@map("venues")
 }
 
@@ -447,6 +454,10 @@ model Visit {
   calendarExportedAt DateTime?  @map("calendar_exported_at")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
+  /// W20-3: soft delete. Cascaded inside `deleteVenue`'s transaction so the
+  /// PDP / past-visits view stops surfacing the row alongside the parent
+  /// venue. Reserved for future per-visit "見学だけ取り消す" UI.
+  deletedAt   DateTime?   @map("deleted_at")
 
   venue     Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
   checklist VisitChecklistItem[]
@@ -454,6 +465,7 @@ model Visit {
   ratings   VisitRating[]
 
   @@index([venueId])
+  @@index([venueId, deletedAt])
   @@map("visits")
 }
 
@@ -468,6 +480,9 @@ model VisitChecklistItem {
   checkedAt DateTime?           @map("checked_at")
   sortOrder Int                 @default(0) @map("sort_order")
   metadata  Json?
+  /// W20-3: soft delete. Cascades via `deleteVenue`'s transaction; per-item
+  /// "手放す" UI is not in scope today but the column unlocks it later.
+  deletedAt DateTime?           @map("deleted_at")
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
@@ -488,6 +503,10 @@ model VisitNote {
   locationLat Decimal? @map("location_lat") @db.Decimal(9, 6)
   locationLng Decimal? @map("location_lng") @db.Decimal(9, 6)
   createdAt   DateTime @default(now()) @map("created_at")
+  /// W20-3: soft delete. Cascades via `deleteVenue`'s transaction; the same
+  /// column also lets the couple 手放す a single memo without losing the
+  /// rest of the visit's notes.
+  deletedAt   DateTime? @map("deleted_at")
 
   visit Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
   user  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -495,6 +514,7 @@ model VisitNote {
 
   @@index([visitId])
   @@index([userId])
+  @@index([visitId, deletedAt])
   @@map("visit_notes")
 }
 
@@ -520,12 +540,17 @@ model VisitRating {
   comment   String?
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime       @updatedAt @map("updated_at")
+  /// W20-3: soft delete. Cascades via `deleteVenue`; per-rating "手放す" is
+  /// not in scope today but the column unlocks it later without another
+  /// migration.
+  deletedAt DateTime?      @map("deleted_at")
 
   visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([visitId, userId, dimension])
   @@index([userId])
+  @@index([visitId, deletedAt])
   @@map("visit_ratings")
 }
 
