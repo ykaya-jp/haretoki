@@ -1,6 +1,10 @@
 ---
 name: parallel-feature
 description: 中〜大規模な新機能やリファクタを、architect→分割→implementer 並列→reviewer→tester の流れで回す playbook。複数ファイル・複数ルートに跨る変更や、Phase単位の実装で使う。
+paths:
+  - "src/**/*.{ts,tsx,js,jsx}"
+  - "tests/**/*"
+  - "prisma/**/*"
 ---
 
 # parallel-feature

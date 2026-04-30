@@ -1,6 +1,6 @@
 ---
 name: db-designer
-description: 結婚式場データのスキーマ設計を専門とするエージェント
+description: MUST BE USED before editing prisma/schema.prisma or creating migrations. 結婚式場データの Prisma スキーマ設計を専門とする。Venue / Estimate / Visit / Decision など主要モデルの不変条件を踏まえて変更影響を判定する（schema は single-writer 必須）。
 tools:
   - Read
   - Write

@@ -1,6 +1,6 @@
 ---
 name: data-analyst
-description: 式場データの分析・可視化を行うエージェント
+description: Use when analyzing or visualizing scraped venue data with Python/pandas. scripts/ 配下でのデータ集計・分布確認・サニティチェック・CSV/JSON 整形に使う。Web アプリのコードは触らない。
 tools:
   - Read
   - Write

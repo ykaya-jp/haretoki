@@ -1,0 +1,28 @@
+{
+  "$comment": "Project-shared MCP servers. Copy this file to .mcp.json and fill credentials via env vars. Never commit .mcp.json with real values. See docs/harness/mcp.md (TBD) for usage notes.",
+
+  "$comment.precedence": "Managed > Project (.claude/.mcp.json) > User (~/.claude/.mcp.json). Plugin-provided MCP (refero, vercel, context7) is configured separately via enabledPlugins in settings.json and does NOT belong here.",
+
+  "mcpServers": {
+    "_github_disabled_example": {
+      "$comment": "Enable when team needs GitHub PR/issue automation from inside Claude Code. Provide GITHUB_TOKEN via env (~/.claude/.env or shell).",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      },
+      "disabled": true
+    },
+
+    "_supabase_disabled_example": {
+      "$comment": "Enable for direct Supabase schema/SQL operations. Use a dedicated read-only key when possible.",
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server"],
+      "env": {
+        "SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}"
+      },
+      "disabled": true
+    }
+  }
+}

@@ -1,6 +1,10 @@
 ---
 name: parallel-review
 description: 実装完了後のレビューを多視点で並列実行し、指摘を反映するまでの playbook。PR作成前、merge前、Phase完了時に使う。
+paths:
+  - "src/**/*.{ts,tsx,js,jsx}"
+  - "tests/**/*"
+  - "prisma/**/*"
 ---
 
 # parallel-review

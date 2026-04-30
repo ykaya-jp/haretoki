@@ -1,5 +1,9 @@
 # Haretoki (晴れ時)
 
+@AGENTS.md
+
+> 上記 import で Claude / Codex / Cursor が同じ "agent contract"（Quick Orient / Must-Read / Conventions / Safe & Dangerous Commands / Task Completion Checklist / Escalation）を共有する。Claude 固有の補足はこの CLAUDE.md 本体に書く。
+
 ## Overview
 結婚式場の比較・評価・最終決定を支援するWebアプリ。AIコーチが二人の好みを理解し、見積もりの落とし穴を先回りで教え、自然に式場選びを導く。モバイルファースト（375px基準）、商用化を視野に入れている。
 

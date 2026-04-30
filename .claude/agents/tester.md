@@ -1,6 +1,6 @@
 ---
 name: tester
-description: lint / typecheck / unit test / e2e test を実行して結果を要約する。実装完了後の検証フェーズで使う。失敗時は失敗ログの該当箇所だけを抜粋して報告する。コードは編集しない。
+description: MUST BE USED after implementation completes, before claiming work is done. lint / typecheck / unit test / e2e test を実行して結果を要約する。失敗時は失敗ログの該当箇所だけを抜粋して報告する。コードは編集しない。
 tools: Read, Bash, Grep
 model: haiku
 ---

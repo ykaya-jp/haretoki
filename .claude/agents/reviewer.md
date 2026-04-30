@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: 実装が完了したコードを、仕様逸脱・回帰・命名・保守性・テスト不足・セキュリティの観点でレビューする。implementer や single-writer の作業後に必ず使う。コードは編集しない、報告のみ。
+description: MUST BE USED after any code is written or edited, before commit / PR / merge. 仕様逸脱・回帰・命名・保守性・テスト不足・セキュリティの観点でレビューする。コードは編集しない、報告のみ（read-only）。
 tools: Read, Grep, Glob, Bash
 model: opus
 ---

@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: スコープが明確に切られた実装タスクを担当。architect が分割した1単位、または同一ファイル競合が無いと判定された worktree 内での実装に使う。コードを書く・編集する。
+description: Use after architect has decomposed a task into bounded units. スコープが明確に切られた実装タスクを担当。architect が分割した 1 単位、または同一ファイル競合が無いと判定された worktree 内での実装に使う。コードを書く・編集する。
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---

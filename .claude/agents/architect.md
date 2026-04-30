@@ -1,6 +1,6 @@
 ---
 name: architect
-description: 影響範囲を読み解き、実装を最小単位に分割し、single-writer / subagent / agent-team / git-worktree のどれを使うべきかを判定する。新機能・大規模リファクタ・複数ファイルを跨ぐ修正の前に必ず使う。コードは書かない。
+description: MUST BE USED before any new feature, large refactor, or change spanning 3+ files. 影響範囲を読み解き、実装を最小単位に分割し、single-writer / subagent / agent-team / git-worktree のどれを使うべきかを判定する。コードは書かない、設計判断のみ。
 tools: Read, Grep, Glob, Bash
 model: opus
 ---

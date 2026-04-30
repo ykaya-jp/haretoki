@@ -21,6 +21,7 @@ Thumbs.db
 # Claude Code（ローカル設定は共有しない）
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/.mcp.json
 
 # Supabase
 supabase/.temp/

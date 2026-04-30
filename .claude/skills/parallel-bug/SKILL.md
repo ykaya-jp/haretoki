@@ -1,6 +1,10 @@
 ---
 name: parallel-bug
 description: バグ報告や予期しない挙動を、root-cause 調査 → 修正 → 回帰防止テストの流れで潰す playbook。複数原因や複数画面に跨る不具合、本番障害、E2E失敗の調査に使う。
+paths:
+  - "src/**/*.{ts,tsx,js,jsx}"
+  - "tests/**/*"
+  - "prisma/**/*"
 ---
 
 # parallel-bug
