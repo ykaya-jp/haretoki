@@ -209,11 +209,16 @@ test.describe("F4 guest-mode smoke — Level 1 invite journey", () => {
     await assertNoErrorBoundary(page);
 
     // Level 1 guest view specific copy (from /invite/[token]/(guest)/view/page.tsx).
-    // h1 renders "テスト招待者さんの相棒さん。"
-    await expect(page.getByText("相棒さん")).toBeVisible({ timeout: 15000 });
+    // h1 renders "<inviter>さんの相棒さん。" — target the <h1> directly so we
+    // don't strict-mode-collide with the sr-only badge that also says
+    // "相棒さんとしてご覧になっています。" in the (guest) layout.
+    await expect(
+      page.getByRole("heading", { level: 1, name: /相棒さん/ }),
+    ).toBeVisible({ timeout: 15000 });
 
-    // Read-only mode badge.
-    await expect(page.getByText("読み取り専用")).toBeVisible();
+    // Read-only mode badge (visible to assistive tech via the aria-label
+    // wrapper; the visible chip itself just says "読み取り専用").
+    await expect(page.getByText("読み取り専用").first()).toBeVisible();
   });
 
   test("3. htk_guest cookie is set after 「ここだけ見る」", async ({
@@ -261,9 +266,14 @@ test.describe("F4 guest-mode smoke — Level 1 invite journey", () => {
     await page.waitForLoadState("networkidle");
 
     await assertNoErrorBoundary(page);
-    await expect(page.getByText("相棒さん")).toBeVisible({ timeout: 15000 });
+    // Same h1 target as test 2 — "相棒さん" appears in both the heading and
+    // the (guest) layout's sr-only badge, so role-based scoping avoids the
+    // strict-mode 2-match violation.
+    await expect(
+      page.getByRole("heading", { level: 1, name: /相棒さん/ }),
+    ).toBeVisible({ timeout: 15000 });
 
     // Upgrade CTA is present in the footer.
-    await expect(page.getByText("ここから参加する")).toBeVisible();
+    await expect(page.getByText("ここから参加する").first()).toBeVisible();
   });
 });
