@@ -6,6 +6,7 @@ const PAGES_REQUIRING_AUTH = [
   { path: "/candidates", name: "Candidates" },
   { path: "/coach", name: "Coach" },
   { path: "/onboarding", name: "Onboarding" },
+  { path: "/preparation", name: "Preparation" },
 ];
 
 test.describe("Page Loading", () => {
