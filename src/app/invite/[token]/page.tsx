@@ -86,7 +86,14 @@ export default async function InvitePage({
 
     const result = await consumeInvitationLink(token);
     if (result.ok) {
-      redirect("/home?invited=1");
+      // W20-4: forward the auto-discard count so /home can toast
+      // "以前の空の式場さがしは整理しました" instead of letting the
+      // partner wonder why their throw-away project vanished.
+      const params = new URLSearchParams({ invited: "1" });
+      if (result.discardedProjectCount > 0) {
+        params.set("discarded", String(result.discardedProjectCount));
+      }
+      redirect(`/home?${params.toString()}`);
     }
     if (result.reason === "stale") {
       // Stale but authed → quiet redirect (design §2.5)

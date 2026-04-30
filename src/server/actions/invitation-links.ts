@@ -118,7 +118,19 @@ export async function createInvitationLink(): Promise<InvitationLink> {
  * success; already-consumed-by-somebody-else returns "stale".
  */
 export async function consumeInvitationLink(token: string): Promise<
-  | { ok: true; projectId: string }
+  | {
+      ok: true;
+      projectId: string;
+      /** W20-4: how many auto-created empty projects we discarded as part of
+       *  this consume. The UI uses this to surface a "以前の空の式場さがしを
+       *  整理しました" toast on /home so the partner isn't surprised that
+       *  their throw-away project disappeared during the merge. 0 in the
+       *  steady state; almost always 1 when the partner had previously
+       *  signed up before tapping the link. Capped only by however many
+       *  empty projects they collected — non-empty projects abort consume
+       *  with `already_joined` instead, so they never get counted here. */
+      discardedProjectCount: number;
+    }
   | { ok: false; reason: "invalid" | "expired" | "stale" | "self" | "already_joined" }
 > {
   const user = await requireUser();
@@ -209,7 +221,11 @@ export async function consumeInvitationLink(token: string): Promise<
 
   revalidatePath("/home");
   revalidatePath("/mypage");
-  return { ok: true, projectId: invitation.projectId };
+  return {
+    ok: true,
+    projectId: invitation.projectId,
+    discardedProjectCount: discardable.length,
+  };
 }
 
 /**

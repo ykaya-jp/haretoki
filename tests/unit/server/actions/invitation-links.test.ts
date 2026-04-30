@@ -112,7 +112,14 @@ describe("consumeInvitationLink — isAutoCreatedEmptyProject guard", () => {
       "@/server/actions/invitation-links"
     );
     const result = await consumeInvitationLink("a".repeat(64));
-    expect(result).toEqual({ ok: true, projectId: "proj-owner" });
+    // W20-4: success payload now reports how many empty projects were
+    // swept away during the merge so the caller (page.tsx) can pass it
+    // through to /home for the toast.
+    expect(result).toEqual({
+      ok: true,
+      projectId: "proj-owner",
+      discardedProjectCount: 0,
+    });
     expect(transactionMock).toHaveBeenCalledOnce();
     expect(projectDelete).not.toHaveBeenCalled();
   });
@@ -158,7 +165,13 @@ describe("consumeInvitationLink — isAutoCreatedEmptyProject guard", () => {
       "@/server/actions/invitation-links"
     );
     const result = await consumeInvitationLink("a".repeat(64));
-    expect(result).toEqual({ ok: true, projectId: "proj-owner" });
+    // W20-4: discardedProjectCount must be the discardable.length so the
+    // /home toast can phrase "以前の空の式場さがし(N件)を整理しました".
+    expect(result).toEqual({
+      ok: true,
+      projectId: "proj-owner",
+      discardedProjectCount: 1,
+    });
     expect(projectDelete).toHaveBeenCalledWith({
       where: { id: "proj-empty" },
     });
