@@ -75,20 +75,18 @@
 
 **達成判定**: 妻が比較ボードを見て「私の意見が反映されてる」「AI のおすすめが出る」と認識
 
-## Sprint W19 — 視覚整合・最重要刷新（軸 B、約 5 営業日）
+## Sprint W19 — 視覚整合・最重要刷新（軸 B） ✅ 完了 prod 反映 (2026-04-30)
 
-editorial refresh 残 9 画面のうち、**直撃する 3 + コピー + 44px** に集中。残細部は W21。
-
-| ID | タスク | 出典 | 所要 |
+| ID | タスク | 出典 | 状態 |
 |---|---|---|---|
-| W19-1 | **mypage 大刷新** (4 種 card 混在 → editorial section + SettingsRow 統一) | audit-sub-A4 P0-1 | 2-3 日 |
-| W19-2 | **44px タッチターゲット 12 箇所修正** (checklist/compare/review 等) | audit-sub-A4 P0-3 | 1 日 |
-| W19-3 | **way-home mood emoji → lucide icons + spring** | audit-sub-A4 P1-5 | 半日 |
-| W19-4 | **icon token h-3 → h-4 全画面置換** | audit-sub-A4 P0-2 | 半日 |
-| W19-5 | **copy-lexicon 違反置換** (「保存」→「残す」/「削除」→「手放す」/「予約する」→「見学してみる」 19 箇所) | copy-lexicon.md grep | 半日 |
-| W19-6 | **急かしコピー削除** (`今すぐ` 2-3 箇所 → `見て`) | audit-sub-A4 / copy-lexicon | 0.25 日 |
+| ~~W19-1~~ | ~~**mypage 大刷新**~~ → ✅ 完了: SettingsRow component 新規 (`src/components/mypage/settings-row.tsx`、unit test 5 件 GREEN)、More section の 3 つの個別 card を 1 つの divide-y list に統一、Profile / Partner も grid label で統一、`var(--hairline-gold)` token に置換、page-level rhythm `space-y-12` (commits `61918b0` + `ec8d9b2` / merge `4d61297`) | audit-sub-A4 P0-1 | ✅ 完了 |
+| ~~W19-2~~ | ~~**44px タッチターゲット**~~ → ✅ 完了: `checklist-selection-view.tsx` + `review-estimate-edit-sheet.tsx` の sub-44px target を `min-h-11` に (commit `4a66f7c` / merge `f768af7`) | audit-sub-A4 P0-3 | ✅ 完了 |
+| ~~W19-3~~ | ~~**way-home mood emoji → lucide icons + spring**~~ → ✅ 完了: `way-home-flow.tsx` で emoji 廃止 + Smile/Meh/Frown 等の lucide icon + spring tap style (commit `77db9a4`) | audit-sub-A4 P1-5 | ✅ 完了 |
+| ~~W19-4~~ | ~~**icon token h-3 → h-4 全画面置換**~~ → ✅ 完了: 7 ファイル (journey/saved-searches/notifications/settings/checklist/visits-prep/back-link) の breadcrumb / arrow icons を統一 (commit `25ea3e6` / merge `f768af7`) | audit-sub-A4 P0-2 | ✅ 完了 |
+| ~~W19-5~~ | ~~**copy-lexicon 違反置換** 19 箇所~~ → ✅ 完了: 13 ファイル 19 文字列を「残す / 手放す / 見学してみる」系に置換 (commit `fe682f4` / merge `726af46`) | copy-lexicon.md grep | ✅ 完了 |
+| ~~W19-6~~ | ~~**急かしコピー削除**~~ → ✅ 完了: `ai-recommendations.tsx` の restore button から「今すぐ」系 pressure 文言を除去 (commit `892c248` / merge `726af46`) | audit-sub-A4 / copy-lexicon | ✅ 完了 |
 
-**達成判定**: 全 14 画面で「急に古い」と感じない、コピーで急かされない
+**達成判定**: 全 14 画面で「急に古い」と感じない、コピーで急かされない ✅
 
 ## Sprint W20 — 見学体験 + データ信頼性（軸 E、約 5 営業日）
 
