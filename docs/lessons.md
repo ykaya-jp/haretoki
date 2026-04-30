@@ -85,3 +85,20 @@
 - 状況: SVGでロゴを手書きしようとしたが、ユーザーから「ダサそうだからCodexとかに作らせなよ」のフィードバック
 - 解決: ChatGPT (DALL-E) でロゴ、ヒーロー画像、空ステートイラスト、認証ページパターン、OGP画像を生成
 - ルール: **ロゴ・イラスト・パターンはAI画像生成ツール（DALL-E/Midjourney）に任せる。コードで作ろうとしない**
+
+### マイグレーション/デプロイ
+
+**`_prisma_migrations` の failed row が build を巻き込む (P3009)**
+- 状況: W15 F1-F4 を develop に merge → push したら Vercel preview build が `Error: P3009`。`20260421132434_enable_realtime_pub` の row が failed 状態のまま残っており、それ以降の migration が deploy できない。`alter publication supabase_realtime add table ...` 系の SQL は publication が既に持っているテーブルを 2 度目に add すると error を吐く一方、Supabase 側のテーブルは実態として publication 入りしているケースが該当
+- 解決: `vercel env pull --environment=preview .env.preview.tmp` → preview 用の prisma config (一時ファイル) → `npx prisma migrate resolve --config prisma.config.preview.ts --applied 20260421132434_enable_realtime_pub` で row を applied に書き換え。Production 環境も同様に確認。終わったら tmp と一時 config は削除。
+- ルール: **`alter publication ... add table` は `IF NOT EXISTS` 相当の冪等性が無いので必ず `do $$ begin ... exception when ... end $$;` で wrap する。failed row は CI を止めるので、merge 前に `prisma migrate status` を全環境で確認**
+
+**`Server Action ファイル内の "_helper" は公開エンドポイント**
+- 状況: F3 で `src/server/actions/decision-todos.ts` (`"use server"` 付き) に `_seedDecisionTodosForProject` / `_resetDecisionTodosForProject` を内部ヘルパー扱いで export していたが、Next.js は `"use server"` モジュールの **全 export を RPC エンドポイントとして自動公開**する。アンダースコア prefix は名前のヒントで Next.js のルーティングには影響しない。`requireProjectMembership` ガード抜きで他テナントの decision_todos を任意に reset できる状態だった
+- 解決: ヘルパー本体を `src/lib/decision-todos/seed.ts` (plain module、`"use server"` なし) に移し、Server Action 側は `requireUser` + `requireProjectMembership` を通したラッパーだけに整理
+- ルール: **`"use server"` ファイル内の export は全部 public API として扱う。内部ヘルパーは plain module に分離する。`_` prefix を信用しない**
+
+**Server Component 内で `cookies().set()` は Next.js 16 で必ず throw**
+- 状況: F4 で `src/app/invite/[token]/(guest)/view/page.tsx` の Server Component 内で cookie の screenCount bump のために `cookieStore.set(...)` を呼んでいたが、Next.js 16 の readonly cookie adapter は phase !== 'action' で `ReadonlyRequestCookiesError` を必ず throw する。Level 1 guest 体験が完全に死んだ
+- 解決: bump を `src/app/invite/[token]/(guest)/bump/route.ts` の POST Route Handler に切り出し、client component (`BumpOnMount`) が mount 時に 1 回 fetch する形に
+- ルール: **Server Component は cookie を read のみ。set/delete は Server Action または Route Handler に切り出す**
