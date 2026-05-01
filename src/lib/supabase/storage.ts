@@ -49,7 +49,11 @@ const BUCKET_OPTIONS: Record<string, BucketOptions> = {
   },
   estimates: {
     public: false,
-    fileSizeLimit: 20 * 1024 * 1024,
+    // Round 12 (2026-05-02) — bumped from 20MB to 32MB so multi-page /
+    // image-heavy 見積書 PDFs flow through. The Anthropic Files API path
+    // (src/server/actions/estimate-ai.ts) is the binding ceiling at 32MB,
+    // so this matches.
+    fileSizeLimit: 32 * 1024 * 1024,
     allowedMimeTypes: ["application/pdf"],
   },
 };

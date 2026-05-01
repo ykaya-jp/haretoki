@@ -15,6 +15,11 @@ last_synced: 2026-05-02
 
 ## 改訂履歴
 
+- **2026-05-02 round 12** — PDF 大容量化 + UI 信頼性可視化:
+  - **Anthropic Files API 移行** (`src/server/actions/estimate-ai.ts`): 既存の signed URL 経路に加えて、`client.beta.files.upload` 経由で PDF を Anthropic にアップロードし、`messages.create` の document block で `{ type: 'file', file_id }` 参照する経路を **新 default** として追加。caller (`analyzeEstimatePdf`) は file buffer を直接渡すため signed URL の発行 + Anthropic 側 fetch がスキップされる。Beta header `files-api-2025-04-14` を upload と (実装上は) 削除に付与。upload 後、ベストエフォートで `client.beta.files.delete` を fire-and-forget で実行 (Anthropic 側 file TTL によるクリーンアップにも頼る)
+  - **PDF サイズ上限**: 10MB → **32MB** に拡大 (`PDF_MAX_SIZE` in `src/server/actions/estimates.ts` + `BUCKET_OPTIONS.estimates.fileSizeLimit` in `src/lib/supabase/storage.ts` + `PDF_MAX_BYTES` in `src/components/venues/estimate-pdf-upload.tsx` を同期)
+  - **シグネチャ拡張**: `extractEstimateItems(input: string | { buffer: Buffer; filename: string })`。string 経路 (signed URL) はそのまま残し、object 経路 (Files API) を新たに受け付ける。既存 caller (test 含む) は影響なし
+  - **「要確認」UI バッジ**: estimate-pdf-upload.tsx で `result.warnings` を state に保持し、AI 分析結果フォーム冒頭に **AlertTriangle + warnings リスト**を tone-warning カラーで surface。round 7 で server side に追加済の sanity-check (sum-vs-total drift > 10% 等) を初めて画面で見せる経路
 - **2026-05-02 round 3** — Phase 2.A 見積もり PDF 解析の精度強化:
   - **A. Coverage rules**: multi-page 跨ぎ / merged cells / フッター項目 / ※注釈 / 合計欄区別 を明文化
   - **B. Numeric / tax / unit normalization**: 千円・万円単位の検出と yen 正規化、税抜/税込混在の税込ベース統一、消費税単独行の按分、軽減税率 8% 判定

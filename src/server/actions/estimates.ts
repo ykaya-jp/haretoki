@@ -99,7 +99,12 @@ export async function getEstimatesForVenue(venueId: string) {
 // Claude read the PDF natively — layout intact — so per-line unit/quantity
 // recovery works and scans go through vision instead of dying silently.
 
-const PDF_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+// Round 12 (2026-05-02) — bumped from 10MB to 32MB after migrating the
+// extraction path from base64 inline upload to the Anthropic Files API.
+// The Supabase `estimates` bucket also caps at 32MB (raised in the same
+// PR via storage helper), so this is the binding ceiling.
+const PDF_MAX_SIZE = 32 * 1024 * 1024;
+const PDF_MAX_SIZE_MB_LABEL = "32MB";
 
 export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   // Auth check
@@ -135,7 +140,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   }
 
   if (file.size > PDF_MAX_SIZE) {
-    return { error: "ファイルサイズは10MB以下にしてください" };
+    return { error: `ファイルサイズは${PDF_MAX_SIZE_MB_LABEL}以下にしてください` };
   }
 
   try {
@@ -144,14 +149,21 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Supabase Storage. ensureBucket() inside handles the
-    // "estimates" bucket's first-run creation (private, 20 MB cap,
+    // "estimates" bucket's first-run creation (private, 32 MB cap,
     // application/pdf only) so the pipeline self-heals on fresh envs.
+    // We store the PDF independently of the AI extraction so the user
+    // can revisit + edit the source later, even if the AI step failed.
     const fileName = `${Date.now()}-${file.name}`;
     const pdfUrl = await uploadEstimatePdf(buffer, fileName, projectId, venueId);
 
-    // Hand the PDF URL to Claude via document-block. `extractEstimateItems`
-    // issues its own signed URL so the private bucket stays locked down.
-    const result = await extractEstimateItems(pdfUrl);
+    // Round 12: hand the buffer + filename directly to extractEstimateItems
+    // so it uploads via the Anthropic Files API rather than re-fetching the
+    // PDF over a signed URL. Cuts one round-trip + lifts the practical PDF
+    // cap from base64-inline-friendly (~5MB) to the Files API limit.
+    const result = await extractEstimateItems({
+      buffer,
+      filename: file.name,
+    });
     if (!result.ok) {
       return { error: result.error };
     }

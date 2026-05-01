@@ -253,6 +253,9 @@ describe("parseEstimateExtraction", () => {
 
 // Claude SDK call is mocked — we never hit the real API in unit tests.
 const messagesCreateMock = vi.fn();
+// Round 12: Files API path also mocked (buffer-based caller path).
+const filesUploadMock = vi.fn();
+const filesDeleteMock = vi.fn();
 
 vi.mock("@anthropic-ai/sdk", () => {
   class APIError extends Error {
@@ -266,6 +269,12 @@ vi.mock("@anthropic-ai/sdk", () => {
   // mirrors the SDK's public surface we exercise in this file.
   class AnthropicStub {
     messages = { create: messagesCreateMock };
+    beta = {
+      files: {
+        upload: filesUploadMock,
+        delete: filesDeleteMock,
+      },
+    };
     constructor(_opts: unknown) {}
   }
   // Attach APIError as a static so the `err instanceof Anthropic.APIError`
@@ -287,6 +296,8 @@ describe("extractEstimateItems", () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
     delete process.env.DISABLE_AI;
     messagesCreateMock.mockReset();
+    filesUploadMock.mockReset();
+    filesDeleteMock.mockReset();
   });
 
   afterEach(() => {
@@ -372,5 +383,160 @@ describe("extractEstimateItems", () => {
     const result = await extractEstimateItems("https://x/y.pdf");
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toMatch(/network down/);
+  });
+
+  // --- Round 12: Files API (buffer) path --------------------------------
+
+  const validClaudeResponse = {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          total: 2_800_000,
+          items: [
+            {
+              category: "venue_fee",
+              itemName: "会場使用料",
+              amount: 300_000,
+              tier: "unknown",
+            },
+          ],
+          predictedFinal: 3_200_000,
+          analysisNote: "標準的な上振れ幅を見込みました。",
+        }),
+      },
+    ],
+  };
+
+  it("uploads the buffer via Files API and references file_id in the document block", async () => {
+    filesUploadMock.mockResolvedValueOnce({ id: "file_abc123" });
+    messagesCreateMock.mockResolvedValueOnce(validClaudeResponse);
+    filesDeleteMock.mockResolvedValueOnce({ id: "file_abc123" });
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+
+    const buffer = Buffer.from("%PDF-1.4 fake pdf bytes");
+    const result = await extractEstimateItems({
+      buffer,
+      filename: "estimate.pdf",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.total).toBe(2_800_000);
+    }
+
+    // 1. Files API upload was called with the beta header inside params
+    //    (SDK's FileUploadParams carries betas, not RequestOptions).
+    expect(filesUploadMock).toHaveBeenCalledTimes(1);
+    const uploadCall = filesUploadMock.mock.calls[0];
+    expect(uploadCall[0]).toMatchObject({
+      betas: ["files-api-2025-04-14"],
+    });
+    expect(uploadCall[0]).toHaveProperty("file");
+
+    // 2. messages.create received the file_id reference (not a URL)
+    expect(messagesCreateMock).toHaveBeenCalledTimes(1);
+    const userMessage = messagesCreateMock.mock.calls[0][0].messages[0];
+    expect(userMessage.content[0]).toEqual({
+      type: "document",
+      source: { type: "file", file_id: "file_abc123" },
+    });
+  });
+
+  it("best-effort deletes the uploaded file after extraction (cleanup)", async () => {
+    filesUploadMock.mockResolvedValueOnce({ id: "file_xyz" });
+    messagesCreateMock.mockResolvedValueOnce(validClaudeResponse);
+    filesDeleteMock.mockResolvedValueOnce({ id: "file_xyz" });
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    await extractEstimateItems({
+      buffer: Buffer.from("pdf bytes"),
+      filename: "x.pdf",
+    });
+
+    expect(filesDeleteMock).toHaveBeenCalledTimes(1);
+    const deleteCall = filesDeleteMock.mock.calls[0];
+    expect(deleteCall[0]).toBe("file_xyz");
+    expect(deleteCall[1]).toMatchObject({
+      betas: ["files-api-2025-04-14"],
+    });
+  });
+
+  it("does not throw when file cleanup itself fails (best-effort delete)", async () => {
+    filesUploadMock.mockResolvedValueOnce({ id: "file_will_fail_to_delete" });
+    messagesCreateMock.mockResolvedValueOnce(validClaudeResponse);
+    filesDeleteMock.mockRejectedValueOnce(new Error("delete 503"));
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("pdf bytes"),
+      filename: "x.pdf",
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("returns ok:false when the Files API upload itself fails", async () => {
+    filesUploadMock.mockRejectedValueOnce(new Error("upload 500"));
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("pdf bytes"),
+      filename: "x.pdf",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/upload 500/);
+    expect(messagesCreateMock).not.toHaveBeenCalled();
+    expect(filesDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("propagates parser warnings on the buffer path (sum-vs-total drift)", async () => {
+    // items sum 5,000,000 vs total 2,500,000 = 100% drift, items 超過
+    filesUploadMock.mockResolvedValueOnce({ id: "file_drift" });
+    messagesCreateMock.mockResolvedValueOnce({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            total: 2_500_000,
+            items: [
+              {
+                category: "cuisine",
+                itemName: "料理 (合計重複)",
+                amount: 5_000_000,
+                tier: "standard",
+              },
+            ],
+            predictedFinal: 2_800_000,
+            analysisNote: "test",
+          }),
+        },
+      ],
+    });
+    filesDeleteMock.mockResolvedValueOnce({ id: "file_drift" });
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("pdf"),
+      filename: "x.pdf",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatch(/超過/);
+    }
   });
 });
