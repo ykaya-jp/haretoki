@@ -1,10 +1,14 @@
 # Haretoki — Harness & AI Engineering Docs 自動整備プラン
 
-> ## ⚠️ ステータス: Phase 1 完了 / Phase 2-3 は **Future Plan**（未実装）
+> ## ⚠️ ステータス: Phase 1 完了 / Phase 2 = 実装中 (worker B 並走) / Phase 3 = subagent spec ready
 >
-> 本ドキュメントは 2026-04-17 の Track C audit の output (plan only)。Phase 1 は **2026-04-18 までに完了済み** (`AGENTS.md`, `.claude/README.md`, `docs/harness/runbook.md`, `docs/harness/hooks.md`, `docs/ai/models.md`, `docs/ai/guardrails.md`, `docs/ai/prompts/coach.system.md` + `prompts/README.md` 作成、および本 plan 自体)。
+> 本ドキュメントは 2026-04-17 の Track C audit の output。当初 plan only だったが、Phase 2.E で段階的に実装に入っている。
 >
-> Phase 2 (drift 自動検知 hook + sync-docs / record-decision skill) と Phase 3 (docs-curator subagent) は **未実装**。やるかどうかの判断は [`docs/PENDING.md`](PENDING.md) の「Harness AI 自動化 Phase 2-3」項目で扱う。本ファイルは設計案として保持し、実施可否は別途決定。
+> - **Phase 1**: **2026-04-18 までに完了** (`AGENTS.md`, `.claude/README.md`, `docs/harness/runbook.md`, `docs/harness/hooks.md`, `docs/ai/models.md`, `docs/ai/guardrails.md`, `docs/ai/prompts/*.md` 全 10 本、`prompts/README.md` 作成、および本 plan 自体)。
+> - **Phase 2**: 実装中 (2026-05-02、worker B 並走)。drift 自動検知 hook (`mark-docs-stale.sh` / `docs-drift-check.sh`) + sync-docs / record-decision skill。
+> - **Phase 3**: **docs-curator subagent 仕様完成 (2026-05-02)** = `.claude/agents/docs-curator.md`。 cron / GitHub Actions の有効化は **Phase 2 hook merge 後に人間が判断**。1 週間の偽陽性 / 偽陰性観測フェーズを経てから cron を ON にする。
+>
+> 段階移行の運用は [`docs/PENDING.md`](PENDING.md) の「Harness AI 自動化 Phase 2-3」項目で追跡する。
 >
 > Track C 成果物 — branch: `audit/harness-ai-docs` (HEAD: ec8c4d2)
 > 目的: Claude Code / Agent SDK harness と AI engineering（プロンプト・モデル運用）の観点で
@@ -810,7 +814,9 @@ ls docs/harness/adr/ | grep -E '^[0-9]{4}-' | sort | tail -1
 
 ### 4.3 新規 Subagent 定義
 
-**`.claude/agents/docs-curator.md`**（Phase 3）:
+> **2026-05-02 更新**: 実装版 `.claude/agents/docs-curator.md` を作成済 (Phase 2.E、commit に同梱)。下記スケルトンは設計の出発点として残すが、**運用時は実装版を読むこと**。実装版は本スケルトンを発展させ、 D1〜D10 の検出パターン / PR body テンプレ / 触ってよい・いけないの境界 / Phase 2 hook 前提条件 / 暫定運用ルール を明示している。
+
+**`.claude/agents/docs-curator.md`**（Phase 3 — original skeleton, superseded by実装版）:
 ```markdown
 ---
 name: docs-curator
@@ -906,19 +912,29 @@ You are the **docs-curator**. Your job is to keep docs in lockstep with implemen
 
 **目的**: 人が `/sync-docs` を明示的に打たなくても、週次で PR が届く。
 
-| # | 作業 |
-|---|---|
-| 1 | `.claude/agents/docs-curator.md` 追加（§4.3） |
-| 2 | GitHub Actions `docs-curator-weekly.yml` — 毎週月曜 9:00 JST に docs-curator を起動して PR |
-| 3 | GitHub Actions `docs-drift-pr-comment.yml` — PR で drift があれば bot コメント |
-| 4 | `docs/ai/evals.md` — プロンプト回帰テスト戦略（prompt-foo / promptfoo / 手組み） |
-| 5 | `tests/prompts/*.test.ts` — 主要 3 プロンプト（coach / url-extraction / estimate-analysis）の golden test |
-| 6 | `docs/ai/tool-catalog.md` 本実装（tool use 導入後） |
-| 7 | `docs/harness/adr/0002-docs-curator-adoption.md` — 本 phase の採用記録 |
+| # | 作業 | 状態 (2026-05-02) |
+|---|---|---|
+| 1 | `.claude/agents/docs-curator.md` 追加（§4.3） | ✅ Phase 2.E で完了。 D1〜D10 検出 / PR body テンプレ / scope 境界 / 暫定運用 (Phase 2 hook 完成までは手動のみ) を明記 |
+| 2 | GitHub Actions `docs-curator-weekly.yml` — 毎週月曜 9:00 JST に docs-curator を起動して PR | ⏳ Phase 2 hook merge + 1 週間観測後に着手。先行で `workflow_dispatch` だけ使える形にしておく案 |
+| 3 | GitHub Actions `docs-drift-pr-comment.yml` — PR で drift があれば bot コメント | ⏳ #2 と同タイミング |
+| 4 | `docs/ai/evals.md` — プロンプト回帰テスト戦略（prompt-foo / promptfoo / 手組み） | 🟡 着手前。Phase 3 の依存ではない (cron 化は eval なしでも可能) ため別 sprint 切り出し候補 |
+| 5 | `tests/prompts/*.test.ts` — 主要 3 プロンプト（coach / url-extraction / estimate-extract）の golden test | 🟡 #4 と同 sprint |
+| 6 | `docs/ai/tool-catalog.md` 本実装（tool use 導入後） | ⏳ tool use の本実装が無いため deferred |
+| 7 | `docs/harness/adr/0002-docs-curator-adoption.md` — 本 phase の採用記録 | 🟡 cron 有効化時に起票 (現状は spec ready で Status=Proposed 相当) |
 
 **Phase 3 の Done 条件**
 - 1 週間誰も触らずとも docs-curator PR が週次で流れる（0 drift なら PR なし）
 - プロンプト変更 PR で golden test が落ちれば CI red
+- 偽陽性 PR が連続 2 回出たら cron を停止して D1〜D10 ロジックを見直す段取りが運用に組み込まれている
+
+**Phase 3 cron 有効化前提 (gating)**
+
+1. Phase 2 の `mark-docs-stale.sh` / `docs-drift-check.sh` が develop に merge 済
+2. 上記 hook 配下で 1 週間 prompts / models / hooks の編集を観測し、stale flag の偽陽性が 0 / 偽陰性が ≦1 件であること
+3. `@docs-curator` 手動 invoke で 1 回以上 PR を起票し、PR の質 (resolved / ambiguous / excluded の比率) が許容範囲であること
+4. ADR 0001-0005 の retroactive 起票が完了していること (= Phase 2.E ADR 導入で達成済、`docs/harness/adr/`)
+
+これらが揃ってから #2 / #3 の Actions を有効化する。
 
 ---
 

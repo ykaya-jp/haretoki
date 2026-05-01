@@ -28,7 +28,7 @@ Haretoki プロジェクト専用の Claude Code harness 設定。
 | tester | sonnet | test 作成・E2E 実行 | 実装と並走 |
 | db-designer | opus | Prisma スキーマ設計 | schema 変更前 |
 | data-analyst | sonnet | scripts/ でのデータ分析 | venue データ分析・集計 |
-| docs-curator (Phase 3) | sonnet | docs drift 検出 PR 起案 | 週次 / PR 時 |
+| docs-curator | sonnet | docs drift 検出 PR 起案 (実装には触らず docs/** + .claude/README.md のみ編集) | Phase 3 cron / PR 時 / `@docs-curator` (Phase 2 hook 完成までは手動のみ、cron 無効) |
 
 ## Skills（`.claude/skills/*/SKILL.md`）
 
