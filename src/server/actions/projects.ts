@@ -57,42 +57,49 @@ export async function getOrCreateProject() {
         // loss on the placeholder delete (onDelete: Cascade would drop
         // the row instead of remapping), so prefer explicit coverage
         // over generic reflection.
-        await tx.projectMember.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
-        await tx.venueFavorite.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
-        await tx.visitRating.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
-        // Below were missing from the original migration list. They
-        // rarely trigger (placeholders usually only hold a membership
-        // row) but the cascade would destroy legit data if a partner
-        // ever managed to produce one of these before signing up.
-        await tx.notification.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
-        await tx.savedSearch.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
-        await tx.coupleAgreement.updateMany({
-          where: { createdBy: placeholder.id },
-          data: { createdBy: user.id },
-        });
-        await tx.projectInvitation.updateMany({
-          where: { createdBy: placeholder.id },
-          data: { createdBy: user.id },
-        });
-        await tx.visitNote.updateMany({
-          where: { userId: placeholder.id },
-          data: { userId: user.id },
-        });
+        //
+        // The eight updateMany ops touch eight independent tables and key
+        // on placeholder.id alone, so they neither contend for the same
+        // rows nor depend on each other — Promise.all collapses what was
+        // an 8-RTT serial chain to a single burst inside the transaction.
+        await Promise.all([
+          tx.projectMember.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+          tx.venueFavorite.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+          tx.visitRating.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+          // Below were missing from the original migration list. They
+          // rarely trigger (placeholders usually only hold a membership
+          // row) but the cascade would destroy legit data if a partner
+          // ever managed to produce one of these before signing up.
+          tx.notification.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+          tx.savedSearch.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+          tx.coupleAgreement.updateMany({
+            where: { createdBy: placeholder.id },
+            data: { createdBy: user.id },
+          }),
+          tx.projectInvitation.updateMany({
+            where: { createdBy: placeholder.id },
+            data: { createdBy: user.id },
+          }),
+          tx.visitNote.updateMany({
+            where: { userId: placeholder.id },
+            data: { userId: user.id },
+          }),
+        ]);
         // NotificationPreference has a 1:1 userId @unique. If the
         // placeholder somehow grew one we move it; if the real user
         // *also* has one, drop the placeholder's to avoid a duplicate

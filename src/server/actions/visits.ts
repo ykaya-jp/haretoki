@@ -128,7 +128,12 @@ export async function addVisitNote(
   input: z.infer<typeof visitNoteSchema>
 ): Promise<{ success: boolean; noteId?: string; error?: string }> {
   const user = await requireUser();
-  await requireVisitAccess(user.id, visitId);
+  // requireVisitAccess already round-tripped to fetch the visit row plus
+  // its venue id; capture and reuse it instead of re-querying with
+  // `prisma.visit.findUnique` for revalidatePath. Saves one DB call per
+  // memo creation on what used to be a 3-roundtrip (auth, create, lookup)
+  // path now collapsed to 2.
+  const { visit } = await requireVisitAccess(user.id, visitId);
 
   const parsed = visitNoteSchema.safeParse(input);
   if (!parsed.success) {
@@ -151,11 +156,7 @@ export async function addVisitNote(
     },
   });
 
-  const visit = await prisma.visit.findUnique({
-    where: { id: visitId },
-    select: { venueId: true },
-  });
-  revalidatePath(`/venues/${visit?.venueId}`);
+  revalidatePath(`/venues/${visit.venue.id}`);
   return { success: true, noteId: note.id };
 }
 
@@ -481,17 +482,14 @@ export async function upsertVisitRating(
   score: number,
 ): Promise<{ success: boolean; error?: string }> {
   const user = await requireUser();
-  const { projectId } = await requireVisitAccess(user.id, visitId);
+  // requireVisitAccess returns `{ projectId, visit }`; we previously
+  // discarded the visit and re-queried for venueId. Capturing it
+  // collapses the (auth, lookup, upsert) call shape to (auth, upsert).
+  const { projectId, visit } = await requireVisitAccess(user.id, visitId);
 
   if (score < 1 || score > 5) {
     return { success: false, error: "スコアは1〜5で指定してください" };
   }
-
-  const visit = await prisma.visit.findUnique({
-    where: { id: visitId },
-    select: { venueId: true },
-  });
-  if (!visit) return { success: false, error: "見学記録が見つかりません" };
 
   await prisma.visitRating.upsert({
     where: { visitId_userId_dimension: { visitId, userId: user.id, dimension } },
@@ -499,7 +497,7 @@ export async function upsertVisitRating(
     update: { score },
   });
 
-  revalidatePath(`/venues/${visit.venueId}`);
+  revalidatePath(`/venues/${visit.venue.id}`);
   revalidatePath("/visits");
   revalidateTag(`project:${projectId}`, { expire: 0 });
   return { success: true };

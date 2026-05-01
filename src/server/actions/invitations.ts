@@ -241,31 +241,35 @@ export async function acceptInvitation(invitationId: string) {
     select: { id: true, projectId: true, role: true },
   });
 
-  for (const existing of existingMemberships) {
-    const canAutoDiscard = await isAutoCreatedEmptyProject(
-      existing.projectId,
-      user.id,
-      existing.role,
-    );
-    if (!canAutoDiscard) {
-      return {
-        success: false as const,
-        error:
-          "すでに別の式場さがしに参加しています。パートナーと同じ場所に合流するには、招待したご本人にもう一度招待をお願いしてください。",
-      };
-    }
+  // Probe each membership in parallel — each call is independent (touches
+  // a different projectId) and itself fans out to 5 queries inside, so
+  // the serial loop multiplied N×5 RTTs unnecessarily. Steady state is
+  // N=0 or 1; the parallel shape doesn't regress that case while making
+  // the rare N>1 case cheap.
+  const discardable = await Promise.all(
+    existingMemberships.map((m) =>
+      isAutoCreatedEmptyProject(m.projectId, user.id, m.role),
+    ),
+  );
+  if (discardable.some((canAutoDiscard) => !canAutoDiscard)) {
+    return {
+      success: false as const,
+      error:
+        "すでに別の式場さがしに参加しています。パートナーと同じ場所に合流するには、招待したご本人にもう一度招待をお願いしてください。",
+    };
   }
 
   // All blocking memberships point at discardable auto-projects — remove
   // them. Owner memberships trigger project deletion (cascades to venues
-  // etc.), non-owner memberships are just the row.
-  for (const existing of existingMemberships) {
-    if (existing.role === "owner") {
-      await prisma.project.delete({ where: { id: existing.projectId } });
-    } else {
-      await prisma.projectMember.delete({ where: { id: existing.id } });
-    }
-  }
+  // etc.), non-owner memberships are just the row. Deletes target
+  // distinct rows so Promise.all is safe.
+  await Promise.all(
+    existingMemberships.map((existing) =>
+      existing.role === "owner"
+        ? prisma.project.delete({ where: { id: existing.projectId } })
+        : prisma.projectMember.delete({ where: { id: existing.id } }),
+    ),
+  );
 
   // Atomic conditional update: only flip acceptedAt if it's still null.
   // Prevents a race where two rapid accepts both pass the SELECT-then-UPDATE gate.

@@ -153,14 +153,20 @@ export async function getAllTodos(options?: {
 
   // totalCount / completedCount は常に全件を母数とする（進捗率の意味論維持）。
   // includeCompleted: false のとき rows は未完了のみなので、完了数は別途 count する。
-  const allCount = includeCompleted
-    ? rows.length
-    : await prisma.decisionTodo.count({ where: { projectId } });
-  const completedCount = includeCompleted
-    ? rows.filter((r) => r.completedAt !== null).length
-    : await prisma.decisionTodo.count({
+  // 両 count は同 table の独立 where なので Promise.all で 1 RTT に潰せる。
+  let allCount: number;
+  let completedCount: number;
+  if (includeCompleted) {
+    allCount = rows.length;
+    completedCount = rows.filter((r) => r.completedAt !== null).length;
+  } else {
+    [allCount, completedCount] = await Promise.all([
+      prisma.decisionTodo.count({ where: { projectId } }),
+      prisma.decisionTodo.count({
         where: { projectId, completedAt: { not: null } },
-      });
+      }),
+    ]);
+  }
 
   return {
     todos: rows.map(toView),

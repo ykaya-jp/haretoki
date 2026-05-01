@@ -26,25 +26,31 @@ export async function saveRatings(
   // concurrent edits (owner + partner at the same time) can't read a stale set of
   // ratings and compute an outdated average — prevents lost-update race condition.
   await prisma.$transaction(async (tx) => {
-    // 1) Upsert each dimension rating for this visit
-    for (const [dimension, score] of Object.entries(parsed.data.ratings)) {
-      await tx.visitRating.upsert({
-        where: {
-          visitId_userId_dimension: {
+    // 1) Upsert every dimension rating for this visit. Each upsert keys on
+    //    a distinct (visitId, userId, dimension) tuple so they target
+    //    different rows — Prisma's interactive transaction supports
+    //    Promise.all on independent operations, so we collapse the
+    //    sequential per-dimension RTTs to a single burst.
+    await Promise.all(
+      Object.entries(parsed.data.ratings).map(([dimension, score]) =>
+        tx.visitRating.upsert({
+          where: {
+            visitId_userId_dimension: {
+              visitId,
+              userId: user.id,
+              dimension: dimension as ScoreDimension,
+            },
+          },
+          update: { score },
+          create: {
             visitId,
             userId: user.id,
             dimension: dimension as ScoreDimension,
+            score,
           },
-        },
-        update: { score },
-        create: {
-          visitId,
-          userId: user.id,
-          dimension: dimension as ScoreDimension,
-          score,
-        },
-      });
-    }
+        }),
+      ),
+    );
 
     // 2) Re-read all ratings inside the same transaction (consistent snapshot)
     const allRatings = await tx.visitRating.findMany({
@@ -61,30 +67,35 @@ export async function saveRatings(
       dimensionScores.set(r.dimension, existing);
     }
 
-    // 4) Upsert venue_scores for each affected dimension
-    for (const [dimension, scores] of dimensionScores.entries()) {
-      const avg =
-        Math.round(
-          (scores.reduce((a, b) => a + b, 0) / scores.length) * 10,
-        ) / 10;
-      await tx.venueScore.upsert({
-        where: {
-          venueId_dimension_source: {
+    // 4) Upsert venue_scores for each affected dimension. Same row-
+    //    independence story as step 1 — each upsert keys on a unique
+    //    (venueId, dimension, source) — so Promise.all is safe inside
+    //    the interactive transaction.
+    await Promise.all(
+      Array.from(dimensionScores.entries()).map(([dimension, scores]) => {
+        const avg =
+          Math.round(
+            (scores.reduce((a, b) => a + b, 0) / scores.length) * 10,
+          ) / 10;
+        return tx.venueScore.upsert({
+          where: {
+            venueId_dimension_source: {
+              venueId,
+              dimension,
+              source: "user_rating",
+            },
+          },
+          update: { score: avg, reviewCount: scores.length },
+          create: {
             venueId,
             dimension,
             source: "user_rating",
+            score: avg,
+            reviewCount: scores.length,
           },
-        },
-        update: { score: avg, reviewCount: scores.length },
-        create: {
-          venueId,
-          dimension,
-          source: "user_rating",
-          score: avg,
-          reviewCount: scores.length,
-        },
-      });
-    }
+        });
+      }),
+    );
   });
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
