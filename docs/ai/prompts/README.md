@@ -5,9 +5,8 @@ Claude API に渡す system prompt の **人間が読む正本**。
 
 ## 状態凡例
 
-- ✅ md / ts (or inline) 両方ある (drift 監視対象)
+- ✅ md / ts 両方ある (drift 監視対象)
 - 🟡 ts のみ。md は未着手 ([`PENDING.md`](../../PENDING.md) 参照)
-- 📍 inline prompt — モジュール化されておらず、利用箇所のファイル内に直書き
 - ⏳ どちらも未実装 (Roadmap 該当 Release 待ち)
 
 ## ペアリング
@@ -18,16 +17,16 @@ Claude API に渡す system prompt の **人間が読む正本**。
 | Onboarding 推薦 | `src/lib/prompts/onboarding.ts` | [`onboarding.system.md`](onboarding.system.md) | ✅ |
 | 比較分析 (AI Insight Card) | `src/lib/prompts/comparison.ts` | [`comparison.system.md`](comparison.system.md) | ✅ |
 | 口コミ要約 | `src/lib/prompts/review-summary.ts` | [`review-summary.system.md`](review-summary.system.md) | ✅ |
-| URL 取込 抽出 | `src/server/actions/venues.ts` 内 `URL_EXTRACTION_SYSTEM_PROMPT` (inline) | [`url-extraction.system.md`](url-extraction.system.md) | ✅ 📍 |
-| 見積もり PDF 解析 | `src/server/actions/estimate-ai.ts` 内 `ESTIMATE_EXTRACT_SYSTEM_PROMPT` (inline) | [`estimate-extract.system.md`](estimate-extract.system.md) | ✅ 📍 |
-| Decision Matrix Insight | `src/lib/prompts/matrix-insight.ts` | `matrix-insight.system.md` | 🟡 |
-| Fit Reason (1 行) | `src/lib/prompts/fit-reason.ts` | `fit-reason.system.md` | 🟡 |
-| Daily Ritual | `src/lib/prompts/ritual.ts` | `ritual.system.md` | 🟡 |
-| Vibe タグ自動サジェスト | `src/lib/prompts/vibe-suggest.ts` | `vibe-suggest.system.md` | 🟡 |
+| URL 取込 抽出 | `src/lib/prompts/url-extraction.ts` | [`url-extraction.system.md`](url-extraction.system.md) | ✅ |
+| 見積もり PDF 解析 | `src/lib/prompts/estimate-extract.ts` | [`estimate-extract.system.md`](estimate-extract.system.md) | ✅ |
+| Decision Matrix Insight | `src/lib/prompts/matrix-insight.ts` | [`matrix-insight.system.md`](matrix-insight.system.md) | ✅ |
+| Fit Reason (1 行) | `src/lib/prompts/fit-reason.ts` | [`fit-reason.system.md`](fit-reason.system.md) | ✅ |
+| Daily Ritual | `src/lib/prompts/ritual.ts` | [`ritual.system.md`](ritual.system.md) | ✅ |
+| Vibe タグ自動サジェスト | `src/lib/prompts/vibe-suggest.ts` | [`vibe-suggest.system.md`](vibe-suggest.system.md) | ✅ |
 
-> 🟡 のものは **コードでは動いている** が、md 仕様書がまだ書き起こされていない状態。`docs/PENDING.md` の Phase 2 "AI prompts md 化" の続編で扱う。
+> 全 10 prompt の md 化が完了 (Phase 2.A、2026-05-02)。**今後はこの md と ts を必ず同 PR で同期**する規約。
 >
-> 📍 (inline) は `addVenueFromUrl` / `extractEstimateItems` のパイプラインに溶け込んでおり、汎用モジュールとしては切り出されていない。md 化は完了したが、**`src/lib/prompts/*.ts` への切り出し**は別タスク (Phase 2 D 残課題)。
+> 2026-05-02 round 2: 旧 inline 配置だった `URL_EXTRACTION_SYSTEM_PROMPT` / `ESTIMATE_EXTRACT_SYSTEM_PROMPT` を `src/lib/prompts/url-extraction.ts` / `src/lib/prompts/estimate-extract.ts` に切り出し済。10 prompt 全てが `src/lib/prompts/*.ts` 配下に揃い、📍 inline 表記は廃止。
 
 ## 更新プロトコル
 
