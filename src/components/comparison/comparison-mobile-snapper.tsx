@@ -166,7 +166,10 @@ export function ComparisonMobileSnapper({ matrix, weights = null }: Props) {
   return (
     <div className="relative">
       {/* Sticky indicator — "3 / 10" + dot jumper */}
-      <div className="sticky top-0 z-30 -mx-4 flex items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-4 py-2.5 backdrop-blur-sm">
+      {/* W21-4: pt combines `py-2.5` (10px) with iOS safe-area-inset-top
+          so the "N/M" indicator + dot jumper drop below the notch in
+          standalone-PWA. */}
+      <div className="sticky top-0 z-30 -mx-4 flex items-center justify-between gap-3 border-b border-border/40 bg-background/95 px-4 pt-[calc(0.625rem+env(safe-area-inset-top))] pb-2.5 backdrop-blur-sm">
         <span className="tabular-nums text-[12px] text-muted-foreground">
           {active + 1} / {venues.length}
         </span>

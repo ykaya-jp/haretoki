@@ -138,7 +138,11 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
 
       {showConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center"
+          // W21-4: SafeArea inset so the bottom-sheet card doesn't land
+          // under the iOS home bar at 375px (matches the /compare
+          // VenueRemoveButton overlay). On `sm:items-center` desktop the
+          // padding has no visual effect.
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center"
           onClick={() => {
             if (!isPending) setShowConfirm(false);
           }}

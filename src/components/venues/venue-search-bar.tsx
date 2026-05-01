@@ -44,7 +44,11 @@ export function VenueSearchBar({ initialQuery = "" }: VenueSearchBarProps) {
   }, [value, pathname, router, searchParams]);
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-border/40 bg-background/85 px-4 py-2 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+    // W21-4: pt combines `py-2` (8px) with iOS safe-area-inset-top so
+    // the search field clears the notch on standalone-PWA viewports.
+    // Bottom inset isn't needed — the search row never touches the home
+    // bar (sticky top, not bottom).
+    <div className="sticky top-0 z-30 -mx-4 border-b border-border/40 bg-background/85 px-4 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
       <div className="relative">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"

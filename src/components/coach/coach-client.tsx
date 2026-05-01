@@ -65,7 +65,10 @@ export function CoachClient({
     <div className="pb-20">
       {/* Sticky header: history chip + title + new-chat chip */}
       <div
-        className="sticky top-0 z-20 -mx-5 border-b border-border/40 bg-background/75 px-5 py-3 backdrop-blur-xl sm:-mx-8 sm:px-8"
+        // W21-4: pt combines `py-3` (12px) with iOS safe-area-inset-top
+        // so the title row sits below the notch on standalone-PWA
+        // viewports without losing the backdrop-blur band.
+        className="sticky top-0 z-20 -mx-5 border-b border-border/40 bg-background/75 px-5 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 backdrop-blur-xl sm:-mx-8 sm:px-8"
       >
         <div className="flex items-center gap-2">
           <SessionHistorySheet sessions={sessions} currentSessionId={sessionId} />
