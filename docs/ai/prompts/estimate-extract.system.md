@@ -1,6 +1,6 @@
 ---
 name: estimate-extract.system
-pairs_with: src/server/actions/estimate-ai.ts (inline `ESTIMATE_EXTRACT_SYSTEM_PROMPT`)
+pairs_with: src/lib/prompts/estimate-extract.ts
 model: claude-sonnet-4-6
 maxTokens: 4096
 last_synced: 2026-05-02
@@ -10,7 +10,7 @@ last_synced: 2026-05-02
 
 見積書 PDF (Japanese 結婚式場 見積書) を Claude の **document-block API** に投げ、行明細 + 想定最終金額を抽出する prompt。
 
-> ⚠️ **inline 配置**: prompt 文字列はモジュール化されていない。`src/server/actions/estimate-ai.ts` の `ESTIMATE_EXTRACT_SYSTEM_PROMPT` 定数 (L28-L61) に直書き。本 md がその正本。
+> 2026-05-02 — Phase 2.A round 2 で **`src/lib/prompts/estimate-extract.ts` に切り出し済**。caller (`src/server/actions/estimate-ai.ts`) は import 経由で参照。
 > PENDING.md では便宜上 "estimate-analysis" と呼ぶが、実装上の prompt 名は `ESTIMATE_EXTRACT_SYSTEM_PROMPT`。
 
 ## Persona / Role

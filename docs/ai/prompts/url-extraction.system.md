@@ -1,6 +1,6 @@
 ---
 name: url-extraction.system
-pairs_with: src/server/actions/venues.ts (inline `URL_EXTRACTION_SYSTEM_PROMPT`)
+pairs_with: src/lib/prompts/url-extraction.ts
 model: claude-haiku-4-5-20251001
 maxTokens: 4096
 last_synced: 2026-05-02
@@ -10,8 +10,7 @@ last_synced: 2026-05-02
 
 「URL を貼って式場登録」のメイン抽出 prompt。複数の関連サブページ (DETAIL / PHOTOS / REVIEWS / PLANS) を横断して **構造化フィールド + 口コミ + テーマクラスタ**を抽出する。
 
-> ⚠️ **inline 配置**: prompt 文字列はモジュール化されていない。`src/server/actions/venues.ts` の `URL_EXTRACTION_SYSTEM_PROMPT` 定数 (L864-) に直書き。本 md がその正本。
-> 将来 `src/lib/prompts/url-extraction.ts` に切り出す可能性あり (Phase 2 D 残課題)。
+> 2026-05-02 — Phase 2.A round 2 で **`src/lib/prompts/url-extraction.ts` に切り出し済**。caller (`src/server/actions/venues.ts`) は import 経由で参照。inline 配置時代の md (round 1) はそのまま正本として継続使用。
 
 ## Persona / Role
 
