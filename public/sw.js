@@ -18,12 +18,16 @@
  * install list changes. Older caches are purged on activate.
  */
 
-const CACHE_VERSION = "haretoki-v1-2026-04-21";
+const CACHE_VERSION = "haretoki-v2-2026-05-02";
 const CACHE_SHELL = `${CACHE_VERSION}-shell`;
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_IMAGES = `${CACHE_VERSION}-images`;
 
-const SHELL_ASSETS = ["/offline.html", "/manifest.webmanifest"];
+// /offline is now a Next.js App Router route (src/app/offline/page.tsx),
+// replacing the previous static /offline.html. The pre-rendered shell is
+// stored at the route's HTML response on first install, then kept warm
+// across activations until CACHE_VERSION bumps.
+const SHELL_ASSETS = ["/offline", "/manifest.webmanifest"];
 
 const ONE_DAY = 86400;
 const IMAGE_MAX_AGE_SECONDS = 7 * ONE_DAY;
@@ -54,16 +58,16 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/** Network-first for documents; fall back to /offline.html only on
- *  true network failures. Keeps auth redirects / 4xx / 5xx on the
- *  normal app error path. */
+/** Network-first for documents; fall back to the cached /offline route
+ *  only on true network failures. Keeps auth redirects / 4xx / 5xx on
+ *  the normal app error path. */
 async function handleDocument(request) {
   try {
     const response = await fetch(request);
     return response;
   } catch {
     const cache = await caches.open(CACHE_SHELL);
-    const offline = await cache.match("/offline.html");
+    const offline = await cache.match("/offline");
     return (
       offline ||
       new Response("オフラインです", {
@@ -146,4 +150,51 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(handleImage(request));
     return;
   }
+});
+
+/* ─── Push Notifications (Phase 3 foundation) ─────────────────────────
+ * Phase 2 ships the worker-side handler so a future Phase 3 backend
+ * (VAPID + Resend / web-push) can target installed PWAs without
+ * needing another service-worker version bump. The payload contract
+ * is `{ title, body, url? }` — `url` defaults to `/` if absent.
+ * No server delivery is wired up in Phase 2, so these handlers stay
+ * dormant unless the browser receives a push event.                   */
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    return;
+  }
+  if (!data || typeof data.title !== "string") return;
+  const options = {
+    body: typeof data.body === "string" ? data.body : "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    lang: "ja",
+    data: { url: typeof data.url === "string" ? data.url : "/" },
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((windows) => {
+      // Focus an existing tab on the same origin if one is already open
+      // (avoids "duplicate Haretoki tab" UX), otherwise open a new one.
+      for (const client of windows) {
+        if (client.url && "focus" in client) {
+          const target = new URL(url, self.location.origin);
+          if (new URL(client.url).origin === target.origin) {
+            client.navigate(target.href);
+            return client.focus();
+          }
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
 });
