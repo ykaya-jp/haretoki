@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { toggleFavorite } from "@/server/actions/favorites";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useHaptic } from "@/hooks/use-haptic";
 
 interface HeartButtonProps {
   venueId: string;
@@ -20,6 +21,7 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
   const [favorite, setFavorite] = useState(initialFavorite);
   const inFlightRef = useRef(false);
   const router = useRouter();
+  const haptic = useHaptic();
 
   // Keep in sync if the parent re-renders with a different value (e.g. after
   // `router.refresh()` re-hydrates from the server). Render-phase reset —
@@ -36,6 +38,12 @@ export function HeartButton({ venueId, initialFavorite }: HeartButtonProps) {
     const previous = favorite;
     const next = !previous;
     setFavorite(next);
+    // "select" pulse fires on press intent, before the network round-trip,
+    // so the haptic feels coupled to the user's tap rather than to the
+    // server response. The visual heart fill animates on the same frame,
+    // matching the haptic to the visual change. Reduced-motion users skip
+    // both — useHaptic checks the preference internally.
+    haptic("select");
 
     try {
       await toggleFavorite(venueId);
