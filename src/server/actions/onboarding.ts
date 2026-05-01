@@ -6,7 +6,18 @@ import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { getOrCreateProject } from "@/server/actions/projects";
-import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
+import {
+  isClaudeAvailable,
+  askClaude,
+  withRetry,
+  computeInputHash,
+} from "@/lib/anthropic";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
+import { MODEL } from "@/lib/models";
+
+// Bump when ONBOARDING_RECOMMENDATION_PROMPT semantics change so post-
+// deploy callers don't replay the previous-version recommendation set.
+const ONBOARDING_REC_PROMPT_VERSION = 1;
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
 import {
   AI_REC_VENUE_THRESHOLD,
@@ -210,6 +221,36 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       ? `\n\n注意: 以下の式場は既に登録済みなので、それ以外をおすすめしてください: ${names.join("、")}`
       : "";
 
+    const userMessage =
+      ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote;
+
+    // Cache lookup: same conditions + same exclusion list → same Claude
+    // recommendation. Conditions rarely change between the onboarding
+    // landing → first explore round-trip, so this is the highest-leverage
+    // cache surface in the onboarding flow.
+    const cacheHash = computeInputHash(
+      JSON.stringify({
+        system: ONBOARDING_RECOMMENDATION_PROMPT.system,
+        user: userMessage,
+        model: MODEL.HAIKU,
+        version: ONBOARDING_REC_PROMPT_VERSION,
+      }),
+    );
+    const cachedRec = await getCachedResponse(cacheHash);
+    if (cachedRec) {
+      try {
+        const parsed = JSON.parse(
+          cachedRec.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim(),
+        );
+        if (parsed?.recommendations && Array.isArray(parsed.recommendations)) {
+          return parsed;
+        }
+      } catch {
+        // Fall through and regenerate — a corrupt cache row shouldn't break
+        // the user-facing call.
+      }
+    }
+
     // 20s hard timeout so a hung API call doesn't block the page indefinitely.
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Claude request timed out after 20s")), 20_000),
@@ -221,7 +262,7 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
         withRetry(() =>
           askClaude({
             system: ONBOARDING_RECOMMENDATION_PROMPT.system,
-            userMessage: ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote,
+            userMessage,
           }),
         ),
         timeoutPromise,
@@ -256,6 +297,10 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       console.warn("[fetchClaudeRecommendations] Unexpected response shape:", Object.keys(result ?? {}));
       return null;
     }
+    // Persist the raw response (not the parsed object) so future cache hits
+    // re-run the same JSON.parse + validation path — keeps every code path
+    // consistent and avoids serialising parsed objects we don't need to.
+    await setCachedResponse(cacheHash, response, MODEL.HAIKU);
     return result;
   } catch (err) {
     console.error("[fetchClaudeRecommendations] Unexpected error:", err);

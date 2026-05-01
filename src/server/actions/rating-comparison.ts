@@ -3,7 +3,13 @@
 import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib/anthropic";
+import { MODEL } from "@/lib/models";
 import { DIMENSION_LABELS } from "@/lib/constants";
+import { getCachedAnalysis, setCachedAnalysis } from "@/server/ai/cache";
+
+// Bump when the rating comparison prompt or schema changes so old
+// cached comments aren't replayed against new contracts.
+const RATING_COMPARISON_PROMPT_VERSION = 1;
 
 export async function generateRatingComparison(
   venueId: string
@@ -54,25 +60,31 @@ export async function generateRatingComparison(
     return { comment: "パートナーの評価が入力されると、比較コメントが表示されます。", cached: false };
   }
 
-  // Check cache
+  // Hash recipe includes model + prompt version so a model upgrade or
+  // prompt revision invalidates stale rows. Previously hashed only on
+  // venueId + ratings, which silently replayed pre-upgrade output.
   const inputHash = computeInputHash(
-    venueId + JSON.stringify(visitRatings.map(r => `${r.userId}:${r.dimension}:${r.score}`).sort())
+    JSON.stringify({
+      venueId,
+      ratings: visitRatings
+        .map((r) => `${r.userId}:${r.dimension}:${r.score}`)
+        .sort(),
+      model: MODEL.HAIKU,
+      version: RATING_COMPARISON_PROMPT_VERSION,
+    }),
   );
 
-  const cached = await prisma.aiAnalysis.findFirst({
-    where: {
-      type: "rating_comparison",
-      inputHash,
-      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    },
-  });
-
-  if (cached) {
+  const cachedRaw = await getCachedAnalysis(
+    projectId,
+    "rating_comparison",
+    inputHash,
+  );
+  if (cachedRaw) {
     try {
-      const parsed = JSON.parse(cached.output);
-      return { comment: parsed.comment ?? cached.output, cached: true };
+      const parsed = JSON.parse(cachedRaw);
+      return { comment: parsed.comment ?? cachedRaw, cached: true };
     } catch {
-      return { comment: cached.output, cached: true };
+      return { comment: cachedRaw, cached: true };
     }
   }
 
@@ -118,14 +130,12 @@ export async function generateRatingComparison(
       })
     );
 
-    await prisma.aiAnalysis.create({
-      data: {
-        projectId,
-        venueId,
-        type: "rating_comparison",
-        inputHash,
-        output: JSON.stringify({ comment: response }),
-      },
+    await setCachedAnalysis({
+      projectId,
+      type: "rating_comparison",
+      inputHash,
+      output: JSON.stringify({ comment: response }),
+      venueId,
     });
 
     return { comment: response, cached: false };

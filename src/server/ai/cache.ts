@@ -1,15 +1,34 @@
 import { prisma } from "@/server/db";
 import type { AiAnalysisType } from "@/generated/prisma/client";
 
+/**
+ * Per-type TTL for AiAnalysis-backed caching. Keep this map as the single
+ * source of truth — callers must not inline their own `createdAt: { gte: ...
+ * }` cutoffs, otherwise cache semantics drift across call sites and the
+ * hit-rate target becomes impossible to reason about.
+ *
+ * `coach_chat` is intentionally absent — every turn is per-user and per-
+ * thread, so the marginal hit rate would be ~0.
+ */
 const TTL_DAYS: Partial<Record<AiAnalysisType, number>> = {
   review_summary: 30,
   estimate_prediction: 7,
   comparison: 3,
   visit_prep: 1,
   rating_comparison: 1,
+  fit_reason: 14,
+  matrix_insight: 3,
   // coach_chat: no cache
 };
 
+/**
+ * Lookup a cached AiAnalysis row by (project, type, inputHash) within the
+ * type's TTL. Returns the stored `output` string or null on miss / expiry.
+ *
+ * Inputs to `inputHash` MUST include model id and prompt version so a model
+ * upgrade or prompt revision invalidates stale rows automatically — without
+ * that, callers will silently serve pre-upgrade outputs after a deploy.
+ */
 export async function getCachedAnalysis(
   projectId: string,
   type: AiAnalysisType,
@@ -30,7 +49,53 @@ export async function getCachedAnalysis(
     orderBy: { createdAt: "desc" },
   });
 
+  // Lightweight hit/miss telemetry. Tagged log line lets the operator grep
+  // Vercel logs (`grep ai-analysis-cache`) to estimate hit rate without
+  // wiring a dashboard. Avoid logging the inputHash payload — it can leak
+  // signal about user content via length/distribution, and the hash itself
+  // is opaque enough for triage.
+  console.info(
+    `[ai-analysis-cache] ${cached ? "HIT" : "MISS"} type=${type}`,
+  );
+
   return cached?.output ?? null;
+}
+
+/**
+ * Persist a Claude response under (project, type, inputHash). Pair this
+ * with `getCachedAnalysis` so the read/write contract stays symmetric and
+ * callers don't have to know about the underlying table layout.
+ *
+ * `venueId` is optional but recommended — when present it lets
+ * `invalidateAiCache(venueId, ...)` purge venue-scoped rows after the venue
+ * is edited or 手放した, without nuking project-wide caches.
+ *
+ * Failures are swallowed (best-effort), matching the existing AiCache
+ * setter behavior — a cache write that 500s should never break the calling
+ * action's user-visible response.
+ */
+export async function setCachedAnalysis(input: {
+  projectId: string;
+  type: AiAnalysisType;
+  inputHash: string;
+  output: string;
+  venueId?: string | null;
+}): Promise<void> {
+  try {
+    await prisma.aiAnalysis.create({
+      data: {
+        projectId: input.projectId,
+        type: input.type,
+        inputHash: input.inputHash,
+        output: input.output,
+        venueId: input.venueId ?? null,
+      },
+    });
+  } catch {
+    // Cache write is non-fatal. A unique-constraint conflict would mean a
+    // concurrent caller already won the race; either way the stored output
+    // is good enough for the next reader.
+  }
 }
 
 export async function invalidateAiCache(
@@ -44,4 +109,9 @@ export async function invalidateAiCache(
     },
   });
   return result.count;
+}
+
+/** Read-only TTL accessor for tests + diagnostic UIs. */
+export function getCacheTtlDays(type: AiAnalysisType): number | null {
+  return TTL_DAYS[type] ?? null;
 }
