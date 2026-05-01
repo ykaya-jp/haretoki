@@ -54,7 +54,10 @@ export function NotificationItem({ notification }: NotificationItemProps) {
         "min-h-[44px] active:scale-[0.98] disabled:opacity-50",
         notification.read
           ? "bg-card border-border/60"
-          : "bg-[var(--gold-subtle)]/30 border-l-[3px] border-l-[var(--gold-warm)] border-border/60",
+          // W21-5 (audit P2-9): /30 opacity blends to near-card in dark
+          // mode, erasing the unread cue. color-mix keeps a fixed 6%
+          // gold ratio against the card surface in both themes.
+          : "bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--card))] border-l-[3px] border-l-[var(--gold-warm)] border-border/60",
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-2">

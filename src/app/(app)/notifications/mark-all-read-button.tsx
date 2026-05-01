@@ -22,7 +22,10 @@ export function MarkAllReadButton() {
     <button
       onClick={handleClick}
       disabled={isPending}
-      className="min-h-11 inline-flex items-center px-4 py-2 rounded-xl text-sm text-[var(--gold-warm)] border border-[var(--gold-subtle)] bg-[var(--gold-subtle)]/30 transition-all duration-200 hover:bg-[var(--gold-subtle)]/60 active:scale-[0.98] disabled:opacity-50"
+      // W21-5 (audit P2-9): replace /30 → /60 opacity ramp with
+      // color-mix so the rest/hover diff stays readable in dark mode
+      // (where /30 collapses against the page surface).
+      className="min-h-11 inline-flex items-center px-4 py-2 rounded-xl text-sm text-[var(--gold-warm)] border border-[var(--gold-subtle)] bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--background))] transition-all duration-200 hover:bg-[color-mix(in_oklab,var(--gold-warm)_12%,var(--background))] active:scale-[0.98] disabled:opacity-50"
     >
       {isPending ? "処理中…" : "すべて既読にする"}
     </button>

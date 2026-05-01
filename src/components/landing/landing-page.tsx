@@ -157,7 +157,11 @@ export function LandingPage() {
           <motion.ul
             custom={3}
             variants={fadeUp}
-            className="mx-auto w-full max-w-xl space-y-3 rounded-2xl border border-[var(--gold-warm)]/15 bg-[var(--gold-subtle)]/30 p-5 text-left backdrop-blur-sm md:grid md:grid-cols-3 md:gap-4 md:space-y-0"
+            // W21-5 (audit P2-9): /30 over the landing background blurs to
+            // the same value as the hero in dark mode. color-mix locks
+            // a 6% gold tint against the page surface so the benefits
+            // panel stays distinct under either theme.
+            className="mx-auto w-full max-w-xl space-y-3 rounded-2xl border border-[var(--gold-warm)]/15 bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--background))] p-5 text-left backdrop-blur-sm md:grid md:grid-cols-3 md:gap-4 md:space-y-0"
           >
             {HERO_BENEFITS.map((benefit) => {
               const Icon = benefit.icon;
