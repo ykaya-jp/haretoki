@@ -1,0 +1,196 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/server/db";
+import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
+
+/**
+ * GET|POST /api/cron/ai-cost-summary
+ *
+ * Daily Anthropic spend summary + budget alert. Vercel Cron entry,
+ * scheduled in vercel.json.
+ *
+ * Approach (intentionally simple, single round-trip):
+ *  - The per-instance bucket in src/lib/anthropic-usage.ts is NOT durable
+ *    across function instances, so we don't read it here. Instead we look
+ *    at the durable AiCache table — every Claude round-trip that resulted
+ *    in a cache write is one paid call. cache hits are zero-cost.
+ *  - For each model class (haiku / sonnet) we approximate input + output
+ *    token counts with a fixed AVERAGE — this is a budget guardrail, not
+ *    a finance ledger, so a 30% drift in the estimate is fine. The
+ *    Anthropic admin dashboard remains the source of truth for billing.
+ *  - Apply estimateCostUsd() per model class, sum, hand to
+ *    evaluateBudgetAlert() which fires Sentry captureMessage when over
+ *    threshold and emits an `ai_cost_summary` structured log either way.
+ *
+ * Auth: requires Bearer CRON_SECRET (matches the other cron routes).
+ *
+ * Known limits:
+ *  - cache writes that overwrote a prior row count as 1 each — over-counts
+ *    if the same prompt_hash got rewritten in 24h (rare on production).
+ *  - PDF analysis (estimate-extract.ts) does NOT pass through AiCache, so
+ *    its calls are added separately from the Estimate.createdAt count.
+ *  - the per-model averages live in this file — bump them if logs reveal
+ *    consistent under/over-estimation.
+ */
+
+export const maxDuration = 60;
+
+// Per-model average tokens. Derived from a sample week of structured
+// `ai_call` logs in 2026-04. Conservative side (slightly over).
+const MODEL_AVG_TOKENS: Record<string, { input: number; output: number }> = {
+  // Haiku — coach turn, fit-reason, ritual, vibe-suggest, matrix-insight,
+  // url-extraction. Highly variable; ~5k input is the median driven by
+  // url-extraction + coach context.
+  "claude-haiku-4-5-20251001": { input: 5000, output: 800 },
+  // Sonnet — onboarding rec, comparison, review-summary. Smaller input,
+  // more output (structured JSON).
+  "claude-sonnet-4-6": { input: 2000, output: 1500 },
+  // estimate-extract uses Sonnet via document-block — much heavier input.
+  // Treated as a separate bucket below.
+  "claude-sonnet-4-6/estimate-pdf": { input: 12000, output: 2500 },
+};
+
+interface DailySummary {
+  windowStart: string;
+  windowEnd: string;
+  byBucket: Record<
+    string,
+    { calls: number; estInputTokens: number; estOutputTokens: number; estCostUsd: number }
+  >;
+  totalCalls: number;
+  totalEstCostUsd: number;
+}
+
+async function buildSummary(windowMs: number): Promise<DailySummary> {
+  const end = new Date();
+  const start = new Date(end.getTime() - windowMs);
+
+  // Each AiCache row created in the window represents a paid Claude call
+  // (cache miss → write). We don't have a `model` column on AiCache so
+  // attribute everything to Haiku — most callers via askClaude default to
+  // Haiku. If your model mix shifts, add a `model` column (P3) and split
+  // here.
+  const aiCacheCalls = await prisma.aiCache
+    .count({
+      where: { createdAt: { gte: start, lte: end } },
+    })
+    .catch(() => 0);
+
+  // AiAnalysis is the cache surface for matrix-insight (Haiku) /
+  // fit-reason (Haiku) / comparison (Sonnet). createdAt of the row =
+  // generation time. Same approximation as above.
+  const aiAnalysisCalls = await prisma.aiAnalysis
+    .count({
+      where: { createdAt: { gte: start, lte: end } },
+    })
+    .catch(() => 0);
+
+  // PDF estimate extractions are 1-to-1 with Estimate rows that have a
+  // pdfUrl (caller sets pdfUrl only after extractEstimateItems succeeds).
+  const pdfCalls = await prisma.estimate
+    .count({
+      where: {
+        createdAt: { gte: start, lte: end },
+        pdfUrl: { not: null },
+      },
+    })
+    .catch(() => 0);
+
+  const haikuAvg = MODEL_AVG_TOKENS["claude-haiku-4-5-20251001"];
+  const sonnetAvg = MODEL_AVG_TOKENS["claude-sonnet-4-6"];
+  const pdfAvg = MODEL_AVG_TOKENS["claude-sonnet-4-6/estimate-pdf"];
+
+  const byBucket: DailySummary["byBucket"] = {
+    haiku_general: {
+      calls: aiCacheCalls,
+      estInputTokens: aiCacheCalls * haikuAvg.input,
+      estOutputTokens: aiCacheCalls * haikuAvg.output,
+      estCostUsd: estimateCostUsd(
+        "claude-haiku-4-5-20251001",
+        aiCacheCalls * haikuAvg.input,
+        aiCacheCalls * haikuAvg.output,
+      ),
+    },
+    sonnet_analysis: {
+      calls: aiAnalysisCalls,
+      estInputTokens: aiAnalysisCalls * sonnetAvg.input,
+      estOutputTokens: aiAnalysisCalls * sonnetAvg.output,
+      estCostUsd: estimateCostUsd(
+        "claude-sonnet-4-6",
+        aiAnalysisCalls * sonnetAvg.input,
+        aiAnalysisCalls * sonnetAvg.output,
+      ),
+    },
+    sonnet_pdf: {
+      calls: pdfCalls,
+      estInputTokens: pdfCalls * pdfAvg.input,
+      estOutputTokens: pdfCalls * pdfAvg.output,
+      estCostUsd: estimateCostUsd(
+        "claude-sonnet-4-6",
+        pdfCalls * pdfAvg.input,
+        pdfCalls * pdfAvg.output,
+      ),
+    },
+  };
+
+  const totalCalls = aiCacheCalls + aiAnalysisCalls + pdfCalls;
+  const totalEstCostUsd = Object.values(byBucket).reduce(
+    (acc, b) => acc + b.estCostUsd,
+    0,
+  );
+
+  return {
+    windowStart: start.toISOString(),
+    windowEnd: end.toISOString(),
+    byBucket,
+    totalCalls,
+    totalEstCostUsd,
+  };
+}
+
+export async function GET(request: Request) {
+  return handle(request);
+}
+
+export async function POST(request: Request) {
+  return handle(request);
+}
+
+async function handle(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json(
+      { error: "CRON_SECRET is not configured" },
+      { status: 503 },
+    );
+  }
+  const auth = request.headers.get("authorization") ?? "";
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const startedAt = Date.now();
+  const dailyMs = 24 * 60 * 60 * 1000;
+  const monthlyMs = 30 * dailyMs;
+  const [daily, monthly] = await Promise.all([
+    buildSummary(dailyMs),
+    buildSummary(monthlyMs),
+  ]);
+
+  const alert = evaluateBudgetAlert({
+    dailyUsedUsd: daily.totalEstCostUsd,
+    monthlyUsedUsd: monthly.totalEstCostUsd,
+    context: {
+      dailyByBucket: daily.byBucket,
+      monthlyTotalCalls: monthly.totalCalls,
+    },
+  });
+
+  const durationMs = Date.now() - startedAt;
+  return NextResponse.json({
+    ok: true,
+    durationMs,
+    daily,
+    monthly,
+    alert,
+  });
+}

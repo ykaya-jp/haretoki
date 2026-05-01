@@ -11,6 +11,11 @@ import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
 import { computeInputHash } from "@/lib/anthropic";
 import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import { URL_EXTRACTION_SYSTEM_PROMPT } from "@/lib/prompts/url-extraction";
+import {
+  checkRateLimit,
+  rateLimitErrorMessage,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
 import { computeCompositeScore } from "@/lib/venue-score";
 import {
@@ -1094,6 +1099,16 @@ export async function addVenueFromUrl(url: string): Promise<{
 }> {
   const user = await requireUser();
   await requireProjectMembership(user.id);
+
+  // Per-user rate limit — 5 imports / 60s. URL import does multi-page
+  // fetch + Claude extraction; even a power user pasting from another tab
+  // doesn't legitimately top this. Higher than legitimate use signals
+  // either a stuck retry loop or someone scripting against the action.
+  const rl = checkRateLimit(`url-import:${user.id}`, RATE_LIMITS.URL_IMPORT);
+  const rlError = rateLimitErrorMessage(rl, "URL 取り込み");
+  if (rlError) {
+    return { error: rlError };
+  }
 
   if (!isClaudeAvailable()) {
     return { error: "AI機能を利用するにはAPIキーを設定してください。手動で入力してください。" };

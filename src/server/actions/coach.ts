@@ -7,6 +7,11 @@ import { isClaudeAvailable, askClaude, stripPII, withRetry } from "@/lib/anthrop
 import { parseConditions } from "@/lib/schemas";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
 import { captureError } from "@/lib/sentry";
+import {
+  checkRateLimit,
+  rateLimitErrorMessage,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 interface CoachResponse {
   answer: string;
@@ -301,6 +306,19 @@ export async function sendCoachMessage(
 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
+
+  // Per-user rate limit — 30 messages / 60s. Stops a stuck client tab from
+  // hammering Claude on auto-retry; honest user typing rarely tops 5/min.
+  const rl = checkRateLimit(`coach:${user.id}`, RATE_LIMITS.COACH_MESSAGE);
+  const rlError = rateLimitErrorMessage(rl, "メッセージ送信");
+  if (rlError) {
+    return {
+      answer: rlError,
+      suggestedActions: [],
+      matched: false,
+      sessionId: sessionId ?? "",
+    };
+  }
 
   const resolvedSessionId = await ensureSession(projectId, sessionId, message);
 
