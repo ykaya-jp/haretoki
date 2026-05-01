@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         プライバシーポリシー
       </h1>
       <p className="mt-1 text-[12px] text-muted-foreground">
-        最終更新: 2026 年 4 月 15 日
+        最終更新: 2026 年 5 月 2 日
       </p>
 
       <div className="prose prose-sm mt-8 max-w-none text-[14px] leading-[1.9] text-foreground dark:prose-invert">
@@ -62,13 +62,45 @@ export default function PrivacyPage() {
         </ul>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          3. 外部への提供
+          3. パートナー以外には見えません（プロジェクト分離）
         </h2>
         <p>
-          AI 機能の提供にあたり、ユーザーが入力した内容の一部が
-          Anthropic 社（Claude）に送信されます。個人を特定する情報は事前に匿名化します。
-          その他の外部サービス（Supabase、Vercel、Sentry、PostHog）には、
-          サービス提供の最小限の範囲でのみ情報を渡します。
+          おふたりが追加した式場・見学メモ・評価・写真などは、
+          おふたりのプロジェクト内でのみ参照できます。
+          他のカップル、運営者の閲覧用画面、検索エンジンに表示されることはありません。
+        </p>
+        <p>
+          技術的には Supabase の Row Level Security と、
+          サーバーサイドでのプロジェクトメンバーシップ確認の二段構えで、
+          別のプロジェクトの情報が見える経路を物理的に遮断しています。
+          バックアップ・障害対応のために、運営者がデータベースに直接アクセスする場合がありますが、
+          ご本人の同意なく内容を閲覧することはありません。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          4. 外部への提供
+        </h2>
+        <p>
+          AI 機能（コーチ会話、見積もり分析、口コミ要約など）の提供にあたり、
+          ユーザーが入力した内容の一部が Anthropic 社（Claude）に送信されます。
+          送信前に、メールアドレス・電話番号・住所などの個人を特定しうる文字列は
+          サーバー側で除去します。また、ユーザー入力の文字列は AI への指示と区別される
+          専用のタグ（<code>&lt;user_data&gt;</code>）で囲み、
+          指示として解釈されないよう保護した上で送信します。
+          詳細な技術仕様は{" "}
+          <a
+            href="https://github.com/ykaya-jp/haretoki/blob/main/docs/ai/guardrails.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--gold-warm)] underline"
+          >
+            docs/ai/guardrails.md
+          </a>
+          {" "}に公開しています。
+        </p>
+        <p>
+          その他の外部サービス（Supabase、Vercel、Sentry、PostHog、Resend）には、
+          サービス提供に必要な最小限の範囲でのみ情報を渡します。
           これらのサービスは日本国外のサーバーで処理される場合があります。
         </p>
         <p>
@@ -77,15 +109,23 @@ export default function PrivacyPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          4. 削除のご請求
+          5. ダウンロードと削除
         </h2>
         <p>
-          マイページ →「整える」→「アカウントを消す」から、本サービスに保存した
-          おふたりのすべての情報を削除できます。削除後は復元できません。
+          おふたりが保存した記録は、いつでも JSON 形式でダウンロードできます。
+          {" "}<Link href="/settings" className="text-[var(--gold-warm)] underline">設定</Link>
+          {" "}から「記録をダウンロード」を選んでください。
+          式場・見学メモ・評価・候補・決めた場所・AI コーチとの会話のすべてが含まれます。
+        </p>
+        <p>
+          アカウントの削除も同じ画面からできます。
+          「アカウントを消す」を選び、登録メールアドレスを入力してください。
+          関連するプロジェクトの記録、認証情報、お問い合わせ履歴を含むすべての情報が削除されます。
+          削除後は復元できません。
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          5. Cookie と localStorage
+          6. Cookie と localStorage
         </h2>
         <p>
           本サービスは、ログイン状態の維持、テーマ設定の記憶、AI 分析キャッシュの
@@ -93,11 +133,14 @@ export default function PrivacyPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          6. お問い合わせ
+          7. お問い合わせ
         </h2>
         <p>
-          プライバシーに関するお問い合わせは、マイページのフィードバックフォーム、
-          または本サービスのリポジトリを通じてご連絡ください。
+          プライバシーや個人情報に関するお問い合わせは、{" "}
+          <Link href="/support" className="text-[var(--gold-warm)] underline">
+            サポート窓口
+          </Link>
+          {" "}からお寄せください。通常 3 営業日以内にお返事します。
         </p>
 
         <p className="mt-12 text-[12px] text-muted-foreground">

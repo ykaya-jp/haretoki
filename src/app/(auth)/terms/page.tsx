@@ -19,7 +19,7 @@ export default function TermsPage() {
         利用規約
       </h1>
       <p className="mt-1 text-[12px] text-muted-foreground">
-        最終更新: 2026 年 4 月 15 日
+        最終更新: 2026 年 5 月 2 日
       </p>
 
       <div className="prose prose-sm mt-8 max-w-none text-[14px] leading-[1.9] text-foreground dark:prose-invert">
@@ -47,7 +47,23 @@ export default function TermsPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          3. 禁止事項
+          3. おふたりの記録について
+        </h2>
+        <p>
+          式場名、見学メモ、写真、評価、見積もり、AI コーチとの会話など、
+          おふたりが本サービスに登録した内容の <strong>権利はおふたりにあります</strong>。
+          本サービスは、これらをサービス提供（パートナーへの共有、AI 機能の処理、
+          表示）の目的でのみ利用し、それ以外の用途には使いません。
+        </p>
+        <p>
+          いつでも <Link href="/settings" className="text-[var(--gold-warm)] underline">設定</Link>
+          {" "}から、登録したすべての記録を JSON 形式でダウンロードできます。
+          また、アカウントを削除すれば、おふたりの記録は完全に消去されます
+          （詳細は本規約 6 を参照）。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          4. 禁止事項
         </h2>
         <ul className="ml-4 list-disc space-y-1">
           <li>他のユーザー、式場、運営者への誹謗中傷、名誉毀損</li>
@@ -57,7 +73,7 @@ export default function TermsPage() {
         </ul>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          4. 免責事項
+          5. 免責事項
         </h2>
         <p>
           本サービスの利用により生じた損害について、運営者は故意または重大な過失がある場合を除き、
@@ -66,20 +82,41 @@ export default function TermsPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          5. 規約の変更
+          6. 退会とアカウントの削除
+        </h2>
+        <p>
+          いつでも、ご自身の判断で本サービスを退会できます。
+          {" "}<Link href="/settings" className="text-[var(--gold-warm)] underline">設定</Link>
+          {" "}から「アカウントを消す」を選び、登録メールアドレスを入力してください。
+          おふたりが追加した式場・見学記録・評価・候補・決めた場所など、
+          プロジェクトに紐づくすべての記録が完全に削除されます。
+          削除後の復元はできません。退会前にダウンロードしておきたい場合は、
+          同じ画面の「記録をダウンロード」をご利用ください。
+        </p>
+        <p>
+          運営者は、本規約に重大な違反があった場合、事前のご連絡なくアカウントを停止・削除することがあります。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          7. 規約の変更
         </h2>
         <p>
           本規約は、サービスの改善や法令改正に応じて変更されることがあります。
+          重要な変更は、ログイン後の画面でお知らせします。
           変更後にサービスを継続利用された場合、変更内容に同意したものとみなします。
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          6. 準拠法
+          8. 準拠法
         </h2>
         <p>本規約は日本法に準拠し、東京地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
 
         <p className="mt-12 text-[12px] text-muted-foreground">
-          ご質問・ご指摘は、マイページのフィードバックフォームからお寄せください。
+          ご質問・ご指摘は{" "}
+          <Link href="/support" className="text-[var(--gold-warm)] underline">
+            サポート窓口
+          </Link>
+          {" "}からお寄せください。
         </p>
       </div>
     </article>
