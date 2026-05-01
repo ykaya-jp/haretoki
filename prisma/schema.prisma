@@ -416,6 +416,13 @@ model Estimate {
   // an index-only scan instead of re-reading the single-column venueId index
   // and then sorting in memory.
   @@index([venueId, version(sort: Desc)])
+  // R2 (Phase 2.D): four call sites do
+  // `findFirst where projectId orderBy createdAt desc` to surface the
+  // project's latest-by-time estimate (coach.ts loadUserContext,
+  // ritual.ts buildRitualContext, coach/stream/route.ts, journey.ts).
+  // The single-column projectId index forces a sort step on every read;
+  // this composite serves the head row from an index-only scan.
+  @@index([projectId, createdAt(sort: Desc)])
   @@map("estimates")
 }
 
@@ -472,6 +479,23 @@ model Visit {
 
   @@index([venueId])
   @@index([venueId, deletedAt])
+  // R2 (Phase 2.D): the visit-reminders crons
+  // (`/api/cron/visit-reminders-day-before` + `-morning-of`) scan for
+  // upcoming visits with `where status='scheduled' AND scheduledAt range`
+  // — no venueId filter. Without a (status, scheduledAt) composite the
+  // planner falls back to a sequential table scan; this composite lets
+  // the daily cron resolve in milliseconds even with thousands of past
+  // visits accumulated. Equality on status first (highly selective —
+  // most rows are `completed` or `cancelled`), range on scheduledAt
+  // second.
+  @@index([status, scheduledAt])
+  // R2 (Phase 2.D): home.ts upcoming-visit count and journey.ts
+  // completed-visit count both run `count where venue.projectId AND
+  // status='X'`. The relational filter joins via venues' projectId
+  // index, then for each venue scans visits — without a (venueId,
+  // status) composite the inner status filter is a per-row check.
+  // This index lets the inner side complete index-only.
+  @@index([venueId, status])
   @@map("visits")
 }
 
