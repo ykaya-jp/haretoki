@@ -106,11 +106,15 @@ export function VenueRemoveButton({
       {showConfirm && (
         <div
           // W21-4: SafeArea inset so the bottom-sheet card doesn't land
-          // under the iOS home bar at 375px. `pb-[env(...)]` adds the
-          // home-pill height (typically 34px) below the card; on desktop
-          // (`sm:items-center`) the dialog is centered and the inset
-          // becomes a no-op. paddingLeft/Right protect against landscape
-          // ears on iPhone notch devices.
+          // under the iOS home bar at 375px. The bottom padding pulls
+          // the home-pill height (typically 34px) into the overlay; on
+          // desktop (sm:items-center) the dialog is centered and the
+          // inset becomes a no-op. paddingLeft/Right protect against
+          // landscape ears on iPhone notch devices. (Tailwind v4 scans
+          // arbitrary class candidates out of comments, so any literal
+          // utility name with three dots inside the brackets is
+          // intentionally avoided here — last time it materialised as
+          // a broken CSS rule and crashed the dev build.)
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center"
           // The underlying ComparisonHeaderColumn / VenueCardView is a
           // <Link> — block every pointer event the overlay receives so a

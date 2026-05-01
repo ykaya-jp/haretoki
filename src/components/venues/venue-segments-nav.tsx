@@ -72,9 +72,14 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
   return (
     <nav
       aria-label="セクション切り替え"
-      // W21-4: pt-[env(...)] lifts the segment row below the notch on
-      // standalone-PWA. The inner padding row keeps its 8px breathing
-      // gap; only the outer chrome carries the safe-area inset.
+      // W21-4: the safe-area-inset-top utility on the outer chrome
+      // lifts the segment row below the notch on standalone-PWA. The
+      // inner padding row keeps its 8px breathing gap; only the outer
+      // chrome carries the safe-area inset. (The literal class name is
+      // intentionally not written here in shorthand — Tailwind v4's
+      // scanner picks up arbitrary `pt-[env(…)]` strings inside
+      // comments and tries to materialise them as a real utility,
+      // which broke the build last time.)
       className="sticky top-0 z-20 border-b border-border/40 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-card/55"
     >
       <div className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
