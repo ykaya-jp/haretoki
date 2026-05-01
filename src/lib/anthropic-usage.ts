@@ -1,4 +1,5 @@
 import { captureMessage } from "@/lib/sentry";
+import { logEvent } from "@/lib/observability";
 
 /**
  * Anthropic Claude usage tracking + cost estimation.
@@ -120,18 +121,19 @@ export function recordUsage(params: {
     callTimestamps.splice(0, Math.floor(MAX_CALL_LOG * 0.2));
   }
 
-  // Structured log — Vercel logs picks this up as JSON and lets ops grep
-  // by event="ai_call" for ad-hoc cost queries.
-  console.info(
-    JSON.stringify({
-      event: "ai_call",
+  // Structured log — Vercel Log Drain picks this up as JSON and lets ops
+  // filter by event="ai_call" for ad-hoc cost queries. The helper enforces
+  // the event taxonomy so a typo here would fail tsc.
+  logEvent({
+    event: "ai_call",
+    fields: {
       model,
       inputTokens,
       outputTokens,
       costUsd: Number(costUsd.toFixed(6)),
       action: action ?? null,
-    }),
-  );
+    },
+  });
 }
 
 export interface UsageSummary {
@@ -255,9 +257,9 @@ export function evaluateBudgetAlert(input: {
   };
   const shouldAlert = daily.exceeded || monthly.exceeded;
 
-  console.info(
-    JSON.stringify({
-      event: "ai_cost_summary",
+  logEvent({
+    event: "ai_cost_summary",
+    fields: {
       dailyUsedUsd: Number(daily.usedUsd.toFixed(4)),
       dailyBudgetUsd: dailyBudget,
       dailyPct: Number(daily.pct.toFixed(1)),
@@ -266,14 +268,20 @@ export function evaluateBudgetAlert(input: {
       monthlyPct: Number(monthly.pct.toFixed(1)),
       shouldAlert,
       ...input.context,
-    }),
-  );
+    },
+  });
 
   if (shouldAlert) {
+    // Monthly overrun is a P1 (we're actively burning runway), daily is
+    // P2 (likely a single bursty day, not necessarily a trend). Routing
+    // tags are read by the Sentry alert rules documented in
+    // `docs/harness/sentry-alerts.md`.
     captureMessage(
       `Anthropic spend exceeded budget — daily $${daily.usedUsd.toFixed(2)} / $${dailyBudget} (${daily.pct.toFixed(0)}%), monthly $${monthly.usedUsd.toFixed(2)} / $${monthlyBudget} (${monthly.pct.toFixed(0)}%)`,
       {
         level: monthly.exceeded ? "error" : "warning",
+        component: "cron.ai-cost",
+        alertRoute: monthly.exceeded ? "p1-page" : "p2-email",
         extra: { daily, monthly, ...input.context },
       },
     );

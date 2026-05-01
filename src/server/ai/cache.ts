@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import type { AiAnalysisType } from "@/generated/prisma/client";
+import { logEvent } from "@/lib/observability";
 
 /**
  * Per-type TTL for AiAnalysis-backed caching. Keep this map as the single
@@ -49,14 +50,14 @@ export async function getCachedAnalysis(
     orderBy: { createdAt: "desc" },
   });
 
-  // Lightweight hit/miss telemetry. Tagged log line lets the operator grep
-  // Vercel logs (`grep ai-analysis-cache`) to estimate hit rate without
-  // wiring a dashboard. Avoid logging the inputHash payload — it can leak
-  // signal about user content via length/distribution, and the hash itself
-  // is opaque enough for triage.
-  console.info(
-    `[ai-analysis-cache] ${cached ? "HIT" : "MISS"} type=${type}`,
-  );
+  // Lightweight hit/miss telemetry. Vercel Log Drain consumers filter on
+  // event="ai_analysis_cache_lookup" to estimate hit rate per type
+  // without wiring a dashboard. Avoid logging the inputHash payload —
+  // it can leak signal about user content via length / distribution.
+  logEvent({
+    event: "ai_analysis_cache_lookup",
+    fields: { type, outcome: cached ? "hit" : "miss" },
+  });
 
   return cached?.output ?? null;
 }

@@ -13,6 +13,7 @@ import { prisma } from "@/server/db";
 import { isEmailAvailable, sendEmail } from "@/lib/email/send";
 import { renderVisitReminderEmail } from "@/lib/email/templates/visit-reminder";
 import { captureError, captureMessage } from "@/lib/sentry";
+import { logEvent } from "@/lib/observability";
 import {
   isVisitInPhaseWindow,
   visitReminderType,
@@ -214,8 +215,12 @@ export async function runVisitReminderCron(
               })
               .catch((err) => {
                 captureError(err, {
-                  action: "visit-reminder-cron:persist-message-id",
-                  notificationId: notification.id,
+                  component: "cron.visit-reminder",
+                  alertRoute: "p3-digest",
+                  extra: {
+                    action: "visit-reminder-cron:persist-message-id",
+                    notificationId: notification.id,
+                  },
                 });
               });
           }
@@ -227,6 +232,8 @@ export async function runVisitReminderCron(
           emailFailed++;
           captureMessage("[visit-reminder] sendEmail failed", {
             level: "warning",
+            component: "cron.visit-reminder",
+            alertRoute: "p2-email",
             extra: {
               phase,
               visitId: visit.id,
@@ -239,25 +246,40 @@ export async function runVisitReminderCron(
     } catch (err) {
       errored++;
       captureError(err, {
-        action: "visit-reminder-cron",
-        phase,
-        visitId: visit.id,
-        venueId: visit.venue.id,
+        component: "cron.visit-reminder",
+        alertRoute: "p2-email",
+        extra: {
+          action: "visit-reminder-cron",
+          phase,
+          visitId: visit.id,
+          venueId: visit.venue.id,
+        },
       });
     }
   }
 
-  // Structured one-line tag log for Vercel log grep
-  // (`grep "\\[visit-reminder\\]"`). The JSON return body only reaches
-  // the caller of the route handler; this line lands in the Function
-  // log stream regardless.
-  console.info(
-    `[visit-reminder] phase=${phase} candidates=${candidates.length} notified=${notified} emailed=${emailed} emailFailed=${emailFailed} errored=${errored} skipped=${skipped} durationMs=${Date.now() - start}`,
-  );
+  // Structured cron summary — Vercel Log Drain consumers filter on
+  // event="visit_reminder_cron" for per-day metrics. Replaces the
+  // earlier ad-hoc `[visit-reminder] phase=...` text format; the
+  // `logEvent` helper standardises the shape.
+  const durationMs = Date.now() - start;
+  logEvent({
+    event: "visit_reminder_cron",
+    fields: {
+      phase,
+      candidates: candidates.length,
+      notified,
+      emailed,
+      emailFailed,
+      errored,
+      skipped,
+      durationMs,
+    },
+  });
 
   return {
     ok: true,
-    durationMs: Date.now() - start,
+    durationMs,
     candidates: candidates.length,
     notified,
     emailed,

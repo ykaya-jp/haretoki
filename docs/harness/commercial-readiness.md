@@ -7,7 +7,7 @@
 各項目は `✅ 済 / 🟡 部分対応 / ❌ 未着手 / ⏳ launch 直前` の 4 段階。
 status 横の `<commit/file>` で根拠を即引ける形を維持する (drift しないように)。
 
-最終更新: 2026-05-02 (P2 round 10 反映 — Resend webhook + Vercel BotID)
+最終更新: 2026-05-02 (P2 round 12 反映 — Sentry alert routing + Vercel structured logs)
 
 ## 集計サマリ
 
@@ -63,7 +63,7 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 3.1 | Sentry 統合 (server / client / edge) | ✅ | `sentry.{client,server,edge}.config.ts` + `src/lib/sentry.ts` (DSN 未設定時 no-op、 captureError + captureMessage helper) |
 | 3.2 | Sentry capture coverage (hot paths) | ✅ | 6+ server actions (decisions / decision-todos / venues / coach / venue-search / visit-reminder) で配線済 |
 | 3.3 | Cron monitoring playbook | ✅ | `docs/harness/cron-monitoring.md` で全 5 cron の初回 / 週次 / 異常パターン整備 |
-| 3.4 | 構造化 log (Vercel logs grep 可) | ✅ | visit-reminder cron で `[visit-reminder] phase=...` パターン採用、他 cron は今後追従推奨 |
+| 3.4 | 構造化 log (Vercel logs grep 可) | ✅ | `src/lib/observability.ts` の `logEvent` で 11 イベント taxonomy を一本化、 全 cron / webhook / cache / botid が JSON 1 行で出力。 Vercel Log Drain consumers + `vercel logs --json | grep '"event":"<name>"'` で per-day query 可能 (P2 round 12、 `docs/harness/sentry-alerts.md`) |
 | 3.5 | PostHog 行動分析 | ✅ | `src/lib/analytics.ts` (client) + `captureServerEvent` (server)、未設定時 no-op |
 | 3.6 | Vercel Analytics (Web Vitals) | ✅ | Vercel built-in (deploy 自動有効) |
 | 3.7 | Email deliverability tracking (Resend webhook) | ✅ | `/api/webhooks/resend` で `resend.webhooks.verify()` 経由 Svix HMAC 検証、 Notification.{resendMessageId, emailDeliveryStatus} に永続化、 bounced / complained は NotificationPreference.emailEnabled = false で auto-suppression (P2 round 10、 ADR-0009) |
