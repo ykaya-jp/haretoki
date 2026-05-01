@@ -115,7 +115,7 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   // Per-user rate limit — 3 PDF analyses / 60s. Each call holds Claude
   // up to 55s (document-block extraction); 3/min keeps a function
   // instance from queuing up >3 long-running requests in parallel.
-  const rl = checkRateLimit(`pdf-analyze:${user.id}`, RATE_LIMITS.PDF_ANALYZE);
+  const rl = await checkRateLimit(`pdf-analyze:${user.id}`, RATE_LIMITS.PDF_ANALYZE);
   const rlError = rateLimitErrorMessage(rl, "PDF 解析");
   if (rlError) {
     return { error: rlError };

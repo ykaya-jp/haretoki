@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
+import { captureError } from "@/lib/sentry";
 
 /**
  * GET|POST /api/cron/ai-cost-summary
@@ -33,6 +34,19 @@ import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
  */
 
 export const maxDuration = 60;
+
+/**
+ * JST-aligned date-only Date object for the `snapshot_date` upsert key.
+ * Postgres DATE truncates the time, but if we pass a UTC Date the day
+ * boundary slides relative to the operator's local clock; this keeps
+ * the snapshot keyed on the JST calendar day the cron observed.
+ */
+function jstDateOnly(now: Date): Date {
+  const shifted = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()),
+  );
+}
 
 // Per-model average tokens. Derived from a sample week of structured
 // `ai_call` logs in 2026-04. Conservative side (slightly over).
@@ -184,6 +198,41 @@ async function handle(request: Request) {
       monthlyTotalCalls: monthly.totalCalls,
     },
   });
+
+  // Persist a daily snapshot the /admin/cost dashboard reads. Upsert
+  // by snapshot_date (UNIQUE) so re-running the cron same day refreshes
+  // the row instead of duplicating. Best-effort — a write failure is
+  // logged but doesn't fail the cron (the alert pipeline already ran
+  // and the JSON response below is still useful to the operator).
+  const snapshotDate = jstDateOnly(new Date());
+  try {
+    await prisma.aiCostSnapshot.upsert({
+      where: { snapshotDate },
+      update: {
+        dailyUsedUsd: daily.totalEstCostUsd,
+        dailyBudgetUsd: alert.daily.budgetUsd,
+        monthlyUsedUsd: monthly.totalEstCostUsd,
+        monthlyBudgetUsd: alert.monthly.budgetUsd,
+        dailyByBucket: daily.byBucket,
+        shouldAlert: alert.shouldAlert,
+      },
+      create: {
+        snapshotDate,
+        dailyUsedUsd: daily.totalEstCostUsd,
+        dailyBudgetUsd: alert.daily.budgetUsd,
+        monthlyUsedUsd: monthly.totalEstCostUsd,
+        monthlyBudgetUsd: alert.monthly.budgetUsd,
+        dailyByBucket: daily.byBucket,
+        shouldAlert: alert.shouldAlert,
+      },
+    });
+  } catch (err) {
+    captureError(err, {
+      component: "cron.ai-cost",
+      alertRoute: "p3-digest",
+      extra: { action: "ai-cost-summary:snapshot-upsert" },
+    });
+  }
 
   const durationMs = Date.now() - startedAt;
   return NextResponse.json({

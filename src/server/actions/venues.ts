@@ -1104,7 +1104,7 @@ export async function addVenueFromUrl(url: string): Promise<{
   // fetch + Claude extraction; even a power user pasting from another tab
   // doesn't legitimately top this. Higher than legitimate use signals
   // either a stuck retry loop or someone scripting against the action.
-  const rl = checkRateLimit(`url-import:${user.id}`, RATE_LIMITS.URL_IMPORT);
+  const rl = await checkRateLimit(`url-import:${user.id}`, RATE_LIMITS.URL_IMPORT);
   const rlError = rateLimitErrorMessage(rl, "URL 取り込み");
   if (rlError) {
     return { error: rlError };

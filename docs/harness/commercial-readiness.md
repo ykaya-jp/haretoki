@@ -7,22 +7,26 @@
 各項目は `✅ 済 / 🟡 部分対応 / ❌ 未着手 / ⏳ launch 直前` の 4 段階。
 status 横の `<commit/file>` で根拠を即引ける形を維持する (drift しないように)。
 
-最終更新: 2026-05-02 (P2 round 12 反映 — Sentry alert routing + Vercel structured logs)
+最終更新: 2026-05-02 (P2 round 13 反映 — Upstash Redis rate-limit + AI cost dashboard skeleton)
 
 ## 集計サマリ
 
 | 軸 | ✅ 済 | 🟡 部分 | ❌ 未着手 | ⏳ launch 直前 | 合計 |
 |---|---|---|---|---|---|
 | 1. 法務 / コンプライアンス | 5 | 1 | 2 | 1 | 9 |
-| 2. セキュリティ | **7** | 1 | **1** | 0 | 9 |
-| 3. 観測性 / 運用 | **7** | 0 | 2 | 0 | 9 |
+| 2. セキュリティ | **8** | **0** | 1 | 0 | 9 |
+| 3. 観測性 / 運用 | **8** | 0 | **1** | 0 | 9 |
 | 4. スケール | 7 | 0 | 1 | 1 | 9 |
 | 5. UX 商用化要件 | 7 | 1 | 1 | 0 | 9 |
 | 6. ビジネス / サポート | 1 | 0 | 4 | 2 | 7 |
-| **合計** | **34** | **3** | **11** | **4** | **52** |
+| **合計** | **36** | **2** | **10** | **4** | **52** |
 
-商用化までの「あと N 件」: **❌ 未着手 11 + ⏳ launch 直前 4 = 15 件** が must-have の残り作業
-(うち 🟡 部分対応 3 件は要昇格判断)。
+商用化までの「あと N 件」: **❌ 未着手 10 + ⏳ launch 直前 4 = 14 件** が must-have の残り作業
+(うち 🟡 部分対応 2 件は要昇格判断)。
+
+**P2 round 13 で進捗**: ✅ 34 → 36 (+2)、 🟡 3 → 2 (-1)、 ❌ 11 → 10 (-1)。
+2.3 Rate limiting を Upstash Redis backend で global 化、 3.8 Anthropic コスト
+tracking を `AiCostSnapshot` テーブル + `/admin/cost` dashboard で常設化。
 
 **P2 round 10 で進捗**: ✅ 32 → 34 (+2)、 ❌ 12 → 11 (-1)、 🟡 4 → 3 (-1)。
 Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK_SECRET`
@@ -48,7 +52,7 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 |---|---|---|---|
 | 2.1 | Auth flow (Supabase Email + Google OAuth) | ✅ | `src/app/(auth)/{login,signup}/page.tsx`、email_confirmed_at gate (`invitations.ts:212-222`) |
 | 2.2 | RLS / 認可境界 | ✅ | `src/server/auth.ts` 冒頭 docstring に shared / personal / owner-only の 3 軸明記、ADR-0002 |
-| 2.3 | Rate limiting (venue-search Tier 2) | 🟡 | `src/lib/venue-search/quota.ts` で venue-name-search のみ実装。**他の hot path (URL 取込 / PDF 解析 / coach chat) は無防備** — 商用化前に汎用化必須 |
+| 2.3 | Rate limiting (汎用) | ✅ | `src/lib/rate-limit.ts` 汎用 sliding-window 実装、 backend abstraction で in-memory (default) ↔ Upstash Redis (`UPSTASH_REDIS_REST_URL/TOKEN` 設定で global cluster-wide) 切替可能。 hot path (coach.ts / venues.ts / estimates.ts) は `RATE_LIMITS.{COACH_MESSAGE,URL_IMPORT,PDF_ANALYZE}` で配線済 (P2 round 11 + round 13、 `docs/ai/cost-baseline.md`) |
 | 2.4 | CRON_SECRET 認証 | ✅ | 全 5 cron route が Bearer 検証 (`docs/harness/cron-monitoring.md`) |
 | 2.5 | Secret 漏洩防止 hook | ✅ | `.claude/settings.json` PreToolUse が `.env*` / `.key` / `.pem` / `*credentials*` 書込 block (`docs/harness/hooks.md` §1) |
 | 2.6 | Prompt injection 対策 | ✅ | `sanitizeForPrompt()` + `<user_data>` タグで囲む規約、PII strip、`docs/ai/guardrails.md` |
@@ -67,7 +71,7 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 3.5 | PostHog 行動分析 | ✅ | `src/lib/analytics.ts` (client) + `captureServerEvent` (server)、未設定時 no-op |
 | 3.6 | Vercel Analytics (Web Vitals) | ✅ | Vercel built-in (deploy 自動有効) |
 | 3.7 | Email deliverability tracking (Resend webhook) | ✅ | `/api/webhooks/resend` で `resend.webhooks.verify()` 経由 Svix HMAC 検証、 Notification.{resendMessageId, emailDeliveryStatus} に永続化、 bounced / complained は NotificationPreference.emailEnabled = false で auto-suppression (P2 round 10、 ADR-0009) |
-| 3.8 | Anthropic API コスト tracking | ❌ | `scripts/check-ai-usage.sh` (手動実行) のみ。常設 dashboard / 月次 alert なし。月 $50 を超えたら通知する仕組みが欲しい |
+| 3.8 | Anthropic API コスト tracking | ✅ | `evaluateBudgetAlert()` で日次 / 月次予算超過時 Sentry alert (`cron.ai-cost` × `error/warning`)。 `AiCostSnapshot` table に毎日 1 行 upsert、 `/admin/cost` dashboard で直近 30 日を可視化 (`ADMIN_EMAILS` allow-list)。 詳細運用は `docs/ai/cost-baseline.md` (P2 round 11 + round 13) |
 | 3.9 | Uptime monitor (外形監視) | ❌ | Vercel built-in は内部視点のみ。Better Stack / UptimeRobot 等の外形監視を `/health` endpoint と組み合わせて入れる |
 
 ## 4. スケール
@@ -112,18 +116,16 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 
 ## 商用化までの最短経路 (推奨優先順位)
 
-❌ 未着手 11 件のうち、 launch ブロッカーになる順 (P2 round 10 で 2.8 + 3.7 が ✅ に昇格、 priority 上位 2 件除去):
+❌ 未着手 10 件のうち、 launch ブロッカーになる順 (P2 round 13 で 2.3 + 3.8 が ✅ に昇格 → 残 priority 上位 8 件):
 
-1. **6.1 サポート問い合わせ窓口** + **6.3 通報窓口** — 法的 (景表法 / 特商法問題発覚時の連絡経路) + 運用上 必須
-2. **2.3 Rate limiting 汎用化** — URL 取込 / PDF 解析 / coach chat に当てる。 Anthropic credit 流出防止
-3. **3.8 Anthropic API コスト alert** — 月予算超過の自動通知
-4. **1.8 著作権 / 写真出典表記** — 式場サイトとのトラブル予防
-5. **3.9 Uptime monitor** — launch 後の信頼性担保
-6. **6.2 FAQ / ヘルプ** — 問い合わせ削減
-7. **2.9 Audit log** — トラブル時の調査
-8. **4.9 DB backup 検証** — 月次 drill 含めて
-9. **6.7 退会後データ保持ポリシー** — 利用規約に明示
-10. **5.9 404 ブランドデザイン** — UX polish
+1. **6.1 サポート問い合わせ窓口** + **6.3 通報窓口** — 法的 (景表法 / 特商法問題発覚時の連絡経路) + 運用上 必須 (※ worker C2 round 11 で /support 実装済、 次回 readiness pass で ✅ 昇格判定)
+2. **1.8 著作権 / 写真出典表記** — 式場サイトとのトラブル予防
+3. **3.9 Uptime monitor** — launch 後の信頼性担保
+4. **6.2 FAQ / ヘルプ** — 問い合わせ削減
+5. **2.9 Audit log** — トラブル時の調査
+6. **4.9 DB backup 検証** — 月次 drill 含めて
+7. **6.7 退会後データ保持ポリシー** — 利用規約に明示
+8. **5.9 404 ブランドデザイン** — UX polish
 
 🟡 部分対応の昇格判断:
 - 1.6 Cookie 同意: EU トラフィック予測次第
