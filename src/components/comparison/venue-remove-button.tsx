@@ -105,7 +105,13 @@ export function VenueRemoveButton({
 
       {showConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center"
+          // W21-4: SafeArea inset so the bottom-sheet card doesn't land
+          // under the iOS home bar at 375px. `pb-[env(...)]` adds the
+          // home-pill height (typically 34px) below the card; on desktop
+          // (`sm:items-center`) the dialog is centered and the inset
+          // becomes a no-op. paddingLeft/Right protect against landscape
+          // ears on iPhone notch devices.
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center"
           // The underlying ComparisonHeaderColumn / VenueCardView is a
           // <Link> — block every pointer event the overlay receives so a
           // dismiss tap doesn't navigate to the PDP.

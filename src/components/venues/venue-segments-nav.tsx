@@ -72,7 +72,10 @@ export function VenueSegmentsNav({ sections }: VenueSegmentsNavProps) {
   return (
     <nav
       aria-label="セクション切り替え"
-      className="sticky top-0 z-20 border-b border-border/40 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55"
+      // W21-4: pt-[env(...)] lifts the segment row below the notch on
+      // standalone-PWA. The inner padding row keeps its 8px breathing
+      // gap; only the outer chrome carries the safe-area inset.
+      className="sticky top-0 z-20 border-b border-border/40 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-card/55"
     >
       <div className="-mx-5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
         <div className="flex gap-2 py-2" role="tablist">
