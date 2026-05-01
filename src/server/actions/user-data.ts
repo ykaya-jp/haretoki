@@ -4,7 +4,9 @@
 // the API route injects the real client, tests inject a mock. Keeps the HTTP
 // layer thin and the data logic unit-testable.
 
-// Minimal structural type — everything the two helpers below touch. We avoid
+import { createHash, randomBytes } from "crypto";
+
+// Minimal structural type — everything the helpers below touch. We avoid
 // importing the real PrismaClient so tests can pass a plain mock object.
 // Arg types are `any` (not `unknown`) so that real Prisma delegate signatures
 // are assignable — Prisma's generated method signatures are generic and would
@@ -13,6 +15,7 @@
 export type UserDataPrisma = {
   user: {
     findUnique: (args: any) => Promise<any>;
+    update: (args: any) => Promise<any>;
     delete: (args: any) => Promise<any>;
   };
   projectMember: {
@@ -20,6 +23,7 @@ export type UserDataPrisma = {
       args: any,
     ) => Promise<Array<{ projectId: string; role: string }>>;
     deleteMany: (args: any) => Promise<{ count: number }>;
+    count: (args: any) => Promise<number>;
   };
   project: {
     delete: (args: any) => Promise<any>;
@@ -171,44 +175,147 @@ export async function buildUserExportBundle(
 }
 
 /**
- * Permanently deletes the user and any data that becomes orphaned.
- *
- * Strategy:
- *   1. Find every project the user is a member of.
- *   2. Remove this user's `ProjectMember` rows.
- *   3. For each project where the user was an `owner`, cascade-delete the
- *      entire project. The schema's `onDelete: Cascade` on Project->Venue,
- *      Venue->Visit, etc. takes care of the transitive children.
- *   4. Delete the `User` row. Remaining user-scoped children (favorites,
- *      visit ratings, notifications, notificationPreference) cascade via the
- *      schema's `onDelete: Cascade` on the User relation.
- *
- * Returns a small summary so the route handler can log / tests can assert.
+ * Collect every photo/media URL referenced by the export bundle, so the
+ * ZIP packaging can include a `photos/manifest.txt` that points users
+ * at the actual files in Supabase Storage. We don't download the
+ * binaries here (that would 10x the bundle size and slow the export
+ * dramatically) — the manifest is enough for "can I retrieve my data"
+ * compliance.
  */
+export function collectPhotoUrls(
+  bundle: Awaited<ReturnType<typeof buildUserExportBundle>>,
+): string[] {
+  const urls = new Set<string>();
+  const venues = (bundle.venues ?? []) as Array<{
+    photoUrls?: string[] | null;
+    visits?: Array<{
+      checklist?: Array<{ photoUrls?: string[] | null }>;
+      notes?: Array<{ media?: Array<{ mediaUrl?: string | null }> }>;
+    }>;
+  }>;
+  for (const v of venues) {
+    for (const u of v.photoUrls ?? []) urls.add(u);
+    for (const visit of v.visits ?? []) {
+      for (const item of visit.checklist ?? []) {
+        for (const u of item.photoUrls ?? []) urls.add(u);
+      }
+      for (const note of visit.notes ?? []) {
+        for (const media of note.media ?? []) {
+          if (media.mediaUrl) urls.add(media.mediaUrl);
+        }
+      }
+    }
+  }
+  return Array.from(urls).sort();
+}
+
+/**
+ * GDPR-light account erasure.
+ *
+ * The original (pre-round-15) implementation cascade-deleted every
+ * project the user owned. That was correct for the single-tenant case
+ * but wrong when a partner had been invited and is still using the
+ * project — their data would silently disappear with the owner's
+ * delete. The new flow:
+ *
+ *   1. For projects with OTHER accepted members:
+ *      - Drop this user's ProjectMember row
+ *      - Project + its data survives (the partner becomes the sole
+ *        remaining member; ownership transfer is a separate concern
+ *        we don't auto-resolve here — partner just has fewer rights
+ *        until they explicitly take ownership)
+ *      - The owning user's personal-data children (favorites, visit
+ *        ratings, visit notes authored by them) cascade via the
+ *        schema's onDelete:Cascade on User
+ *   2. For projects where this user was the SOLE member: cascade-
+ *      delete the project (legacy behaviour).
+ *   3. Anonymise the User row BEFORE deletion: email → hash, name →
+ *      null. This is belt-and-braces — `prisma.user.delete()` will
+ *      hard-delete the row and cascade. The two-step (anonymise
+ *      then delete) protects against half-completed deletes leaving
+ *      identifying info around if a step throws midway.
+ *   4. Delete the User row.
+ *
+ * Returns a structured summary so the route handler can log + the
+ * audit trail can be precise.
+ */
+export interface DeleteUserResult {
+  deletedProjectIds: string[];
+  detachedProjectIds: string[];
+  emailHash: string;
+}
+
 export async function deleteUserAccount(
   db: UserDataPrisma,
   userId: string,
-): Promise<{ deletedProjectIds: string[] }> {
+): Promise<DeleteUserResult> {
+  // Snapshot for the audit log + anonymisation step. Done before any
+  // mutation so a partial failure leaves a recoverable trail.
+  const snapshot = (await db.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  })) as { email: string | null } | null;
+  const emailHash = createHash("sha256")
+    .update((snapshot?.email ?? "").toLowerCase().trim())
+    .digest("hex")
+    .slice(0, 16);
+
   const memberships = await db.projectMember.findMany({
     where: { userId },
     select: { projectId: true, role: true },
   });
 
-  // Remove this user's membership rows first so that when we delete the
-  // project, the FK from ProjectMember->User doesn't complicate ordering.
+  // Decide per project whether to cascade-delete or just detach the
+  // user. Run BEFORE deleting any membership rows so the count is
+  // accurate (we count "other" members, excluding the deleting user).
+  const decisions = await Promise.all(
+    memberships.map(async (m) => {
+      const otherCount = await db.projectMember.count({
+        where: { projectId: m.projectId, NOT: { userId } },
+      });
+      return { ...m, hasOthers: otherCount > 0 };
+    }),
+  );
+
+  // Remove this user's membership rows first. After this point the
+  // project FK from ProjectMember -> User no longer needs reordering.
   await db.projectMember.deleteMany({ where: { userId } });
 
-  const ownedProjectIds = memberships
-    .filter((m) => m.role === "owner")
-    .map((m) => m.projectId);
+  const deletedProjectIds: string[] = [];
+  const detachedProjectIds: string[] = [];
 
-  for (const projectId of ownedProjectIds) {
-    // Cascades to venues, estimates, visits, ratings, reviews, coachMessages,
-    // decisions, partnerReactions, etc. via the Prisma schema.
-    await db.project.delete({ where: { id: projectId } });
+  for (const m of decisions) {
+    if (m.hasOthers) {
+      // Partner / other member is still around — leave the project
+      // alive. The owning user is now off the project membership; the
+      // partner retains access to all shared data (venues / visits /
+      // estimates / decisions). The owning user's personal-data rows
+      // (favorites, ratings, notes authored by them) cascade away
+      // through the User delete below.
+      detachedProjectIds.push(m.projectId);
+      continue;
+    }
+    // Sole member: cascade-delete the project (cascades to venues,
+    // estimates, visits, ratings, reviews, coachMessages, decisions,
+    // partnerReactions, etc. via the Prisma schema).
+    await db.project.delete({ where: { id: m.projectId } });
+    deletedProjectIds.push(m.projectId);
   }
+
+  // Anonymise email + name before delete. Defence-in-depth: even if
+  // the subsequent delete throws, the row no longer carries PII.
+  // Use a random suffix on the anonymised email so the @unique index
+  // doesn't collide with another user who already deleted today.
+  const randomSuffix = randomBytes(8).toString("hex");
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      email: `deleted-${emailHash}-${randomSuffix}@haretoki.deleted`,
+      name: null,
+    },
+  });
 
   await db.user.delete({ where: { id: userId } });
 
-  return { deletedProjectIds: ownedProjectIds };
+  return { deletedProjectIds, detachedProjectIds, emailHash };
 }

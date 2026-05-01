@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { requireAdmin } from "@/server/admin";
 import { activeBackendName } from "@/lib/rate-limit";
+import { recordAudit } from "@/server/audit";
 
 /**
  * /admin/cost — Anthropic spend dashboard skeleton.
@@ -55,7 +56,16 @@ function fmtJstDate(d: Date): string {
 }
 
 export default async function AdminCostPage() {
-  await requireAdmin();
+  const admin = await requireAdmin();
+
+  // Record the admin view in the audit log so a later "who looked
+  // at the cost dashboard around the time we noticed X" question
+  // has an answer. Best-effort — never blocks the page render.
+  await recordAudit({
+    action: "admin.cost.viewed",
+    actorId: admin.userId,
+    actorRole: "admin",
+  });
 
   const rows = await prisma.aiCostSnapshot.findMany({
     orderBy: { snapshotDate: "desc" },
