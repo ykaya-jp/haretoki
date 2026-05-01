@@ -3,12 +3,17 @@
 import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser, requireVenueAccess } from "@/server/auth";
-import { askClaude, isClaudeAvailable } from "@/lib/claude";
+import { isClaudeAvailable } from "@/lib/claude";
+import { cachedAskClaude } from "@/lib/ai-cache";
 import {
   VIBE_SUGGEST_SYSTEM,
   buildVibeSuggestUserMessage,
 } from "@/lib/prompts/vibe-suggest";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
+
+// Bump when the vibe-suggest prompt changes so cached vibe tags don't
+// outlive the prompt revision they were generated under.
+const VIBE_SUGGEST_PROMPT_VERSION = 1;
 
 const VALID_IDS = new Set<string>(VIBE_TAGS.map((t) => t.id));
 
@@ -54,7 +59,15 @@ export async function suggestVibeTagsForVenue(
     sourceUrls: venue.sourceUrls ?? [],
   });
 
-  const raw = await askClaude(VIBE_SUGGEST_SYSTEM, userMessage);
+  // Vibe extraction is a pure function of (venue facts, prompt). Same
+  // venue → same tags, so AiCache via `cachedAskClaude` collapses repeat
+  // calls (same venue re-suggested by the user, or two members landing on
+  // the venue page concurrently) to a single Claude round-trip.
+  const raw = await cachedAskClaude({
+    system: VIBE_SUGGEST_SYSTEM,
+    userMessage,
+    promptVersion: VIBE_SUGGEST_PROMPT_VERSION,
+  });
   if (!raw) return { tags: [] };
 
   try {

@@ -1,10 +1,16 @@
 "use server";
 
-import { prisma } from "@/server/db";
 import { requireUser, requireProjectMembership } from "@/server/auth";
+import { prisma } from "@/server/db";
 import { DIMENSION_LABELS } from "@/lib/constants";
 import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib/anthropic";
+import { MODEL } from "@/lib/models";
 import { COMPARISON_PROMPT } from "@/lib/prompts/comparison";
+import { getCachedAnalysis, setCachedAnalysis } from "@/server/ai/cache";
+
+// Bump this when COMPARISON_PROMPT semantics change so old cached comparison
+// outputs aren't served against a new prompt contract.
+const COMPARISON_PROMPT_VERSION = 1;
 
 interface ComparisonVenue {
   id: string;
@@ -107,20 +113,22 @@ async function generateInsight(
   }
 
   try {
+    // Hash recipe includes model + prompt version so a model upgrade or
+    // prompt revision invalidates stale rows automatically. The previous
+    // recipe (venueIds + conditions only) silently served pre-upgrade
+    // outputs after a deploy; the new shape is forward-safe.
     const inputHash = computeInputHash(
-      venues.map(v => v.id).sort().join(",") + JSON.stringify(conditions ?? "")
+      JSON.stringify({
+        venueIds: venues.map((v) => v.id).sort(),
+        conditions: conditions ?? null,
+        model: MODEL.HAIKU,
+        version: COMPARISON_PROMPT_VERSION,
+      }),
     );
 
-    // Check cache (24h TTL)
-    const cached = await prisma.aiAnalysis.findFirst({
-      where: {
-        type: "comparison",
-        inputHash,
-        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      },
-    });
-    if (cached) {
-      const parsed = JSON.parse(cached.output);
+    const cachedRaw = await getCachedAnalysis(projectId, "comparison", inputHash);
+    if (cachedRaw) {
+      const parsed = JSON.parse(cachedRaw);
       return {
         text: parsed.summary ?? "",
         recommendations: parsed.recommendations ?? [],
@@ -162,14 +170,11 @@ async function generateInsight(
       return generateTemplateInsight(venues);
     }
 
-    // Cache
-    await prisma.aiAnalysis.create({
-      data: {
-        projectId,
-        type: "comparison",
-        inputHash,
-        output: response,
-      },
+    await setCachedAnalysis({
+      projectId,
+      type: "comparison",
+      inputHash,
+      output: response,
     });
 
     return {

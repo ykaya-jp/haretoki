@@ -12,6 +12,7 @@ import {
 import { MATRIX_INSIGHT_PROMPT, type MatrixInsightInput } from "@/lib/prompts/matrix-insight";
 import { getMatrixData } from "@/server/actions/matrix";
 import { parseConditions } from "@/lib/schemas";
+import { getCachedAnalysis, setCachedAnalysis } from "@/server/ai/cache";
 
 export interface MatrixInsight {
   summary: string;
@@ -20,12 +21,12 @@ export interface MatrixInsight {
   fallback: boolean;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-
 /**
  * Natural-language "ひとこと分析" for the decision matrix.
- * Result is cached in AiAnalysis (type=comparison) keyed by input hash.
- * Falls back to a deterministic template when Claude is unavailable.
+ * Result is cached in AiAnalysis via the shared `getCachedAnalysis` helper
+ * (TTL is owned by `src/server/ai/cache.ts`'s TTL_DAYS map; type
+ * "matrix_insight" → 3 days). Falls back to a deterministic template when
+ * Claude is unavailable.
  */
 export async function getMatrixInsight(): Promise<MatrixInsight | null> {
   const user = await requireUser();
@@ -79,20 +80,16 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
     }),
   );
 
-  // Check 24h cache
-  const cached = await prisma.aiAnalysis.findFirst({
-    where: {
-      projectId,
-      type: "comparison",
-      inputHash,
-      createdAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (cached) {
+  // Cache lookup via the shared helper. AiAnalysisType=`matrix_insight`
+  // gives a dedicated TTL (3d) instead of sharing `comparison`'s lane.
+  const cachedRaw = await getCachedAnalysis(
+    projectId,
+    "matrix_insight",
+    inputHash,
+  );
+  if (cachedRaw) {
     try {
-      const parsed = JSON.parse(cached.output) as {
+      const parsed = JSON.parse(cachedRaw) as {
         summary?: string;
         nextActions?: unknown;
       };
@@ -157,19 +154,12 @@ export async function getMatrixInsight(): Promise<MatrixInsight | null> {
       .filter((a): a is string => typeof a === "string")
       .slice(0, 2);
 
-    // Persist to cache
-    await prisma.aiAnalysis
-      .create({
-        data: {
-          projectId,
-          type: "comparison",
-          inputHash,
-          output: JSON.stringify({ summary: parsed.summary, nextActions }),
-        },
-      })
-      .catch(() => {
-        // cache write failure is non-fatal
-      });
+    await setCachedAnalysis({
+      projectId,
+      type: "matrix_insight",
+      inputHash,
+      output: JSON.stringify({ summary: parsed.summary, nextActions }),
+    });
 
     return { summary: parsed.summary, nextActions, fallback: false };
   } catch {

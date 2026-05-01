@@ -9,16 +9,24 @@ import {
   withRetry,
   computeInputHash,
 } from "@/lib/anthropic";
+import { MODEL } from "@/lib/models";
 import {
   FIT_REASON_PROMPT,
   cleanOneLineFit,
   type FitReasonVenueSummary,
 } from "@/lib/prompts/fit-reason";
 import { parseConditions } from "@/lib/schemas";
+import { setCachedAnalysis } from "@/server/ai/cache";
 
 export type FitReasonMap = Record<string, string | null>;
 
 const MAX_NEW_PER_CALL = 10;
+
+// Bump when FIT_REASON_PROMPT semantics change so deploys invalidate the
+// pre-existing AiAnalysis rows automatically. Without a version tag, the
+// hash collision (same venue + same updatedAt + same conditions) would
+// silently serve pre-revision one-liners for the row's effective TTL.
+const FIT_REASON_PROMPT_VERSION = 1;
 
 /**
  * Resolve "fit reason" one-liners for the given venues. Cached per
@@ -77,7 +85,15 @@ async function fetchFitReasons(
   for (const v of venues) {
     hashByVenue.set(
       v.id,
-      computeInputHash(`${v.id}:${v.updatedAt.getTime()}:${conditionsKey}`),
+      computeInputHash(
+        JSON.stringify({
+          venueId: v.id,
+          updatedAt: v.updatedAt.getTime(),
+          conditions: conditionsKey,
+          model: MODEL.HAIKU,
+          version: FIT_REASON_PROMPT_VERSION,
+        }),
+      ),
     );
   }
   const cachedRows = await prisma.aiAnalysis.findMany({
@@ -128,9 +144,21 @@ async function fetchFitReasons(
         accessInfo: v.accessInfo,
         features: null,
       };
-      const hash = hashByVenue.get(v.id) ?? computeInputHash(
-        `${v.id}:${v.updatedAt.getTime()}:${conditionsKey}`,
-      );
+      // Always reuse the precomputed hash. The fallback path is dead code
+      // (hashByVenue is populated for every venue above) but kept so a
+      // future contributor doesn't accidentally re-introduce the legacy
+      // hash recipe by hand.
+      const hash =
+        hashByVenue.get(v.id) ??
+        computeInputHash(
+          JSON.stringify({
+            venueId: v.id,
+            updatedAt: v.updatedAt.getTime(),
+            conditions: conditionsKey,
+            model: MODEL.HAIKU,
+            version: FIT_REASON_PROMPT_VERSION,
+          }),
+        );
       try {
         const raw = await withRetry(() =>
           askClaude({
@@ -142,19 +170,16 @@ async function fetchFitReasons(
         const clean = cleanOneLineFit(raw);
         if (clean.length >= 10 && clean.length <= 100) {
           results[v.id] = clean;
-          await prisma.aiAnalysis
-            .create({
-              data: {
-                projectId,
-                venueId: v.id,
-                type: "fit_reason",
-                inputHash: hash,
-                output: clean,
-              },
-            })
-            .catch(() => {
-              // unique violation = another concurrent request won. fine.
-            });
+          // setCachedAnalysis already swallows write failures (concurrent
+          // unique-constraint races included), matching the legacy `.catch`
+          // behavior without the per-call boilerplate.
+          await setCachedAnalysis({
+            projectId,
+            type: "fit_reason",
+            inputHash: hash,
+            output: clean,
+            venueId: v.id,
+          });
         }
       } catch {
         // One bad venue shouldn't poison the whole batch.
