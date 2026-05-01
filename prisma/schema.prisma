@@ -896,6 +896,37 @@ model CoupleAgreement {
   @@map("couple_agreements")
 }
 
+/// P2.D Daily Anthropic cost snapshot — populated by
+/// `/api/cron/ai-cost-summary` once per day. The admin /admin/cost page
+/// reads the last 30 rows to render a dashboard without re-running the
+/// cron's heavy aggregation. Stringly-typed `byBucket` (Json) so a new
+/// model class doesn't require a migration.
+model AiCostSnapshot {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// JST date (YYYY-MM-DD) the cron observed. UNIQUE so re-running the
+  /// cron same day upserts the row instead of duplicating.
+  snapshotDate      DateTime @unique @map("snapshot_date") @db.Date
+  /// Daily window (24h) totals.
+  dailyUsedUsd      Decimal  @map("daily_used_usd") @db.Decimal(10, 4)
+  dailyBudgetUsd    Decimal  @map("daily_budget_usd") @db.Decimal(10, 4)
+  /// Monthly window (30d) totals.
+  monthlyUsedUsd    Decimal  @map("monthly_used_usd") @db.Decimal(10, 4)
+  monthlyBudgetUsd  Decimal  @map("monthly_budget_usd") @db.Decimal(10, 4)
+  /// Per-bucket detail (haiku / sonnet / sonnet-pdf) — same shape as the
+  /// cron's daily.byBucket. `Json` so adding a new model class doesn't
+  /// require a migration. App-level types in
+  /// `src/lib/anthropic-cost-snapshot.ts`.
+  dailyByBucket     Json     @map("daily_by_bucket")
+  /// True when the cron's evaluateBudgetAlert tripped at least one
+  /// threshold. Lets the admin page colour the row red without
+  /// re-deriving the comparison.
+  shouldAlert       Boolean  @default(false) @map("should_alert")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([snapshotDate(sort: Desc)])
+  @@map("ai_cost_snapshots")
+}
+
 /// AI response cache — deduplicates identical Claude inputs across all call sites.
 /// TTL = 30 days (enforced in application logic, not DB).
 model AiCache {

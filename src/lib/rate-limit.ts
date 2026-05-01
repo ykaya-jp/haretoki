@@ -1,56 +1,52 @@
 /**
- * Generic rate limiter — sliding-window, in-memory.
+ * Generic rate limiter — public API.
  *
- * Two callers feed into this:
+ * Two backends behind a single interface:
  *
- *   - hot Server Actions that hit Claude (sendCoachMessage,
- *     addVenueFromUrl, analyzeEstimatePdf) — protect upstream cost +
- *     prevent a single user from monopolising the project's quota
+ *  - **in-memory** (default, `src/lib/rate-limit/in-memory.ts`): single
+ *    function instance, sliding window. Used for local dev, CI, and any
+ *    Vercel deployment without an Upstash Redis attached. Cheap, zero
+ *    infra, but per-instance — N concurrent function instances each get
+ *    their own bucket.
  *
- *   - any future Server Action that needs per-user / per-IP throttling
- *     (no separate ad-hoc Map+minute counter — replace those with this
- *     module so the eviction policy lives in one place)
+ *  - **redis** (`src/lib/rate-limit/redis.ts`): cluster-wide sliding
+ *    window via Upstash Redis (`@upstash/redis`). Solves the per-instance
+ *    leak. Activated when both `UPSTASH_REDIS_REST_URL` and
+ *    `UPSTASH_REDIS_REST_TOKEN` are set.
  *
- * Eviction:
- *   - per-key timestamp list, kept under windowMs by drop-on-check
- *   - bounded by MAX_KEYS (LRU-on-access) so a flood of unique keys
- *     can't OOM the function instance
+ * The `checkRateLimit` API stays IDENTICAL across backends so call sites
+ * (`src/server/actions/coach.ts`, `src/server/actions/venues.ts`, etc.)
+ * don't change when ops swaps backends.
  *
- * Scope caveat:
- *   - serverless function instances do NOT share state, so the effective
- *     limit is "per-instance" and a sufficiently busy app may cluster
- *     traffic across N instances and let through N × limit. For Phase 2
- *     this is acceptable (the threat model is "single user spamming",
- *     not "coordinated DoS"); a Redis-backed sink (Upstash) is the
- *     P3 upgrade path. Both implementations should expose the same
- *     `checkRateLimit(key, opts)` so swapping is a one-line edit at the
- *     callsite.
+ * Note: the public function is now `async` (was sync in the in-memory-
+ * only version). Existing call sites already `await` the result, so this
+ * is a no-op migration on the client side.
+ *
+ * Tests opt into the in-memory backend by leaving the Upstash env vars
+ * unset; production opts into Redis by setting them via Vercel
+ * Marketplace's Upstash integration.
  */
 
-interface KeyState {
-  timestamps: number[];
-  lastTouchedMs: number;
+import { inMemoryBackend } from "./rate-limit/in-memory";
+import { redisBackend } from "./rate-limit/redis";
+import type {
+  RateLimitBackend,
+  RateLimitOptions,
+  RateLimitResult,
+} from "./rate-limit/types";
+
+export type { RateLimitOptions, RateLimitResult } from "./rate-limit/types";
+
+/**
+ * Pick the active backend based on env. Re-evaluated on every call so
+ * tests can flip env vars between specs without re-importing the module.
+ * The cost is negligible — env lookup is O(1).
+ */
+function activeBackend(): RateLimitBackend {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  return url && token ? redisBackend : inMemoryBackend;
 }
-
-const store = new Map<string, KeyState>();
-const MAX_KEYS = 10_000;
-
-export interface RateLimitOptions {
-  /** Maximum hits allowed inside windowMs. */
-  limit: number;
-  /** Sliding window in milliseconds. */
-  windowMs: number;
-}
-
-export type RateLimitResult =
-  | { allowed: true; remaining: number; resetAtMs: number }
-  | {
-      allowed: false;
-      retryAfterMs: number;
-      retryAfterSec: number;
-      limit: number;
-      windowMs: number;
-    };
 
 /**
  * Check + record a hit. Returns `{allowed:true}` after recording, or
@@ -60,52 +56,12 @@ export type RateLimitResult =
  * invoke once per request, ideally as the first thing after auth — calling
  * it twice double-counts and starves the user out.
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   opts: RateLimitOptions,
   now: number = Date.now(),
-): RateLimitResult {
-  if (!key || opts.limit <= 0 || opts.windowMs <= 0) {
-    // Misconfigured — don't block the user, but log so it's visible.
-    return { allowed: true, remaining: opts.limit, resetAtMs: now };
-  }
-
-  pruneIfNeeded();
-
-  const cutoff = now - opts.windowMs;
-  const existing = store.get(key);
-  const recent = existing
-    ? existing.timestamps.filter((t) => t > cutoff)
-    : [];
-
-  if (recent.length >= opts.limit) {
-    // Compute how long until the oldest in-window timestamp falls off.
-    // recent[0] is the oldest; its expiry = recent[0] + windowMs.
-    const oldest = recent[0];
-    const retryAfterMs = Math.max(0, oldest + opts.windowMs - now);
-    // Touch lastTouchedMs even on rejection so we don't preferentially
-    // evict an active (but throttled) key in the LRU pass.
-    store.set(key, {
-      timestamps: recent,
-      lastTouchedMs: now,
-    });
-    return {
-      allowed: false,
-      retryAfterMs,
-      retryAfterSec: Math.ceil(retryAfterMs / 1000),
-      limit: opts.limit,
-      windowMs: opts.windowMs,
-    };
-  }
-
-  recent.push(now);
-  store.set(key, { timestamps: recent, lastTouchedMs: now });
-  const resetAtMs = recent[0] + opts.windowMs;
-  return {
-    allowed: true,
-    remaining: Math.max(0, opts.limit - recent.length),
-    resetAtMs,
-  };
+): Promise<RateLimitResult> {
+  return activeBackend().check(key, opts, now);
 }
 
 /**
@@ -121,22 +77,14 @@ export function rateLimitErrorMessage(
   return `${noun}の頻度が高すぎます。${sec}秒後に再度お試しください。`;
 }
 
-function pruneIfNeeded(): void {
-  if (store.size <= MAX_KEYS) return;
-  // LRU drop the bottom 10% by lastTouchedMs. Cheap O(N log N) sort
-  // amortised over rare resize events.
-  const entries = Array.from(store.entries()).sort(
-    (a, b) => a[1].lastTouchedMs - b[1].lastTouchedMs,
-  );
-  const drop = Math.floor(MAX_KEYS * 0.1);
-  for (let i = 0; i < drop; i++) {
-    store.delete(entries[i][0]);
-  }
+/** Diagnostic — used by ops doc / debug pages. */
+export function activeBackendName(): "in-memory" | "redis" {
+  return activeBackend().name;
 }
 
 /** Test-only — clears all state so specs don't bleed into each other. */
-export function _resetRateLimitStore(): void {
-  store.clear();
+export async function _resetRateLimitStore(): Promise<void> {
+  await activeBackend().reset();
 }
 
 /**
