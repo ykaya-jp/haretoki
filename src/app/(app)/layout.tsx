@@ -1,5 +1,6 @@
 import { cache, Suspense } from "react";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { getOrCreateProject } from "@/server/actions/projects";
@@ -98,6 +99,12 @@ export default async function AppLayout({
         >
           {children}
         </main>
+        {/* SiteFooter is the single canonical entry point for support /
+            terms / privacy across every authenticated screen. Rendered
+            here (outside <main>) so each page does not need to opt in,
+            and placed before BottomNav so the fixed nav still floats
+            above the footer at scroll-end on mobile. */}
+        <SiteFooter />
         <InstallPrompt />
         <ServiceWorkerRegistry />
         {/* Stream nav: shell (BottomNav without counts) flushes first while
