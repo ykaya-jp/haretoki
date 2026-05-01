@@ -401,6 +401,12 @@ model Estimate {
   predictedFinal Int?               @map("predicted_final")
   sourceType     EstimateSourceType @map("source_type")
   pdfUrl         String?            @map("pdf_url")
+  // Round 14 (2026-05-02) — additive: server-side sanity-check warnings
+  // emitted by parseEstimateExtraction (sum-vs-total drift > 10%, etc.).
+  // Persisted so the venue-detail Estimate card can render the
+  // "要確認" badge after save, not only during the upload-edit modal.
+  // Default empty array keeps existing rows / API consumers unaffected.
+  warnings       String[]           @default([])
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
 

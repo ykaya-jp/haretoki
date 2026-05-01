@@ -165,6 +165,9 @@ export function EstimatePdfUpload({
         total,
         predictedFinal: analysis.predictedFinal,
         items: analysis.items,
+        // Round 14: persist the AI sanity warnings on the row so the
+        // 要確認 badge survives a page reload + shows on the detail card.
+        warnings,
       });
 
       if ("error" in result) {

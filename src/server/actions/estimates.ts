@@ -160,12 +160,32 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
     // so it uploads via the Anthropic Files API rather than re-fetching the
     // PDF over a signed URL. Cuts one round-trip + lifts the practical PDF
     // cap from base64-inline-friendly (~5MB) to the Files API limit.
+    //
+    // Round 14: also pass `fallbackPdfUrl` so the extractor can transparently
+    // fall through to the signed-URL path if the Files API upload itself
+    // errors (a transient Anthropic-side 5xx, etc.). The 3-tier order is:
+    //   cache hit → Files API → signed URL → ok:false
     const result = await extractEstimateItems({
       buffer,
       filename: file.name,
+      fallbackPdfUrl: pdfUrl,
     });
     if (!result.ok) {
       return { error: result.error };
+    }
+
+    if (result.tier !== "files-api") {
+      // Telemetry: which tier won this extraction? Used by ops to spot a
+      // regression (e.g. Files API silently routing to URL fallback for
+      // every call) without scraping logs by hand.
+      console.info(
+        JSON.stringify({
+          event: "estimate_extract_tier",
+          tier: result.tier,
+          venueId,
+          projectId,
+        }),
+      );
     }
 
     return {
@@ -174,11 +194,13 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       venueId,
       projectId,
       // Round 3 (2026-05-02) — non-fatal sanity-check warnings (e.g.
-      // items-sum vs total drift > 10%). UI may surface these as a
+      // items-sum vs total drift > 10%). UI surfaces these as a
       // "要確認" badge so the couple double-checks the extraction
       // before saving. Empty array when extraction is internally
-      // consistent.
+      // consistent. Round 14: also persisted on saveAnalyzedEstimate
+      // so the venue-detail card shows the badge after save too.
       warnings: result.warnings,
+      tier: result.tier,
     };
   } catch (error) {
     console.error("PDF analysis error:", error);
@@ -227,6 +249,11 @@ export async function saveAnalyzedEstimate(input: {
     amount: number;
     tier: string;
   }>;
+  /** Round 14: persisted server-side sanity warnings (sum-vs-total drift
+   *  > 10% etc.) so the venue-detail Estimate card can render the
+   *  "要確認" badge after save, not just during the upload modal.
+   *  Filtered + length-clamped to keep DB writes bounded. */
+  warnings?: string[];
 }) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
@@ -237,6 +264,14 @@ export async function saveAnalyzedEstimate(input: {
     where: { venueId: input.venueId, projectId },
   });
 
+  // Sanitize the optional warnings: drop non-strings, clamp per-item to
+  // 240 chars (drift messages are ~80 chars), and cap the array at 8 so
+  // a malformed payload can't bloat the row.
+  const sanitizedWarnings = (input.warnings ?? [])
+    .filter((w): w is string => typeof w === "string" && w.length > 0)
+    .map((w) => w.slice(0, 240))
+    .slice(0, 8);
+
   const estimate = await prisma.estimate.create({
     data: {
       venueId: input.venueId,
@@ -246,6 +281,7 @@ export async function saveAnalyzedEstimate(input: {
       predictedFinal: input.predictedFinal,
       sourceType: "ai_extracted",
       pdfUrl: input.pdfUrl,
+      warnings: sanitizedWarnings,
       items: {
         create: input.items.map((item) => ({
           category: isValidCategory(item.category) ? item.category : "other",
