@@ -10,6 +10,11 @@ export interface VenueRationale {
   area_match: boolean;
   budget_match: boolean;
   style_match: boolean;
+  /** 2026-05-02 round 2 — one-line Japanese explaining why this venue
+   *  earned its slot vs the other two recommendations (decision-driver,
+   *  budget position, diversity intent). Optional for backwards
+   *  compatibility with cache rows produced under prompt version 1. */
+  note?: string;
 }
 
 export interface VenueRecommendation {

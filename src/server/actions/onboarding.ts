@@ -17,7 +17,9 @@ import { MODEL } from "@/lib/models";
 
 // Bump when ONBOARDING_RECOMMENDATION_PROMPT semantics change so post-
 // deploy callers don't replay the previous-version recommendation set.
-const ONBOARDING_REC_PROMPT_VERSION = 1;
+// 2026-05-02 round 2: bumped 1 → 2 for decision-driver inference,
+// budget-aligned diversity, area inference, rationale.note addition.
+const ONBOARDING_REC_PROMPT_VERSION = 2;
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
 import {
   AI_REC_VENUE_THRESHOLD,
