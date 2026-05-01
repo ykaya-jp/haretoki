@@ -150,8 +150,14 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
             <p className="text-sm font-medium text-foreground">
               「{venueName}」を候補から外しますか？
             </p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              評価・見積もり・見学記録もすべて手放します。この操作は取り消せません。
+            {/* W21-7 follow-up: this dialog used to claim the action was
+                irreversible, but deleteVenue is a soft-delete since W20-3
+                — the row stays in the DB with `deletedAt` set and can be
+                brought back via restoreVenue. Match the wording the
+                /compare board uses so the same gesture reads the same
+                way everywhere. */}
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              評価・見積もり・見学記録は手元に残ります。あとから戻せます。
             </p>
             <div className="mt-4 flex gap-3">
               <button
