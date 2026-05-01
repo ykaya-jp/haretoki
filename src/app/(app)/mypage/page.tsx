@@ -185,7 +185,7 @@ export default async function MyPage() {
             <InviteLinkPanel initialLink={invitationLink} />
 
             {/* Legacy email-based invite (kept as fallback) */}
-            <details className="rounded-2xl border border-border/60 bg-card/50">
+            <details className="rounded-2xl border border-border/60 bg-surface-raised">
               <summary className="cursor-pointer list-none p-4 text-[12.5px] text-muted-foreground hover:text-foreground">
                 メールアドレスで招く（従来の方法）
               </summary>

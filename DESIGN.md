@@ -601,13 +601,34 @@ Haretoki is **not** a media/advertising platform (unlike Zexy, Hanayume). It is 
 
 #### Dark Mode
 
-| Token | Value |
-|-------|-------|
-| `--background` | `oklch(0.15 0.01 50)` (warm dark) |
-| `--card` | `oklch(0.20 0.01 50)` |
-| `--foreground` | `oklch(0.95 0.005 80)` |
-| `--border` | `rgba(255,255,255,0.06)` |
-| `--accent` | brighter gold for dark bg |
+Three-tier surface hierarchy in dark mode (background → card → card-elevated):
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--background` | `oklch(0.18 0.015 50)` | Page base — warm dark cream, hue 50 |
+| `--card` | `oklch(0.23 0.012 50)` | Default card / panel surface |
+| `--card-elevated` | `oklch(0.27 0.010 50)` | Highest tier — sheet, modal, lifted cards |
+| `--foreground` | `oklch(0.95 0.005 80)` | Body text |
+| `--muted` | `oklch(0.26 0.008 50)` | Subtle surface — needs `bg-surface-*` (see below) |
+| `--muted-foreground` | `oklch(0.74 0.02 60)` | Secondary text |
+| `--border` | `oklch(0.30 0.01 50)` | Hairlines |
+| `--primary` | `oklch(0.66 0.08 45)` | Rose, desaturated for dark |
+| `--accent` | `oklch(0.72 0.14 80)` | Gold, brighter for dark bg |
+| `--gold-warm` / `--gold-light` / `--gold-subtle` | brightened oklch(0.72/0.82, 80) variants | AI features |
+| `--shadow-card` / `--shadow-elevated` / `--shadow-hero` | rgb-black ramps | Increased intensity vs light theme |
+
+#### Dark-Mode-Stable Surface Tints
+
+Tailwind opacity utilities (`bg-muted/30`, `bg-card/50`, etc.) collapse against `--background` in dark mode because both `--muted`/`--card` and `--background` are warm dark tones with very low lightness gap (≤ 0.08). Mix at a fixed ratio via `color-mix(in oklab, ...)` so the surface diff stays visually stable in both themes.
+
+| Utility | Output | Replaces | Use for |
+|---------|--------|----------|---------|
+| `.bg-surface-sunken` | `color-mix(in oklab, var(--muted) 55%, var(--background))` | `bg-muted/20`–`/40` | Section header / soft empty state / skeleton row |
+| `.bg-surface-raised` | `color-mix(in oklab, var(--card) 75%, var(--background))` | `bg-card/40`–`/60` | Filter container / details fold / dashed empty card |
+| `.bg-tint-gold` / `.bg-tint-success` / `.bg-tint-destructive` | gold/success/destructive 10–12% on bg | `bg-emerald-100` / `bg-amber-100` etc. | Status pills, badges, semantic chips |
+| inline `bg-[color-mix(in_oklab,var(--token)_N%,var(--surface))]` | per-callsite ratio | one-off cases (W21-5) | Unread cue, "winner" callout, comparison diff highlight |
+
+**Rule**: never write `bg-<token>/<N>` for non-glass surfaces. Either pick a stable utility above, or use inline `color-mix`. Glass surfaces (sticky headers, bottom nav, modal overlays) keep `bg-card/70 backdrop-blur-xl` because the blur — not the alpha — provides the "frosted" affordance.
 
 ### 2. Typography
 

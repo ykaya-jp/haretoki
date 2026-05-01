@@ -8,7 +8,7 @@ export default function CoachLoading() {
       {[1, 2].map((i) => (
         <div
           key={i}
-          className="space-y-3 rounded-2xl border-l-[3px] border-l-muted bg-muted/30 p-4"
+          className="space-y-3 rounded-2xl border-l-[3px] border-l-muted bg-surface-sunken p-4"
         >
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-muted" />

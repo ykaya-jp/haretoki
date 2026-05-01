@@ -448,7 +448,7 @@ export function CompareRedesigned() {
           indicator. Horizontally scrollable; each chip tap toggles a
           selection, but chips beyond MAX_SELECTED are disabled. */}
       {pool.length === 0 ? (
-        <div className="mx-3 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+        <div className="mx-3 rounded-xl border border-dashed border-border bg-surface-sunken px-4 py-6 text-center">
           <p className="text-[12.5px] leading-relaxed text-muted-foreground">
             {ownerFilter === "both"
               ? "おふたりが共通で候補にしている式場はまだありません。"
@@ -769,7 +769,7 @@ export function CompareRedesigned() {
           )}
         </>
       ) : pool.length >= 2 ? (
-        <div className="mx-3 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 py-10 text-center">
+        <div className="mx-3 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface-sunken py-10 text-center">
           <Sparkles
             className="h-6 w-6 text-[var(--gold-warm)]"
             strokeWidth={1.4}

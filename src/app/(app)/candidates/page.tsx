@@ -68,7 +68,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
       <div className="flex justify-end">
         <Link
           href="/checklist"
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-4 text-[12px] text-muted-foreground transition-colors duration-200 hover:border-[var(--gold-warm)]/60 hover:text-[var(--gold-warm)]"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border/60 bg-surface-raised px-4 text-[12px] text-muted-foreground transition-colors duration-200 hover:border-[var(--gold-warm)]/60 hover:text-[var(--gold-warm)]"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
           チェック項目を編集

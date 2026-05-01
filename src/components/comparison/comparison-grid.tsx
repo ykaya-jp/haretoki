@@ -179,7 +179,7 @@ export function ComparisonGrid({ matrix, weights = null }: ComparisonGridProps) 
                 <div
                   key={`cl-heading-${slot.label}-${si}`}
                   style={{ gridRow: row, gridColumn: `1 / -1` }}
-                  className="border-b border-border/40 bg-muted/40 px-3 py-1.5"
+                  className="border-b border-border/40 bg-surface-sunken px-3 py-1.5"
                 >
                   <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                     チェックリスト · {slot.label}
