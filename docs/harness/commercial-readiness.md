@@ -7,7 +7,7 @@
 各項目は `✅ 済 / 🟡 部分対応 / ❌ 未着手 / ⏳ launch 直前` の 4 段階。
 status 横の `<commit/file>` で根拠を即引ける形を維持する (drift しないように)。
 
-最終更新: 2026-05-02 (P2 round 13 反映 — Upstash Redis rate-limit + AI cost dashboard skeleton)
+最終更新: 2026-05-02 (P2 round 14 反映 — Resend webhook business logic 強化 + Sentry wire audit)
 
 ## 集計サマリ
 
@@ -70,7 +70,7 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 3.4 | 構造化 log (Vercel logs grep 可) | ✅ | `src/lib/observability.ts` の `logEvent` で 11 イベント taxonomy を一本化、 全 cron / webhook / cache / botid が JSON 1 行で出力。 Vercel Log Drain consumers + `vercel logs --json | grep '"event":"<name>"'` で per-day query 可能 (P2 round 12、 `docs/harness/sentry-alerts.md`) |
 | 3.5 | PostHog 行動分析 | ✅ | `src/lib/analytics.ts` (client) + `captureServerEvent` (server)、未設定時 no-op |
 | 3.6 | Vercel Analytics (Web Vitals) | ✅ | Vercel built-in (deploy 自動有効) |
-| 3.7 | Email deliverability tracking (Resend webhook) | ✅ | `/api/webhooks/resend` で `resend.webhooks.verify()` 経由 Svix HMAC 検証、 Notification.{resendMessageId, emailDeliveryStatus} に永続化、 bounced / complained は NotificationPreference.emailEnabled = false で auto-suppression (P2 round 10、 ADR-0009) |
+| 3.7 | Email deliverability tracking (Resend webhook) | ✅ | `/api/webhooks/resend` で Svix HMAC 検証 + Notification.{resendMessageId,emailDeliveryStatus} 永続化。 round 14 拡張: bounce タイプ別に suppression reason (hard/soft/complained/manual) を分類、 user-facing in-app notice + admin notice email を fan-out、 daily `/api/cron/email-suppression-retry` で soft bounce を 7 日後に auto-retry (P2 round 10 + round 14、 ADR-0009) |
 | 3.8 | Anthropic API コスト tracking | ✅ | `evaluateBudgetAlert()` で日次 / 月次予算超過時 Sentry alert (`cron.ai-cost` × `error/warning`)。 `AiCostSnapshot` table に毎日 1 行 upsert、 `/admin/cost` dashboard で直近 30 日を可視化 (`ADMIN_EMAILS` allow-list)。 詳細運用は `docs/ai/cost-baseline.md` (P2 round 11 + round 13) |
 | 3.9 | Uptime monitor (外形監視) | ❌ | Vercel built-in は内部視点のみ。Better Stack / UptimeRobot 等の外形監視を `/health` endpoint と組み合わせて入れる |
 

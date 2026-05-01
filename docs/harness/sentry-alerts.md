@@ -192,10 +192,68 @@ vercel logs https://haretoki.vercel.app --since 7d \
   | jq '{phase,notified,errored,emailFailed}'
 ```
 
+## 配線後の検証チェックリスト (round 14 audit)
+
+中央 / 開発者が deploy 後に **alert routing が期待通り fire するか** を検証する手順。
+1 度通せば以降 alert タグの drift をすぐ発見できる。
+
+### Vercel runtime logs から fire 件数を集計
+
+```bash
+# component 別の log 件数 (過去 7 日)
+vercel logs https://haretoki.vercel.app --since 7d \
+  | grep -E '"event":"(visit_reminder_cron|resend_webhook|botid_block|ai_cost_summary|email_suppression_retry)"' \
+  | jq -s 'group_by(.event) | map({event: .[0].event, count: length})'
+
+# alert 発火が集中した時間帯
+vercel logs https://haretoki.vercel.app --since 7d \
+  | grep '"shouldAlert":true' \
+  | jq -r '.event'
+```
+
+### 配線済 vs 未配線 を grep で確認
+
+```bash
+# 新規追加 component を全部 grep
+grep -rn "component:" src/ --include="*.ts" --include="*.tsx" \
+  | grep -oE '"[a-z.\\-]+"' | sort -u
+```
+
+### Round 12 / round 14 配線レビュー
+
+| Source | 期待 component | 期待 alertRoute | 状態 |
+|---|---|---|---|
+| `cron.ai-cost` 月次 overrun | `cron.ai-cost` | `p1-page` | ✅ wired (round 12) |
+| `cron.ai-cost` 日次 overrun | `cron.ai-cost` | `p2-email` | ✅ wired (round 12) |
+| `cron.ai-cost` snapshot upsert fail | `cron.ai-cost` | `p3-digest` | ✅ wired (round 13) |
+| `cron.visit-reminder` per-visit error | `cron.visit-reminder` | `p2-email` | ✅ wired (round 12) |
+| `cron.visit-reminder` sendEmail fail | `cron.visit-reminder` | `p2-email` | ✅ wired (round 12) |
+| `cron.visit-reminder` persist messageId fail | `cron.visit-reminder` | `p3-digest` | ✅ wired (round 12) |
+| `cron.email-suppression-retry` failure | `cron.email-suppression-retry` | `p2-email` | ✅ wired (round 14) |
+| `webhook.resend` signature invalid | `webhook.resend` | `p1-page` | ✅ wired (round 12) |
+| `webhook.resend` apply error | `webhook.resend` | `p2-email` | ✅ wired (round 12) |
+| `webhook.resend` admin notice fail | `webhook.resend` | `p3-digest` | ✅ wired (round 14) |
+| `webhook.resend` event ignored | `webhook.resend` | `p3-digest` | ✅ wired (round 12) |
+| `botid` request flagged | `botid` | `p3-digest` | ✅ wired (round 12) |
+| `auth` failures | (legacy shape extras) | — | 🟡 未配線 (低 priority) |
+| `db` write failures (decisions / decision-todos / venues / coach / venue-search) | (legacy shape extras) | — | 🟡 未配線 (低 priority) |
+
+未配線の sites は legacy shape (extras only) で動作中、 一切壊れていない。
+Component / alertRoute タグを後付けしたい場合は次の round で順次 migrate。
+
+### Sentry alert rule sanity (UI 側)
+
+Sentry → Project → Issues で `alert_route:p1-page` で検索。 過去 7 日で 0 件
+であれば「critical event が一度も無かった = 健全」 or 「アラート rule が
+期待通り fire していない = 設計ミス」のどちらか。 月 1 回はセルフテスト
+推奨 (Sentry UI → Issues → "Send test issue" で `alert_route:p1-page` タグ
+付き発火 → Slack #ops-p1 / PagerDuty に着信するか目視)。
+
 ## 関連ドキュメント
 
 - 実装: [`src/lib/sentry.ts`](../../src/lib/sentry.ts) + [`src/lib/observability.ts`](../../src/lib/observability.ts)
 - Cron monitoring: [`docs/harness/cron-monitoring.md`](./cron-monitoring.md) (cron 個別の異常パターン table)
+- AI prompts drift history: [`docs/harness/ai-prompts-drift-history.md`](./ai-prompts-drift-history.md) (drift hook log の集計)
 - Commercial readiness: [`docs/harness/commercial-readiness.md`](./commercial-readiness.md) §3.1-3.9 (観測性章)
 - ADR: [`docs/harness/adr/0009-resend-webhook-and-vercel-botid.md`](./adr/0009-resend-webhook-and-vercel-botid.md) (webhook + BotID の event 設計)
 

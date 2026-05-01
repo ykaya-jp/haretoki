@@ -786,11 +786,35 @@ model NotificationPreference {
   pushEnabled      Boolean               @default(false) @map("push_enabled")
   emailEnabled     Boolean               @default(true) @map("email_enabled")
   pushSubscription Json?                 @map("push_subscription")
+  /// P2.D Resend bounce / complaint suppression metadata.
+  ///
+  /// `emailSuppressedReason` records WHY the email leg was disabled so
+  /// the daily retry cron (`/api/cron/email-suppression-retry`) can
+  /// distinguish:
+  ///
+  ///   - `hard_bounce` — invalid address / permanent failure → never
+  ///     auto-retry (user must update email via /mypage)
+  ///   - `complained` — user marked as spam → never auto-retry
+  ///     (deliverability + ESP relationship priority)
+  ///   - `soft_bounce` — mailbox full / rate limit / DNS hiccup →
+  ///     auto-retry after 7 days
+  ///   - `manual` — user toggled it off in /mypage settings UI →
+  ///     never auto-retry (the user is the SoT)
+  ///   - null — emailEnabled was never auto-suppressed (default)
+  ///
+  /// `emailSuppressedAt` is set whenever a suppression is recorded so
+  /// the retry cron can compare against `now - 7 days`.
+  emailSuppressedReason String?   @map("email_suppressed_reason")
+  emailSuppressedAt    DateTime? @map("email_suppressed_at")
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Index supports the daily retry cron's
+  // `where emailSuppressedReason='soft_bounce' AND emailSuppressedAt < cutoff`
+  // scan without a full table sweep.
+  @@index([emailSuppressedReason, emailSuppressedAt])
   @@map("notification_preferences")
 }
 

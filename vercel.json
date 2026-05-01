@@ -24,6 +24,10 @@
     {
       "path": "/api/cron/ai-cost-summary",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/email-suppression-retry",
+      "schedule": "0 2 * * *"
     }
   ]
 }
