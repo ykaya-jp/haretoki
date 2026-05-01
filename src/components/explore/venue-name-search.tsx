@@ -261,7 +261,7 @@ export function VenueNameSearch({
             {[0, 1, 2].map((i) => (
               <li
                 key={i}
-                className="h-14 rounded-xl bg-muted/40 animate-pulse"
+                className="h-14 rounded-xl bg-surface-sunken animate-pulse"
               />
             ))}
           </motion.ul>

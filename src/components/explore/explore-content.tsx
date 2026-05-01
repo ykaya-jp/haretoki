@@ -211,7 +211,7 @@ export function ExploreContent({
           rows represent by looking at them. Keep just the top eyebrow
           + count, and let vertical rhythm (space-y-5) separate the
           groups. */}
-      <div className="rounded-2xl border border-border/50 bg-card/40 p-4 space-y-5">
+      <div className="rounded-2xl border border-border/50 bg-surface-raised p-4 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <span className="text-eyebrow text-muted-foreground">
             絞り込み

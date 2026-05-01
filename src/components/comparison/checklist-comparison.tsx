@@ -145,7 +145,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                 <button
                   type="button"
                   onClick={() => toggleCat(cat.category)}
-                  className="flex w-full min-h-[48px] items-center justify-between bg-muted/30 px-4 py-3 text-left transition-colors duration-200 active:bg-muted"
+                  className="flex w-full min-h-[48px] items-center justify-between bg-surface-sunken px-4 py-3 text-left transition-colors duration-200 active:bg-muted"
                 >
                   <span className="text-sm font-medium">
                     {cat.label}
@@ -236,7 +236,7 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.5, ease: LUXURY_EASE }}
-                                    className="overflow-hidden bg-muted/30"
+                                    className="overflow-hidden bg-surface-sunken"
                                   >
                                     <div className="flex gap-2 px-4 py-2">
                                       <div className={cn(LABEL_COL_W, "shrink-0")} />

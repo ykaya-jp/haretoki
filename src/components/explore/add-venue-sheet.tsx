@@ -1259,7 +1259,7 @@ function UrlSkeletonCard({
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="border-t border-border/60 px-3 py-3 space-y-2 bg-muted/20"
+          className="border-t border-border/60 px-3 py-3 space-y-2 bg-surface-sunken"
         >
           <p className="text-[11.5px] text-muted-foreground leading-relaxed">
             この式場は既に候補にあります。

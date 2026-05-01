@@ -283,7 +283,7 @@ export function DecisionMatrix() {
             "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-[color-mix(in_oklab,var(--gold-warm)_55%,transparent)]",
             hiddenCount > 0 || venueFilterActive || filterOpen
               ? "bg-[var(--gold-subtle)] text-[var(--gold-warm)]"
-              : "bg-background/60 text-foreground",
+              : "bg-card text-foreground",
           )}
           style={{
             borderColor:
@@ -467,7 +467,7 @@ export function DecisionMatrix() {
 
       {/* Empty-after-filter state: everything filtered out */}
       {venues.length === 0 && venueFilterActive && (
-        <div className="rounded-2xl border border-dashed border-border/60 bg-card/50 p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-border/60 bg-surface-raised p-6 text-center">
           <p className="text-[13px] text-muted-foreground">
             条件に合う候補がありません。
           </p>
@@ -655,7 +655,7 @@ export function DecisionMatrix() {
 
         {winners.total && (
           <div
-            className="mt-3 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] bg-background/60 p-3"
+            className="mt-3 rounded-xl border border-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] bg-[color-mix(in_oklab,var(--card)_85%,var(--background))] p-3"
           >
             <p className="text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">総合</p>
             <p className="mt-0.5 font-[family-name:var(--font-display)] text-[17px] font-light text-foreground">

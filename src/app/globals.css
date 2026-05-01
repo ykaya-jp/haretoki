@@ -773,6 +773,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Phase 2.C (W21 dark mode 本格化): theme-stable neutral surface tints ──
+   Replace `bg-muted/30..50` and `bg-card/40..60` patterns that collapse
+   against the page background in dark mode (both --muted and --background
+   are warm dark tones with very low lightness gap, so opacity blending
+   erases the surface diff). Fixed color-mix ratios keep the diff stable
+   in either theme.
+   - sunken : subtle "section header / empty state" surface (replaces /20–/40 muted)
+   - raised : soft "card-on-bg" surface (replaces /40–/60 card) */
+.bg-surface-sunken {
+  background-color: color-mix(in oklab, var(--muted) 55%, var(--background));
+}
+.bg-surface-raised {
+  background-color: color-mix(in oklab, var(--card) 75%, var(--background));
+}
+
 /* ── X-3: Morning Light パレット内 semantic alias ────────────────
    amber/emerald/rose の Tailwind stock color を撲滅し、
    ブランドトークン経由の薄色 tint に集約する。
