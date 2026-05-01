@@ -116,6 +116,16 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 - プロンプト: `docs/ai/prompts/<name>.md` → `src/lib/prompts/<name>.ts` を同 PR で同期
 - Phase 2 以降は PostToolUse hook が drift を検知し、SessionStart で「stale 件数」が警告される
 
+## Architecture Decision Records (ADR)
+
+取り返しのつかない / 取り返しに重い決定 (フレームワーク採用、DB 戦略、auth 方針、prompt 正本配置、UX 不可逆な決定) は `docs/harness/adr/` に Nygard 形式で 1 本書く。
+
+- 運用ガイド・テンプレ・命名規約: [`adr/README.md`](adr/README.md)
+- 既存 ADR は `adr/<NNNN>-<title>.md`
+- Status は `Proposed → Accepted → (Deprecated | Superseded by NNNN)`
+- 書く / 書かないの判断: 6 ヶ月後に同じ判断を聞かれて理由を即答できないなら書く
+- Decision を書き換えない。変えるなら新 ADR を起票し旧 ADR を `Superseded by NNNN` にする
+
 ## Secret / 危険操作
 
 - `.env*` / `.key` / `.pem` / `*credentials*` は PreToolUse hook が block（`.claude/settings.json`）

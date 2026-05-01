@@ -23,6 +23,7 @@
 - IMPORTANT: [.claude/README.md](.claude/README.md) — agents / skills / commands / hooks の一覧
 - [docs/harness/runbook.md](docs/harness/runbook.md) — 並列開発・worktree・tmux・Ship Cycle 手順
 - [docs/harness/hooks.md](docs/harness/hooks.md) — `.claude/settings.json` の hook 定義
+- [docs/harness/adr/README.md](docs/harness/adr/README.md) — Architecture Decision Records（不可逆な決定の台帳。Nygard 形式）
 - IMPORTANT: [docs/ai/models.md](docs/ai/models.md) — モデル ID 対応表。`src/lib/models.ts` の `MODEL` 定数経由で参照
 - [docs/ai/guardrails.md](docs/ai/guardrails.md) — PII / prompt injection / コスト上限 / リトライ
 - [docs/ai/prompts/README.md](docs/ai/prompts/README.md) — prompt 仕様の正本（コードと同 PR で同期）
