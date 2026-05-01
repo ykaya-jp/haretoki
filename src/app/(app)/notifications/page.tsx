@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 
 export default async function NotificationsPage() {
   const notifications = await listNotifications(30);
-  const hasUnread = notifications.some((n) => !n.read);
+  // W21-3: split into unread / read once so the JSX below stays a clean
+  // two-cluster (Apple Mail / Gmail mobile) layout. Cheaper than the
+  // four-pass `some/filter` pattern in the audit spec — same output.
+  const unread = notifications.filter((n) => !n.read);
+  const read = notifications.filter((n) => n.read);
+  const hasUnread = unread.length > 0;
 
   return (
     <div className="space-y-10">
@@ -52,10 +57,36 @@ export default async function NotificationsPage() {
           description="残した条件に合う式場が見つかったり、ふたりに届くお知らせがあれば、こちらにそっと並びます。"
         />
       ) : (
-        <div className="space-y-3">
-          {notifications.map((n) => (
-            <NotificationItem key={n.id} notification={n} />
-          ))}
+        // W21-3 (audit P0-4): two-cluster layout — 「新着」eyebrow over
+        // unread items, then 「これまで」eyebrow over read items. Apple
+        // Mail / Gmail mobile pattern. The 「これまで」label only appears
+        // when both clusters are populated; if everything is already
+        // read, the section reads as a single quiet timeline without
+        // redundant ceremony. `space-y-4` lifts editorial rhythm above
+        // the prior `space-y-3` so the eyebrows breathe.
+        <div className="space-y-4">
+          {hasUnread && (
+            <>
+              <p className="px-1 text-[10.5px] font-medium tracking-[0.2em] uppercase text-[var(--gold-warm)]">
+                新着
+              </p>
+              {unread.map((n) => (
+                <NotificationItem key={n.id} notification={n} />
+              ))}
+            </>
+          )}
+          {read.length > 0 && (
+            <>
+              {hasUnread && (
+                <p className="px-1 pt-4 text-[10.5px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
+                  これまで
+                </p>
+              )}
+              {read.map((n) => (
+                <NotificationItem key={n.id} notification={n} />
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
