@@ -5,6 +5,7 @@ import { requireUser } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteUserAccount } from "@/server/actions/user-data";
+import { detectBot } from "@/lib/botid";
 
 
 const BodySchema = z.object({
@@ -13,11 +14,18 @@ const BodySchema = z.object({
 });
 
 // GDPR Article 17 — Right to erasure.
-// Destructive endpoint. Requires two independent guards:
-//   1. `confirm: true` must be present in the body.
-//   2. `email` must match the authenticated user's email (typed in the UI).
-// Both guards must pass or we return 400 without touching any data.
+// Destructive endpoint. Requires three independent guards:
+//   1. Vercel BotID gate (block automated takeover attempts before any
+//      auth check spends a Supabase RLS lookup).
+//   2. `confirm: true` must be present in the body.
+//   3. `email` must match the authenticated user's email (typed in the UI).
+// All three guards must pass or we return without touching any data.
 export async function DELETE(req: NextRequest) {
+  const bot = await detectBot("user-delete");
+  if (bot.blocked) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const user = await requireUser();
 
   let body: unknown;

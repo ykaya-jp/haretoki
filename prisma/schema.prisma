@@ -837,11 +837,25 @@ model Notification {
   read      Boolean   @default(false)
   readAt    DateTime? @map("read_at")
   createdAt DateTime  @default(now()) @map("created_at")
+  /// P2.D Resend webhook: the message id returned by Resend when the
+  /// notification's email was dispatched. Null when the notification was
+  /// in-app only (no email leg) or when the in-app row predates this
+  /// column. Indexed because the webhook handler looks up notifications
+  /// by this id when an event arrives.
+  resendMessageId String? @map("resend_message_id")
+  /// Latest Resend delivery status if known. Stringly-typed (rather than
+  /// an enum) so adding new event types (`email.scheduled`,
+  /// `email.delayed`, etc.) doesn't require a migration. App-level
+  /// constants in `src/lib/email/delivery.ts` define the legal values
+  /// (`sent` / `delivered` / `delivery_delayed` / `bounced` /
+  /// `complained` / `opened` / `clicked`).
+  emailDeliveryStatus String? @map("email_delivery_status")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([resendMessageId])
   @@map("notifications")
 }
 

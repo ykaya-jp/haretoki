@@ -9,6 +9,7 @@ import {
   stripPII,
 } from "@/lib/anthropic";
 import { COACH_CHAT_PROMPT, type UserContext } from "@/lib/prompts/coach-chat";
+import { detectBot } from "@/lib/botid";
 
 const BodySchema = z.object({
   message: z.string().min(1).max(500),
@@ -104,6 +105,15 @@ async function ensureSession(
 }
 
 export async function POST(request: NextRequest) {
+  // Vercel BotID gate — blocks high-cost Anthropic calls from automated
+  // traffic before they hit the rate limiter (which is per-user). Fail-
+  // open semantics inside `detectBot` so a BotID outage doesn't kill
+  // the route; see `src/lib/botid.ts` for the rationale.
+  const bot = await detectBot("coach-stream");
+  if (bot.blocked) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   if (!isClaudeAvailable()) {
     return NextResponse.json(
       { error: "Claude API is not configured" },
