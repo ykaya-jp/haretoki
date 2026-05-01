@@ -7,8 +7,14 @@ import {
   analyzeEstimatePdf,
   saveAnalyzedEstimate,
 } from "@/server/actions/estimates";
-import { Upload, FileText, Loader2, Check, X, Pencil } from "lucide-react";
+import { Upload, FileText, Loader2, Check, X, Pencil, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+
+// Round 12 (2026-05-02) — file size cap raised to 32MB after migrating
+// to the Anthropic Files API. Mirrors PDF_MAX_SIZE in src/server/actions/
+// estimates.ts; keep both in sync if either changes.
+const PDF_MAX_BYTES = 32 * 1024 * 1024;
+const PDF_MAX_LABEL = "32MB";
 
 const CATEGORY_LABELS: Record<string, string> = {
   venue_fee: "会場費",
@@ -62,6 +68,10 @@ export function EstimatePdfUpload({
   const [saving, setSaving] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  // Round 12 (2026-05-02) — warnings come back from the server side
+  // sanity checks (sum-vs-total drift > 10%, etc.) so we surface a
+  // 要確認 banner above the analysis form before save.
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editTotal, setEditTotal] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,14 +85,15 @@ export function EstimatePdfUpload({
       return;
     }
 
-    if (selected.size > 10 * 1024 * 1024) {
-      toast.error("ファイルサイズは10MB以下にしてください");
+    if (selected.size > PDF_MAX_BYTES) {
+      toast.error(`ファイルサイズは${PDF_MAX_LABEL}以下にしてください`);
       return;
     }
 
     setFile(selected);
     setAnalysis(null);
     setPdfUrl(null);
+    setWarnings([]);
   }
 
   async function handleUploadAndAnalyze() {
@@ -105,6 +116,14 @@ export function EstimatePdfUpload({
         setAnalysis(result.analysis);
         setPdfUrl(result.pdfUrl ?? null);
         setEditTotal(result.analysis.total.toString());
+        // Round 12: warnings populated when the server-side parser detects
+        // sum-vs-total drift > 10% etc. We render them as a 要確認 banner
+        // above the editable items so the user double-checks before save.
+        setWarnings(
+          "warnings" in result && Array.isArray(result.warnings)
+            ? result.warnings
+            : [],
+        );
         toast.success("見積もりの分析が完了しました");
       }
     } catch {
@@ -159,6 +178,7 @@ export function EstimatePdfUpload({
       setAnalysis(null);
       setPdfUrl(null);
       setEditTotal("");
+      setWarnings([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       onSaved?.();
     } catch {
@@ -173,6 +193,7 @@ export function EstimatePdfUpload({
     setAnalysis(null);
     setPdfUrl(null);
     setEditTotal("");
+    setWarnings([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -184,6 +205,34 @@ export function EstimatePdfUpload({
           <Check className="h-4 w-4" />
           <span>AI分析完了 — 内容を確認・編集してから残してください</span>
         </div>
+
+        {/* Round 12: server-side sanity warnings (sum-vs-total drift > 10%
+            などの soft signal). 表示しても save をブロックしない — couple
+            が見て判断する材料として並べる。 */}
+        {warnings.length > 0 && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-md border border-tone-warning/30 bg-tint-warning px-3 py-2 dark:bg-tint-warning"
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0 text-tone-warning dark:text-tone-warning"
+                aria-hidden="true"
+              />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium text-tone-warning dark:text-tone-warning">
+                  要確認 — AI 抽出の整合性チェックで気になる点があります
+                </p>
+                <ul className="space-y-0.5 text-xs text-tone-warning/90 dark:text-tone-warning/90">
+                  {warnings.map((w, i) => (
+                    <li key={i}>・{w}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Total */}
         <div className="space-y-1">
@@ -359,7 +408,7 @@ export function EstimatePdfUpload({
       )}
 
       <p className="text-xs text-muted-foreground">
-        PDF形式・10MB以下。AIが見積もり内容を自動抽出します
+        PDF形式・{PDF_MAX_LABEL}以下。AIが見積もり内容を自動抽出します
       </p>
     </div>
   );

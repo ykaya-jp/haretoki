@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient, isClaudeAvailable } from "@/lib/anthropic";
+import { recordUsage } from "@/lib/anthropic-usage";
 import { MODEL } from "@/lib/models";
 import { createEstimateSignedUrl } from "@/lib/supabase/storage";
 import {
@@ -13,43 +14,55 @@ import { ESTIMATE_EXTRACT_SYSTEM_PROMPT } from "@/lib/prompts/estimate-extract";
 /**
  * PDF estimate extraction via Claude's document-block API.
  *
- * Why document-block over the old `pdf-parse → text → askClaude` path:
- *  - Wedding venue 見積書 rely heavily on columnar layout (項目 / 単価 /
- *    数量 / 小計) which a plain-text dump obliterates. Claude's native
- *    PDF understanding preserves that structure and recovers per-line
- *    quantity / unit, letting us fill EstimateItem.tier and quantity.
- *  - Scanned PDFs (image-only) returned an empty string under pdf-parse
- *    and the whole pipeline collapsed. document-block handles those via
- *    vision, so the typical smartphone photo → PDF chain now works.
+ * Two input paths, both produce the same shape:
  *
- * Model: sonnet-4-6. Haiku was attempted here early on and mis-classified
- * around 20% of 料理単価 × 人数 lines as flat amounts. Accuracy on the
- * JSON shape matters more than latency for a once-per-venue operation.
+ *   1. **Buffer + filename → Anthropic Files API (preferred, since round
+ *      12 / 2026-05-02)**: caller hands us the raw PDF bytes; we upload
+ *      to `client.beta.files.upload`, reference the returned file_id in
+ *      `messages.create` via `{ type: 'document', source: { type: 'file',
+ *      file_id } }`, and best-effort delete the file when done. This
+ *      lifts the practical PDF cap from base64 inline (~5MB workable) to
+ *      the Files API limit (~32MB), and per-instance file ids can be
+ *      re-used across calls in the same turn (we don't yet, but the door
+ *      is open).
  *
- * The system prompt itself lives in src/lib/prompts/estimate-extract.ts
- * (paired with docs/ai/prompts/estimate-extract.system.md) so it shows up
- * in the standard prompts directory rather than being buried inline here.
+ *   2. **pdfUrl → signed URL (legacy)**: caller hands us a Supabase URL,
+ *      we issue a short-lived signed URL and let Anthropic fetch the PDF
+ *      itself. Kept for backwards compatibility (existing callers + the
+ *      extraction unit test exercise this path) and as a fallback the
+ *      Files API path can fall through to if the upload itself errors
+ *      with a non-billing 5xx.
+ *
+ * Why document-block at all (versus the older `pdf-parse → text → askClaude`
+ * path): wedding venue 見積書 lean on columnar layout (項目 / 単価 / 数量 /
+ * 小計) that a plain-text dump destroys, and scan-only PDFs returned an
+ * empty string under pdf-parse. Document-block reads the PDF natively
+ * (vision + structure), so per-line unit/quantity recover and smartphone
+ * photo → PDF chains now work.
+ *
+ * Model: sonnet-4-6. Haiku mis-classified ~20% of 料理単価×人数 lines as
+ * flat amounts. Accuracy on the JSON shape matters more than latency for
+ * a once-per-venue operation.
+ *
+ * The system prompt itself lives in src/lib/prompts/estimate-extract.ts.
  */
 
+const FILES_API_BETA = "files-api-2025-04-14";
+const PDF_EXTRACT_TIMEOUT_MS = 55_000;
+
+export type ExtractEstimateInput =
+  | string
+  | { buffer: Buffer; filename: string };
+
 /**
- * Pull structured EstimateItems out of a wedding estimate PDF using
- * Claude's document-block API.
+ * Extract structured EstimateItems from a wedding estimate PDF.
  *
- * Caller supplies a pdfUrl (typically a just-uploaded Supabase public
- * URL). We derive a short-lived signed URL so the private `estimates`
- * bucket stays locked down — Anthropic only needs the document for the
- * duration of the single extraction call.
- *
- * max_tokens=4096: a long estimate regularly has 30-50 line items;
- * 2048 truncated mid-array and cratered the JSON parse. 4096 clears
- * a realistic worst case and still caps cost.
- *
- * Returns `{ ok: false, error }` for every failure path (signed-url
- * failure, Claude error, JSON malformed, schema mismatch). We never
- * throw because the caller threads this through a user-facing toast.
+ * Returns `{ ok: false, error }` on every failure path (signed-url failure,
+ * Files-API upload failure, Claude error, JSON malformed, schema mismatch).
+ * We never throw — the caller threads this through a user-facing toast.
  */
 export async function extractEstimateItems(
-  pdfUrl: string,
+  input: ExtractEstimateInput,
 ): Promise<
   | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
   | { ok: false; error: string }
@@ -61,25 +74,128 @@ export async function extractEstimateItems(
     };
   }
 
-  // Claude fetches the PDF itself via URL — the bucket is private so we
-  // hand it a time-boxed signed URL rather than the raw public one.
+  if (typeof input === "string") {
+    return extractFromUrl(input);
+  }
+  return extractFromBuffer(input.buffer, input.filename);
+}
+
+/** Files API path — the new default. Uploads the PDF, references the
+ *  returned file_id from `messages.create`, then best-effort deletes. */
+async function extractFromBuffer(
+  buffer: Buffer,
+  filename: string,
+): Promise<
+  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
+  | { ok: false; error: string }
+> {
+  const client = getAnthropicClient();
+
+  // 1. Upload the PDF as an Anthropic File. Wrap in Blob so the SDK's
+  //    Uploadable accepts it on Node 20+ (which exposes Blob globally).
+  let fileId: string;
+  try {
+    // Bun / older Node may not have File globally; Blob is the universal
+    // surface. The SDK accepts both.
+    const blob = new Blob([new Uint8Array(buffer)], { type: "application/pdf" });
+    // Annotate with filename via a wrapping object — SDK reads it for
+    // the multipart upload's Content-Disposition.
+    const uploadable =
+      typeof File !== "undefined"
+        ? new File([blob], filename, { type: "application/pdf" })
+        : blob;
+    const uploaded = await client.beta.files.upload({
+      file: uploadable,
+      betas: [FILES_API_BETA],
+    });
+    fileId = uploaded.id;
+  } catch (err) {
+    if (err instanceof Anthropic.APIError) {
+      if (
+        err.message.includes("credit balance") ||
+        err.message.includes("billing")
+      ) {
+        return {
+          ok: false,
+          error: "AI利用枠が一時的に上限に達しました。少し時間をおいてお試しください",
+        };
+      }
+    }
+    return {
+      ok: false,
+      error: `PDFのAIアップロードに失敗しました: ${
+        err instanceof Error ? err.message : "unknown"
+      }`,
+    };
+  }
+
+  try {
+    return await runExtraction(
+      client,
+      // file_id reference; cast through unknown because the public
+      // messages.create types don't yet enumerate `type: 'file'` in
+      // document.source even though the beta API accepts it.
+      {
+        type: "document",
+        source: { type: "file", file_id: fileId },
+      } as unknown as Anthropic.ContentBlockParam,
+    );
+  } finally {
+    // Best-effort cleanup. Server functions are short-lived, so this
+    // either completes within the function lifetime or gets garbage-
+    // collected by Anthropic's per-account file TTL anyway.
+    void client.beta.files
+      .delete(fileId, { betas: [FILES_API_BETA] })
+      .catch((err) => {
+        console.warn("[extractEstimateItems] file cleanup failed", {
+          fileId,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+  }
+}
+
+/** Legacy URL path — kept for backwards compatibility + tests. */
+async function extractFromUrl(
+  pdfUrl: string,
+): Promise<
+  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
+  | { ok: false; error: string }
+> {
   let fetchableUrl: string;
   try {
     fetchableUrl = await createEstimateSignedUrl(pdfUrl);
   } catch (err) {
     return {
       ok: false,
-      error: `PDFの一時URL発行に失敗しました: ${err instanceof Error ? err.message : "unknown"}`,
+      error: `PDFの一時URL発行に失敗しました: ${
+        err instanceof Error ? err.message : "unknown"
+      }`,
     };
   }
 
   const client = getAnthropicClient();
-  let response;
-  // PDF extraction can take tens of seconds on long estimates.
-  // Cap at 55s so we return gracefully before Vercel's 60s function limit.
-  const PDF_EXTRACT_TIMEOUT_MS = 55_000;
+  return runExtraction(client, {
+    type: "document",
+    source: { type: "url", url: fetchableUrl },
+  });
+}
+
+/** Shared messages.create + parse path. Only the document content block
+ *  varies between buffer / url. */
+async function runExtraction(
+  client: Anthropic,
+  documentBlock: Anthropic.ContentBlockParam,
+): Promise<
+  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
+  | { ok: false; error: string }
+> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), PDF_EXTRACT_TIMEOUT_MS);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    PDF_EXTRACT_TIMEOUT_MS,
+  );
+  let response: Anthropic.Message;
   try {
     response = await client.messages.create(
       {
@@ -90,13 +206,7 @@ export async function extractEstimateItems(
           {
             role: "user",
             content: [
-              {
-                type: "document",
-                source: {
-                  type: "url",
-                  url: fetchableUrl,
-                },
-              },
+              documentBlock,
               {
                 type: "text",
                 text: "このPDFから構造化データを抽出してJSONで返してください。",
@@ -111,12 +221,20 @@ export async function extractEstimateItems(
     if (err instanceof Error && err.name === "AbortError") {
       return {
         ok: false,
-        error: "AI分析が時間内に完了しませんでした。ページ数の少ないPDFでお試しください",
+        error:
+          "AI分析が時間内に完了しませんでした。ページ数の少ないPDFでお試しください",
       };
     }
     if (err instanceof Anthropic.APIError) {
-      if (err.message.includes("credit balance") || err.message.includes("billing")) {
-        return { ok: false, error: "AI利用枠が一時的に上限に達しました。少し時間をおいてお試しください" };
+      if (
+        err.message.includes("credit balance") ||
+        err.message.includes("billing")
+      ) {
+        return {
+          ok: false,
+          error:
+            "AI利用枠が一時的に上限に達しました。少し時間をおいてお試しください",
+        };
       }
     }
     return {
@@ -129,6 +247,16 @@ export async function extractEstimateItems(
   } finally {
     clearTimeout(timeoutId);
   }
+
+  // Cost accounting — askClaude wraps this for non-PDF calls; this
+  // direct messages.create branch needs its own recordUsage so the
+  // daily cost summary cron sees PDF spend too.
+  recordUsage({
+    model: MODEL.SONNET,
+    inputTokens: response.usage?.input_tokens ?? 0,
+    outputTokens: response.usage?.output_tokens ?? 0,
+    action: "estimate-pdf",
+  });
 
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") {
@@ -150,12 +278,8 @@ export async function extractEstimateItems(
     };
   }
 
-  // Surface non-fatal sanity-check warnings (sum-vs-total drift, etc.) so
-  // the UI can show a "要確認" badge. Also log them so an offline sweep
-  // can spot venues whose extractions consistently drift.
   if (parsed.warnings.length > 0) {
     console.warn("[extractEstimateItems] extraction warnings", {
-      pdfUrl,
       warnings: parsed.warnings,
     });
   }
