@@ -957,6 +957,56 @@ model AiCostSnapshot {
   @@map("ai_cost_snapshots")
 }
 
+/// P2.D Audit log — immutable record of sensitive operations
+/// (account delete, data export, admin dashboard view, cron failures
+/// that affected user data, future payment events).
+///
+/// Append-only by convention — no `updateMany` or `delete` should be
+/// called on this table outside of GDPR right-to-erasure flows. The
+/// `actorId` is a free-form text (not a User FK) so the row survives
+/// the actor's own delete; for system / cron / unauthenticated
+/// actions, store a sentinel like `cron:visit-reminder-handler` or
+/// `system:webhook.resend`.
+///
+/// `targetType` + `targetId` describe the SUBJECT of the action when
+/// applicable (e.g. `targetType="user", targetId="<uuid>"` for a
+/// delete). Both nullable — system events without a specific subject
+/// (cron started, secret rotated) leave them empty.
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Action verb namespaced by domain — see `src/server/audit.ts`'s
+  /// `AuditAction` union for the canonical list. Stringly-typed so
+  /// adding a new action doesn't require a migration.
+  action      String
+  /// Free-form actor identifier. Auth'd user → user UUID. Admin via
+  /// allow-list → user UUID + `actorRole="admin"`. Cron / webhook /
+  /// system → sentinel string (`cron:<name>`, `system:<name>`).
+  actorId     String   @map("actor_id")
+  /// Optional role label for the actor — `user` / `admin` / `system`
+  /// / `cron`. Null when the action is system-only and the actorId
+  /// already encodes the role.
+  actorRole   String?  @map("actor_role")
+  /// What was acted upon. Null for system-level events.
+  targetType  String?  @map("target_type")
+  targetId    String?  @map("target_id")
+  /// IP address (truncated to /24 for IPv4 / /48 for IPv6 by the
+  /// caller, NOT here — the helper takes care of redaction). Null
+  /// for actions that don't originate from an HTTP request.
+  ipAddress   String?  @map("ip_address")
+  /// User agent string (truncated to 256 chars by the caller).
+  userAgent   String?  @map("user_agent")
+  /// Free-form structured detail — e.g. `{ "email_hash": "...",
+  /// "deleted_project_ids": [...] }`. Avoid raw PII; the helper
+  /// hashes emails before storing.
+  detail      Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([action, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
 /// AI response cache — deduplicates identical Claude inputs across all call sites.
 /// TTL = 30 days (enforced in application logic, not DB).
 model AiCache {

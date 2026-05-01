@@ -6,6 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteUserAccount } from "@/server/actions/user-data";
 import { detectBot } from "@/lib/botid";
+import {
+  extractRequestMeta,
+  hashEmail,
+  recordAudit,
+} from "@/server/audit";
+import { captureError } from "@/lib/sentry";
 
 
 const BodySchema = z.object({
@@ -57,7 +63,55 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  await deleteUserAccount(prisma, user.id);
+  const requestMeta = extractRequestMeta(req);
+
+  // Record the intent first so even a mid-delete crash leaves a
+  // recoverable audit trail. Fire-and-forget — recordAudit swallows
+  // its own failures (Sentry capture inside).
+  await recordAudit({
+    action: "user.delete.requested",
+    actorId: user.id,
+    actorRole: "user",
+    target: { type: "user", id: user.id },
+    request: requestMeta,
+    detail: { emailHash: hashEmail(userEmail) },
+  });
+
+  let result: Awaited<ReturnType<typeof deleteUserAccount>>;
+  try {
+    result = await deleteUserAccount(prisma, user.id);
+  } catch (err) {
+    await recordAudit({
+      action: "user.delete.failed",
+      actorId: user.id,
+      actorRole: "user",
+      target: { type: "user", id: user.id },
+      request: requestMeta,
+      detail: { emailHash: hashEmail(userEmail) },
+    });
+    captureError(err, {
+      component: "auth",
+      alertRoute: "p1-page",
+      extra: { action: "user.delete:prisma" },
+    });
+    throw err;
+  }
+
+  await recordAudit({
+    action: "user.delete.completed",
+    // After Prisma delete the user.id no longer corresponds to a row,
+    // but we still log it so audit queries can correlate the
+    // request → completion pair.
+    actorId: user.id,
+    actorRole: "user",
+    target: { type: "user", id: user.id },
+    request: requestMeta,
+    detail: {
+      emailHash: hashEmail(userEmail),
+      deletedProjectIds: result.deletedProjectIds,
+      detachedProjectIds: result.detachedProjectIds,
+    },
+  });
 
   // Delete the Supabase Auth user too. Without this, the auth account would
   // survive DB deletion and the same email could sign back in to a zombie

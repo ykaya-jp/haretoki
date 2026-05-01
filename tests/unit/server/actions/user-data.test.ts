@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import {
   buildUserExportBundle,
+  collectPhotoUrls,
   deleteUserAccount,
   type UserDataPrisma,
 } from "@/server/actions/user-data";
@@ -11,13 +12,15 @@ function makeDb(overrides: Partial<UserDataPrisma> = {}): UserDataPrisma {
   // (e.g. `user.findUnique`) without losing the default stubs for siblings.
   return {
     user: {
-      findUnique: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue({ email: "fixture@example.com" }),
+      update: vi.fn().mockResolvedValue({}),
       delete: vi.fn().mockResolvedValue({}),
       ...(overrides.user ?? {}),
     },
     projectMember: {
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      count: vi.fn().mockResolvedValue(0),
       ...(overrides.projectMember ?? {}),
     },
     project: {
@@ -70,6 +73,7 @@ describe("buildUserExportBundle", () => {
     const db = makeDb({
       user: {
         findUnique: vi.fn().mockResolvedValue(userRow),
+        update: vi.fn(),
         delete: vi.fn(),
       },
     });
@@ -96,6 +100,7 @@ describe("buildUserExportBundle", () => {
     const db = makeDb({
       user: {
         findUnique: vi.fn().mockResolvedValue(null),
+        update: vi.fn(),
         delete: vi.fn(),
       },
     });
@@ -105,46 +110,160 @@ describe("buildUserExportBundle", () => {
   });
 });
 
-describe("deleteUserAccount", () => {
-  it("cascades the project for owner memberships", async () => {
+describe("collectPhotoUrls", () => {
+  it("collects venue photoUrls + visit checklist photos + visit note media", () => {
+    const bundle = {
+      exportedAt: "2026-05-02T00:00:00Z",
+      user: {} as never,
+      project: null,
+      projects: [],
+      venues: [
+        {
+          photoUrls: ["https://supa/v1.jpg", "https://supa/v2.jpg"],
+          visits: [
+            {
+              checklist: [{ photoUrls: ["https://supa/c1.jpg"] }],
+              notes: [
+                {
+                  media: [
+                    { mediaUrl: "https://supa/n1.jpg" },
+                    { mediaUrl: null }, // null entries silently dropped
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      visits: [],
+      reviews_i_wrote: [],
+      ratings: [],
+      favorites: [],
+      decisions: [],
+      coachMessages: [],
+      notificationPreference: null,
+      notifications: [],
+    } as unknown as Awaited<ReturnType<typeof buildUserExportBundle>>;
+
+    const urls = collectPhotoUrls(bundle);
+    expect(urls).toEqual([
+      "https://supa/c1.jpg",
+      "https://supa/n1.jpg",
+      "https://supa/v1.jpg",
+      "https://supa/v2.jpg",
+    ]);
+  });
+
+  it("dedupes URLs that appear in multiple places", () => {
+    const bundle = {
+      exportedAt: "x",
+      user: {} as never,
+      project: null,
+      projects: [],
+      venues: [
+        {
+          photoUrls: ["https://supa/dup.jpg"],
+          visits: [
+            {
+              checklist: [{ photoUrls: ["https://supa/dup.jpg"] }],
+              notes: [],
+            },
+          ],
+        },
+      ],
+      visits: [],
+      reviews_i_wrote: [],
+      ratings: [],
+      favorites: [],
+      decisions: [],
+      coachMessages: [],
+      notificationPreference: null,
+      notifications: [],
+    } as unknown as Awaited<ReturnType<typeof buildUserExportBundle>>;
+
+    expect(collectPhotoUrls(bundle)).toEqual(["https://supa/dup.jpg"]);
+  });
+
+  it("returns empty array for a bundle with no media", () => {
+    const bundle = {
+      exportedAt: "x",
+      user: {} as never,
+      project: null,
+      projects: [],
+      venues: [],
+      visits: [],
+      reviews_i_wrote: [],
+      ratings: [],
+      favorites: [],
+      decisions: [],
+      coachMessages: [],
+      notificationPreference: null,
+      notifications: [],
+    } as unknown as Awaited<ReturnType<typeof buildUserExportBundle>>;
+    expect(collectPhotoUrls(bundle)).toEqual([]);
+  });
+});
+
+describe("deleteUserAccount (round 15 GDPR-light flow)", () => {
+  it("cascades the project for owner memberships when sole member", async () => {
     const projectDelete = vi.fn().mockResolvedValue({});
     const memberDelete = vi.fn().mockResolvedValue({ count: 1 });
     const userDelete = vi.fn().mockResolvedValue({});
+    const userUpdate = vi.fn().mockResolvedValue({});
     const db = makeDb({
-      projectMember: {
-        findMany: vi.fn().mockResolvedValue([
-          { projectId: "p1", role: "owner" },
-          { projectId: "p2", role: "partner" },
-        ]),
-        deleteMany: memberDelete,
-      },
-      project: { delete: projectDelete },
       user: {
-        findUnique: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ email: "owner@example.com" }),
+        update: userUpdate,
         delete: userDelete,
       },
+      projectMember: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ projectId: "p1", role: "owner" }]),
+        deleteMany: memberDelete,
+        // Sole member — count of "other" members is 0.
+        count: vi.fn().mockResolvedValue(0),
+      },
+      project: { delete: projectDelete },
     });
 
     const result = await deleteUserAccount(db, "u1");
 
-    // Memberships are removed for this user.
     expect(memberDelete).toHaveBeenCalledWith({ where: { userId: "u1" } });
-    // Only the owned project is cascade-deleted.
     expect(projectDelete).toHaveBeenCalledTimes(1);
     expect(projectDelete).toHaveBeenCalledWith({ where: { id: "p1" } });
-    // The User row is deleted last.
+    // Anonymise step runs BEFORE the user delete.
+    expect(userUpdate).toHaveBeenCalledOnce();
+    const updateArgs = userUpdate.mock.calls[0][0] as {
+      where: { id: string };
+      data: { email: string; name: null };
+    };
+    expect(updateArgs.where.id).toBe("u1");
+    expect(updateArgs.data.email).toMatch(/^deleted-[0-9a-f]{16}-[0-9a-f]{16}@haretoki\.deleted$/);
+    expect(updateArgs.data.name).toBeNull();
     expect(userDelete).toHaveBeenCalledWith({ where: { id: "u1" } });
     expect(result.deletedProjectIds).toEqual(["p1"]);
+    expect(result.detachedProjectIds).toEqual([]);
+    expect(result.emailHash).toMatch(/^[0-9a-f]{16}$/);
   });
 
-  it("deletes no projects when the user is only a partner", async () => {
+  it("DETACHES (does not cascade) when project has another active member", async () => {
+    // Critical: a partner-of-someone-else's-project must not lose
+    // their data when the original owner deletes. Pin the contract.
     const projectDelete = vi.fn().mockResolvedValue({});
     const db = makeDb({
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ email: "leaving@example.com" }),
+        update: vi.fn().mockResolvedValue({}),
+        delete: vi.fn().mockResolvedValue({}),
+      },
       projectMember: {
         findMany: vi
           .fn()
-          .mockResolvedValue([{ projectId: "p1", role: "partner" }]),
+          .mockResolvedValue([{ projectId: "p1", role: "owner" }]),
         deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        // The partner is still around — count of "other" members > 0.
+        count: vi.fn().mockResolvedValue(1),
       },
       project: { delete: projectDelete },
     });
@@ -153,6 +272,47 @@ describe("deleteUserAccount", () => {
 
     expect(projectDelete).not.toHaveBeenCalled();
     expect(result.deletedProjectIds).toEqual([]);
+    expect(result.detachedProjectIds).toEqual(["p1"]);
+  });
+
+  it("anonymises email + name BEFORE deleting the user row", async () => {
+    // Defence-in-depth pin: if the delete throws midway, the row no
+    // longer carries identifying info.
+    const callOrder: string[] = [];
+    const db = makeDb({
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ email: "foo@bar.com" }),
+        update: vi.fn().mockImplementation(async () => {
+          callOrder.push("update");
+          return {};
+        }),
+        delete: vi.fn().mockImplementation(async () => {
+          callOrder.push("delete");
+          return {};
+        }),
+      },
+    });
+
+    await deleteUserAccount(db, "u1");
+
+    expect(callOrder).toEqual(["update", "delete"]);
+  });
+
+  it("computes the same emailHash as audit/hashEmail for the same input", async () => {
+    // The route handler logs `emailHash` from the audit module while
+    // the deleteUserAccount function returns `emailHash` from its own
+    // crypto path. Both must match so audit rows correlate.
+    const db = makeDb({
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ email: "Test@Example.COM" }),
+        update: vi.fn().mockResolvedValue({}),
+        delete: vi.fn().mockResolvedValue({}),
+      },
+    });
+    const { emailHash } = await deleteUserAccount(db, "u1");
+
+    const { hashEmail } = await import("@/lib/audit-helpers");
+    expect(emailHash).toBe(hashEmail("Test@Example.COM"));
   });
 });
 
