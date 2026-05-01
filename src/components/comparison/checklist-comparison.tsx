@@ -188,7 +188,11 @@ export function ChecklistComparison({ venueIds, venueNames }: ChecklistCompariso
                                 className={cn(
                                   "flex w-full items-center gap-2 px-4 py-2 text-left transition-colors",
                                   anyMemo && "active:bg-muted",
-                                  item.difference && "bg-[var(--gold-subtle)]/40",
+                                  // W21-5 (audit P2-9): /40 collapses to
+                                  // card in dark mode, hiding the
+                                  // "difference" highlight. 8% gold via
+                                  // color-mix keeps a fixed contrast.
+                                  item.difference && "bg-[color-mix(in_oklab,var(--gold-warm)_8%,var(--card))]",
                                 )}
                               >
                                 <span
