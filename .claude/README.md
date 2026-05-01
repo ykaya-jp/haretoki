@@ -9,6 +9,8 @@ Haretoki プロジェクト専用の Claude Code harness 設定。
 .claude/
 ├── settings.json        # 全開発者共通の hook / permission
 ├── settings.local.json  # ローカル override（gitignored、各自作成）
+├── .mcp.json.example    # MCP サーバ設定の正本（commit OK）
+├── .mcp.json            # 上記をコピーして credentials を埋めた実体（gitignored）
 ├── agents/              # subagent 定義（@-mention で呼び出し）
 ├── skills/              # 手続きの playbook（SKILL.md をロード）
 ├── commands/            # /slash で呼ぶショートカット
@@ -57,6 +59,15 @@ Haretoki プロジェクト専用の Claude Code harness 設定。
 | worktree-clean.sh | worktree + branch を一括削除 |
 | mark-docs-stale.sh (Phase 2) | PostToolUse hook: ペアリング設定に基づき該当 docs に `stale: true` を立てる |
 | docs-drift-check.sh (Phase 2) | SessionStart / Stop hook: stale 件数を stderr に警告 |
+
+## MCP サーバ（`.claude/.mcp.json`）
+
+詳細は `docs/harness/mcp.md`。MCP は 2 種類:
+
+- **Plugin-provided**（Refero / Context7 / Vercel / Figma など）: marketplace で `enabledPlugins` 経由、本ファイルには書かない
+- **Project-defined**（github / supabase / postgres-ro / filesystem-ro / sentry など）: `.mcp.json.example` をコピーして実体を作成、必要なものだけ `disabled: false` に
+
+**シークレット**: `.mcp.json` は gitignored。`env` の値は全て `${ENV_VAR}` で参照し、実値は各開発者の shell / `~/.claude/.env` に置く。`.env*` / `*credentials*` / `.key` / `.pem` は `PreToolUse` hook が write block する。
 
 ## Hooks（settings.json）
 

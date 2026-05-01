@@ -1,11 +1,13 @@
 {
-  "$comment": "Project-shared MCP servers. Copy this file to .mcp.json and fill credentials via env vars. Never commit .mcp.json with real values. See docs/harness/mcp.md (TBD) for usage notes.",
+  "$comment": "Project-shared MCP servers. Copy this file to `.claude/.mcp.json` (gitignored) and flip `disabled: false` on the servers you want active. NEVER commit `.mcp.json` itself — it carries credentials. See docs/harness/mcp.md for the full operations guide.",
 
-  "$comment.precedence": "Managed > Project (.claude/.mcp.json) > User (~/.claude/.mcp.json). Plugin-provided MCP (refero, vercel, context7) is configured separately via enabledPlugins in settings.json and does NOT belong here.",
+  "$comment.precedence": "Effective MCP config = (Plugin-provided servers via `enabledPlugins`) merged with (User `~/.claude/.mcp.json`) merged with (Project `.claude/.mcp.json`), with project taking precedence on key collision. Plugin-provided servers (refero, vercel, context7, figma, ...) are configured via the marketplace, NOT here — adding them to this file would double-register and conflict.",
+
+  "$comment.security": "Every `env` value below MUST come from `${ENV_VAR}` substitution — no inline secrets. The PreToolUse hook in settings.json blocks Write/Edit on `*credentials*` / `.env*` / `.key` / `.pem`, but this file is JSON edited like any other so the responsibility is yours. Use a dedicated read-only key whenever possible (especially for Supabase / Postgres).",
 
   "mcpServers": {
-    "_github_disabled_example": {
-      "$comment": "Enable when team needs GitHub PR/issue automation from inside Claude Code. Provide GITHUB_TOKEN via env (~/.claude/.env or shell).",
+    "github": {
+      "$comment": "Read GitHub issues / PRs / search / file blob. Enable when the team starts using Claude Code for PR review automation, issue triage, or cross-repo search. Token scope: `repo` (read) is enough for most flows; add `workflow` only if Claude needs to dispatch CI runs.",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
@@ -14,13 +16,45 @@
       "disabled": true
     },
 
-    "_supabase_disabled_example": {
-      "$comment": "Enable for direct Supabase schema/SQL operations. Use a dedicated read-only key when possible.",
+    "supabase": {
+      "$comment": "Direct Supabase schema / SQL operations from the IDE. Useful during DB design + migration review. Always pair with a SERVICE_ROLE key scoped to schema-read; the anon key won't see RLS-protected tables. Disable in shared sessions to avoid accidental writes.",
       "command": "npx",
       "args": ["-y", "@supabase/mcp-server"],
       "env": {
         "SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
         "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}"
+      },
+      "disabled": true
+    },
+
+    "postgres-ro": {
+      "$comment": "Read-only Postgres connection for ad-hoc queries, EXPLAIN ANALYZE, index audits, N+1 hunting. Prefer this over the supabase server when the goal is pure SQL inspection — RLS is bypassed by service-role anyway, and a read-only role makes accidental writes impossible. Connection string MUST point at the read replica or a `pgbouncer` pool with read-only role.",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${HARETOKI_PG_RO_URL}"],
+      "env": {
+        "HARETOKI_PG_RO_URL": "${HARETOKI_PG_RO_URL}"
+      },
+      "disabled": true
+    },
+
+    "filesystem-readonly": {
+      "$comment": "Surface fs paths *outside* the workspace (e.g. `~/Documents/haretoki-research/`) read-only. Useful when the user keeps interview notes / scraping outputs / brand assets in a separate folder and wants Claude to reference them without copying into the repo. Set HARETOKI_FS_ROOTS to a colon-separated list of allowed roots.",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${HARETOKI_FS_ROOTS}"],
+      "env": {
+        "HARETOKI_FS_ROOTS": "${HARETOKI_FS_ROOTS}"
+      },
+      "disabled": true
+    },
+
+    "sentry": {
+      "$comment": "Pull production error events / replay sessions for triage. Pair with the existing Sentry runtime in src/instrumentation.ts. Auth via a project-scoped read-only auth token (Settings → Auth Tokens, scope `event:read project:read`). Disable when not actively debugging — Sentry MCP is chatty and can flood the context window.",
+      "command": "npx",
+      "args": ["-y", "@sentry/mcp-server"],
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
+        "SENTRY_ORG": "${SENTRY_ORG}",
+        "SENTRY_PROJECT": "${SENTRY_PROJECT}"
       },
       "disabled": true
     }
