@@ -284,6 +284,31 @@ export default function SignupPage() {
             </Button>
           </form>
 
+          {/* Terms-of-service consent notice — required for commercial
+              readiness. Couples cannot finish signup without seeing
+              that account creation implies agreement to /terms and
+              /privacy, since the (auth) signup screen does not run
+              inside the (app) layout that mounts SiteFooter. */}
+          <p className="text-center text-[12px] leading-relaxed text-muted-foreground">
+            登録すると Haretoki の{" "}
+            <Link
+              href="/terms"
+              prefetch={false}
+              className="text-foreground underline underline-offset-4"
+            >
+              利用規約
+            </Link>
+            {" "}と{" "}
+            <Link
+              href="/privacy"
+              prefetch={false}
+              className="text-foreground underline underline-offset-4"
+            >
+              プライバシーポリシー
+            </Link>
+            {" "}に同意したものとみなします。
+          </p>
+
           <p className="text-center text-sm text-muted-foreground">
             すでに場所をお持ちの方は{" "}
             <Link href="/login" prefetch={true} className="font-medium text-primary underline underline-offset-4">
