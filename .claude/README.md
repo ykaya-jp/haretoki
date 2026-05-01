@@ -57,8 +57,8 @@ Haretoki プロジェクト専用の Claude Code harness 設定。
 |---|---|
 | worktree-create.sh | `feat/...` ブランチを develop から worktree で切る + `.env.local` コピー |
 | worktree-clean.sh | worktree + branch を一括削除 |
-| mark-docs-stale.sh (Phase 2) | PostToolUse hook: ペアリング設定に基づき該当 docs に `stale: true` を立てる |
-| docs-drift-check.sh (Phase 2) | SessionStart / Stop hook: stale 件数を stderr に警告 |
+| ai-prompts-drift-check.sh | PostToolUse hook: `src/lib/prompts/*.ts` または `src/lib/anthropic.ts` を編集したら paired `docs/ai/**/*.md` の同時更新を確認、未同期なら STDERR 警告 |
+| docs-drift-check.sh (Phase 3) | SessionStart / Stop hook: stale 件数を stderr に警告 (上記より重い run-time check 版、優先度低) |
 
 ## MCP サーバ（`.claude/.mcp.json`）
 
@@ -77,13 +77,13 @@ Haretoki プロジェクト専用の Claude Code harness 設定。
 |---|---|---|
 | PreToolUse | `Write\|Edit\|MultiEdit` | 機密ファイル（`.env` / `.key` / `.pem` / `*credentials*`）への書込 block |
 | PostToolUse | `Write\|Edit\|MultiEdit` | prettier --write を自動実行（ts/tsx/js/jsx/json/md/css） |
+| PostToolUse | `Write\|Edit\|MultiEdit` | AI prompt drift 検知 (`src/lib/prompts/*.ts` / `anthropic.ts` 編集 → paired md 未同期なら STDERR 警告) |
 
-Phase 2 で追加予定:
+Phase 3 で追加予定:
 
-- PostToolUse on `src/lib/prompts/**` → 対応する `docs/ai/prompts/*.md` に `stale: true` 付与
-- PostToolUse on `src/lib/anthropic.ts` → `docs/ai/{guardrails,streaming}.md` を stale
 - SessionStart → stale 件数を stderr に警告
 - Stop → セッション終了時の drift サマリ
+- (検討中) md frontmatter に `stale: true` を自動付与する書込 hook 版 — 現行の警告だけで十分なら不要
 
 ## 追加・変更のルール
 
