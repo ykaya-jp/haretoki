@@ -7,6 +7,11 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { isClaudeAvailable } from "@/lib/claude";
 import { uploadEstimatePdf } from "@/lib/supabase/storage";
 import { extractEstimateItems } from "@/server/actions/estimate-ai";
+import {
+  checkRateLimit,
+  rateLimitErrorMessage,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
 
 const estimateSchema = z.object({
   venueId: z.string().uuid(),
@@ -101,6 +106,15 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
   await requireVenueAccess(user.id, venueId);
+
+  // Per-user rate limit — 3 PDF analyses / 60s. Each call holds Claude
+  // up to 55s (document-block extraction); 3/min keeps a function
+  // instance from queuing up >3 long-running requests in parallel.
+  const rl = checkRateLimit(`pdf-analyze:${user.id}`, RATE_LIMITS.PDF_ANALYZE);
+  const rlError = rateLimitErrorMessage(rl, "PDF 解析");
+  if (rlError) {
+    return { error: rlError };
+  }
 
   // Check Claude availability
   if (!isClaudeAvailable()) {

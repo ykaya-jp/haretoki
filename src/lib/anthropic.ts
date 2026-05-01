@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "crypto";
+import { recordUsage } from "@/lib/anthropic-usage";
 
 // --- Singleton client ---
 let client: Anthropic | null = null;
@@ -51,21 +52,37 @@ export async function askClaude(options: {
    * platform-level function timeout fires.
    */
   timeoutMs?: number;
+  /**
+   * Free-form action label for usage accounting (e.g. "coach", "onboarding-rec").
+   * Optional — when omitted the structured `ai_call` log just lacks the action
+   * tag and budget aggregation still works.
+   */
+  action?: string;
 }): Promise<string> {
   const claude = getAnthropicClient();
+  const model = options.model ?? "claude-haiku-4-5-20251001";
   const budget = options.timeoutMs ?? DEFAULT_CLAUDE_TIMEOUT_MS;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), budget);
   try {
     const response = await claude.messages.create(
       {
-        model: options.model ?? "claude-haiku-4-5-20251001",
+        model,
         max_tokens: options.maxTokens ?? 4096,
         system: options.system,
         messages: [{ role: "user", content: options.userMessage }],
       },
       { signal: controller.signal },
     );
+    // Usage accounting (sync, never throws) — pulls input/output token
+    // counts from the SDK response and feeds the per-instance bucket the
+    // daily cost-summary cron later snapshots.
+    recordUsage({
+      model,
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+      action: options.action,
+    });
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock) throw new Error("No text response from Claude");
     return textBlock.text;
@@ -80,15 +97,18 @@ export async function streamClaude(options: {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   model?: string;
   maxTokens?: number;
+  /** Free-form action label for usage accounting (see askClaude). */
+  action?: string;
 }): Promise<ReadableStream<string>> {
   const claude = getAnthropicClient();
+  const model = options.model ?? "claude-haiku-4-5-20251001";
   // 30s timeout: if upstream hangs, abort the stream so we don't hold the SSE
   // connection (and the user's tab) open indefinitely.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
   const stream = await claude.messages.stream(
     {
-      model: options.model ?? "claude-haiku-4-5-20251001",
+      model,
       max_tokens: options.maxTokens ?? 2048,
       system: options.system,
       messages: options.messages,
@@ -98,6 +118,11 @@ export async function streamClaude(options: {
 
   return new ReadableStream<string>({
     async start(streamController) {
+      // Final usage tally arrives in the message_delta event's `usage`
+      // field (Anthropic SDK semantics). Fall back to the finalMessage
+      // helper if we somehow miss the event-stream tally.
+      let inputTokens = 0;
+      let outputTokens = 0;
       try {
         for await (const event of stream) {
           if (
@@ -105,6 +130,13 @@ export async function streamClaude(options: {
             event.delta.type === "text_delta"
           ) {
             streamController.enqueue(event.delta.text);
+          } else if (event.type === "message_start") {
+            inputTokens = event.message.usage?.input_tokens ?? inputTokens;
+            outputTokens = event.message.usage?.output_tokens ?? outputTokens;
+          } else if (event.type === "message_delta") {
+            // message_delta carries the cumulative output_tokens for the
+            // turn; the input_tokens we captured at message_start.
+            outputTokens = event.usage?.output_tokens ?? outputTokens;
           }
         }
         streamController.close();
@@ -112,6 +144,14 @@ export async function streamClaude(options: {
         streamController.error(error);
       } finally {
         clearTimeout(timeoutId);
+        // Account even on partial streams — cost was incurred up to the
+        // point we cancelled. Zeros are filtered out inside recordUsage.
+        recordUsage({
+          model,
+          inputTokens,
+          outputTokens,
+          action: options.action,
+        });
       }
     },
   });
