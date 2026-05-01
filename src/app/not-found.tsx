@@ -25,12 +25,25 @@ export default function NotFound() {
           URL が変わったか、もともと無いページかもしれません。ホームに戻って、もう一度はじめましょう。
         </p>
       </div>
-      <Link
-        href="/home"
-        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
-      >
-        ホームへ戻る
-      </Link>
+      {/* Two-path CTA — couples reaching this page may or may not be
+          authenticated. /home redirects unauthenticated visitors to /login,
+          which means a stale-link visitor would bounce twice before seeing
+          anything actionable. Offer / (the public landing) as a direct
+          path so first-time arrivals find the entry point on one tap. */}
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+        <Link
+          href="/home"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform active:scale-[0.98]"
+        >
+          ホームへ戻る
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-border px-6 text-sm text-muted-foreground transition-colors hover:text-foreground active:scale-[0.98]"
+        >
+          Haretoki について
+        </Link>
+      </div>
     </div>
   );
 }

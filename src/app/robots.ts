@@ -5,17 +5,22 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://haretoki.vercel.app"
 /**
  * Robots policy.
  *
- * Only marketing surfaces (landing, login, signup) are crawlable. Everything
- * behind auth — home, explore, candidates, coach, mypage, per-venue pages,
- * invitation acceptance, and API routes — is disallowed because the content
- * is personal and requires a session.
+ * Crawlable surfaces are limited to marketing + legal documents:
+ *   - / (landing), /signup, /login — discovery / acquisition surfaces
+ *   - /terms, /privacy — legal documents that should be reachable from
+ *     external search and from compliance review tools without an account
+ *
+ * Everything behind auth — home, explore, candidates, coach, mypage,
+ * per-venue pages, invitation acceptance, /support (auth-gated FAQ +
+ * contact form), and API routes — is disallowed because the content is
+ * personal and requires a session.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/signup", "/login"],
+        allow: ["/", "/signup", "/login", "/terms", "/privacy"],
         disallow: [
           "/home",
           "/explore",

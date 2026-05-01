@@ -492,6 +492,13 @@ export function LandingPage() {
             >
               プライバシーポリシー
             </Link>
+            <Link
+              href="/support"
+              prefetch={false}
+              className="inline-flex min-h-[44px] items-center px-3 text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              サポート窓口
+            </Link>
           </div>
           <div className="mt-12 h-px w-full bg-border/40" />
           <p className="mt-8 text-xs text-muted-foreground/40">
