@@ -49,7 +49,9 @@ export type LogEventName =
   /** GDPR data export bundle delivered. */
   | "user_export"
   /** GDPR data deletion completed. */
-  | "user_delete";
+  | "user_delete"
+  /** Daily soft-bounce email re-enable cron summary. */
+  | "email_suppression_retry";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */
