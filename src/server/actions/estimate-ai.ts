@@ -51,7 +51,7 @@ import { ESTIMATE_EXTRACT_SYSTEM_PROMPT } from "@/lib/prompts/estimate-extract";
 export async function extractEstimateItems(
   pdfUrl: string,
 ): Promise<
-  | { ok: true; data: ExtractedEstimate; modelId: string }
+  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
   | { ok: false; error: string }
 > {
   if (!isClaudeAvailable()) {
@@ -150,5 +150,20 @@ export async function extractEstimateItems(
     };
   }
 
-  return { ok: true, data: parsed.data, modelId: MODEL.SONNET };
+  // Surface non-fatal sanity-check warnings (sum-vs-total drift, etc.) so
+  // the UI can show a "要確認" badge. Also log them so an offline sweep
+  // can spot venues whose extractions consistently drift.
+  if (parsed.warnings.length > 0) {
+    console.warn("[extractEstimateItems] extraction warnings", {
+      pdfUrl,
+      warnings: parsed.warnings,
+    });
+  }
+
+  return {
+    ok: true,
+    data: parsed.data,
+    modelId: MODEL.SONNET,
+    warnings: parsed.warnings,
+  };
 }
