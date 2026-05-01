@@ -147,6 +147,12 @@ export async function analyzeEstimatePdf(venueId: string, formData: FormData) {
       pdfUrl,
       venueId,
       projectId,
+      // Round 3 (2026-05-02) — non-fatal sanity-check warnings (e.g.
+      // items-sum vs total drift > 10%). UI may surface these as a
+      // "要確認" badge so the couple double-checks the extraction
+      // before saving. Empty array when extraction is internally
+      // consistent.
+      warnings: result.warnings,
     };
   } catch (error) {
     console.error("PDF analysis error:", error);

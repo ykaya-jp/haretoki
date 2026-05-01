@@ -108,16 +108,144 @@ describe("parseEstimateExtraction", () => {
     if (!res.ok) expect(res.error).toMatch(/schema validation/);
   });
 
-  it("rejects when items[].amount is negative", async () => {
+  it("accepts items[].amount being negative (discount rows like ご祝儀値引き)", async () => {
+    // Round 3 (2026-05-02) — schema loosened from nonnegative() so
+    // ご祝儀値引き / 早期割引 rows can flow through as negative-amount
+    // line items rather than being rejected.
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const discount = {
+      ...validPayload,
+      items: [
+        ...validPayload.items,
+        {
+          category: "other",
+          itemName: "ご祝儀値引き",
+          amount: -50000,
+          tier: "unknown",
+        },
+      ],
+    };
+    const res = parseEstimateExtraction(JSON.stringify(discount));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.items).toHaveLength(3);
+      expect(res.data.items[2].amount).toBe(-50000);
+    }
+  });
+
+  it("rejects unknown category strings (round 3 enum strict)", async () => {
     const { parseEstimateExtraction } = await import(
       "@/lib/estimate-ai-parser"
     );
     const bad = {
       ...validPayload,
-      items: [{ ...validPayload.items[0], amount: -10 }],
+      items: [{ ...validPayload.items[0], category: "music" }],
     };
     const res = parseEstimateExtraction(JSON.stringify(bad));
     expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/schema validation/);
+  });
+
+  it("rejects unknown tier strings (round 3 enum strict)", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    const bad = {
+      ...validPayload,
+      items: [{ ...validPayload.items[0], tier: "luxury" }],
+    };
+    const res = parseEstimateExtraction(JSON.stringify(bad));
+    expect(res.ok).toBe(false);
+  });
+
+  it("returns empty warnings when items sum is within 10% of total", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    // items sum = 1,500,000; total = 1,520,000 → drift ~1.3% (< 10%)
+    const aligned = {
+      total: 1_520_000,
+      items: [
+        {
+          category: "cuisine",
+          itemName: "料理",
+          amount: 1_200_000,
+          tier: "standard",
+        },
+        {
+          category: "attire",
+          itemName: "ドレス",
+          amount: 300_000,
+          tier: "standard",
+        },
+      ],
+      predictedFinal: 1_800_000,
+      analysisNote: "標準的な見積もり",
+    };
+    const res = parseEstimateExtraction(JSON.stringify(aligned));
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.warnings).toEqual([]);
+  });
+
+  it("emits a drift warning when items sum and total diverge by > 10%", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    // items sum = 1,500,000; total = 3,000,000 → drift = 50% (>> 10%)
+    // simulates "missed half the rows" or "tax-exclusive items vs tax-incl total"
+    const drifted = {
+      total: 3_000_000,
+      items: [
+        {
+          category: "cuisine",
+          itemName: "料理",
+          amount: 1_200_000,
+          tier: "standard",
+        },
+        {
+          category: "attire",
+          itemName: "ドレス",
+          amount: 300_000,
+          tier: "standard",
+        },
+      ],
+      predictedFinal: 3_500_000,
+      analysisNote: "標準的な見積もり",
+    };
+    const res = parseEstimateExtraction(JSON.stringify(drifted));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.warnings).toHaveLength(1);
+      expect(res.warnings[0]).toMatch(/乖離/);
+      expect(res.warnings[0]).toMatch(/不足/); // items < total
+    }
+  });
+
+  it("flags 超過 (items > total) drift direction", async () => {
+    const { parseEstimateExtraction } = await import(
+      "@/lib/estimate-ai-parser"
+    );
+    // items sum = 5,000,000; total = 2,500,000 → 100% drift, items 超過
+    const overcount = {
+      total: 2_500_000,
+      items: [
+        {
+          category: "cuisine",
+          itemName: "料理 (合計重複)",
+          amount: 5_000_000,
+          tier: "standard",
+        },
+      ],
+      predictedFinal: 2_800_000,
+      analysisNote: "test",
+    };
+    const res = parseEstimateExtraction(JSON.stringify(overcount));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.warnings[0]).toMatch(/超過/);
+    }
   });
 });
 
