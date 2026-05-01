@@ -259,8 +259,9 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       {showForm && (
         <div className="space-y-3 rounded-lg border border-border p-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">口コミサイト</label>
+            <label htmlFor="review-source" className="text-sm font-medium">口コミサイト</label>
             <select
+              id="review-source"
               value={source}
               onChange={(e) => setSource(e.target.value as ReviewSource)}
               className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
@@ -271,8 +272,9 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">口コミページのURL</label>
+            <label htmlFor="review-url" className="text-sm font-medium">口コミページのURL</label>
             <Input
+              id="review-url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."

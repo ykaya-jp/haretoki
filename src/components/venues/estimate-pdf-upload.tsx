@@ -187,10 +187,11 @@ export function EstimatePdfUpload({
 
         {/* Total */}
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">総額</label>
+          <label htmlFor="estimate-total" className="text-xs text-muted-foreground">総額</label>
           <div className="flex items-center gap-2">
             <span className="text-lg font-medium">¥</span>
             <Input
+              id="estimate-total"
               inputMode="numeric"
               value={editTotal}
               onChange={(e) => setEditTotal(e.target.value.replace(/[^0-9]/g, ""))}
@@ -215,7 +216,7 @@ export function EstimatePdfUpload({
 
         {/* Items */}
         <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">内訳</label>
+          <span className="text-xs text-muted-foreground" id="estimate-items-label">内訳</span>
           {analysis.items.map((item, index) => (
             <div
               key={index}

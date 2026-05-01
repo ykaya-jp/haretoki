@@ -108,6 +108,14 @@ export function BottomNav({ badges }: BottomNavProps) {
               href={item.href}
               prefetch={shouldPrefetch ? undefined : false}
               aria-current={isActive ? "page" : undefined}
+              // Compose an aria-label that bakes in the badge count so
+              // screen readers announce "候補 3件" rather than just
+              // "候補" + a stray "3" elsewhere on the page.
+              aria-label={
+                badgeCount != null && badgeCount > 0
+                  ? `${item.label}（${badgeCount > 99 ? "99件以上" : `${badgeCount}件`}）`
+                  : undefined
+              }
               onClick={(e) => {
                 if (
                   e.defaultPrevented ||

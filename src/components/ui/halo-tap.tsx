@@ -61,6 +61,13 @@ export function HaloTap({ children, className, style }: HaloTapProps) {
     !!className &&
     /(^|\s)(fixed|absolute|sticky|relative)(\s|$)/.test(className);
   return (
+    // a11y: this wrapper is purely a decorative ripple host. The
+    // *children* (a real <button> in every callsite) own the
+    // semantic interaction; the mouse/touch listeners here only
+    // schedule a CSS animation. Disabling the static rules keeps
+    // the wrapper stylistic without inflating it to a fake button
+    // that screen readers would announce twice.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={containerRef}
       className={`overflow-hidden ${className ?? ""}`}

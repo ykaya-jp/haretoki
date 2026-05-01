@@ -137,19 +137,34 @@ export function VenueOverflowMenu({ venueId, venueName, hasSourceUrl = false }: 
       </div>
 
       {showConfirm && (
+        // a11y: dialog wrapper has onKeyDown for Escape; rule doesn't
+        // accept role=dialog as interactive. Backdrop button below
+        // is the keyboard-accessible dismiss.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <div
           // W21-4: SafeArea inset so the bottom-sheet card doesn't land
           // under the iOS home bar at 375px (matches the /compare
           // VenueRemoveButton overlay). On `sm:items-center` desktop the
           // padding has no visual effect.
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center"
-          onClick={() => {
-            if (!isPending) setShowConfirm(false);
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${venueName}を候補から外しますか？`}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !isPending) setShowConfirm(false);
           }}
+          className="fixed inset-0 z-50 flex items-end justify-center px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] sm:items-center"
         >
+          {/* Backdrop button — keyboard-accessible dismiss target. */}
+          <button
+            type="button"
+            aria-label="ダイアログを閉じる"
+            tabIndex={-1}
+            disabled={isPending}
+            onClick={() => setShowConfirm(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
           <div
-            className="mx-4 mb-20 w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl sm:mb-0"
-            onClick={(e) => e.stopPropagation()}
+            className="relative mx-4 mb-20 w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl sm:mb-0"
           >
             <p className="text-sm font-medium text-foreground">
               「{venueName}」を候補から外しますか？

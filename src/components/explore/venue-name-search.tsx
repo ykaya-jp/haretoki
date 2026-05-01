@@ -268,7 +268,14 @@ export function VenueNameSearch({
         )}
       </AnimatePresence>
 
-      {/* Results listbox */}
+      {/* Results listbox — APG combobox autocomplete pattern. ul/li are
+          intentionally promoted to listbox/option roles per WAI-ARIA
+          1.2 §combobox; jsx-a11y's "non-interactive role on
+          non-interactive element" check is too strict for that
+          pattern. Keyboard navigation (Arrow / Enter) lives on the
+          combobox input above and updates aria-activedescendant. */}
+      {/* eslint-disable jsx-a11y/no-noninteractive-element-to-interactive-role,
+                          jsx-a11y/click-events-have-key-events */}
       {!fetching && hits.length > 0 && (
         <ul
           id={listId}
@@ -304,6 +311,8 @@ export function VenueNameSearch({
           })}
         </ul>
       )}
+      {/* eslint-enable jsx-a11y/no-noninteractive-element-to-interactive-role,
+                         jsx-a11y/click-events-have-key-events */}
 
       {/* Empty state — 3 recovery CTAs */}
       {showEmpty && (

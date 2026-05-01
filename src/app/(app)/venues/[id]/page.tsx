@@ -149,6 +149,11 @@ export default async function VenueDetailPage({
         id="overview"
         role="tabpanel"
         aria-labelledby="tab-overview"
+        // WAI-ARIA tabpanel pattern: tabIndex=0 lets keyboard users
+        // land on the panel after activating its tab in
+        // VenueSegmentsNav. jsx-a11y excludes tabpanel from its
+        // interactive-roles list, hence the static-rule disable.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
@@ -203,6 +208,8 @@ export default async function VenueDetailPage({
         id="review"
         role="tabpanel"
         aria-labelledby="tab-review"
+        // WAI-ARIA tabpanel — see overview section above for rationale.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
@@ -227,6 +234,8 @@ export default async function VenueDetailPage({
         id="plan"
         role="tabpanel"
         aria-labelledby="tab-plan"
+        // WAI-ARIA tabpanel — see overview section above for rationale.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
@@ -251,6 +260,8 @@ export default async function VenueDetailPage({
         id="estimate"
         role="tabpanel"
         aria-labelledby="tab-estimate"
+        // WAI-ARIA tabpanel — see overview section above for rationale.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >
@@ -277,6 +288,8 @@ export default async function VenueDetailPage({
         id="visit"
         role="tabpanel"
         aria-labelledby="tab-visit"
+        // WAI-ARIA tabpanel — see overview section above for rationale.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
         className="space-y-4 focus-visible:outline-none"
       >

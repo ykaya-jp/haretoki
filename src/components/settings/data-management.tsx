@@ -93,16 +93,36 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
       </div>
 
       {confirmOpen && (
+        // a11y: dialog wrapper has onKeyDown for Escape; the static
+        // analyzer doesn't accept role=dialog as interactive.
+        // Real-button backdrop sits inside, see below.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-dialog-title"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-[env(safe-area-inset-bottom)] sm:items-center"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !isDeleting) setConfirmOpen(false);
+          // Esc dismisses on top of the explicit cancel button, matching
+          // the WCAG "no-keyboard-trap" expectation for modal dialogs.
+          // Wrapped in keyDown so screen-reader users with no pointer can
+          // close the dialog without tabbing all the way to the cancel
+          // button.
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !isDeleting) setConfirmOpen(false);
           }}
+          className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-[env(safe-area-inset-bottom)] sm:items-center"
         >
-          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl">
+          {/* Backdrop button — captures the dismiss tap as a real
+              keyboard-accessible control rather than a non-interactive
+              div with onClick (which is unreachable via Tab). */}
+          <button
+            type="button"
+            aria-label="ダイアログを閉じる"
+            disabled={isDeleting}
+            onClick={() => setConfirmOpen(false)}
+            className="absolute inset-0 bg-black/40"
+            tabIndex={-1}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-card p-6 shadow-xl">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 text-destructive" />
               <div className="space-y-1">

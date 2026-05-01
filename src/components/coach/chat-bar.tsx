@@ -201,8 +201,8 @@ export function ChatBar({ sessionId, onNewSession }: ChatBarProps) {
     <>
       {inFlight && (
         <div className="space-y-3 pb-4">
-          <ChatBubble role="user" content={inFlight.userText} />
-          <ChatBubble role="assistant" content={inFlight.assistantText} />
+          <ChatBubble speaker="user" content={inFlight.userText} />
+          <ChatBubble speaker="assistant" content={inFlight.assistantText} />
         </div>
       )}
       <div
