@@ -7,22 +7,26 @@
 各項目は `✅ 済 / 🟡 部分対応 / ❌ 未着手 / ⏳ launch 直前` の 4 段階。
 status 横の `<commit/file>` で根拠を即引ける形を維持する (drift しないように)。
 
-最終更新: 2026-05-02 (P2 round 9 反映)
+最終更新: 2026-05-02 (P2 round 10 反映 — Resend webhook + Vercel BotID)
 
 ## 集計サマリ
 
 | 軸 | ✅ 済 | 🟡 部分 | ❌ 未着手 | ⏳ launch 直前 | 合計 |
 |---|---|---|---|---|---|
 | 1. 法務 / コンプライアンス | 5 | 1 | 2 | 1 | 9 |
-| 2. セキュリティ | 6 | 1 | 2 | 0 | 9 |
-| 3. 観測性 / 運用 | 6 | 1 | 2 | 0 | 9 |
+| 2. セキュリティ | **7** | 1 | **1** | 0 | 9 |
+| 3. 観測性 / 運用 | **7** | 0 | 2 | 0 | 9 |
 | 4. スケール | 7 | 0 | 1 | 1 | 9 |
 | 5. UX 商用化要件 | 7 | 1 | 1 | 0 | 9 |
 | 6. ビジネス / サポート | 1 | 0 | 4 | 2 | 7 |
-| **合計** | **32** | **4** | **12** | **4** | **52** |
+| **合計** | **34** | **3** | **11** | **4** | **52** |
 
-商用化までの「あと N 件」: **❌ 未着手 12 + ⏳ launch 直前 4 = 16 件** が must-have の残り作業
-(うち 🟡 部分対応 4 件は要昇格判断)。
+商用化までの「あと N 件」: **❌ 未着手 11 + ⏳ launch 直前 4 = 15 件** が must-have の残り作業
+(うち 🟡 部分対応 3 件は要昇格判断)。
+
+**P2 round 10 で進捗**: ✅ 32 → 34 (+2)、 ❌ 12 → 11 (-1)、 🟡 4 → 3 (-1)。
+Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK_SECRET`
+フィーチャーフラグ可能な形で導入、 ADR-0009 に詳細。
 
 ## 1. 法務 / コンプライアンス
 
@@ -49,7 +53,7 @@ status 横の `<commit/file>` で根拠を即引ける形を維持する (drift 
 | 2.5 | Secret 漏洩防止 hook | ✅ | `.claude/settings.json` PreToolUse が `.env*` / `.key` / `.pem` / `*credentials*` 書込 block (`docs/harness/hooks.md` §1) |
 | 2.6 | Prompt injection 対策 | ✅ | `sanitizeForPrompt()` + `<user_data>` タグで囲む規約、PII strip、`docs/ai/guardrails.md` |
 | 2.7 | Account takeover 防止 (email verification) | ✅ | `acceptInvitation` で 3 ルート (email_confirmed_at / user_metadata / identities) のいずれかで verified を要求 |
-| 2.8 | Bot 対策 (signup 量産防止 etc.) | ❌ | Vercel BotID (2025-06 GA) を `/api/user/*` と signup に当てるのが商用化基準。現状無防備 |
+| 2.8 | Bot 対策 (signup 量産防止 etc.) | ✅ | Vercel BotID + `BotIdClient` を root layout で mount、 `/api/coach/stream` (POST) + `/api/user/delete` (DELETE) + `/api/user/export` (GET) を server-side `detectBot()` で 403。 `BOT_ID_ENABLED=1` で本番 enforcement (P2 round 10、 ADR-0009) |
 | 2.9 | Audit log (誰が何を delete したか) | ❌ | Notification table はあるが、 actor + 削除対象の永続記録なし。商用化前に必要なら `AuditLog` table 追加 (additive、ADR-0002 同 pattern) |
 
 ## 3. 観測性 / 運用
@@ -62,7 +66,7 @@ status 横の `<commit/file>` で根拠を即引ける形を維持する (drift 
 | 3.4 | 構造化 log (Vercel logs grep 可) | ✅ | visit-reminder cron で `[visit-reminder] phase=...` パターン採用、他 cron は今後追従推奨 |
 | 3.5 | PostHog 行動分析 | ✅ | `src/lib/analytics.ts` (client) + `captureServerEvent` (server)、未設定時 no-op |
 | 3.6 | Vercel Analytics (Web Vitals) | ✅ | Vercel built-in (deploy 自動有効) |
-| 3.7 | Email deliverability tracking (Resend webhook) | 🟡 | Resend send は呼んでいるが、webhook (bounce / complaint / open) 受信未実装。 商用化前に追加推奨 |
+| 3.7 | Email deliverability tracking (Resend webhook) | ✅ | `/api/webhooks/resend` で `resend.webhooks.verify()` 経由 Svix HMAC 検証、 Notification.{resendMessageId, emailDeliveryStatus} に永続化、 bounced / complained は NotificationPreference.emailEnabled = false で auto-suppression (P2 round 10、 ADR-0009) |
 | 3.8 | Anthropic API コスト tracking | ❌ | `scripts/check-ai-usage.sh` (手動実行) のみ。常設 dashboard / 月次 alert なし。月 $50 を超えたら通知する仕組みが欲しい |
 | 3.9 | Uptime monitor (外形監視) | ❌ | Vercel built-in は内部視点のみ。Better Stack / UptimeRobot 等の外形監視を `/health` endpoint と組み合わせて入れる |
 
@@ -108,20 +112,18 @@ status 横の `<commit/file>` で根拠を即引ける形を維持する (drift 
 
 ## 商用化までの最短経路 (推奨優先順位)
 
-❌ 未着手 12 件のうち、 launch ブロッカーになる順:
+❌ 未着手 11 件のうち、 launch ブロッカーになる順 (P2 round 10 で 2.8 + 3.7 が ✅ に昇格、 priority 上位 2 件除去):
 
 1. **6.1 サポート問い合わせ窓口** + **6.3 通報窓口** — 法的 (景表法 / 特商法問題発覚時の連絡経路) + 運用上 必須
 2. **2.3 Rate limiting 汎用化** — URL 取込 / PDF 解析 / coach chat に当てる。 Anthropic credit 流出防止
-3. **2.8 Bot 対策 (Vercel BotID)** — signup 量産で credit 流出を完全防止
-4. **3.7 Resend webhook** — bounce 高い addressへの再送停止 + spam complaint 対応
-5. **3.8 Anthropic API コスト alert** — 月予算超過の自動通知
-6. **1.8 著作権 / 写真出典表記** — 式場サイトとのトラブル予防
-7. **3.9 Uptime monitor** — launch 後の信頼性担保
-8. **6.2 FAQ / ヘルプ** — 問い合わせ削減
-9. **2.9 Audit log** — トラブル時の調査
-10. **4.9 DB backup 検証** — 月次 drill 含めて
-11. **6.7 退会後データ保持ポリシー** — 利用規約に明示
-12. **5.9 404 ブランドデザイン** — UX polish
+3. **3.8 Anthropic API コスト alert** — 月予算超過の自動通知
+4. **1.8 著作権 / 写真出典表記** — 式場サイトとのトラブル予防
+5. **3.9 Uptime monitor** — launch 後の信頼性担保
+6. **6.2 FAQ / ヘルプ** — 問い合わせ削減
+7. **2.9 Audit log** — トラブル時の調査
+8. **4.9 DB backup 検証** — 月次 drill 含めて
+9. **6.7 退会後データ保持ポリシー** — 利用規約に明示
+10. **5.9 404 ブランドデザイン** — UX polish
 
 🟡 部分対応の昇格判断:
 - 1.6 Cookie 同意: EU トラフィック予測次第

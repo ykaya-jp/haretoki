@@ -170,7 +170,11 @@ export async function runVisitReminderCron(
           continue;
         }
 
-        await prisma.notification.create({
+        // Create the in-app Notification first so the row exists by the
+        // time the email lands and Resend's webhook fires. We update it
+        // with the resend_message_id once sendEmail returns — that's
+        // the column the Resend webhook handler joins on.
+        const notification = await prisma.notification.create({
           data: {
             userId: member.userId,
             type: dedupeType,
@@ -180,6 +184,7 @@ export async function runVisitReminderCron(
               : visit.venue.name,
             href: `/venues/${visit.venue.id}`,
           },
+          select: { id: true },
         });
         notified++;
 
@@ -196,6 +201,24 @@ export async function runVisitReminderCron(
         });
         if (sent.success) {
           emailed++;
+          // Persist the Resend message id so the webhook handler at
+          // `/api/webhooks/resend` can find this Notification when a
+          // delivery event arrives. Best-effort — a missed update just
+          // means the row stays at status=null, which is the same
+          // observable state as if the webhook never fired.
+          if (sent.messageId) {
+            await prisma.notification
+              .update({
+                where: { id: notification.id },
+                data: { resendMessageId: sent.messageId, emailDeliveryStatus: "sent" },
+              })
+              .catch((err) => {
+                captureError(err, {
+                  action: "visit-reminder-cron:persist-message-id",
+                  notificationId: notification.id,
+                });
+              });
+          }
         } else {
           // Resend rejected the send (rate limit, domain unverified,
           // bounced address). The in-app Notification was already

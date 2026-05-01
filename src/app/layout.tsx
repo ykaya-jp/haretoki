@@ -4,9 +4,29 @@ import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BotIdClient } from "botid/client";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+
+/**
+ * Vercel BotID protected endpoints. Each entry tells the BotIdClient
+ * which paths to instrument (collect signals against) so the matching
+ * server-side `checkBotId()` call has data to work with. Keep this list
+ * in sync with the routes that actually invoke `detectBot()` server-
+ * side — instrumenting a route the server doesn't gate, or gating a
+ * route the client doesn't instrument, both produce false negatives.
+ *
+ * Targets are the highest cost / highest abuse paths:
+ *   - /api/coach/stream — Anthropic credit drain (per-message $$$)
+ *   - /api/user/delete — irreversible destructive operation
+ *   - /api/user/export — data exfiltration surface
+ */
+const BOTID_PROTECTED = [
+  { path: "/api/coach/stream", method: "POST" },
+  { path: "/api/user/delete", method: "DELETE" },
+  { path: "/api/user/export", method: "GET" },
+] as const;
 
 // Japanese glyphs are served lazily via unicode-range partitions (there is no
 // "japanese" Google Fonts subset). On slow networks or platforms without
@@ -146,6 +166,11 @@ export default function RootLayout({
           // Static JSON string, no interpolation of user data — safe.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
+        {/* Vercel BotID — instruments the protected routes listed in
+            BOTID_PROTECTED so server-side `checkBotId()` (`src/lib/botid.ts`)
+            has signals to evaluate. No-op when the BotID feature isn't
+            provisioned in the Vercel project. */}
+        <BotIdClient protect={[...BOTID_PROTECTED]} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
