@@ -291,6 +291,22 @@ vi.mock("@/lib/supabase/storage", () => ({
   ),
 }));
 
+// Round 14: AiCache lookup/write are mocked so the new buffer-path cache
+// has predictable hit/miss behavior. Default: every lookup misses; every
+// write succeeds silently. Individual tests override these spies to
+// exercise the cache-hit short-circuit path. Typed via the
+// `Parameters<...>` of the imported function shapes so test assertions on
+// .mock.calls[0] resolve to a real tuple type (not any[]).
+const cacheGetMock = vi.fn<(hash: string) => Promise<string | null>>();
+const cacheSetMock = vi.fn<
+  (hash: string, response: string, model: string) => Promise<void>
+>();
+vi.mock("@/lib/ai-cache", () => ({
+  getCachedResponse: (hash: string) => cacheGetMock(hash),
+  setCachedResponse: (hash: string, response: string, model: string) =>
+    cacheSetMock(hash, response, model),
+}));
+
 describe("extractEstimateItems", () => {
   beforeEach(() => {
     process.env.ANTHROPIC_API_KEY = "test-key";
@@ -298,6 +314,10 @@ describe("extractEstimateItems", () => {
     messagesCreateMock.mockReset();
     filesUploadMock.mockReset();
     filesDeleteMock.mockReset();
+    cacheGetMock.mockReset();
+    cacheGetMock.mockResolvedValue(null);
+    cacheSetMock.mockReset();
+    cacheSetMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -426,6 +446,8 @@ describe("extractEstimateItems", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.total).toBe(2_800_000);
+      // Round 14: tier discriminator on the success result.
+      expect(result.tier).toBe("files-api");
     }
 
     // 1. Files API upload was called with the beta header inside params
@@ -498,6 +520,111 @@ describe("extractEstimateItems", () => {
     if (!result.ok) expect(result.error).toMatch(/upload 500/);
     expect(messagesCreateMock).not.toHaveBeenCalled();
     expect(filesDeleteMock).not.toHaveBeenCalled();
+  });
+
+  // --- Round 14: input-hash cache + 3-tier retry --------------------
+
+  it("returns cached extraction without uploading or calling Claude", async () => {
+    cacheGetMock.mockResolvedValueOnce(
+      JSON.stringify({
+        total: 1_000_000,
+        items: [
+          {
+            category: "venue_fee",
+            itemName: "会場使用料",
+            amount: 300_000,
+            tier: "unknown",
+          },
+        ],
+        predictedFinal: 1_200_000,
+        analysisNote: "cached",
+      }),
+    );
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("identical-pdf-bytes"),
+      filename: "x.pdf",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.tier).toBe("cache");
+      expect(result.data.total).toBe(1_000_000);
+    }
+    // Cache short-circuits BOTH the upload and the Claude call.
+    expect(filesUploadMock).not.toHaveBeenCalled();
+    expect(messagesCreateMock).not.toHaveBeenCalled();
+    expect(filesDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("writes the canonical extraction shape to cache after a fresh Files API run", async () => {
+    filesUploadMock.mockResolvedValueOnce({ id: "file_cache_write" });
+    messagesCreateMock.mockResolvedValueOnce(validClaudeResponse);
+    filesDeleteMock.mockResolvedValueOnce({ id: "file_cache_write" });
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    await extractEstimateItems({
+      buffer: Buffer.from("write-once-pdf"),
+      filename: "x.pdf",
+    });
+
+    expect(cacheSetMock).toHaveBeenCalledTimes(1);
+    const [hash, payload, model] = cacheSetMock.mock.calls[0];
+    expect(typeof hash).toBe("string");
+    expect(hash.length).toBe(16);
+    expect(model).toBe("claude-sonnet-4-6");
+    // Payload is the canonical re-serialised shape, not the raw Claude text.
+    const parsed = JSON.parse(payload);
+    expect(parsed).toHaveProperty("total", 2_800_000);
+    expect(parsed).toHaveProperty("items");
+    expect(parsed).toHaveProperty("predictedFinal");
+    expect(parsed).toHaveProperty("analysisNote");
+  });
+
+  it("falls back to signed URL when Files API upload errors AND fallbackPdfUrl is supplied (3-tier)", async () => {
+    filesUploadMock.mockRejectedValueOnce(new Error("upload 502"));
+    // The URL fallback runs runExtraction with the URL document block.
+    messagesCreateMock.mockResolvedValueOnce(validClaudeResponse);
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("flaky-files-api"),
+      filename: "x.pdf",
+      fallbackPdfUrl: "https://cdn.example/estimate.pdf",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.tier).toBe("signed-url");
+    }
+    // Files API delete is never called — there's no file_id to clean up.
+    expect(filesDeleteMock).not.toHaveBeenCalled();
+    // messages.create was called with the URL source (not file_id).
+    const userMessage = messagesCreateMock.mock.calls[0][0].messages[0];
+    expect(userMessage.content[0].source.type).toBe("url");
+  });
+
+  it("returns ok:false when Files API errors AND no fallbackPdfUrl is supplied", async () => {
+    filesUploadMock.mockRejectedValueOnce(new Error("upload 503"));
+
+    const { extractEstimateItems } = await import(
+      "@/server/actions/estimate-ai"
+    );
+    const result = await extractEstimateItems({
+      buffer: Buffer.from("no-fallback"),
+      filename: "x.pdf",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/upload 503/);
+    expect(messagesCreateMock).not.toHaveBeenCalled();
   });
 
   it("propagates parser warnings on the buffer path (sum-vs-total drift)", async () => {

@@ -15,6 +15,11 @@ last_synced: 2026-05-02
 
 ## 改訂履歴
 
+- **2026-05-02 round 14** — Cache カバレッジ統合 + PDF 3-tier retry + warnings 永続化:
+  - **Buffer-path input-hash cache** (`extractEstimateItems` の buffer 経路): `sha256(buffer + system + model + version)` を key に AiCache (30d TTL) を流用。同じ PDF を再 upload した場合 **upload + Claude call の両方をスキップ**。round 4 の cache audit で唯一の gap だった estimate-extract を埋め、coverage を 9/10 prompt → **10/10** に
+  - **PDF 3-tier retry** (`extractEstimateItems` の戻り値に `tier: 'cache' | 'files-api' | 'signed-url'` 追加): cache 命中 → Files API upload → upload 失敗時に signed URL fallback (caller が `fallbackPdfUrl` 渡した場合のみ) → 全部失敗で `ok:false`。caller (`analyzeEstimatePdf`) は `pdfUrl` を `fallbackPdfUrl` として渡し、tier ≠ 'files-api' のときは `event:"estimate_extract_tier"` を log 出力で telemetry
+  - **`Estimate.warnings` 永続化** (Prisma schema additive): `warnings String[] @default([])` を Estimate model に追加 (migration `20260502050000_add_estimate_warnings`)。`saveAnalyzedEstimate` で 240 char × 8 件 上限で sanitize して保存。`estimate-section.tsx` で `<details>` 折りたたみ + AlertTriangle で「要確認 (N件)」バッジを永続表示。round 12 で upload modal 中だけ見えていた warnings が venue 詳細でも常時確認可能に
+  - **Cache buster**: `ESTIMATE_EXTRACT_PROMPT_VERSION = 1` を `src/server/actions/estimate-ai.ts` に新設 (今後の prompt 改定で `+1` 必須)
 - **2026-05-02 round 12** — PDF 大容量化 + UI 信頼性可視化:
   - **Anthropic Files API 移行** (`src/server/actions/estimate-ai.ts`): 既存の signed URL 経路に加えて、`client.beta.files.upload` 経由で PDF を Anthropic にアップロードし、`messages.create` の document block で `{ type: 'file', file_id }` 参照する経路を **新 default** として追加。caller (`analyzeEstimatePdf`) は file buffer を直接渡すため signed URL の発行 + Anthropic 側 fetch がスキップされる。Beta header `files-api-2025-04-14` を upload と (実装上は) 削除に付与。upload 後、ベストエフォートで `client.beta.files.delete` を fire-and-forget で実行 (Anthropic 側 file TTL によるクリーンアップにも頼る)
   - **PDF サイズ上限**: 10MB → **32MB** に拡大 (`PDF_MAX_SIZE` in `src/server/actions/estimates.ts` + `BUCKET_OPTIONS.estimates.fileSizeLimit` in `src/lib/supabase/storage.ts` + `PDF_MAX_BYTES` in `src/components/venues/estimate-pdf-upload.tsx` を同期)

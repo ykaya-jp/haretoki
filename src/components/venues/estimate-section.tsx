@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EstimateForm } from "@/components/venues/estimate-form";
 import { EstimateBreakdown } from "@/components/venues/estimate-breakdown";
 import { EstimatePdfUpload } from "@/components/venues/estimate-pdf-upload";
-import { Plus, ChevronDown, ChevronUp, Receipt, FilePlus2, Pencil } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Receipt, FilePlus2, Pencil, AlertTriangle } from "lucide-react";
 import { formatYen } from "@/lib/utils";
 
 type EstimateItem = {
@@ -25,6 +25,11 @@ type Estimate = {
   sourceType: string;
   items: EstimateItem[];
   createdAt: Date;
+  /** Round 14: server-side sanity warnings persisted on the row.
+   *  Empty for manual estimates and for AI extracts that passed all
+   *  drift checks. The detail card renders a 要確認 badge when this
+   *  array is non-empty. */
+  warnings?: string[];
 };
 
 /**
@@ -114,6 +119,33 @@ export function EstimateSection({
               {latest.sourceType === "manual" ? "手入力" : latest.sourceType}
             </span>
           </div>
+
+          {/* Round 14: 要確認 badge — surfaces persisted warnings (e.g.
+              items 合計 vs total 乖離) so the couple sees the AI's own
+              uncertainty signal even after the upload modal is closed.
+              Click-to-expand keeps the summary card visually quiet by
+              default; the warnings themselves are shown in the dropdown. */}
+          {latest.warnings && latest.warnings.length > 0 && (
+            <details
+              className="rounded-md border border-tone-warning/30 bg-tint-warning px-3 py-2 dark:bg-tint-warning"
+              aria-label="AI抽出の要確認事項"
+            >
+              <summary className="flex cursor-pointer items-center gap-2 text-sm">
+                <AlertTriangle
+                  className="h-4 w-4 shrink-0 text-tone-warning dark:text-tone-warning"
+                  aria-hidden="true"
+                />
+                <span className="font-medium text-tone-warning dark:text-tone-warning">
+                  要確認 ({latest.warnings.length}件)
+                </span>
+              </summary>
+              <ul className="mt-2 space-y-0.5 text-xs text-tone-warning/90 dark:text-tone-warning/90">
+                {latest.warnings.map((w, i) => (
+                  <li key={i}>・{w}</li>
+                ))}
+              </ul>
+            </details>
+          )}
 
           {/* Predicted final highlight */}
           {latest.predictedFinal && (

@@ -1,10 +1,12 @@
 "use server";
 
+import { createHash } from "crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient, isClaudeAvailable } from "@/lib/anthropic";
 import { recordUsage } from "@/lib/anthropic-usage";
 import { MODEL } from "@/lib/models";
 import { createEstimateSignedUrl } from "@/lib/supabase/storage";
+import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
 import {
   parseEstimateExtraction,
   type ExtractedEstimate,
@@ -26,45 +28,58 @@ import { ESTIMATE_EXTRACT_SYSTEM_PROMPT } from "@/lib/prompts/estimate-extract";
  *      re-used across calls in the same turn (we don't yet, but the door
  *      is open).
  *
- *   2. **pdfUrl → signed URL (legacy)**: caller hands us a Supabase URL,
- *      we issue a short-lived signed URL and let Anthropic fetch the PDF
- *      itself. Kept for backwards compatibility (existing callers + the
- *      extraction unit test exercise this path) and as a fallback the
- *      Files API path can fall through to if the upload itself errors
- *      with a non-billing 5xx.
+ *   2. **pdfUrl → signed URL (legacy + Files-API fallback)**: caller hands
+ *      us a Supabase URL, we issue a short-lived signed URL and let
+ *      Anthropic fetch the PDF itself. Kept as the legacy path AND as
+ *      the auto-fallback for the Files API (round 14): if the buffer
+ *      caller also supplies `fallbackPdfUrl` and the Files API upload
+ *      itself errors, we transparently switch to URL mode rather than
+ *      failing the whole extraction.
  *
- * Why document-block at all (versus the older `pdf-parse → text → askClaude`
- * path): wedding venue 見積書 lean on columnar layout (項目 / 単価 / 数量 /
- * 小計) that a plain-text dump destroys, and scan-only PDFs returned an
- * empty string under pdf-parse. Document-block reads the PDF natively
- * (vision + structure), so per-line unit/quantity recover and smartphone
- * photo → PDF chains now work.
- *
- * Model: sonnet-4-6. Haiku mis-classified ~20% of 料理単価×人数 lines as
- * flat amounts. Accuracy on the JSON shape matters more than latency for
- * a once-per-venue operation.
- *
- * The system prompt itself lives in src/lib/prompts/estimate-extract.ts.
+ * Round 14 also adds an input-hash cache (AiCache table, 30d TTL): the
+ * key is sha256({ buffer-sha256, system, model, version }), so the same
+ * PDF re-uploaded by the same project hits cache and skips Claude
+ * entirely. This closes the last gap in the AI cache coverage audit
+ * (every other prompt was already cached).
  */
 
 const FILES_API_BETA = "files-api-2025-04-14";
 const PDF_EXTRACT_TIMEOUT_MS = 55_000;
+// Bump when ESTIMATE_EXTRACT_SYSTEM_PROMPT semantics change so cached
+// extractions from a prior prompt revision aren't served against the new
+// schema contract.
+const ESTIMATE_EXTRACT_PROMPT_VERSION = 1;
 
 export type ExtractEstimateInput =
   | string
-  | { buffer: Buffer; filename: string };
+  | {
+      buffer: Buffer;
+      filename: string;
+      /** Round 14: when supplied, the buffer/Files API path will fall
+       *  through to URL mode using this as the second-tier source if the
+       *  Files API upload itself errors. Caller (`analyzeEstimatePdf`)
+       *  passes the just-uploaded Supabase pdfUrl. */
+      fallbackPdfUrl?: string;
+    };
 
 /**
  * Extract structured EstimateItems from a wedding estimate PDF.
  *
- * Returns `{ ok: false, error }` on every failure path (signed-url failure,
- * Files-API upload failure, Claude error, JSON malformed, schema mismatch).
- * We never throw — the caller threads this through a user-facing toast.
+ * Returns `{ ok: false, error }` on every failure path. We never throw —
+ * the caller threads this through a user-facing toast.
  */
 export async function extractEstimateItems(
   input: ExtractEstimateInput,
 ): Promise<
-  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
+  | {
+      ok: true;
+      data: ExtractedEstimate;
+      modelId: string;
+      warnings: string[];
+      /** Which extraction tier produced the answer. Useful for telemetry
+       *  + lets the caller log when fallback fired. */
+      tier: "files-api" | "signed-url" | "cache";
+    }
   | { ok: false; error: string }
 > {
   if (!isClaudeAvailable()) {
@@ -75,31 +90,65 @@ export async function extractEstimateItems(
   }
 
   if (typeof input === "string") {
-    return extractFromUrl(input);
+    const result = await extractFromUrl(input);
+    return result.ok ? { ...result, tier: "signed-url" } : result;
   }
-  return extractFromBuffer(input.buffer, input.filename);
+  return extractFromBuffer(input.buffer, input.filename, input.fallbackPdfUrl);
 }
 
-/** Files API path — the new default. Uploads the PDF, references the
- *  returned file_id from `messages.create`, then best-effort deletes. */
+/** Files API path — the new default, with optional URL fallback. */
 async function extractFromBuffer(
   buffer: Buffer,
   filename: string,
+  fallbackPdfUrl: string | undefined,
 ): Promise<
-  | { ok: true; data: ExtractedEstimate; modelId: string; warnings: string[] }
+  | {
+      ok: true;
+      data: ExtractedEstimate;
+      modelId: string;
+      warnings: string[];
+      tier: "files-api" | "signed-url" | "cache";
+    }
   | { ok: false; error: string }
 > {
-  const client = getAnthropicClient();
-
-  // 1. Upload the PDF as an Anthropic File. Wrap in Blob so the SDK's
-  //    Uploadable accepts it on Node 20+ (which exposes Blob globally).
-  let fileId: string;
+  // ---- Cache lookup ------------------------------------------------------
+  // Same PDF bytes + same prompt + same model → same JSON. The hash is
+  // small (16 hex chars) so AiCache's UNIQUE(inputHash) is kind to it.
+  // Skip the upload AND Claude round-trip when we hit.
+  const cacheHash = computeBufferCacheHash(buffer);
   try {
-    // Bun / older Node may not have File globally; Blob is the universal
-    // surface. The SDK accepts both.
-    const blob = new Blob([new Uint8Array(buffer)], { type: "application/pdf" });
-    // Annotate with filename via a wrapping object — SDK reads it for
-    // the multipart upload's Content-Disposition.
+    const cached = await getCachedResponse(cacheHash);
+    if (cached) {
+      const reparsed = parseEstimateExtraction(cached);
+      if (reparsed.ok) {
+        return {
+          ok: true,
+          data: reparsed.data,
+          modelId: MODEL.SONNET,
+          warnings: reparsed.warnings,
+          tier: "cache",
+        };
+      }
+      // Cached row is somehow corrupt (schema changed mid-deploy?) — fall
+      // through to a fresh generation rather than serve garbage.
+      console.warn(
+        "[extractEstimateItems] cache row failed re-parse, regenerating",
+      );
+    }
+  } catch (err) {
+    console.warn("[extractEstimateItems] cache lookup failed (non-fatal)", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // ---- Tier 1: Files API -------------------------------------------------
+  const client = getAnthropicClient();
+  let fileId: string | null = null;
+  let uploadError: unknown = null;
+  try {
+    const blob = new Blob([new Uint8Array(buffer)], {
+      type: "application/pdf",
+    });
     const uploadable =
       typeof File !== "undefined"
         ? new File([blob], filename, { type: "application/pdf" })
@@ -110,6 +159,9 @@ async function extractFromBuffer(
     });
     fileId = uploaded.id;
   } catch (err) {
+    uploadError = err;
+    // Hard 4xx errors (billing, auth, validation) shouldn't burn into the
+    // URL fallback path — let them surface so the caller's toast is honest.
     if (err instanceof Anthropic.APIError) {
       if (
         err.message.includes("credit balance") ||
@@ -121,29 +173,74 @@ async function extractFromBuffer(
         };
       }
     }
+  }
+
+  // ---- Tier 2: signed URL fallback when Files API upload itself errored --
+  if (!fileId) {
+    if (fallbackPdfUrl) {
+      console.warn(
+        "[extractEstimateItems] Files API upload failed, falling back to signed URL",
+        {
+          message:
+            uploadError instanceof Error ? uploadError.message : String(uploadError),
+        },
+      );
+      const fallback = await extractFromUrl(fallbackPdfUrl);
+      if (fallback.ok) {
+        // Best-effort cache write under the buffer hash even though we
+        // produced the answer via URL — the inputs are the same byte-for-
+        // byte, so cache reuse is sound.
+        void setCachedResponse(
+          cacheHash,
+          JSON.stringify({
+            total: fallback.data.total,
+            items: fallback.data.items,
+            predictedFinal: fallback.data.predictedFinal,
+            analysisNote: fallback.data.analysisNote,
+          }),
+          MODEL.SONNET,
+        );
+        return { ...fallback, tier: "signed-url" };
+      }
+      return fallback;
+    }
+    // No fallback URL provided — fail with the upload error so caller can
+    // distinguish from a Claude-side failure.
     return {
       ok: false,
       error: `PDFのAIアップロードに失敗しました: ${
-        err instanceof Error ? err.message : "unknown"
+        uploadError instanceof Error ? uploadError.message : "unknown"
       }`,
     };
   }
 
+  // ---- Tier 1 succeeded: run extraction with file_id reference -----------
   try {
-    return await runExtraction(
-      client,
-      // file_id reference; cast through unknown because the public
-      // messages.create types don't yet enumerate `type: 'file'` in
-      // document.source even though the beta API accepts it.
-      {
-        type: "document",
-        source: { type: "file", file_id: fileId },
-      } as unknown as Anthropic.ContentBlockParam,
-    );
+    const result = await runExtraction(client, {
+      type: "document",
+      source: { type: "file", file_id: fileId },
+    } as unknown as Anthropic.ContentBlockParam);
+
+    if (result.ok) {
+      // Cache the raw JSON the parser already validated. Write the canonical
+      // shape (re-stringified parsed data) so re-parses on cache hit don't
+      // re-encounter any non-deterministic Claude formatting quirks.
+      void setCachedResponse(
+        cacheHash,
+        JSON.stringify({
+          total: result.data.total,
+          items: result.data.items,
+          predictedFinal: result.data.predictedFinal,
+          analysisNote: result.data.analysisNote,
+        }),
+        MODEL.SONNET,
+      );
+      return { ...result, tier: "files-api" };
+    }
+    return result;
   } finally {
-    // Best-effort cleanup. Server functions are short-lived, so this
-    // either completes within the function lifetime or gets garbage-
-    // collected by Anthropic's per-account file TTL anyway.
+    // Best-effort cleanup. Anthropic's per-account file TTL backstops
+    // failure cases here.
     void client.beta.files
       .delete(fileId, { betas: [FILES_API_BETA] })
       .catch((err) => {
@@ -155,7 +252,7 @@ async function extractFromBuffer(
   }
 }
 
-/** Legacy URL path — kept for backwards compatibility + tests. */
+/** Legacy URL path — also serves as Tier 2 for the buffer caller. */
 async function extractFromUrl(
   pdfUrl: string,
 ): Promise<
@@ -290,4 +387,22 @@ async function runExtraction(
     modelId: MODEL.SONNET,
     warnings: parsed.warnings,
   };
+}
+
+/** Hash recipe for the buffer-path cache. Pure function of (PDF bytes,
+ *  prompt, model, version) — same recipe as cachedAskClaude / aiAnalysis
+ *  callers so a future migration to a single helper stays straightforward. */
+function computeBufferCacheHash(buffer: Buffer): string {
+  const bufferSha = createHash("sha256").update(buffer).digest("hex");
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        buffer: bufferSha,
+        system: ESTIMATE_EXTRACT_SYSTEM_PROMPT,
+        model: MODEL.SONNET,
+        version: ESTIMATE_EXTRACT_PROMPT_VERSION,
+      }),
+    )
+    .digest("hex")
+    .slice(0, 16);
 }
