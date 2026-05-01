@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { submitSupportMessage } from "@/server/actions/support";
+import { useHaptic } from "@/hooks/use-haptic";
 
 interface Props {
   /** The signed-in user's email — used as the default Reply-To so couples
@@ -24,6 +25,7 @@ export function ContactForm({ defaultReplyTo }: Props) {
   const [message, setMessage] = useState("");
   const [replyTo, setReplyTo] = useState(defaultReplyTo);
   const [isPending, startTransition] = useTransition();
+  const haptic = useHaptic();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,6 +37,11 @@ export function ContactForm({ defaultReplyTo }: Props) {
         replyTo: replyTo.trim() || undefined,
       });
       if (result.success) {
+        // "success" pattern (short-pause-long) on confirmed delivery — pairs
+        // with the sonner toast so the haptic reads as "received" rather
+        // than as a generic press feedback. useHaptic skips itself on
+        // prefers-reduced-motion and unsupported browsers.
+        haptic("success");
         toast.success("お問い合わせを送信しました。3 営業日以内にお返事します。");
         setSubject("");
         setMessage("");

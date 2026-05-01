@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useHaptic } from "@/hooks/use-haptic";
 
 export function DataManagement({ userEmail }: { userEmail: string }) {
   const router = useRouter();
+  const haptic = useHaptic();
   const [isExporting, startExport] = useTransition();
   const [isDeleting, startDelete] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -39,6 +41,12 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
       toast.error("メールアドレスが一致しません");
       return;
     }
+    // "impact" pulse on the press of 完全に削除 — this is the
+    // irreversible commit point. Couples should physically feel
+    // that something happened, distinct from a casual save.
+    // useHaptic respects prefers-reduced-motion + skips on
+    // unsupported browsers.
+    haptic("impact");
     startDelete(async () => {
       try {
         const res = await fetch("/api/user/delete", {
