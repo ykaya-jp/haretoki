@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,26 @@ import { Loader2 } from "lucide-react";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 import { SkyChip } from "@/components/home/sky-chip";
 import { isSameOriginRedirectPath } from "@/lib/url-guard";
+
+/**
+ * W21-1 entry motion. `custom` is the stagger index — each block delays
+ * one beat behind the previous so the page composes itself top-to-
+ * bottom rather than appearing all at once. Same easing curve as the
+ * landing page's `fadeUp` so the auth screens feel continuous with the
+ * marketing surface a user just left.
+ */
+const heroFadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.65,
+      ease: [0.16, 1, 0.3, 1] as const,
+    },
+  }),
+};
 
 export default function LoginPage() {
   // useSearchParams() requires a Suspense boundary for static generation.
@@ -95,13 +116,25 @@ function LoginPageInner() {
             }}
           />
         </div>
-        <div className="relative z-10 flex items-center gap-3">
+        <motion.div
+          custom={0}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 flex items-center gap-3"
+        >
           <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
           <Link href="/" prefetch={true} className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
             Haretoki
           </Link>
-        </div>
-        <div className="relative z-10 max-w-lg">
+        </motion.div>
+        <motion.div
+          custom={1}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 max-w-lg"
+        >
           {/* Seasonal decoration — rotates monthly. Top-right of heading. */}
           <div className="mb-4 flex justify-end">
             <SeasonalMotif size="md" className="opacity-60" />
@@ -114,7 +147,7 @@ function LoginPageInner() {
             <br />
             AIコーチがあなたの進捗を覚えています。
           </p>
-        </div>
+        </motion.div>
         <p className="relative z-10 text-xs text-muted-foreground/50">
           © 2026 Haretoki
         </p>
@@ -122,7 +155,17 @@ function LoginPageInner() {
 
       {/* Right: Form */}
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm space-y-10">
+        <motion.div
+          // W21-1: form panel fades in slightly behind the brand panel so
+          // the eye lands on the headline first, then the input fields.
+          // On mobile (no left brand panel) `custom={1}` still feels
+          // measured rather than abrupt.
+          custom={2}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-sm space-y-10"
+        >
           {/* Mobile logo + SkyChip */}
           <div className="flex flex-col items-center gap-4 text-center lg:hidden">
             <SkyChip mood="sunny" size={40} />
@@ -235,7 +278,7 @@ function LoginPageInner() {
               ふたりの場所をつくる
             </Link>
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

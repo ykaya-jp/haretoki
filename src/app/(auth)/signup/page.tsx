@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,21 @@ import { Loader2, ChevronRight } from "lucide-react";
 import { SkyChip } from "@/components/home/sky-chip";
 import { SeasonalMotif } from "@/components/ui/seasonal-motif";
 import { isSameOriginRedirectPath } from "@/lib/url-guard";
+
+/** W21-1 entry motion — mirrors login/page.tsx so the two auth screens
+ *  feel like the same surface composing itself. */
+const heroFadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.65,
+      ease: [0.16, 1, 0.3, 1] as const,
+    },
+  }),
+};
 
 export default function SignupPage() {
   const router = useRouter();
@@ -79,13 +95,25 @@ export default function SignupPage() {
             }}
           />
         </div>
-        <div className="relative z-10 flex items-center gap-3">
+        <motion.div
+          custom={0}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 flex items-center gap-3"
+        >
           <Image src="/icons/logo.png" alt="" width={40} height={40} className="h-10 w-10" />
           <Link href="/" prefetch={true} className="text-2xl font-medium uppercase tracking-[0.3em] text-[var(--gold-warm)] transition-opacity duration-200 hover:opacity-70">
             Haretoki
           </Link>
-        </div>
-        <div className="relative z-10 max-w-lg space-y-8">
+        </motion.div>
+        <motion.div
+          custom={1}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 max-w-lg space-y-8"
+        >
           {/* Seasonal decoration — rotates monthly. */}
           <div className="flex justify-end">
             <SeasonalMotif size="md" className="opacity-60" />
@@ -111,7 +139,7 @@ export default function SignupPage() {
               Haretokiは、その「想定外」を事前に教えます。
             </p>
           </div>
-        </div>
+        </motion.div>
         <p className="relative z-10 text-xs text-muted-foreground/50">
           © 2026 Haretoki
         </p>
@@ -119,7 +147,14 @@ export default function SignupPage() {
 
       {/* Right: Form */}
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm space-y-10">
+        <motion.div
+          // W21-1: form panel fades in slightly behind the brand panel.
+          custom={2}
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-sm space-y-10"
+        >
           {/* Mobile header + SkyChip */}
           <div className="flex flex-col items-center gap-4 text-center lg:hidden">
             <SkyChip mood="break" size={40} />
@@ -255,7 +290,7 @@ export default function SignupPage() {
               ログインして戻る
             </Link>
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
