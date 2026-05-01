@@ -150,8 +150,18 @@ export function VenueCard({
     >
       {/* Photo section — 3:2 ratio keeps the card compact on the explore feed
           so more venues fit above the fold (myreview-02 item 12). Detail pages
-          still use the wider hero via VenuePhotoGallery. */}
-      <div className="relative border-b border-[var(--gold-subtle)]/40">
+          still use the wider hero via VenuePhotoGallery.
+          The `viewTransitionName: venue-photo-<id>` style is the list-side
+          half of the shared-element morph defined in ADR-0007: the matching
+          name on the detail-page VenuePhotoGallery wrapper lets supported
+          browsers morph the same photo across navigations. The name is
+          unique per venue so two cards never collide on the same page,
+          and it is inert when the SPA experimental.viewTransition flag is
+          off (current default — ADR-0007 keeps it disabled). */}
+      <div
+        className="relative border-b border-[var(--gold-subtle)]/40"
+        style={{ viewTransitionName: `venue-photo-${venue.id}` }}
+      >
         <PrefetchLink href={`/venues/${venue.id}`}>
           <PhotoCarousel
             photos={venue.photoUrls}

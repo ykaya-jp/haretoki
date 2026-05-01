@@ -9,13 +9,46 @@
 @source not "../../tests/**";
 
 /* ═══ View Transitions (supported browsers only) ═══ */
-/* Enables smooth cross-fade between navigations without JS overhead.
-   Unsupported browsers ignore this rule silently.
+/* Cross-document (MPA-style) auto navigation transitions. Unsupported
+   browsers ignore @view-transition silently. Note: Next.js App Router
+   navigations are SPA, so this rule is a no-op for in-app links — it
+   only activates on full document loads. SPA-side morph requires
+   experimental.viewTransition in next.config.ts; that flag stays
+   disabled per ADR-0007 (past mobile tab-switch latency regression).
    Skipped for users who prefer reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition {
     navigation: auto;
   }
+}
+
+/* Reduced-motion guard: even when a transition runs (e.g. browser MPA
+   path or future SPA opt-in), collapse all view-transition animations
+   to zero duration so motion-sensitive users never see morph. Per
+   Next.js docs https://nextjs.org/docs/app/guides/view-transitions
+   #disable-view-transitions-for-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Per-element shared-element foundation. The `view-transition-name`
+   inline style on venue cards / detail hero (set in venue-card.tsx
+   and venue-photo-gallery.tsx as `viewTransitionName: venue-photo-<id>`)
+   is keyed by venue id so the same photo morphs across pages — no
+   coupling to any particular animation here, only the identity. The
+   default cross-fade is browser-default; custom keyframes below are
+   opt-in via ::view-transition-old/new() selectors when we add SPA
+   support in a follow-up. */
+::view-transition-group(*) {
+  /* Slightly longer than browser default (250ms) so the morph reads
+     intentional on the slower mid-tier Android devices we target. */
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @custom-variant dark (&:is(.dark *));

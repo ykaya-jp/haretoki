@@ -929,12 +929,14 @@ You are the **docs-curator**. Your job is to keep docs in lockstep with implemen
 
 **Phase 3 cron 有効化前提 (gating)**
 
-1. Phase 2 の `mark-docs-stale.sh` / `docs-drift-check.sh` が develop に merge 済
-2. 上記 hook 配下で 1 週間 prompts / models / hooks の編集を観測し、stale flag の偽陽性が 0 / 偽陰性が ≦1 件であること
-3. `@docs-curator` 手動 invoke で 1 回以上 PR を起票し、PR の質 (resolved / ambiguous / excluded の比率) が許容範囲であること
-4. ADR 0001-0005 の retroactive 起票が完了していること (= Phase 2.E ADR 導入で達成済、`docs/harness/adr/`)
+> **正本は ADR-0008** ([`docs/harness/adr/0008-phase-3-docs-automation-cron-gating.md`](harness/adr/0008-phase-3-docs-automation-cron-gating.md))。 ここでは要約のみ。 ADR-0008 は Gate 1〜4 / 各ゲートの kill switch / Alternatives を明示している。
 
-これらが揃ってから #2 / #3 の Actions を有効化する。
+1. Phase 2 の AI prompts drift hook (warn-only) が develop に merge 済 = ADR-0006 で達成
+2. 上記 hook 配下で 1 週間 prompts / models / hooks の編集を観測し、stale 警告の偽陽性 ≦0 / 偽陰性 ≦1 / ノイズ ≦2 件 (= ADR-0008 Gate 2)
+3. `@docs-curator` 手動 invoke で 1 回以上 PR を起票し、PR の質 (resolved / ambiguous / excluded の比率) が許容範囲であること
+4. ADR 0001-0005 + 0006 の retroactive / 制度導入が完了していること (= Phase 2.E で達成済、`docs/harness/adr/`)
+
+これらが揃ってから #2 / #3 の Actions を有効化する (= ADR-0008 Gate 3)。 cron 有効化後の偽陽性 ≧ 1 件 / merge 率 < 50% で即停止 (= ADR-0008 の kill switch)。
 
 ---
 

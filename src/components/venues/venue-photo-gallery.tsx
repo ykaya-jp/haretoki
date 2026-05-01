@@ -65,12 +65,18 @@ export function VenuePhotoGallery({ venueId, name, photoUrls }: Props) {
 
   return (
     <div className="space-y-3">
-      <PhotoCarousel
-        photos={displayPhotos}
-        alt={name}
-        aspectRatio="3/2"
-        onAddPhotoClick={hasPhotos ? undefined : triggerPicker}
-      />
+      {/* viewTransitionName mirrors the venue-card list side (ADR-0007):
+          when both pages mount during a supported transition the same
+          photo block morphs across the navigation. The name keys on
+          venueId so it never collides with another venue on the page. */}
+      <div style={{ viewTransitionName: `venue-photo-${venueId}` }}>
+        <PhotoCarousel
+          photos={displayPhotos}
+          alt={name}
+          aspectRatio="3/2"
+          onAddPhotoClick={hasPhotos ? undefined : triggerPicker}
+        />
+      </div>
 
       {hasPhotos && (
         <div className="flex justify-end">
