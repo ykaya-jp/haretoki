@@ -19,17 +19,42 @@ interface SessionHistorySheetProps {
   currentSessionId?: string;
 }
 
-/** Groups sessions by relative date bucket (ChatGPT-style). */
-function groupSessions(sessions: SessionListItem[]) {
-  const now = new Date();
+/**
+ * Groups sessions by relative date bucket (ChatGPT-style).
+ *
+ * Buckets, anchored on the user's local clock (so a 23:59 chat from
+ * yesterday doesn't drift into "今日" the moment they cross midnight):
+ *  - 今日:     startOfToday ≤ d
+ *  - 昨日:     startOfYesterday ≤ d < startOfToday
+ *  - 今週:     startOfWeek (7 days ago, inclusive) ≤ d < startOfYesterday
+ *  - 今月:     startOfMonth ≤ d < startOfWeek          ← W21-6: new
+ *  - それ以前: d < startOfMonth
+ *
+ * The "今月" bucket only fires when the calendar month has more than a
+ * week of room behind it; in the first 7 days of a new month, every
+ * eligible session falls into "今週" or "それ以前" and the bucket is
+ * filtered out below — same `groups.filter(...length > 0)` rule as
+ * before, no special-casing.
+ *
+ * Exported for unit testing the boundary math.
+ */
+export function groupSessions(
+  sessions: SessionListItem[],
+  now: Date = new Date(),
+) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfYesterday = new Date(startOfToday.getTime() - 86_400_000);
   const startOfWeek = new Date(startOfToday.getTime() - 7 * 86_400_000);
+  // First instant of the current calendar month, in local time. We do
+  // NOT use a 30-day rolling window: "今月" is the user's mental model,
+  // not a fixed-length lookback.
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const groups: { label: string; items: SessionListItem[] }[] = [
     { label: "今日", items: [] },
     { label: "昨日", items: [] },
     { label: "今週", items: [] },
+    { label: "今月", items: [] },
     { label: "それ以前", items: [] },
   ];
 
@@ -41,8 +66,15 @@ function groupSessions(sessions: SessionListItem[]) {
       groups[1].items.push(s);
     } else if (d >= startOfWeek) {
       groups[2].items.push(s);
-    } else {
+    } else if (d >= startOfMonth) {
+      // Edge: when startOfMonth > startOfWeek (i.e. we're in the first
+      // 7 days of the month), this branch is unreachable because the
+      // "今週" branch above already swept everything down to startOfWeek
+      // — startOfMonth ≥ startOfWeek means d < startOfWeek implies d <
+      // startOfMonth, which falls through to the next branch. Correct.
       groups[3].items.push(s);
+    } else {
+      groups[4].items.push(s);
     }
   }
 
