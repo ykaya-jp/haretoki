@@ -4,6 +4,12 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { showToast } from "@/lib/toast";
 import { addCustomTodo } from "@/server/actions/decision-todos";
+import { cn } from "@/lib/utils";
+
+/** Maximum couple-authored todo entries — must match the cap enforced
+ *  by `addCustomTodo` on the server side. Surfaced in the disabled-state
+ *  copy so the user knows *why* the button stopped responding. */
+const CUSTOM_TODO_MAX = 10;
 
 interface Props {
   disabled?: boolean;
@@ -41,26 +47,43 @@ export function AddCustomTodoForm({ disabled, remaining }: Props) {
     });
   };
 
-  if (disabled) {
-    return (
-      <p className="rounded-2xl border border-dashed border-border px-4 py-3 text-center text-[12px] text-muted-foreground">
-        自分たちのやることは上限 10 件です
-      </p>
-    );
-  }
-
+  // W21-10: when the cap is reached, keep the same button shape but flip
+  // it to a disabled state with an explanation tooltip — previously the
+  // button vanished and got replaced with a plain <p>, which made the
+  // affordance feel broken ("the add button I just used disappeared").
+  // Now the user always sees a button in the same slot; it just refuses
+  // to expand and tells them why.
   if (!expanded) {
+    const limitMessage = `やることは上限 ${CUSTOM_TODO_MAX} 件まで。一つ手放してから加えてください`;
     return (
       <button
         type="button"
-        onClick={() => setExpanded(true)}
-        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-[13px] text-muted-foreground transition-colors hover:border-[var(--gold-warm)] hover:text-foreground active:bg-muted"
+        onClick={() => {
+          if (!disabled) setExpanded(true);
+        }}
+        disabled={disabled}
+        aria-disabled={disabled}
+        title={disabled ? limitMessage : undefined}
+        className={cn(
+          "flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-3 text-[13px] transition-colors",
+          disabled
+            ? "cursor-not-allowed border-border/60 text-muted-foreground/70"
+            : "border-border text-muted-foreground hover:border-[var(--gold-warm)] hover:text-foreground active:bg-muted",
+        )}
       >
-        <Plus className="h-4 w-4" strokeWidth={1.5} />
-        自分たちの やること を追加
-        <span className="ml-1 tabular-nums text-[11px] text-muted-foreground/70">
-          あと {remaining} 件
-        </span>
+        <Plus className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+        {disabled ? (
+          <span>
+            やることは上限 {CUSTOM_TODO_MAX} 件まで
+          </span>
+        ) : (
+          <>
+            自分たちの やること を追加
+            <span className="ml-1 tabular-nums text-[11px] text-muted-foreground/70">
+              あと {remaining} 件
+            </span>
+          </>
+        )}
       </button>
     );
   }
