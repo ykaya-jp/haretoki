@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { SegmentedControl } from "@/components/candidates/segmented-control";
 import { FavoriteFilter } from "@/components/candidates/favorite-filter";
 import { VenueCard } from "@/components/venues/venue-card";
@@ -54,6 +55,20 @@ const DecisionCeremony = dynamic(
 );
 
 type Tab = "shortlist" | "compare" | "decision";
+
+/* P2.D virtual-scroll thresholds.
+   Below the threshold, the existing AnimatePresence + motion.div path
+   renders so the slide-out exit animation on un-favoriting stays
+   visible. At or above it, useWindowVirtualizer takes over — the
+   exit animation is sacrificed (item not in DOM = no exit), which is
+   acceptable for the rare 30+ favorites edge case where scroll
+   smoothness is the dominant concern.
+   FAVORITE_ITEM_ESTIMATE_HEIGHT_PX = VenueCard (~280-320px) plus the
+   optional DecisionSummaryCard (~80px) plus the space-y-4 (16px) gap.
+   Slight overestimate is preferable: virtualizer will measure actual
+   height after mount via measureElement and re-layout. */
+const FAVORITES_VIRTUALIZE_THRESHOLD = 30;
+const FAVORITE_ITEM_ESTIMATE_HEIGHT_PX = 360;
 
 interface FavoriteVenue {
   venue: {
@@ -386,29 +401,38 @@ export function CandidatesView({
                   />
                 )}
 
-                <AnimatePresence>
-                  {!showSwipe && favorites.map((fav, index) => (
-                    <motion.div
-                      key={fav.venue.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
-                      transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                      <VenueCard venue={fav.venue} isFavorite={true} weights={activeWeights} />
-                      {/* W11-2: per-venue "この式場を選ぶなら" summary card.
-                          Rendered under the venue card as a folded
-                          disclosure — client-side math on the already-
-                          loaded favorites list, no extra round-trip. */}
-                      {favorites.length >= 2 && (
-                        <DecisionSummaryCard
-                          summary={summariesByVenueId[fav.venue.id] ?? null}
-                          venueName={fav.venue.name}
-                        />
-                      )}
-                    </motion.div>
+                {!showSwipe &&
+                  (favorites.length < FAVORITES_VIRTUALIZE_THRESHOLD ? (
+                    <AnimatePresence>
+                      {favorites.map((fav, index) => (
+                        <motion.div
+                          key={fav.venue.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
+                          transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                          <VenueCard venue={fav.venue} isFavorite={true} weights={activeWeights} />
+                          {/* W11-2: per-venue "この式場を選ぶなら" summary card.
+                              Rendered under the venue card as a folded
+                              disclosure — client-side math on the already-
+                              loaded favorites list, no extra round-trip. */}
+                          {favorites.length >= 2 && (
+                            <DecisionSummaryCard
+                              summary={summariesByVenueId[fav.venue.id] ?? null}
+                              venueName={fav.venue.name}
+                            />
+                          )}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  ) : (
+                    <VirtualFavoritesList
+                      favorites={favorites}
+                      activeWeights={activeWeights}
+                      summariesByVenueId={summariesByVenueId}
+                    />
                   ))}
-                </AnimatePresence>
               </div>
             )}
           </motion.div>
@@ -510,6 +534,95 @@ export function CandidatesView({
         )}
       </AnimatePresence>
 
+    </div>
+  );
+}
+
+/**
+ * Virtualized variant of the favorites list, kicked in once the count
+ * crosses {@link FAVORITES_VIRTUALIZE_THRESHOLD}. Mirrors the
+ * VirtualVenueList pattern in src/components/explore/explore-content.tsx
+ * so future maintenance only has to learn the shape once: window
+ * virtualizer + scrollMargin pinned post-mount + measureElement so
+ * variable-height rows (DecisionSummaryCard appears only when 2+
+ * favorites exist) settle to their real height after first paint.
+ */
+function VirtualFavoritesList({
+  favorites,
+  activeWeights,
+  summariesByVenueId,
+}: {
+  favorites: FavoriteVenue[];
+  activeWeights: DimensionWeights | null;
+  summariesByVenueId: Record<string, ReturnType<typeof buildDecisionSummary> | null>;
+}) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  // scrollMargin must be a plain value (not a ref read) during render —
+  // React 19 flags ref-access-in-render as a purity violation. Pin it
+  // post-mount in a layout effect; the virtualizer reruns once with
+  // the correct offset, which is invisible to the user.
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  useLayoutEffect(() => {
+    const offset = listRef.current?.offsetTop ?? 0;
+    setScrollMargin(offset);
+  }, []);
+
+  const showSummary = favorites.length >= 2;
+
+  const virtualizer = useWindowVirtualizer({
+    count: favorites.length,
+    estimateSize: () => FAVORITE_ITEM_ESTIMATE_HEIGHT_PX,
+    overscan: 4,
+    // Match the `space-y-4` (16px) gap of the non-virtualized branch
+    // so the visual rhythm is identical at the threshold boundary.
+    gap: 16,
+    scrollMargin,
+    getItemKey: (i) => favorites[i]?.venue.id ?? i,
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  return (
+    <div ref={listRef}>
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {items.map((vi) => {
+          const fav = favorites[vi.index];
+          if (!fav) return null;
+          return (
+            <div
+              key={vi.key}
+              data-index={vi.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${vi.start - virtualizer.options.scrollMargin}px)`,
+              }}
+            >
+              <VenueCard
+                venue={fav.venue}
+                isFavorite={true}
+                weights={activeWeights}
+              />
+              {showSummary && (
+                <DecisionSummaryCard
+                  summary={summariesByVenueId[fav.venue.id] ?? null}
+                  venueName={fav.venue.name}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

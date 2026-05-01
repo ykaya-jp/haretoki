@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { History, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +14,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { renameCoachSession, deleteCoachSession } from "@/server/actions/coach";
 import type { SessionListItem } from "@/server/actions/coach";
+
+/* P2.D virtual-scroll thresholds for the coach session list.
+   Below the threshold, the existing grouped render (今日 / 昨日 / 今週
+   / 今月 / それ以前 sub-headers) is preserved — most users live here
+   with a few-dozen sessions, and the headers are useful navigation.
+   Above the threshold, we flatten groups to a single virtualized list
+   with header rows interleaved as ordinary items. The headers no
+   longer stick (acceptable tradeoff at 50+ sessions where the goal
+   is scroll smoothness, not group anchoring). */
+const SESSIONS_VIRTUALIZE_THRESHOLD = 50;
+const SESSION_HEADER_HEIGHT_PX = 36;
+const SESSION_ROW_HEIGHT_PX = 76;
+
+type FlatRow =
+  | { kind: "header"; key: string; label: string }
+  | { kind: "session"; key: string; session: SessionListItem };
 
 interface SessionHistorySheetProps {
   sessions: SessionListItem[];
@@ -206,6 +223,47 @@ function RowMenu({ session, onClose }: RowMenuProps) {
   );
 }
 
+/** Single session row, extracted so the virtualized branch can mount
+ *  the same component as the plain grouped branch — keeps RowMenu
+ *  state semantics identical across both paths. */
+function SessionRow({
+  session,
+  isCurrent,
+  onSelect,
+  onClose,
+}: {
+  session: SessionListItem;
+  isCurrent: boolean;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-1 px-3 py-2 hover:bg-muted active:bg-muted/70 ${
+        isCurrent ? "bg-muted/60" : ""
+      }`}
+    >
+      <button
+        className="min-w-0 flex-1 text-left"
+        onClick={() => onSelect(session.id)}
+      >
+        <p className="truncate text-sm font-light">
+          {session.title ?? "無題の会話"}
+        </p>
+        {session.preview && (
+          <p className="truncate text-xs text-muted-foreground">
+            {session.preview}
+          </p>
+        )}
+        <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+          {relativeTime(new Date(session.updatedAt))}
+        </p>
+      </button>
+      <RowMenu session={session} onClose={onClose} />
+    </div>
+  );
+}
+
 export function SessionHistorySheet({
   sessions,
   currentSessionId,
@@ -239,48 +297,140 @@ export function SessionHistorySheet({
           <SheetTitle>会話履歴</SheetTitle>
         </SheetHeader>
 
-        <div className="overflow-y-auto py-2" style={{ height: "calc(100% - 56px)" }}>
-          {groups.length === 0 ? (
+        {groups.length === 0 ? (
+          <div className="overflow-y-auto py-2" style={{ height: "calc(100% - 56px)" }}>
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
               まだ会話がありません
             </p>
-          ) : (
-            groups.map((group) => (
+          </div>
+        ) : sessions.length < SESSIONS_VIRTUALIZE_THRESHOLD ? (
+          /* Plain grouped render — preferred for the typical < 50
+             session case: keeps the sticky header affordance and the
+             grouped reading rhythm. */
+          <div className="overflow-y-auto py-2" style={{ height: "calc(100% - 56px)" }}>
+            {groups.map((group) => (
               <div key={group.label}>
                 <p className="px-4 py-2 text-xs font-medium text-muted-foreground">
                   {group.label}
                 </p>
                 {group.items.map((session) => (
-                  <div
+                  <SessionRow
                     key={session.id}
-                    className={`flex items-center gap-1 px-3 py-2 hover:bg-muted active:bg-muted/70 ${
-                      session.id === currentSessionId ? "bg-muted/60" : ""
-                    }`}
-                  >
-                    <button
-                      className="min-w-0 flex-1 text-left"
-                      onClick={() => handleSelect(session.id)}
-                    >
-                      <p className="truncate text-sm font-light">
-                        {session.title ?? "無題の会話"}
-                      </p>
-                      {session.preview && (
-                        <p className="truncate text-xs text-muted-foreground">
-                          {session.preview}
-                        </p>
-                      )}
-                      <p className="mt-0.5 text-[10px] text-muted-foreground/70">
-                        {relativeTime(new Date(session.updatedAt))}
-                      </p>
-                    </button>
-                    <RowMenu session={session} onClose={() => setOpen(false)} />
-                  </div>
+                    session={session}
+                    isCurrent={session.id === currentSessionId}
+                    onSelect={handleSelect}
+                    onClose={() => setOpen(false)}
+                  />
                 ))}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <VirtualSessionList
+            groups={groups}
+            currentSessionId={currentSessionId}
+            onSelect={handleSelect}
+            onClose={() => setOpen(false)}
+          />
+        )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * Virtualized variant for the 50+ session edge case. Flattens grouped
+ * sessions into a single row stream — header rows ride alongside
+ * session rows in the same virtualizer, so a power user with hundreds
+ * of sessions only mounts the ~8-10 rows currently in the viewport.
+ *
+ * Inner-scroll (sheet body) so we use `useVirtualizer` with
+ * `getScrollElement`, not `useWindowVirtualizer`. RowMenu's per-row
+ * dropdown state is local to each <SessionRow>, so unmount-on-scroll
+ * collapses any open menu — acceptable trade-off given the perf goal.
+ */
+function VirtualSessionList({
+  groups,
+  currentSessionId,
+  onSelect,
+  onClose,
+}: {
+  groups: ReturnType<typeof groupSessions>;
+  currentSessionId?: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const flatRows = useMemo<FlatRow[]>(() => {
+    const rows: FlatRow[] = [];
+    for (const group of groups) {
+      rows.push({ kind: "header", key: `h:${group.label}`, label: group.label });
+      for (const session of group.items) {
+        rows.push({ kind: "session", key: `s:${session.id}`, session });
+      }
+    }
+    return rows;
+  }, [groups]);
+
+  const virtualizer = useVirtualizer({
+    count: flatRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) =>
+      flatRows[index]?.kind === "header"
+        ? SESSION_HEADER_HEIGHT_PX
+        : SESSION_ROW_HEIGHT_PX,
+    overscan: 6,
+    getItemKey: (index) => flatRows[index]?.key ?? index,
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  return (
+    <div
+      ref={scrollRef}
+      className="overflow-y-auto py-2"
+      style={{ height: "calc(100% - 56px)" }}
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {items.map((vi) => {
+          const row = flatRows[vi.index];
+          if (!row) return null;
+          return (
+            <div
+              key={vi.key}
+              data-index={vi.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${vi.start}px)`,
+              }}
+            >
+              {row.kind === "header" ? (
+                <p className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                  {row.label}
+                </p>
+              ) : (
+                <SessionRow
+                  session={row.session}
+                  isCurrent={row.session.id === currentSessionId}
+                  onSelect={onSelect}
+                  onClose={onClose}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
