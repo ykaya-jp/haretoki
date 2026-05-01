@@ -13,6 +13,9 @@ import {
   Bookmark,
   Sliders,
   UserCheck,
+  LifeBuoy,
+  FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -259,8 +262,50 @@ export default async function MyPage() {
             icon={Settings}
             tone="default"
             label="設定"
-            meta="見た目・ログアウト"
+            meta="見た目・記録のダウンロード・退会"
             href="/settings"
+          />
+        </div>
+      </section>
+
+      {/* Help & legal — separated from More so that "誰かに頼りたい / 規約を確認したい"
+          intent does not get mixed with project-tuning rows above. Order is
+          intentional: support first (couples in trouble find help fastest),
+          terms second, privacy last. */}
+      <section aria-labelledby="section-help" className="space-y-5">
+        <div className="flex items-baseline gap-2 px-1">
+          <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
+            Help
+          </p>
+          <h2
+            id="section-help"
+            className="font-[family-name:var(--font-display)] text-[15px] font-extralight tracking-wide text-foreground"
+          >
+            困ったとき・規約
+          </h2>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] divide-y divide-border/50">
+          <SettingsRow
+            icon={LifeBuoy}
+            tone="accent"
+            label="サポート窓口"
+            meta="よくある質問とお問い合わせ"
+            href="/support"
+          />
+          <SettingsRow
+            icon={FileText}
+            tone="default"
+            label="利用規約"
+            meta="本サービスをお使いいただく条件"
+            href="/terms"
+          />
+          <SettingsRow
+            icon={ShieldCheck}
+            tone="default"
+            label="プライバシーポリシー"
+            meta="情報の取り扱い・AI への入力"
+            href="/privacy"
           />
         </div>
       </section>
