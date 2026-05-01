@@ -83,7 +83,20 @@ function readHiddenUntil(): number | null {
     const raw = window.localStorage.getItem(HIDE_KEY);
     if (!raw) return null;
     const ts = Number(raw);
-    if (!Number.isFinite(ts) || ts <= Date.now()) return null;
+    if (!Number.isFinite(ts) || ts <= Date.now()) {
+      // W21-11: lazy purge of an expired flag. The `<= Date.now()` branch
+      // already treats this as "not hidden", but skipping the cleanup
+      // left the key stuck in localStorage forever — every page render
+      // walked over it, and a couple who never re-dismissed would carry
+      // the orphan row across releases. Removing on read keeps storage
+      // tidy without adding a wakeup timer.
+      try {
+        window.localStorage.removeItem(HIDE_KEY);
+      } catch {
+        /* noop — quota / private mode */
+      }
+      return null;
+    }
     return ts;
   } catch {
     return null;
