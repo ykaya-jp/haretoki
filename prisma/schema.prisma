@@ -367,6 +367,12 @@ model Venue {
   @@index([projectId, normalizedName])
   @@index([latitude, longitude])
   @@index([projectId, deletedAt])
+  // home (`earliestVenue`) and journey (firstFavorite / firstVisit /
+  // firstEstimate) probe the project's earliest / latest venue with
+  // `orderBy: { createdAt: asc|desc }`. The single-column `projectId`
+  // index forces Postgres to read every row and sort; the composite
+  // returns the head tuple from an index-only scan.
+  @@index([projectId, createdAt])
   @@map("venues")
 }
 
@@ -568,6 +574,11 @@ model AiAnalysis {
 
   @@index([projectId, type])
   @@index([projectId, type, inputHash])
+  // `getAIInsights` throttle gate (`insights.ts`) reads the project's most
+  // recent analysis with `orderBy: { createdAt: desc }, take: 1`. Without a
+  // (projectId, createdAt) composite Postgres scans all (projectId, type)
+  // rows and sorts; this index lets the throttle check resolve in one tuple.
+  @@index([projectId, createdAt(sort: Desc)])
   @@map("ai_analyses")
 }
 
@@ -608,6 +619,12 @@ model DecisionTodo {
   @@unique([projectId, templateKey])
   @@index([projectId, completedAt])
   @@index([projectId, orderIndex])
+  // `getTopTodos` (home hero "次の一歩") filters `where: { projectId,
+  // completedAt: null }` then `orderBy: { orderIndex: asc } take: 3`.
+  // The pair indexes above each cover one half; combining them lets
+  // Postgres serve the home page query as an index-only scan instead of
+  // filtering one index then sorting in memory.
+  @@index([projectId, completedAt, orderIndex])
   @@map("decision_todos")
 }
 
@@ -728,6 +745,13 @@ model CoachMessage {
 
   @@index([projectId, createdAt])
   @@index([sessionId])
+  // Every coach turn reads the session's last 20 messages
+  // (`sendCoachMessage`) and probes the latest message for idempotent
+  // user-message persistence (`persistUserMessageIdempotent`). Both
+  // shapes are `where sessionId orderBy createdAt`, so the single-column
+  // `sessionId` index forces a per-fetch sort once a session passes a
+  // few dozen messages. Composite makes both index-ordered reads.
+  @@index([sessionId, createdAt])
   @@map("coach_messages")
 }
 

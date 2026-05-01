@@ -296,12 +296,23 @@ export async function generateRitualsForAllActiveProjects(): Promise<{
   let skipped = 0;
   let failed = 0;
 
+  // Prefetch every project's today-ritual in one round-trip rather than
+  // one findUnique per project. The unique (project_id, date) constraint
+  // already covers this filter shape, so the index plan is identical to
+  // the per-row lookup but the network cost collapses to a single call.
+  // Generation itself stays sequential below to keep Claude API rate
+  // limits predictable.
+  const projectIds = projects.map((p) => p.id);
+  const existingRows = projectIds.length > 0
+    ? await prisma.dailyRitual.findMany({
+        where: { date: today, projectId: { in: projectIds } },
+        select: { projectId: true },
+      })
+    : [];
+  const alreadyGenerated = new Set(existingRows.map((r) => r.projectId));
+
   for (const p of projects) {
-    const existing = await prisma.dailyRitual.findUnique({
-      where: { projectId_date: { projectId: p.id, date: today } },
-      select: { id: true },
-    });
-    if (existing) {
+    if (alreadyGenerated.has(p.id)) {
       skipped++;
       continue;
     }

@@ -69,21 +69,38 @@ async function fetchFitReasons(
   const results: FitReasonMap = {};
   const toGenerate: typeof venues = [];
 
-  // Check cache first
+  // Batched cache lookup — one query for every venue rather than one per
+  // venue. The composite (project_id, type, input_hash) index covers the
+  // shape; the in-memory map keyed on `${venueId}:${inputHash}` lets each
+  // venue match its own (id, updatedAt, conditions) tuple.
+  const hashByVenue = new Map<string, string>();
   for (const v of venues) {
-    const hash = computeInputHash(
-      `${v.id}:${v.updatedAt.getTime()}:${conditionsKey}`,
+    hashByVenue.set(
+      v.id,
+      computeInputHash(`${v.id}:${v.updatedAt.getTime()}:${conditionsKey}`),
     );
-    const cached = await prisma.aiAnalysis.findFirst({
-      where: {
-        venueId: v.id,
-        type: "fit_reason",
-        inputHash: hash,
-      },
-      select: { output: true },
-    });
-    if (cached?.output) {
-      results[v.id] = cached.output;
+  }
+  const cachedRows = await prisma.aiAnalysis.findMany({
+    where: {
+      projectId,
+      type: "fit_reason",
+      venueId: { in: venueIds },
+      inputHash: { in: Array.from(hashByVenue.values()) },
+    },
+    select: { venueId: true, inputHash: true, output: true },
+  });
+  const cacheKey = (venueId: string, hash: string) => `${venueId}:${hash}`;
+  const cacheIndex = new Map<string, string>();
+  for (const row of cachedRows) {
+    if (row.venueId && row.output) {
+      cacheIndex.set(cacheKey(row.venueId, row.inputHash ?? ""), row.output);
+    }
+  }
+  for (const v of venues) {
+    const hash = hashByVenue.get(v.id);
+    const hit = hash ? cacheIndex.get(cacheKey(v.id, hash)) : null;
+    if (hit) {
+      results[v.id] = hit;
     } else {
       toGenerate.push(v);
     }
@@ -111,7 +128,7 @@ async function fetchFitReasons(
         accessInfo: v.accessInfo,
         features: null,
       };
-      const hash = computeInputHash(
+      const hash = hashByVenue.get(v.id) ?? computeInputHash(
         `${v.id}:${v.updatedAt.getTime()}:${conditionsKey}`,
       );
       try {
