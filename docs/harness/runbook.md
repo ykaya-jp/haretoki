@@ -104,7 +104,11 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 | UI コンポーネント新規 | design-principles skill + refero-design skill |
 | DB スキーマ変更 | db-designer agent（single-writer） |
 | Vercel 関連 | `vercel:*` skill 群 |
-| Next.js ドキュメント疑問 | context7 MCP |
+| Next.js / library ドキュメント疑問 | context7 MCP（[mcp.md](mcp.md) §3） |
+| 新画面・コンポーネントの研究 | refero MCP（[mcp.md](mcp.md) §3） |
+| Vercel deploy / runtime logs / build status | vercel MCP（[mcp.md](mcp.md) §3） |
+| Figma URL を渡された | figma MCP（[mcp.md](mcp.md) §3） |
+| 本番エラー triage / SQL 監査 | sentry / postgres-ro MCP（[mcp.md](mcp.md) §2、project MCP は `.mcp.json` で enable） |
 
 ## Model / Prompt 変更時
 
