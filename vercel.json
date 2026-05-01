@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/decision-followup",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/visit-reminders",
+      "schedule": "0 * * * *"
     }
   ]
 }
