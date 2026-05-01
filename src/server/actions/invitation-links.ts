@@ -166,30 +166,36 @@ export async function consumeInvitationLink(token: string): Promise<
     select: { id: true, projectId: true, role: true },
   });
 
-  const discardable: Array<{ id: string; projectId: string; role: string }> = [];
-  for (const existing of existingMemberships) {
-    const canAutoDiscard = await isAutoCreatedEmptyProject(
-      existing.projectId,
-      user.id,
-      existing.role,
-    );
-    if (!canAutoDiscard) {
-      return { ok: false, reason: "already_joined" };
-    }
-    discardable.push(existing);
+  // Each isAutoCreatedEmptyProject call is itself 5 queries against a
+  // distinct projectId, so the per-membership probes are independent —
+  // batch them. Steady state is N=0 or 1, but a partner who somehow
+  // collected multiple auto-projects gets the same fan-out cost as a
+  // single one.
+  const discardability = await Promise.all(
+    existingMemberships.map((m) =>
+      isAutoCreatedEmptyProject(m.projectId, user.id, m.role).then(
+        (canAutoDiscard) => ({ existing: m, canAutoDiscard }),
+      ),
+    ),
+  );
+  if (discardability.some((d) => !d.canAutoDiscard)) {
+    return { ok: false, reason: "already_joined" };
   }
+  const discardable = discardability.map((d) => d.existing);
 
   // Owner memberships trigger project deletion (cascades to venues etc.),
   // non-owner memberships are just the row. Done outside the consume
   // transaction because Prisma doesn't support nested transactions in
-  // the adapter path we use.
-  for (const existing of discardable) {
-    if (existing.role === "owner") {
-      await prisma.project.delete({ where: { id: existing.projectId } });
-    } else {
-      await prisma.projectMember.delete({ where: { id: existing.id } });
-    }
-  }
+  // the adapter path we use. Deletes target distinct rows — Promise.all
+  // keeps them independent and saves N round-trips when more than one
+  // exists.
+  await Promise.all(
+    discardable.map((existing) =>
+      existing.role === "owner"
+        ? prisma.project.delete({ where: { id: existing.projectId } })
+        : prisma.projectMember.delete({ where: { id: existing.id } }),
+    ),
+  );
 
   // Consume + upsert ProjectMember in a single transaction
   await prisma.$transaction(async (tx) => {
