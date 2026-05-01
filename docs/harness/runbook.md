@@ -109,6 +109,7 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 | Vercel deploy / runtime logs / build status | vercel MCP（[mcp.md](mcp.md) §3） |
 | Figma URL を渡された | figma MCP（[mcp.md](mcp.md) §3） |
 | 本番エラー triage / SQL 監査 | sentry / postgres-ro MCP（[mcp.md](mcp.md) §2、project MCP は `.mcp.json` で enable） |
+| docs と実装の drift 整理 / 週次 docs sync PR | docs-curator agent（`@docs-curator`、Phase 3 で cron 化予定。実装コードには触らない） |
 
 ## Model / Prompt 変更時
 
