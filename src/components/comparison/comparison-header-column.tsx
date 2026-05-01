@@ -7,6 +7,7 @@ import {
   computeWeightedComposite,
   type DimensionWeights,
 } from "@/lib/weighted-score";
+import { VenueRemoveButton } from "./venue-remove-button";
 
 /**
  * Sticky venue header that sits on top of each column.
@@ -61,54 +62,62 @@ export function ComparisonHeaderColumn({ venue, weights = null }: ComparisonHead
       : null;
 
   return (
-    <Link
-      href={`/venues/${venue.id}`}
-      className="flex flex-col items-center gap-1.5 px-2 py-3 transition-colors hover:bg-muted/40 active:bg-muted/60"
-    >
-      {/* Photo — fixed 88x60 so every column's photo row is identical height */}
-      <div className="h-[60px] w-[88px] overflow-hidden rounded-lg bg-muted">
-        {venue.photoUrls[0] ? (
-          <Image
-            src={venue.photoUrls[0]}
-            alt=""
-            width={88}
-            height={60}
-            className="h-full w-full object-cover"
-            unoptimized
-          />
-        ) : null}
+    // W21-7: wrap the header in a positioning context so the × overlay
+    // can pin to the photo's top-right without escaping the column. The
+    // <Link> stays the primary tap target for the rest of the surface.
+    <div className="relative flex flex-col items-center gap-1.5 px-2 py-3">
+      <div className="absolute right-1 top-1 z-10">
+        <VenueRemoveButton venueId={venue.id} venueName={venue.name} />
       </div>
-
-      {/* Name — fixed 36px height clamp-2 so baselines line up even when
-          some names are 1 line and others are 2 */}
-      <p
-        className="line-clamp-2 text-center font-[family-name:var(--font-display)] text-[13px] font-light leading-[1.35] tracking-[-0.005em]"
-        style={{ minHeight: "36px" }}
+      <Link
+        href={`/venues/${venue.id}`}
+        className="flex flex-col items-center gap-1.5 transition-colors hover:bg-muted/40 active:bg-muted/60"
       >
-        {venue.name}
-      </p>
+        {/* Photo — fixed 88x60 so every column's photo row is identical height */}
+        <div className="h-[60px] w-[88px] overflow-hidden rounded-lg bg-muted">
+          {venue.photoUrls[0] ? (
+            <Image
+              src={venue.photoUrls[0]}
+              alt=""
+              width={88}
+              height={60}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          ) : null}
+        </div>
 
-      {/* Rating row — fixed 20px so when some venues have a rating and
-          others don't, the row below (first field label) still starts at
-          the same y across columns */}
-      <div
-        className="flex items-center justify-center gap-1 text-[11px] text-[var(--gold-warm)]"
-        style={{ height: "20px" }}
-      >
-        {rating !== null ? (
-          <>
-            <Star className="h-3 w-3 fill-current" strokeWidth={0} />
-            <span className="tabular-nums font-medium">{rating.toFixed(1)}</span>
-            {ratingSuffix && (
-              <span className="tabular-nums text-[10px] text-muted-foreground">
-                {ratingSuffix}
-              </span>
-            )}
-          </>
-        ) : (
-          <span className="text-[10px] text-muted-foreground/60">—</span>
-        )}
-      </div>
-    </Link>
+        {/* Name — fixed 36px height clamp-2 so baselines line up even when
+            some names are 1 line and others are 2 */}
+        <p
+          className="line-clamp-2 text-center font-[family-name:var(--font-display)] text-[13px] font-light leading-[1.35] tracking-[-0.005em]"
+          style={{ minHeight: "36px" }}
+        >
+          {venue.name}
+        </p>
+
+        {/* Rating row — fixed 20px so when some venues have a rating and
+            others don't, the row below (first field label) still starts at
+            the same y across columns */}
+        <div
+          className="flex items-center justify-center gap-1 text-[11px] text-[var(--gold-warm)]"
+          style={{ height: "20px" }}
+        >
+          {rating !== null ? (
+            <>
+              <Star className="h-3 w-3 fill-current" strokeWidth={0} />
+              <span className="tabular-nums font-medium">{rating.toFixed(1)}</span>
+              {ratingSuffix && (
+                <span className="tabular-nums text-[10px] text-muted-foreground">
+                  {ratingSuffix}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-[10px] text-muted-foreground/60">—</span>
+          )}
+        </div>
+      </Link>
+    </div>
   );
 }
