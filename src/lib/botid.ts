@@ -22,6 +22,7 @@
 
 import { checkBotId } from "botid/server";
 import { captureMessage } from "@/lib/sentry";
+import { logEvent } from "@/lib/observability";
 
 export interface BotCheckResult {
   blocked: boolean;
@@ -45,8 +46,11 @@ export async function detectBot(scope: string): Promise<BotCheckResult> {
     if (verdict.isBot) {
       captureMessage("[botid] request flagged as bot", {
         level: "warning",
+        component: "botid",
+        alertRoute: "p3-digest",
         extra: { scope },
       });
+      logEvent({ event: "botid_block", fields: { scope } });
       return { blocked: true, reason: "bot-detected" };
     }
     return { blocked: false };

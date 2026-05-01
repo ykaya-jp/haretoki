@@ -14,6 +14,7 @@
 import { prisma } from "@/server/db";
 import { askClaude, computeInputHash, withRetry } from "@/lib/anthropic";
 import { MODEL, type ModelId } from "@/lib/models";
+import { logEvent } from "@/lib/observability";
 
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -21,14 +22,14 @@ export async function getCachedResponse(inputHash: string): Promise<string | nul
   try {
     const row = await prisma.aiCache.findUnique({ where: { inputHash } });
     if (!row) {
-      console.info("[ai-cache] MISS");
+      logEvent({ event: "ai_cache_lookup", fields: { outcome: "miss" } });
       return null;
     }
     if (Date.now() - row.createdAt.getTime() > TTL_MS) {
-      console.info("[ai-cache] EXPIRED");
+      logEvent({ event: "ai_cache_lookup", fields: { outcome: "expired" } });
       return null;
     }
-    console.info("[ai-cache] HIT");
+    logEvent({ event: "ai_cache_lookup", fields: { outcome: "hit" } });
     return row.response;
   } catch {
     return null;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/server/db";
 import { captureError, captureMessage } from "@/lib/sentry";
+import { logEvent } from "@/lib/observability";
 import {
   eventTypeToStatus,
   isSuppressingStatus,
@@ -67,8 +68,14 @@ export async function POST(request: Request) {
     // 400 tells Resend the signature was invalid — they won't retry on
     // 400, which is what we want for genuinely bad senders. Spurious
     // 400s are a sign that the secret is rotated; investigate via
-    // Sentry rather than dropping the lead.
-    captureError(err, { action: "resend-webhook:verify" });
+    // Sentry rather than dropping the lead. Tagged p1-page because a
+    // sustained signature mismatch usually means the webhook is
+    // mis-configured AND a third party is hitting our endpoint.
+    captureError(err, {
+      component: "webhook.resend",
+      alertRoute: "p1-page",
+      extra: { action: "resend-webhook:verify" },
+    });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -81,7 +88,13 @@ export async function POST(request: Request) {
     // can grep for new event types Resend introduces, and 200 to ack.
     captureMessage("[resend-webhook] event ignored", {
       level: "info",
+      component: "webhook.resend",
+      alertRoute: "p3-digest",
       extra: { eventType, hasMessageId: Boolean(messageId) },
+    });
+    logEvent({
+      event: "resend_webhook",
+      fields: { eventType, status: null, applied: false },
     });
     return NextResponse.json({ received: true, applied: false });
   }
@@ -92,17 +105,25 @@ export async function POST(request: Request) {
     // DB blip — ack with 200 so Resend doesn't retry-storm us, but
     // surface the issue so we can backfill manually if needed.
     captureError(err, {
-      action: "resend-webhook:apply",
-      messageId,
-      status,
+      component: "webhook.resend",
+      alertRoute: "p2-email",
+      extra: {
+        action: "resend-webhook:apply",
+        messageId,
+        status,
+      },
     });
   }
 
-  // Tagged log line for `vercel logs | grep "[resend-webhook]"` ops
-  // workflow (mirrors the visit-reminder structured log).
-  console.info(
-    `[resend-webhook] eventType=${eventType} status=${status} messageId=${messageId.slice(0, 12)}…`,
-  );
+  logEvent({
+    event: "resend_webhook",
+    fields: {
+      eventType,
+      status,
+      messageIdPrefix: messageId.slice(0, 12),
+      applied: true,
+    },
+  });
 
   return NextResponse.json({ received: true, applied: true });
 }
