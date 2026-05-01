@@ -35,7 +35,7 @@ export function ChatHistory({ messages }: ChatHistoryProps) {
   return (
     <div className="space-y-3">
       {messages.map((msg) => (
-        <ChatBubble key={msg.id} role={msg.role} content={msg.content} />
+        <ChatBubble key={msg.id} speaker={msg.role} content={msg.content} />
       ))}
       <div ref={bottomRef} aria-hidden />
     </div>

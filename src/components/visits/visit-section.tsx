@@ -356,12 +356,12 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
       {showScheduleForm && (
         <div className="space-y-3 rounded-lg border border-border p-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">見学の日時</label>
-            <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+            <label htmlFor="visit-schedule-date" className="text-sm font-medium">見学の日時</label>
+            <Input id="visit-schedule-date" type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">メモ（任意）</label>
-            <Input value={scheduleMemo} onChange={(e) => setScheduleMemo(e.target.value)} placeholder="待ち合わせ場所、担当の方のお名前など" />
+            <label htmlFor="visit-schedule-memo" className="text-sm font-medium">メモ（任意）</label>
+            <Input id="visit-schedule-memo" value={scheduleMemo} onChange={(e) => setScheduleMemo(e.target.value)} placeholder="待ち合わせ場所、担当の方のお名前など" />
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSchedule} disabled={isPending || !scheduleDate}>

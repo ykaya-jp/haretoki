@@ -136,6 +136,10 @@ function RowMenu({ session, onClose }: RowMenuProps) {
         }}
       >
         <input
+          // a11y: rename input swaps in only when the user taps the
+          // edit button on a session row. autoFocus = pick up where
+          // the tap left off, not page-load focus snatch.
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}

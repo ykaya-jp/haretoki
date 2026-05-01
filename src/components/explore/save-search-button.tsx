@@ -95,6 +95,10 @@ export function SaveSearchButton({ filters, atLimit = false }: SaveSearchButtonP
                 if (e.key === "Enter") handleSave();
               }}
               className="min-h-11"
+              // a11y: input mounts only inside the Save-search Sheet
+              // (user-triggered), so autoFocus is the expected behavior
+              // for fast naming. Not a page-load focus theft.
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
           </div>

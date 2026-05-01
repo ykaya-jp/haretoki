@@ -4,7 +4,12 @@ import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 
 interface ChatBubbleProps {
-  role: "user" | "assistant";
+  /**
+   * Chat-side role of the bubble. Named `speaker` (not `role`) so the
+   * prop never collides with the HTML/ARIA `role` attribute under static
+   * analyzers — see jsx-a11y/aria-role.
+   */
+  speaker: "user" | "assistant";
   content: string;
   /** Optional timestamp for assistant messages — displayed as HH:MM eyebrow */
   timestamp?: Date;
@@ -38,24 +43,24 @@ function TypingDots() {
   );
 }
 
-export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
-  const showTyping = role === "assistant" && content.length === 0;
+export function ChatBubble({ speaker, content, timestamp }: ChatBubbleProps) {
+  const showTyping = speaker === "assistant" && content.length === 0;
 
   return (
     <div
       className={cn(
         "flex gap-2.5 animate-coach-bubble-enter",
-        role === "user" ? "justify-end" : "justify-start",
+        speaker === "user" ? "justify-end" : "justify-start",
       )}
     >
-      {role === "assistant" && (
+      {speaker === "assistant" && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--gold-subtle)] shadow-[0_1px_4px_color-mix(in_oklab,var(--gold-warm)_22%,transparent)]">
           <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" />
         </div>
       )}
-      <div className={cn("flex flex-col gap-1", role === "user" ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col gap-1", speaker === "user" ? "items-end" : "items-start")}>
         {/* Coach-2: meta info eyebrow for assistant messages */}
-        {role === "assistant" && (
+        {speaker === "assistant" && (
           <p className="text-eyebrow text-muted-foreground/60 px-1">
             <span>coach</span>
             {timestamp && (
@@ -71,14 +76,14 @@ export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
         <div
           className={cn(
             "max-w-[80%] rounded-2xl px-4 py-3 leading-relaxed whitespace-pre-wrap",
-            role === "user"
+            speaker === "user"
               ? "rounded-br-sm bg-primary text-primary-foreground text-sm"
               : "rounded-bl-sm border border-[color-mix(in_oklab,var(--gold-warm)_25%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_38%,var(--card))] font-[family-name:var(--font-display)] text-[15px] font-light text-foreground"
           )}
         // Announce streaming chunks to screen readers, but only on the
         // assistant's text container — NOT the whole bubble — so the
         // typing-dots → text swap doesn't get re-announced.
-        {...(role === "assistant" && !showTyping
+        {...(speaker === "assistant" && !showTyping
           ? {
               role: "status" as const,
               "aria-live": "polite" as const,

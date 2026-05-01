@@ -83,7 +83,6 @@ export function HeartCoachMark({ anchorRef }: HeartCoachMarkProps) {
         transform: mounted ? "scale(1) translateY(0)" : "scale(0.9) translateY(-4px)",
         transition: "opacity 0.25s cubic-bezier(0.16,1,0.3,1), transform 0.25s cubic-bezier(0.16,1,0.3,1)",
       }}
-      onClick={dismiss}
     >
       {/* Arrow pointing upward toward the heart button */}
       <div

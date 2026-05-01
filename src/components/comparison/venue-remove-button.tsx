@@ -104,6 +104,10 @@ export function VenueRemoveButton({
       </button>
 
       {showConfirm && (
+        // a11y: dialog wrapper has onKeyDown for Escape; the rule
+        // doesn't recognise role=dialog as interactive. Real-button
+        // backdrop sits inside, see below.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <div
           // W21-4: SafeArea inset so the bottom-sheet card doesn't land
           // under the iOS home bar at 375px. The bottom padding pulls
@@ -115,20 +119,41 @@ export function VenueRemoveButton({
           // utility name with three dots inside the brackets is
           // intentionally avoided here — last time it materialised as
           // a broken CSS rule and crashed the dev build.)
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center"
-          // The underlying ComparisonHeaderColumn / VenueCardView is a
-          // <Link> — block every pointer event the overlay receives so a
-          // dismiss tap doesn't navigate to the PDP.
-          onClick={dismissDialog}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 flex items-end justify-center px-[max(0px,env(safe-area-inset-left))] pb-[env(safe-area-inset-bottom)] sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="venue-remove-title"
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !isPending) {
+              e.stopPropagation();
+              setShowConfirm(false);
+            }
+          }}
         >
+          {/* Backdrop button — replaces a non-interactive div with
+              onClick. tabIndex={-1} keeps it out of the Tab order
+              (the cancel button below is the keyboard exit) but it
+              still satisfies click-events-have-key-events because
+              <button> is natively keyboard-actionable.
+              The underlying ComparisonHeaderColumn is a <Link>, so the
+              backdrop must also stop pointer-down propagation —
+              otherwise the dismiss tap navigates to the PDP. */}
+          <button
+            type="button"
+            aria-label="ダイアログを閉じる"
+            tabIndex={-1}
+            disabled={isPending}
+            onClick={(e) => dismissDialog(e)}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
+          {/* Inner card. Mouse/touch listeners only stop propagation
+              so taps inside the dialog don't reach the parent
+              <Link> — they're not real interactive surfaces. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
-            className="mx-4 mb-20 w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl sm:mb-0"
-            onClick={(e) => e.stopPropagation()}
+            className="relative mx-4 mb-20 w-full max-w-sm rounded-2xl bg-card p-5 shadow-xl sm:mb-0"
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
           >

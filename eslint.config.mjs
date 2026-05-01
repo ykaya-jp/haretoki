@@ -40,6 +40,20 @@ const eslintConfig = defineConfig([
           destructuredArrayIgnorePattern: "^_",
         },
       ],
+      // P2.C a11y audit: lift the rules eslint-config-next ships at
+      // 'warn' (or omits) up to error/warn so the static analyzer
+      // catches new keyboard / role / label regressions on touch.
+      // The audit pass cleared every existing finding via fix or a
+      // rationale-tagged eslint-disable, so the codebase already
+      // satisfies these — keeping them on prevents drift.
+      "jsx-a11y/click-events-have-key-events": "error",
+      "jsx-a11y/no-static-element-interactions": "error",
+      "jsx-a11y/no-noninteractive-element-interactions": "error",
+      "jsx-a11y/no-noninteractive-tabindex": "error",
+      "jsx-a11y/no-noninteractive-element-to-interactive-role": "error",
+      "jsx-a11y/label-has-associated-control": "error",
+      "jsx-a11y/aria-role": "error",
+      "jsx-a11y/no-autofocus": "warn",
     },
   },
 ]);

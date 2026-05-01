@@ -100,6 +100,10 @@ export function AddCustomTodoForm({ disabled, remaining }: Props) {
         onChange={(e) => setTitle(e.target.value)}
         maxLength={80}
         placeholder="例: 親への挨拶を決める"
+        // a11y: this input only mounts after the user taps "+ 追加",
+        // so autoFocus is the expected affordance — not a page-load
+        // focus snatch. Disable the static rule with rationale.
+        // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
         disabled={pending}
         className="h-11 w-full rounded-lg border border-border bg-background px-3 text-[14px] outline-none focus:border-[var(--gold-warm)]/50 focus:ring-1 focus:ring-[var(--gold-warm)]/30"

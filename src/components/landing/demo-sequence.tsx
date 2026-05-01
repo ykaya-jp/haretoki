@@ -95,6 +95,13 @@ export function DemoSequence() {
   }
 
   return (
+    // a11y: announce as a single image to screen readers (the
+    // animation conveys the same idea every cycle, no individual
+    // step needs to be reachable). The mouse / focus listeners
+    // below pause the animation when sighted users hover or a
+    // keyboard user lands inside, so it isn't a true interactive
+    // element — disable the static rule with rationale.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={containerRef}
       role="img"
@@ -225,7 +232,10 @@ function UrlPasteStep({
         <p className="text-[13px] font-medium text-foreground">式場を追加</p>
       </div>
 
-      <label className="text-[11px] text-muted-foreground">式場ページのURL</label>
+      {/* a11y: this isn't a real form — it's a static demo of the
+          paste-URL flow. Use a <p> rather than a <label> so screen
+          readers don't promise an input that doesn't exist. */}
+      <p className="text-[11px] text-muted-foreground">式場ページのURL</p>
       <div className="relative rounded-xl border border-[var(--gold-warm)]/40 bg-card px-3 py-3 shadow-sm">
         <p className="font-mono text-[12px] tracking-tight text-foreground">
           {URL_TEXT.slice(0, typedLength)}

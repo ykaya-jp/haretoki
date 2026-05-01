@@ -57,10 +57,17 @@ export function PhotoCarouselEmbla({
   );
 
   return (
+    /* APG carousel pattern: a region with aria-roledescription
+       takes tabIndex=0 + arrow-key handlers so keyboard users can
+       reach the carousel and navigate slides. jsx-a11y treats
+       region as non-interactive, hence the rule disables with
+       rationale on the carousel root. */
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       role="region"
       aria-roledescription="carousel"
       aria-label="写真カルーセル"
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
       onKeyDown={handleKeyDown}
       className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold-warm)] focus-visible:ring-offset-2 rounded-2xl"
@@ -68,6 +75,14 @@ export function PhotoCarouselEmbla({
       <div ref={emblaRef} className="overflow-hidden rounded-2xl">
         <div className="flex">
           {photos.map((photo, index) => (
+            /* Slide is only interactive when onPhotoClick is wired
+               up (lightbox open). Without it, the slide is purely
+               visual and binds no listeners. With it, role=button +
+               tabIndex=0 + Enter/Space keyboard handler match the
+               ESLint rule's "real interactive element" requirement.
+               jsx-a11y can't statically narrow the conditional, so
+               disable the both-paths rules on the slide opener. */
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
               key={index}
               className={cn(
@@ -80,15 +95,20 @@ export function PhotoCarouselEmbla({
                 onPhotoClick && "cursor-zoom-in",
               )}
               aria-label={`写真 ${index + 1}/${photos.length}`}
-              onClick={() => onPhotoClick?.(index)}
               role={onPhotoClick ? "button" : undefined}
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
               tabIndex={onPhotoClick ? 0 : undefined}
-              onKeyDown={(e) => {
-                if (onPhotoClick && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  onPhotoClick(index);
-                }
-              }}
+              onClick={onPhotoClick ? () => onPhotoClick(index) : undefined}
+              onKeyDown={
+                onPhotoClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onPhotoClick(index);
+                      }
+                    }
+                  : undefined
+              }
             >
               <VenueImage
                 src={photo}
