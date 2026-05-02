@@ -5,6 +5,7 @@ import { MessageCircle, Check } from "lucide-react";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
 import { generateRatingComparison } from "@/server/actions/rating-comparison";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 /**
  * Partner Level 2 — Wave 1.3 polish.
@@ -57,9 +58,20 @@ export function PartnerComparisonSummary({
   const [aiComment, setAiComment] = useState<string | null>(null);
 
   useEffect(() => {
+    // Phase 3 wave 1.5 analytics — fire couple_comparison_viewed when
+    // a couple actually opens the side-by-side surface. Deferred via
+    // requestAnimationFrame to satisfy React Compiler's purity rule
+    // (`set-state-in-effect` would also flag this if we set state in
+    // the same tick — keeping the same pattern as
+    // OnboardingPartnerHint and PartnerCanRateHint so the codebase
+    // has one canonical defer recipe rather than three variants).
+    const raf = requestAnimationFrame(() => {
+      track("couple_comparison_viewed", { venueId });
+    });
     generateRatingComparison(venueId).then(({ comment }) =>
       setAiComment(comment),
     );
+    return () => cancelAnimationFrame(raf);
   }, [venueId]);
 
   const dimensions = TIER1_DIMENSIONS.filter(

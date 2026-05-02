@@ -205,23 +205,3 @@ export async function getCoupleRatings(venueId: string) {
   };
 }
 
-/**
- * @deprecated Round 23 (Phase 3 wave 1.1) — use `getCoupleRatings`
- * instead. This shape was role-keyed (`ownerRatings` / `partnerRatings`)
- * which double-counted the partner's own rating when the partner was
- * the viewer. The only known caller (the venue page) has been migrated
- * to `getCoupleRatings`; this thin compat layer remains so any
- * unmigrated caller still compiles, and will be removed in the wave
- * that finishes Partner Level 2.
- */
-export async function getPartnerRatings(venueId: string) {
-  const couple = await getCoupleRatings(venueId);
-  // Compat shape preserved for legacy callers — the names lie when
-  // the viewer is the partner (own = partner, "partner" = owner) but
-  // that's the same bug the original function had, so this proxy is
-  // strictly behaviour-preserving for anyone who hasn't migrated.
-  return {
-    ownerRatings: couple.ownRatings,
-    partnerRatings: couple.otherRatings,
-  };
-}

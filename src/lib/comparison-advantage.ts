@@ -68,8 +68,12 @@ export interface PartnerOpinionDiff {
  * how far apart the two partners are on each one.
  *
  * Implementation note: `ownerRatings` / `partnerRatings` are keyed by
- * dimension id in the same shape `getPartnerRatings` returns, so the
- * client can pass them through without reshaping.
+ * dimension id in the same shape `getCoupleRatings` returns
+ * (`ownRatings.ratings` / `otherRatings.ratings`), so the client can
+ * pass them through without reshaping. The parameter names are
+ * historical (predate the round-23 viewer-aware rename) — the function
+ * is symmetric in its two args (`|a − b|`), so passing
+ * (own, other) works identically to (owner, partner).
  */
 export function computePartnerOpinionDiff(
   dimensionIds: readonly string[],
