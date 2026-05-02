@@ -126,6 +126,52 @@ jobs:
       - run: npm test
 
   # ──────────────────────────────────────
+  # Bundle Size Guard — 主要 chunk が膨れた瞬間に CI で気づく
+  # (Phase 4 launch readiness で追加)
+  # ──────────────────────────────────────
+  bundle-size:
+    name: Bundle size guard
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build Next.js (no analyze)
+        run: npm run build:local
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - name: Check largest chunk size
+        # Soft warn at 450 KB (current baseline 435 KB + 3.5 % headroom),
+        # hard fail at 500 KB (current + 15 %). Tightens as the bundle
+        # shrinks — bump these values down once docs/harness/bundle-baseline-2.md
+        # § 3 candidates land. Largest-chunk is a proxy for First Load JS;
+        # see bundle-baseline-2.md § 4 for the rationale.
+        run: |
+          MAX=$(find .next/static/chunks -name '*.js' -printf '%s\n' | sort -nr | head -1)
+          MAX_KB=$((MAX / 1024))
+          echo "Largest chunk: ${MAX_KB} KB"
+          if [ "$MAX_KB" -gt 500 ]; then
+            echo "::error::Largest chunk ${MAX_KB} KB exceeds 500 KB ceiling — see docs/harness/bundle-baseline-2.md"
+            exit 1
+          fi
+          if [ "$MAX_KB" -gt 450 ]; then
+            echo "::warning::Largest chunk ${MAX_KB} KB approaching 500 KB ceiling"
+          fi
+
+  # ──────────────────────────────────────
   # E2E Test — Playwright ブラウザテス���
   # (テストファイルが存在する場合のみ実行)
   # ──────────────────────────────────────

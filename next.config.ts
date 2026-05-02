@@ -1,5 +1,15 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import nextBundleAnalyzer from "@next/bundle-analyzer";
+
+// Phase 4 launch readiness — opt-in bundle analyzer. `ANALYZE=true npm
+// run build:local` writes interactive HTML reports under .next/analyze/
+// (one per bundle: client / server / edge). Disabled by default so a
+// regular CI/prod build skips the analyzer overhead entirely.
+const withBundleAnalyzer = nextBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+  openAnalyzer: false,
+});
 
 const nextConfig: NextConfig = {
   // Next 16.2: top-level flag enabling "use cache" directive + PPR (P1-6)
@@ -106,7 +116,10 @@ const nextConfig: NextConfig = {
 
 // withSentryConfig adds source-map upload + tunnel, safe to apply
 // unconditionally (it no-ops when SENTRY_AUTH_TOKEN is unset).
-export default withSentryConfig(nextConfig, {
+// withBundleAnalyzer wraps the inner config first so its `webpack`
+// hook composes inside Sentry's outer wrapper (Sentry's own webpack
+// plugin must run last to see the final compiled module map).
+export default withSentryConfig(withBundleAnalyzer(nextConfig), {
   silent: true,
   org: process.env.SENTRY_ORG || "haretoki",
   project: process.env.SENTRY_PROJECT || "haretoki-web",
