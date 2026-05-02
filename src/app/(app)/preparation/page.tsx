@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Sun } from "lucide-react";
 import {
   getAllTodos,
   seedDecisionTodos,
@@ -9,6 +9,7 @@ import { getDecision } from "@/server/actions/decisions";
 import { TodoList } from "@/components/decision-todos/todo-list";
 import { DecisionProgressRing } from "@/components/decision-todos/progress-ring";
 import { CUSTOM_TODO_LIMIT } from "@/lib/decision-todos/presets";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "晴れの日へ、次の一歩",
@@ -21,6 +22,12 @@ export default async function PreparationPage() {
   const decision = await getDecision();
 
   if (!decision) {
+    // D1-1 (Phase 3 商用化準備): 「決めるのは、まだ先で大丈夫」 — 決定前に
+    // /preparation に着いた couple が「なにもない真っ白画面」 ではなく、
+    // 「ここはまだ先のための場所、いまは比較から」と分かる empty state。
+    // CTA は /compare (比較ボード) — 決定の前提は「比べた結果」なので、
+    // 候補追加段階の /explore よりも次の一歩として自然。
+    // ブランドメタファー: Sun icon → 「晴れの日 (決めた日) はあとからやってくる」
     return (
       <div className="space-y-8 pb-24">
         <header className="space-y-1">
@@ -34,33 +41,12 @@ export default async function PreparationPage() {
             ホーム
           </Link>
         </header>
-        <div
-          className="rounded-3xl p-6 sm:p-8"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in oklab, var(--gold-warm) 8%, var(--background)) 0%, color-mix(in oklab, var(--primary) 3%, var(--background)) 100%)",
-          }}
-        >
-          <p className="text-[10.5px] uppercase tracking-[0.14em] text-[var(--gold-warm)]">
-            TOWARDS THE DAY
-          </p>
-          <h1 className="mt-2 font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.3]">
-            晴れの日へ、次の一歩
-          </h1>
-          <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-            まだ晴れの日を決めていません。
-            <br />
-            気になる式場を見比べてから、準備のリストが現れます。
-          </p>
-          <Link
-            href="/explore"
-            prefetch={true}
-            className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-full px-5 text-[13px] font-medium text-white transition-transform active:scale-[0.98]"
-            style={{ background: "var(--gold-warm)" }}
-          >
-            気になる式場を見る
-          </Link>
-        </div>
+        <EmptyState
+          icon={Sun}
+          title="決めるのは、まだ先で大丈夫"
+          description="おふたりが「ここで決めた」と思える瞬間まで、ここで待っています。準備のリストは、決まったその日から整います。"
+          action={{ label: "候補を比べてみる", href: "/compare" }}
+        />
       </div>
     );
   }
