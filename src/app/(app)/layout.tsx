@@ -59,7 +59,7 @@ async function NavWithRealtime({
     userId,
   );
   return (
-    <RealtimeProvider projectId={project.id}>
+    <RealtimeProvider projectId={project.id} viewerUserId={userId}>
       <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />
     </RealtimeProvider>
   );

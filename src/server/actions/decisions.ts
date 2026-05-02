@@ -15,6 +15,10 @@ import {
   resetSystemTodosCompletion,
 } from "@/lib/decision-todos/seed";
 import { parseWeddingDateInput } from "@/lib/wedding-countdown";
+import {
+  publishRealtimeEvent,
+  resolveActor,
+} from "@/lib/realtime/publish";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -131,6 +135,17 @@ export async function makeDecision(input: z.input<typeof decisionSchema>) {
     venueId: validation.data.selectedVenueId,
     hasRationale: Boolean(validation.data.rationale),
     venueChanged,
+  });
+
+  // Phase 3 L3 wave 1 — broadcast a decision_made so the partner's
+  // open client paints a "{name}さんが式場を決定しました" toast and
+  // refreshes their view (most likely they were on /candidates or
+  // /home at the time). Best-effort.
+  const actor = await resolveActor(user.id);
+  await publishRealtimeEvent(projectId, {
+    kind: "decision_made",
+    actor,
+    venueId: validation.data.selectedVenueId,
   });
 
   return { decision };
@@ -264,6 +279,16 @@ export async function updateWeddingDate(
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/home");
   revalidatePath("/journey");
+
+  // Phase 3 L3 wave 1 — broadcast a wedding_date_updated so the
+  // partner's open client paints a "{name}さんが挙式日を更新しました"
+  // toast and the countdown / journey surface refreshes. Best-effort.
+  const actor = await resolveActor(user.id);
+  await publishRealtimeEvent(projectId, {
+    kind: "wedding_date_updated",
+    actor,
+    weddingDate: parsed.data.date,
+  });
 
   return { ok: true };
 }
