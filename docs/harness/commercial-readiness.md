@@ -7,22 +7,26 @@
 各項目は `✅ 済 / 🟡 部分対応 / ❌ 未着手 / ⏳ launch 直前` の 4 段階。
 status 横の `<commit/file>` で根拠を即引ける形を維持する (drift しないように)。
 
-最終更新: 2026-05-02 (P2 round 15 反映 — Data export ZIP + GDPR-light delete + AuditLog table)
+最終更新: 2026-05-02 (P2 round 16 反映 — CSP + security.txt + /admin/audit + retention sweep)
 
 ## 集計サマリ
 
 | 軸 | ✅ 済 | 🟡 部分 | ❌ 未着手 | ⏳ launch 直前 | 合計 |
 |---|---|---|---|---|---|
-| 1. 法務 / コンプライアンス | 5 | 1 | 2 | 1 | 9 |
-| 2. セキュリティ | **9** | 0 | **0** | 0 | 9 |
+| 1. 法務 / コンプライアンス | **6** | 1 | 2 | 1 | **10** |
+| 2. セキュリティ | **10** | 0 | 0 | 0 | **10** |
 | 3. 観測性 / 運用 | 8 | 0 | 1 | 0 | 9 |
 | 4. スケール | 7 | 0 | 1 | 1 | 9 |
 | 5. UX 商用化要件 | 7 | 1 | 1 | 0 | 9 |
 | 6. ビジネス / サポート | 1 | 0 | 4 | 2 | 7 |
-| **合計** | **37** | **2** | **9** | **4** | **52** |
+| **合計** | **39** | **2** | **9** | **4** | **54** |
 
 商用化までの「あと N 件」: **❌ 未着手 9 + ⏳ launch 直前 4 = 13 件** が must-have の残り作業
 (うち 🟡 部分対応 2 件は要昇格判断)。
+
+**P2 round 16 で進捗**: ✅ 37 → 39 (+2)、 合計 52 → 54 (新規 2 項目: 1.10
+セキュリティ連絡窓口 + 2.10 CSP)、 ❌ 数値変動なし。 CSP + security.txt +
+/admin/audit viewer + 365 日 rolling 削除 cron 4 件まとめて投入。
 
 **P2 round 15 で進捗**: ✅ 36 → 37 (+1)、 ❌ 10 → 9 (-1)。
 2.9 Audit log を AuditLog テーブル + recordAudit() 配線で完了。 1.3 / 1.4 は
@@ -49,6 +53,7 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 1.7 | 特商法表記 (もし課金あれば) | ⏳ | 課金導入時に必須。現状無料サービスなので未対応で OK |
 | 1.8 | 著作権 / 第三者素材表記 (式場写真の出所など) | ❌ | 現状: 式場サイトから取得した photoUrls をそのまま表示。商用化前に「サイト出典明示 + 削除リクエスト窓口」の整備必須 |
 | 1.9 | 18 歳未満利用制限 / 同意 | ❌ | 結婚式場という性質上、未成年単独利用は想定外。利用規約に明記する形で対応 |
+| 1.10 | セキュリティ連絡窓口 (RFC 9116 security.txt) | ✅ | `/.well-known/security.txt` を `src/app/.well-known/security.txt/route.ts` で配信、 Contact / Expires / Preferred-Languages / Canonical / Policy 完備 + 出典外 (Anthropic / Supabase / Vercel / Resend / Sentry) を明記、 1 年 expiration 自動更新。 P2 round 16 |
 
 ## 2. セキュリティ
 
@@ -62,7 +67,8 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 2.6 | Prompt injection 対策 | ✅ | `sanitizeForPrompt()` + `<user_data>` タグで囲む規約、PII strip、`docs/ai/guardrails.md` |
 | 2.7 | Account takeover 防止 (email verification) | ✅ | `acceptInvitation` で 3 ルート (email_confirmed_at / user_metadata / identities) のいずれかで verified を要求 |
 | 2.8 | Bot 対策 (signup 量産防止 etc.) | ✅ | Vercel BotID + `BotIdClient` を root layout で mount、 `/api/coach/stream` (POST) + `/api/user/delete` (DELETE) + `/api/user/export` (GET) を server-side `detectBot()` で 403。 `BOT_ID_ENABLED=1` で本番 enforcement (P2 round 10、 ADR-0009) |
-| 2.9 | Audit log (誰が何を delete したか) | ✅ | `AuditLog` model + `src/server/audit.ts` `recordAudit()` (PII 自動 redact: email→sha256, IP→/24/48, UA→256 char trunc)。 round 15 で `user.export` / `user.delete.{requested,completed,failed}` / `admin.cost.viewed` 配線、 (action, actor, target) 3 軸 index 付き append-only table |
+| 2.9 | Audit log (誰が何を delete したか) | ✅ | `AuditLog` model + `src/server/audit.ts` `recordAudit()` (PII 自動 redact: email→sha256, IP→/24/48, UA→256 char trunc)。 round 15 で `user.export` / `user.delete.{requested,completed,failed}` / `admin.cost.viewed` 配線、 round 16 で `/admin/audit` viewer page (filter: action / actor / since、 ADMIN_EMAILS gate、 admin.audit.viewed 自体も audit) + `/api/cron/data-retention-sweep` (365 日 rolling 削除、 user.delete.* は exempt) |
+| 2.10 | CSP + 追加 security headers | ✅ | `src/lib/csp.ts` 厳格 CSP + per-request nonce middleware 配信 + HSTS / Permissions-Policy / X-Content-Type-Options / Referrer-Policy。 `CSP_REPORT_ONLY=1` で初期 1-2 週間 cautious rollout、 `CSP_DISABLED=1` 緊急 escape hatch。 P2 round 16 |
 
 ## 3. 観測性 / 運用
 

@@ -28,6 +28,10 @@
     {
       "path": "/api/cron/email-suppression-retry",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/data-retention-sweep",
+      "schedule": "0 3 * * *"
     }
   ]
 }

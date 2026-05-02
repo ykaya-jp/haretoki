@@ -160,7 +160,12 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans")}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        {/* B-19 JSON-LD — crawler-facing structured data */}
+        {/* B-19 JSON-LD — crawler-facing structured data.
+            `type="application/ld+json"` is a data block, NOT executable
+            script, so CSP script-src restrictions do not apply (per
+            CSP Level 3 §6.1) — no nonce required. The CSP nonce we
+            stamp in middleware is for any future executable inline
+            <script> we might add. */}
         <script
           type="application/ld+json"
           // Static JSON string, no interpolation of user data — safe.

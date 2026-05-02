@@ -1,29 +1,86 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import {
+  buildCspHeader,
+  buildSupportingSecurityHeaders,
+  generateCspNonce,
+  isCspDisabled,
+  isCspReportOnly,
+} from "@/lib/csp";
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
+  // Generate the per-request CSP nonce up front. We pass it into
+  // downstream Server Components by setting an `x-nonce` request
+  // header that `app/layout.tsx` reads via `headers()`. Inline
+  // `<script>` tags consume it as the `nonce={...}` attribute so
+  // CSP `script-src 'nonce-...'` accepts them.
+  const nonce = generateCspNonce();
 
-  // If auth redirected (to /login), stop here
+  // Forward the nonce on the REQUEST headers so RSC can read it.
+  // This is the canonical Next.js pattern (see App Router docs:
+  // "Adding a Nonce with Middleware").
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  // Run Supabase auth middleware on top of those forwarded headers.
+  const response = await updateSession(request, requestHeaders);
+
+  // If auth redirected (to /login), stop here BUT still apply security
+  // headers so even the redirect carries CSP / HSTS protection.
   if (response.headers.get("location")) {
+    applySecurityHeaders(response, nonce);
     return response;
   }
 
   const { pathname } = request.nextUrl;
 
   // Public + excluded paths — skip onboarding check
-  const excludedPaths = ["/onboarding", "/accept-invite", "/login", "/signup", "/callback", "/demo", "/invite", "/privacy", "/terms"];
+  const excludedPaths = [
+    "/onboarding",
+    "/accept-invite",
+    "/login",
+    "/signup",
+    "/callback",
+    "/demo",
+    "/invite",
+    "/privacy",
+    "/terms",
+  ];
   if (pathname === "/" || excludedPaths.some((p) => pathname.startsWith(p))) {
+    applySecurityHeaders(response, nonce);
     return response;
   }
 
   // Onboarding redirect for authenticated users without the cookie
   const onboardingCompleted = request.cookies.get("onboarding_completed")?.value;
   if (!onboardingCompleted) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
+    const redirect = NextResponse.redirect(new URL("/onboarding", request.url));
+    applySecurityHeaders(redirect, nonce);
+    return redirect;
   }
 
+  applySecurityHeaders(response, nonce);
   return response;
+}
+
+/**
+ * Stamp CSP + supporting security headers on every response. Centralised
+ * so the redirect / non-redirect / passthrough branches above stay
+ * consistent — a missed branch would mean some pages ship without
+ * protection and an auditor would correctly flag it.
+ */
+function applySecurityHeaders(response: NextResponse, nonce: string): void {
+  if (isCspDisabled()) return;
+
+  const csp = buildCspHeader({ nonce });
+  const headerName = isCspReportOnly()
+    ? "Content-Security-Policy-Report-Only"
+    : "Content-Security-Policy";
+  response.headers.set(headerName, csp);
+
+  for (const [name, value] of Object.entries(buildSupportingSecurityHeaders())) {
+    response.headers.set(name, value);
+  }
 }
 
 export const config = {
