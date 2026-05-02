@@ -38,6 +38,7 @@ export const metadata: Metadata = {
 const NAV: Array<{ href: string; label: string }> = [
   { href: "/admin/cost", label: "Cost" },
   { href: "/admin/audit", label: "Audit" },
+  { href: "/admin/onboarding-funnel", label: "Onboarding" },
 ];
 
 export default async function AdminLayout({

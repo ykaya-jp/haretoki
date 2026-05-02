@@ -55,6 +55,7 @@ export type AuditAction =
   | "user.delete.failed"
   | "admin.cost.viewed"
   | "admin.audit.viewed"
+  | "admin.onboarding_funnel.viewed"
   | "cron.email-suppression-retry.failed"
   | "cron.ai-cost-summary.snapshot-failed"
   | "webhook.resend.suppression-applied"
