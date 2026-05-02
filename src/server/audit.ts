@@ -72,7 +72,14 @@ export type AuditAction =
    *  publish; `detail.kind` carries the RealtimeEvent kind so
    *  per-kind aggregation on /admin/cost is a simple GROUP BY. */
   | "realtime.broadcast.published"
-  | "realtime.broadcast.failed";
+  | "realtime.broadcast.failed"
+  /** Phase 4 launch readiness — generic cron run signal. One row per
+   *  scheduled job invocation; `detail.cron` carries the cron name
+   *  (e.g. "supabase-health"), `detail.ok` is the success flag, and
+   *  `detail.durationMs` is the wall time. /admin/health groups by
+   *  detail.cron and shows the latest run per cron. Schema-zero
+   *  alternative to a dedicated CronRun table. */
+  | "cron.run";
 
 export type AuditActorRole = "user" | "admin" | "system" | "cron" | "webhook";
 

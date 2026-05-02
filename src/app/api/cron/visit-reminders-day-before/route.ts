@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runVisitReminderCron } from "@/server/cron/visit-reminder-handler";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET/POST /api/cron/visit-reminders-day-before
@@ -38,6 +39,11 @@ async function handleCron(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const start = Date.now();
   const result = await runVisitReminderCron("day_before");
+  await recordCronRun("visit-reminders-day-before", {
+    ok: true,
+    durationMs: Date.now() - start,
+  });
   return NextResponse.json({ phase: "day_before", ...result });
 }

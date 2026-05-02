@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { requireAdmin } from "@/server/admin";
 import { recordAudit } from "@/server/audit";
+import { prisma } from "@/server/db";
 import {
   buildSupabaseHealthUrl,
   classifyLatency,
@@ -14,6 +15,9 @@ import {
   type EnvProbeResult,
   type HealthStatus,
 } from "@/lib/health-check";
+import { CRON_NAMES, type CronName } from "@/lib/cron-audit";
+import { getSentryIncidents } from "@/lib/sentry-incidents";
+import { AutoRefresh } from "@/components/admin/auto-refresh";
 
 /**
  * /admin/health — multi-service health view.
@@ -113,22 +117,93 @@ export default async function AdminHealthPage() {
     actorRole: "admin",
   });
 
-  // Run the live probe + env probes in parallel — env probes are
-  // synchronous so this is mostly waiting on the Supabase fetch.
-  const [liveSupabase, envSupabase, envVercel, envAnthropic, envResend] =
-    await Promise.all([
-      liveProbeSupabase(),
-      Promise.resolve(probeSupabaseEnv()),
-      Promise.resolve(probeVercelEnv()),
-      Promise.resolve(probeAnthropicEnv()),
-      Promise.resolve(probeResendEnv()),
-    ]);
+  // Run the live probe + env probes + cron run history + Sentry
+  // incidents in parallel — env probes are synchronous so the wait
+  // is dominated by the network calls (Supabase + Sentry REST).
+  // React Compiler flags Date.now() as impure-during-render. For a
+  // server-component dashboard we want "now at request time" exactly
+  // — the per-request rebuild is the correct semantic, not a regression.
+  // (Same disable as src/app/admin/cost/page.tsx:99.)
+  // eslint-disable-next-line react-hooks/purity
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [
+    liveSupabase,
+    envSupabase,
+    envVercel,
+    envAnthropic,
+    envResend,
+    cronRunRows,
+    sentryIncidents,
+  ] = await Promise.all([
+    liveProbeSupabase(),
+    Promise.resolve(probeSupabaseEnv()),
+    Promise.resolve(probeVercelEnv()),
+    Promise.resolve(probeAnthropicEnv()),
+    Promise.resolve(probeResendEnv()),
+    // Phase 4: pull all cron.run audit rows from the past 24h. The
+    // (action, createdAt) index makes this cheap; we group + reduce
+    // in JS for cleanest "latest per cron" semantics.
+    prisma.auditLog
+      .findMany({
+        where: { action: "cron.run", createdAt: { gte: since24h } },
+        select: { detail: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      })
+      .catch(() => [] as Array<{ detail: unknown; createdAt: Date }>),
+    getSentryIncidents(),
+  ]);
+
+  // Group cron rows by detail.cron and keep the latest run per cron.
+  // Crons that haven't run in the last 24h appear with `latest: null`
+  // so the table makes silence visible (= alert signal).
+  type CronRunSummary = {
+    cron: string;
+    latestAt: Date | null;
+    ok: boolean | null;
+    durationMs: number | null;
+    error: string | null;
+  };
+  const latestByCron = new Map<string, CronRunSummary>();
+  for (const row of cronRunRows) {
+    const detail = row.detail as
+      | { cron?: string; ok?: boolean; durationMs?: number; error?: string }
+      | null;
+    const cron = detail?.cron;
+    if (!cron) continue;
+    if (latestByCron.has(cron)) continue; // findMany is desc, first hit wins
+    latestByCron.set(cron, {
+      cron,
+      latestAt: row.createdAt,
+      ok: typeof detail?.ok === "boolean" ? detail.ok : null,
+      durationMs:
+        typeof detail?.durationMs === "number" ? detail.durationMs : null,
+      error: typeof detail?.error === "string" ? detail.error : null,
+    });
+  }
+  const cronSummaries: CronRunSummary[] = (CRON_NAMES as readonly CronName[]).map(
+    (name) =>
+      latestByCron.get(name) ?? {
+        cron: name,
+        latestAt: null,
+        ok: null,
+        durationMs: null,
+        error: null,
+      },
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 text-sm">
       <header className="mb-6">
-        <h1 className="text-xl font-medium">Health Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h1 className="text-xl font-medium">Health Dashboard</h1>
+          {/* Phase 4: 5-minute auto-refresh so the operator can leave
+              this open on a wall display. Toggle on the right of the
+              title row mirrors how Datadog / Grafana surface the same
+              control. */}
+          <AutoRefresh />
+        </div>
+        <p className="mt-2 text-muted-foreground">
           Live probe of upstream services. Source: per-request fetch
           for Supabase, env presence for the others. The daily{" "}
           <code className="rounded bg-muted px-1.5 py-0.5">
@@ -235,19 +310,149 @@ export default async function AdminHealthPage() {
         />
       </section>
 
+      {/* Phase 4: Sentry incidents (last 24h). Server-side fetch via
+          REST API; falls back to a dashboard link when SENTRY_AUTH_TOKEN
+          is unset (dev / preview). Counts are intentionally summarised
+          (errors + warnings) rather than per-issue — the dashboard link
+          is the right surface for triage. */}
+      <section className="mt-8 rounded-lg border p-4">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h2 className="text-base font-medium">Sentry incidents (24h)</h2>
+          {sentryIncidents.dashboardUrl ? (
+            <a
+              href={sentryIncidents.dashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              dashboard ↗
+            </a>
+          ) : null}
+        </div>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-4">
+          <div>
+            <dt className="text-muted-foreground">errors</dt>
+            <dd className="font-mono tabular-nums">
+              {sentryIncidents.errorCount ?? "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">warnings</dt>
+            <dd className="font-mono tabular-nums">
+              {sentryIncidents.warningCount ?? "—"}
+            </dd>
+          </div>
+          <div className="col-span-2">
+            <dt className="text-muted-foreground">configured</dt>
+            <dd className="text-foreground/80">
+              {sentryIncidents.configured
+                ? "REST probe live"
+                : sentryIncidents.error ?? "env unset"}
+            </dd>
+          </div>
+        </dl>
+        {sentryIncidents.error && sentryIncidents.configured ? (
+          <p className="mt-3 rounded border-l-2 border-amber-400 bg-amber-50/40 px-3 py-1.5 font-mono text-[11px] text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+            {sentryIncidents.error}
+          </p>
+        ) : null}
+      </section>
+
+      {/* Phase 4: Cron health monitor.
+          Source: AuditLog rows with action = "cron.run", written by
+          src/lib/cron-audit.ts at the success path of each cron route.
+          A cron with `latestAt = null` (no row in 24h) is the loudest
+          signal — its scheduled job has been silent. */}
+      <section className="mt-6 rounded-lg border">
+        <header className="border-b bg-muted/20 px-4 py-2.5">
+          <h2 className="text-base font-medium">Cron run status (24h)</h2>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+            Each scheduled job in{" "}
+            <code className="rounded bg-muted px-1 py-0.5">vercel.json</code>{" "}
+            writes a `cron.run` audit row at the end of its handler. A
+            row missing here means that cron hasn&apos;t executed in the
+            last 24 hours.
+          </p>
+        </header>
+        <table className="w-full text-left text-xs">
+          <thead className="bg-muted/40">
+            <tr>
+              <th className="px-3 py-2 font-medium">Cron</th>
+              <th className="px-3 py-2 font-medium">Last run (JST)</th>
+              <th className="px-3 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 font-medium tabular-nums">
+                Duration (ms)
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {cronSummaries.map((s) => (
+              <tr
+                key={s.cron}
+                className={
+                  s.latestAt === null
+                    ? "bg-amber-50 dark:bg-amber-950/20"
+                    : s.ok === false
+                      ? "bg-rose-50 dark:bg-rose-950/20"
+                      : ""
+                }
+              >
+                <td className="px-3 py-2 font-mono">{s.cron}</td>
+                <td className="px-3 py-2 font-mono tabular-nums">
+                  {s.latestAt
+                    ? new Intl.DateTimeFormat("ja-JP", {
+                        timeZone: "Asia/Tokyo",
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(s.latestAt)
+                    : "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {s.latestAt === null ? (
+                    <span className="text-amber-700 dark:text-amber-300">
+                      missing
+                    </span>
+                  ) : s.ok === false ? (
+                    <span className="text-rose-700 dark:text-rose-300">
+                      failed{s.error ? ` · ${s.error}` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 dark:text-emerald-300">
+                      ok
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 font-mono tabular-nums">
+                  {s.durationMs ?? "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
       <footer className="mt-8 text-xs text-muted-foreground">
         Helpers:{" "}
         <code className="rounded bg-muted px-1.5 py-0.5">
           src/lib/health-check.ts
         </code>{" "}
-        · Cron:{" "}
+        ·{" "}
         <code className="rounded bg-muted px-1.5 py-0.5">
-          /api/cron/supabase-health
+          src/lib/cron-audit.ts
         </code>{" "}
-        (daily) · Audit verb:{" "}
+        ·{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5">
+          src/lib/sentry-incidents.ts
+        </code>{" "}
+        · Audit verbs:{" "}
         <code className="rounded bg-muted px-1.5 py-0.5">
           admin.health.viewed
-        </code>
+        </code>{" "}
+        +{" "}
+        <code className="rounded bg-muted px-1.5 py-0.5">cron.run</code>
       </footer>
     </main>
   );

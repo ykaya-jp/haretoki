@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { buildVenueWhere } from "@/server/actions/venue-filters";
 import { parseSavedSearchFilters } from "@/lib/schemas";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET/POST /api/cron/saved-search-notify
@@ -119,6 +120,10 @@ async function handleCron(request: Request) {
     notified++;
   }
 
+  await recordCronRun("saved-search-notify", {
+    ok: true,
+    durationMs: Date.now() - start,
+  });
   return NextResponse.json({
     ok: true,
     durationMs: Date.now() - start,

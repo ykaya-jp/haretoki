@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
 import { captureError } from "@/lib/sentry";
 import { logEvent } from "@/lib/observability";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET|POST /api/cron/data-retention-sweep
@@ -165,6 +166,7 @@ async function handle(request: Request) {
     },
   });
 
+  await recordCronRun("data-retention-sweep", { ok: true, durationMs });
   return NextResponse.json({
     ok: true,
     retentionDays,
