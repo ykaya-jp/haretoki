@@ -1,6 +1,13 @@
 import { prisma } from "@/server/db";
 import { requireAdmin } from "@/server/admin";
 import { recordAudit } from "@/server/audit";
+import { captureMessage } from "@/lib/sentry";
+import {
+  aggregateActionCounts,
+  aggregateDailyCounts,
+  detectSuspiciousAuditPatterns,
+  maxCount,
+} from "@/lib/audit-aggregations";
 
 /**
  * /admin/audit — AuditLog viewer.
@@ -91,15 +98,51 @@ export default async function AdminAuditPage({
     take: limit,
   });
 
-  // Distinct action counts (filtered) for the sidebar — gives the
-  // operator a quick view of what's been happening.
-  const actionCounts = await prisma.auditLog.groupBy({
-    by: ["action"],
-    where: since ? { createdAt: { gte: since } } : {},
-    _count: { action: true },
-    orderBy: { _count: { action: "desc" } },
-    take: 20,
+  // Last-30-days projection used by the action-count bar chart, the
+  // daily timeline strip, and the suspicious-pattern detector. Pulling
+  // this once (and slimming the projection) keeps the page to 3
+  // queries total even with the new surfaces. Cap at 5000 rows — past
+  // that the operator should narrow with the filter form, and the bar
+  // chart renders the top categories anyway.
+  const now = new Date();
+  const horizonDays = 30;
+  const aggHorizon = new Date(now.getTime() - horizonDays * 24 * 60 * 60 * 1000);
+  const aggRows = await prisma.auditLog.findMany({
+    where: { createdAt: { gte: aggHorizon } },
+    select: {
+      action: true,
+      actorId: true,
+      ipAddress: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5000,
   });
+  const actionCounts = aggregateActionCounts(aggRows).slice(0, 20);
+  const dailyCounts = aggregateDailyCounts(aggRows, { days: horizonDays, now });
+  const dailyMax = maxCount(dailyCounts);
+  const actionMax = maxCount(actionCounts);
+  const anomalies = detectSuspiciousAuditPatterns(aggRows, now);
+
+  // Surface anomalies to Sentry as a warning so on-call gets notified
+  // even if no one happens to be looking at /admin/audit. Best-effort —
+  // failure here is silent, the page still renders the banner.
+  if (anomalies.length > 0) {
+    captureMessage(
+      `[admin/audit] ${anomalies.length} suspicious pattern(s) detected`,
+      {
+        level: "warning",
+        component: "auth",
+        alertRoute: "p2-email",
+        extra: {
+          anomalyIds: anomalies.map((a) => a.id),
+          maxSeverity: anomalies.some((a) => a.severity === "critical")
+            ? "critical"
+            : "warning",
+        },
+      },
+    );
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 text-sm">
@@ -117,6 +160,94 @@ export default async function AdminAuditPage({
           {Object.keys(where).length > 0 ? " (filtered)" : ""}.
         </p>
       </header>
+
+      {/*
+        Suspicious-pattern banner. Threshold rules live in
+        `src/lib/audit-aggregations.ts` so they can be unit-tested
+        independently. Critical = red border, warning = amber. Empty
+        result intentionally renders nothing — no "all clear" copy
+        because a green badge invites complacency.
+      */}
+      {anomalies.length > 0 && (
+        <section
+          aria-label="Suspicious patterns"
+          className="mb-6 space-y-2 rounded-lg border border-rose-300/60 bg-rose-50/50 p-4 text-xs dark:border-rose-900/50 dark:bg-rose-950/20"
+        >
+          <h2 className="text-[11px] font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">
+            Suspicious patterns · last 1h
+          </h2>
+          <ul className="space-y-1.5">
+            {anomalies.map((a) => (
+              <li
+                key={a.id}
+                className={
+                  a.severity === "critical"
+                    ? "flex items-baseline justify-between gap-3 rounded border-l-2 border-rose-500 bg-rose-100/30 px-2.5 py-1.5 dark:bg-rose-900/20"
+                    : "flex items-baseline justify-between gap-3 rounded border-l-2 border-amber-500 bg-amber-100/30 px-2.5 py-1.5 dark:bg-amber-900/20"
+                }
+              >
+                <span className="text-foreground">{a.summary}</span>
+                {a.hint ? (
+                  <a
+                    href={a.hint}
+                    className="shrink-0 font-mono text-[10px] text-muted-foreground underline"
+                  >
+                    drill in
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/*
+        Daily timeline strip — 30 UTC-day buckets so the operator can
+        eyeball spikes without leaving the page. CSS-only bars (no
+        client JS) — simplest thing that works on Safari + Chrome
+        without a chart library.
+      */}
+      <section
+        aria-label="Daily activity"
+        className="mb-6 rounded-lg border p-3"
+      >
+        <div className="mb-2 flex items-baseline justify-between">
+          <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Daily activity · {horizonDays}d
+          </h2>
+          <span className="text-[10px] text-muted-foreground">
+            UTC日次バケット · max{" "}
+            <span className="tabular-nums">{dailyMax}</span>
+          </span>
+        </div>
+        <ol className="flex h-12 items-end gap-0.5">
+          {dailyCounts.map((d) => {
+            const heightPct =
+              d.count === 0 ? 4 : Math.max(8, Math.round((d.count / dailyMax) * 100));
+            return (
+              <li
+                key={d.date}
+                className="flex flex-1 items-end"
+                title={`${d.date} · ${d.count}`}
+              >
+                <div
+                  aria-label={`${d.date} ${d.count}件`}
+                  className={
+                    d.count === 0
+                      ? "w-full rounded-sm bg-muted"
+                      : "w-full rounded-sm bg-[color-mix(in_oklab,var(--gold-warm)_70%,transparent)]"
+                  }
+                  style={{ height: `${heightPct}%` }}
+                />
+              </li>
+            );
+          })}
+        </ol>
+        <div className="mt-1 flex justify-between text-[9px] tabular-nums text-muted-foreground">
+          <span>{dailyCounts[0]?.date ?? ""}</span>
+          <span>{dailyCounts[dailyCounts.length - 1]?.date ?? ""}</span>
+        </div>
+      </section>
 
       <section className="mb-6 grid gap-6 sm:grid-cols-[1fr_auto]">
         <form method="get" className="flex flex-wrap gap-3 text-xs">
@@ -172,20 +303,31 @@ export default async function AdminAuditPage({
         {actionCounts.length > 0 && (
           <aside className="rounded-lg border p-3">
             <h2 className="mb-2 text-xs font-medium uppercase text-muted-foreground">
-              Action breakdown
+              Action breakdown · 30d
             </h2>
-            <ul className="space-y-1 text-xs">
-              {actionCounts.map((c) => (
-                <li
-                  key={c.action}
-                  className="flex justify-between gap-4 font-mono"
-                >
-                  <span>{c.action}</span>
-                  <span className="text-muted-foreground">
-                    {c._count.action}
-                  </span>
-                </li>
-              ))}
+            <ul className="space-y-1.5 text-[11px]">
+              {actionCounts.map((c) => {
+                const widthPct = Math.max(2, Math.round((c.count / actionMax) * 100));
+                return (
+                  <li key={c.action} className="space-y-0.5">
+                    <div className="flex justify-between gap-4 font-mono">
+                      <span className="truncate">{c.action}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {c.count}
+                      </span>
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="h-1 rounded-full bg-[color-mix(in_oklab,var(--gold-warm)_18%,transparent)]"
+                    >
+                      <div
+                        className="h-full rounded-full bg-[var(--gold-warm)]"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </aside>
         )}
