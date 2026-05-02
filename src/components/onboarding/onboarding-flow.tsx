@@ -14,6 +14,7 @@ import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/ac
 import { recommendVenuesFromConditions, type DbVenueRecommendation } from "@/server/actions/onboarding-recs";
 import { createVenue } from "@/server/actions/venues";
 import { OnboardingHero } from "@/components/onboarding/onboarding-hero";
+import { OnboardingPartnerHint } from "@/components/onboarding/onboarding-partner-hint";
 import { RecommendationCard } from "@/components/onboarding/recommendation-card";
 // Round 19 (A-4): Plus / MapPin / Image moved into RecommendationCard
 // (the inline cards that needed them were extracted). Loader2 stays for
@@ -610,6 +611,12 @@ export function OnboardingFlow() {
             </div>
           </section>
         ) : null}
+
+        {/* Round 20 (A-5): subtle partner-invite seed sits between the
+            recommendations and the primary CTA. Self-dismissing via
+            localStorage so a returning user who said "あとで" once
+            doesn't keep seeing it. Renders nothing once dismissed. */}
+        <OnboardingPartnerHint />
 
         {/* Primary CTA: proceed to home. The cookie is already set by
             saveOnboardingAnswers() above, so we can navigate directly. */}

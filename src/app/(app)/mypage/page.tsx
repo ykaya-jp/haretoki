@@ -139,8 +139,18 @@ export default async function MyPage() {
         </div>
       </section>
 
-      {/* Partner */}
-      <section aria-labelledby="section-partner" className="space-y-5">
+      {/* Partner — `id="partner-invite"` is the hash anchor target the
+          onboarding partner-hint links to (round 20 / A-5:
+          `/mypage#partner-invite`). When the spec'd dedicated route
+          `/mypage/partner-invite` lands later, this id can stay or go
+          freely; the onboarding-side href is the only thing that has
+          to flip. `scroll-mt-16` keeps the section header from being
+          hidden behind a future sticky header. */}
+      <section
+        id="partner-invite"
+        aria-labelledby="section-partner"
+        className="scroll-mt-16 space-y-5"
+      >
         <div className="flex items-baseline gap-2 px-1">
           <p className="text-[11.5px] tracking-[0.2em] uppercase text-muted-foreground">
             Partner
