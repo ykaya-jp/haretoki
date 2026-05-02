@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Calendar, CalendarPlus, CheckCircle2, MapPin } from "lucide-react";
+import { Calendar, CalendarDays, CalendarPlus, CheckCircle2, MapPin } from "lucide-react";
 import { getUpcomingVisits, getPastVisits } from "@/server/actions/visits";
 import { VisitMonthCalendar } from "@/components/visits/visit-month-calendar";
 import { CalendarExportButton } from "@/components/visits/calendar-export-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -41,21 +42,20 @@ export default async function VisitsPage() {
         </h1>
       </div>
 
-      {/* Empty state */}
+      {/* Empty state — D1-2 (Phase 3 商用化準備). Replaced the bespoke
+          dashed card with the shared <EmptyState> so the 4 surfaces in
+          this audit (decision / visits / checklist / journey) all read
+          the same gold-sparkle empty grammar. CTA points to /candidates
+          per spec — couples land on visits expecting "where do I plan
+          a visit from?" and the answer is the candidates list, not
+          the explore browse. */}
       {!hasAny && (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border/60 px-6 py-12 text-center">
-          <Calendar className="h-10 w-10 text-muted-foreground/40" />
-          <div>
-            <p className="text-[15px] font-light text-foreground">見学予定はまだありません</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">式場を探してみましょう</p>
-          </div>
-          <Link
-            href="/explore"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-6 text-[14px] font-medium text-primary-foreground transition-colors active:scale-[0.98]"
-          >
-            式場をさがす
-          </Link>
-        </div>
+        <EmptyState
+          icon={CalendarDays}
+          title="見学を入れたら、ここに記録が残ります"
+          description="当日のメモ・写真・帰り道の感想まで、後で見返せる場所です。まずは候補から見学日を決めてみてください。"
+          action={{ label: "候補から見学を入れる", href: "/candidates" }}
+        />
       )}
 
       {/* Calendar — show if any upcoming */}
