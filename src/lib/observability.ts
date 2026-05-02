@@ -72,7 +72,12 @@ export type LogEventName =
    * incident). Records latency + status so a regression in upstream
    * service health is grep-able in the log stream.
    */
-  | "supabase_health_check";
+  | "supabase_health_check"
+  /** Phase 4 monthly KPI summary — emitted on day-1 fire (sent=true)
+   *  AND on every other-day skip (sent=false). Together they prove
+   *  the cron is alive even when no email goes out. */
+  | "monthly_report_sent"
+  | "monthly_report_skipped";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */
