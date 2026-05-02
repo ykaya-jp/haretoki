@@ -66,7 +66,13 @@ export type LogEventName =
    * high-frequency so this is informational only — alerts derive
    * from rolling Sentry events, not the log stream.
    */
-  | "realtime_push_dispatch";
+  | "realtime_push_dispatch"
+  /**
+   * Daily Supabase health probe outcome (post 2026-05-03 auto-pause
+   * incident). Records latency + status so a regression in upstream
+   * service health is grep-able in the log stream.
+   */
+  | "supabase_health_check";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */

@@ -36,6 +36,10 @@
     {
       "path": "/api/cron/data-retention-sweep",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/supabase-health",
+      "schedule": "0 4 * * *"
     }
   ]
 }
