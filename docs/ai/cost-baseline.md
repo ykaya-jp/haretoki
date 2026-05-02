@@ -137,9 +137,43 @@ drift 観測手段:
    1825 行、 まだ trivial。 削除 cron は最低 5 年後で OK)
 4. /admin/cost の 30 行 table が too narrow / wide ではないか
 
+## Round 15 (2026-05-02) — Forecast + cache-hit-rate 拡張
+
+`/admin/cost` に 2 セクション追加:
+
+1. **Month-end forecast** — 過去 7 日 (window) の `dailyUsedUsd` 平均を月末
+   までの remaining-days に乗じた線形予測。`forecastMonthlyCostUsd()` を
+   `src/lib/anthropic-usage.ts` に追加。式:
+   ```
+   forecast = monthToDateUsd + trailingDailyAvgUsd × remainingDays
+   pace = forecast/budget ≤80% → "under" / 80-110% → "watch" / >110% → "over"
+   ```
+   `windowDays` は引数で上書き可 (default 7)、`now` も override 可 (test 用)。
+   月末日数は UTC 計算 (JST host で 1 日ずれる罠あり、tests でカバー)。
+
+2. **Estimate-PDF cache hit rate (24h, approx)** — 過去 24h の
+   `estimate (sourceType=ai_extracted) row count − aiCache (model=sonnet)
+   write count ≈ cache hits`。Signed-URL fallback も AiCache に書くため、
+   files-api / signed-url の tier 内訳までは出せない (tier 別の counter は
+   structured log `event:"estimate_extract_tier"` を log drain でパースする
+   future task)。
+
+### Cache 統合 (round 15)
+
+`reviews.ts` (review-summary) と `venues.ts` (url-extraction) の cache 経路を
+低水準 `computeInputHash + getCachedResponse + askClaude + setCachedResponse`
+4 ステップから `cachedAskClaude({system, userMessage, model, maxTokens,
+promptVersion})` 1 ステップに統合。hash recipe が
+`{system, user, model, version, maxTokens}` に揃うので model swap / prompt
+revision が **自動 cache buster** として効く。`REVIEW_SUMMARY_PROMPT_VERSION`
++ `URL_EXTRACTION_PROMPT_VERSION` を caller side で 1 から開始。
+
+→ 旧 hash recipe の cache row (`{system, user}` のみ) は miss 扱いで自然に
+   evict される。一時的に Claude call 増 (24h で settle)。
+
 ## 関連ドキュメント
 
-- 実装: `src/lib/anthropic-usage.ts` (per-call accounting + budget evaluation)
+- 実装: `src/lib/anthropic-usage.ts` (per-call accounting + budget evaluation + month-end forecast)
 - Cron: `src/app/api/cron/ai-cost-summary/route.ts`
 - Dashboard: `src/app/admin/cost/page.tsx`
 - Schema: `prisma/schema.prisma` `AiCostSnapshot`
