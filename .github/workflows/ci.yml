@@ -210,9 +210,15 @@ jobs:
         if: steps.check.outputs.has_tests == 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      - name: Run E2E tests (excluding @quarantine)
         if: steps.check.outputs.has_tests == 'true'
-        run: npm run test:e2e
+        # Phase 4/5 quarantine flow — flaky specs tagged with the
+        # @quarantine annotation (`test("...", { tag: "@quarantine" }, async ...)`)
+        # are excluded from the blocking job and run separately in
+        # `e2e-quarantine` below. This keeps the PR-blocking job
+        # green while flaky tests are being triaged. Quarantine
+        # workflow is documented in docs/harness/runbook.md.
+        run: npx playwright test --grep-invert "@quarantine"
         env:
           # Existing E2E specs cover unauthenticated flows only (landing,
           # signup form validation, pages that redirect to /login). They do
@@ -229,5 +235,74 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ──────────────────────────────────────
+  # E2E Quarantine — flaky test を隔離して観測する informational job
+  # (Phase 4/5: continue-on-error で PR を block しない)
+  # ──────────────────────────────────────
+  e2e-quarantine:
+    name: E2E Quarantine (informational)
+    needs: [build]
+    runs-on: ubuntu-latest
+    # Hard-skip when the PR title says [skip-quarantine] — saves the
+    # 3-4 min CI when no quarantined spec exists yet (current state).
+    # Remove this guard once the first @quarantine tag lands.
+    if: |
+      !contains(github.event.pull_request.title, '[skip-quarantine]')
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check for quarantined E2E tests
+        id: check
+        # Look for `@quarantine` literal anywhere in tests/e2e/*.ts.
+        # If absent, the job exits cleanly without spinning up node /
+        # browser deps — saves ~3-4 min on every PR until a real
+        # quarantined spec lands.
+        run: |
+          if grep -r '@quarantine' tests/e2e 2>/dev/null | grep -q .; then
+            echo "has_quarantined=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_quarantined=false" >> "$GITHUB_OUTPUT"
+            echo "No @quarantine tags found — skipping"
+          fi
+
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.has_quarantined == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.check.outputs.has_quarantined == 'true'
+        run: npm ci
+
+      - name: Generate Prisma Client
+        if: steps.check.outputs.has_quarantined == 'true'
+        run: npx prisma generate
+
+      - name: Install Playwright browsers
+        if: steps.check.outputs.has_quarantined == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run quarantined E2E tests (informational)
+        if: steps.check.outputs.has_quarantined == 'true'
+        # Critical: this step's failure NEVER blocks the PR. It exists
+        # to surface "the quarantined specs are still unstable" as an
+        # observable signal in the GitHub Checks tab. Triage the
+        # underlying flake; remove the @quarantine tag when fixed.
+        continue-on-error: true
+        run: npx playwright test --grep "@quarantine"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
+
+      - name: Upload quarantine report
+        if: steps.check.outputs.has_quarantined == 'true' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-quarantine-report
           path: playwright-report/
           retention-days: 14

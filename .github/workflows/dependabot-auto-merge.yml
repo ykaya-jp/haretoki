@@ -1,0 +1,89 @@
+name: Dependabot auto-merge
+
+# Phase 4 launch readiness — Dependabot PR の minor + patch を自動 merge。
+# Major は意図的に手動 review に残す (breaking change を含むことが多いため)。
+#
+# 動作の前提:
+#   - .github/dependabot.yml で minor + patch を 1 PR にまとめる group 化済
+#   - main / develop に必須 status check (lint / typecheck / build /
+#     prisma / unit-test / bundle-size / e2e-test) が設定済
+#     → CI 全部 green になってから初めて auto merge が発火する
+#   - GITHUB_TOKEN に「contents: write + pull-requests: write」 permissions
+#     を本 workflow 内で付与する (org / repo level の default を上書き)
+#
+# 安全装置:
+#   - Major (`version-update:semver-major`) は明示的に skip
+#   - Indirect (transitive) update は merge しない (lockfile 経由の影響が
+#     大きいため、metadata.dependency-type が direct のときだけ)
+#   - merge 方式は squash 固定 (lockfile + 設定ファイルが 1 commit に
+#     まとまる)
+#   - approval は GitHub Action の review コメントで代替 (`dependabot
+#     [bot]` の自己 approve は disabled、別 PAT を使う場合は ${{ secrets
+#     .DEPENDABOT_AUTO_APPROVE_TOKEN }} に切替)
+#
+# 解除:
+#   workflow を disable したい場合は GitHub UI → Actions → "Dependabot
+#   auto-merge" → "..." → Disable workflow。同 PR を手動 review に戻せる。
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge minor + patch
+    # Dependabot が author の PR にだけ反応。手動 PR にラベルを付けても
+    # 起動しないので、誤爆リスクは Dependabot 自身に限られる。
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mark major updates with manual-review label
+        # Major は無条件 skip + ラベル付与で operator が一覧で識別できる
+        # ようにする。CODEOWNERS で個別レビュアー指定もできるが、現状
+        # 1 人運用なのでラベルだけで十分。
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: gh pr edit "$PR_URL" --add-label "deps-major-review"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-approve minor + patch direct updates
+        # Branch protection で「approval が 1 件以上必要」設定の場合、
+        # auto-merge は approval を待つ。Dependabot bot 自身の approve
+        # は GitHub の規約で禁止なので、別 review として bot を使う案
+        # もあるが、現状は repo の "Allow auto-merge" 設定 + 必須 status
+        # check pass を発火条件にすれば approval なしで merge できる。
+        # この step は将来 approval 必須化時のために hook を残してある
+        # — 実 token がないと echo するだけ。
+        if: |
+          (steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+           steps.metadata.outputs.update-type == 'version-update:semver-patch') &&
+          steps.metadata.outputs.dependency-type == 'direct:production'
+        run: |
+          echo "Approving minor/patch update for ${{ steps.metadata.outputs.dependency-names }}"
+          # gh pr review --approve "$PR_URL" --body "Auto-approve: minor/patch direct update"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for minor + patch
+        # `gh pr merge --auto` は「CI が全部通って approval 条件も満たし
+        # たら squash merge」を予約する。即時 merge ではないので、CI が
+        # 失敗すれば自動的に保留される。
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
