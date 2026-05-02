@@ -39,6 +39,9 @@ const NAV: Array<{ href: string; label: string }> = [
   { href: "/admin/cost", label: "Cost" },
   { href: "/admin/audit", label: "Audit" },
   { href: "/admin/onboarding-funnel", label: "Onboarding" },
+  { href: "/admin/family-share", label: "Family share" },
+  { href: "/admin/visit-reminders", label: "Reminders" },
+  { href: "/admin/partner-l2", label: "Partner L2" },
 ];
 
 export default async function AdminLayout({
