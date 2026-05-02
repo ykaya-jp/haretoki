@@ -135,6 +135,14 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 - 対象 SR: macOS VoiceOver / Windows NVDA / iOS VoiceOver / Android TalkBack
 - 失敗時の triage テンプレートは同 doc 末尾
 
+## Phase 3 integration test pass
+
+Realtime broadcast / Push 通知 / Family share / countdown / multi-device offline reconcile を触ったリリース前には **2 端末 + 実 Supabase** での動作確認を 1 周する。 unit test + lint では到達できない RLS gate / cross-device timing / VAPID 配信を網羅する。
+
+- 手順書 (canonical): [`../phase3/integration-test-checklist.md`](../phase3/integration-test-checklist.md)
+- 対象 surface: A. Realtime / B. Push / C. Family share / D. Countdown / E. Multi-device offline reconcile / F. visual rhythm
+- 失敗時の triage テンプレートは同 doc 末尾
+
 ## Secret / 危険操作
 
 - `.env*` / `.key` / `.pem` / `*credentials*` は PreToolUse hook が block（`.claude/settings.json`）
