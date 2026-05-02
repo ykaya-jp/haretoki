@@ -127,6 +127,14 @@ git format-patch -1 <worker-sha> --stdout | git apply --3way -
 - 書く / 書かないの判断: 6 ヶ月後に同じ判断を聞かれて理由を即答できないなら書く
 - Decision を書き換えない。変えるなら新 ADR を起票し旧 ADR を `Superseded by NNNN` にする
 
+## A11y screen-reader test pass
+
+リリース前 (特に onboarding / DecisionCeremony / SiteFooter / BottomNav / Hero / partner-invite を触ったとき) は、 静的 audit / linter / contrast チェックでは捕まえきれない focus order / aria-live の polite-vs-assertive バランス / Coach voice の読まれ方を **手動 SR 1 周** で確認する。
+
+- 手順書 (canonical): [`a11y-sr-test-checklist.md`](a11y-sr-test-checklist.md)
+- 対象 SR: macOS VoiceOver / Windows NVDA / iOS VoiceOver / Android TalkBack
+- 失敗時の triage テンプレートは同 doc 末尾
+
 ## Secret / 危険操作
 
 - `.env*` / `.key` / `.pem` / `*credentials*` は PreToolUse hook が block（`.claude/settings.json`）
