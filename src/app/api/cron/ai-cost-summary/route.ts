@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
-import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
-import { captureError } from "@/lib/sentry";
+import {
+  evaluateBudgetAlert,
+  estimateCostUsd,
+  detectDailyCostSpike,
+} from "@/lib/anthropic-usage";
+import { captureError, captureMessage } from "@/lib/sentry";
 
 /**
  * GET|POST /api/cron/ai-cost-summary
@@ -239,6 +243,45 @@ async function handle(request: Request) {
       component: "cron.ai-cost",
       alertRoute: "p3-digest",
       extra: { action: "ai-cost-summary:snapshot-upsert" },
+    });
+  }
+
+  // Daily cost spike detection — pull the most-recent 2 snapshots
+  // (today just upserted + yesterday) and compare. > +30% triggers a
+  // Sentry warning at p2-email so the operator notices a sudden burn-
+  // rate jump (e.g. a feature shipping a new caller without batching)
+  // before it eats the monthly budget. Best-effort — a missing yesterday
+  // snapshot just yields spiked=false and no alert.
+  try {
+    const recentSnapshots = await prisma.aiCostSnapshot.findMany({
+      orderBy: { snapshotDate: "desc" },
+      take: 2,
+      select: { snapshotDate: true, dailyUsedUsd: true },
+    });
+    const spike = detectDailyCostSpike(
+      recentSnapshots.map((s) => ({
+        snapshotDate: s.snapshotDate,
+        dailyUsedUsd: Number(s.dailyUsedUsd),
+      })),
+    );
+    if (spike.spiked) {
+      captureMessage("[cron.ai-cost] daily spend spike detected", {
+        level: "warning",
+        component: "cron.ai-cost",
+        alertRoute: "p2-email",
+        extra: {
+          deltaPct: spike.deltaPct,
+          todayUsd: spike.todayUsd,
+          prevUsd: spike.prevUsd,
+          spikeThresholdPct: spike.spikeThresholdPct,
+        },
+      });
+    }
+  } catch (err) {
+    captureError(err, {
+      component: "cron.ai-cost",
+      alertRoute: "p3-digest",
+      extra: { action: "ai-cost-summary:spike-check" },
     });
   }
 

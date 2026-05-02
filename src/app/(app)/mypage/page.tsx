@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Heart,
   BookOpen,
+  MessageSquareHeart,
 } from "lucide-react";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -318,6 +319,13 @@ export default async function MyPage() {
             label="サポート窓口"
             meta="お問い合わせフォーム"
             href="/support"
+          />
+          <SettingsRow
+            icon={MessageSquareHeart}
+            tone="accent"
+            label="ご意見・ご要望"
+            meta="Beta 期間のおふたりの声をお寄せください"
+            href="/mypage/feedback"
           />
           <SettingsRow
             icon={FileText}

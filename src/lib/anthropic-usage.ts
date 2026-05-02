@@ -56,6 +56,23 @@ interface ModelBucket {
 }
 
 const buckets = new Map<string, ModelBucket>();
+/**
+ * Parallel per-action accumulator. Same shape as `buckets` but keyed
+ * by the optional `action` parameter (e.g. "coach", "url-extraction",
+ * "estimate-pdf"). Calls without an action contribute to the
+ * synthetic `__no-action` key so the totals reconcile.
+ *
+ * Why both maps instead of nested {model → action → bucket}: the
+ * cron + dashboard surface either dimension independently
+ * (per-model = pricing tier health, per-action = which feature is
+ * burning the budget), and a flat per-dimension map costs O(N+M)
+ * memory vs O(N×M) for the cross product. Future ad-hoc breakdowns
+ * (e.g. per-(model, action)) belong on a log-drain query, not in
+ * the hot path.
+ */
+const actionBuckets = new Map<string, ModelBucket>();
+const NO_ACTION_KEY = "__no-action";
+
 const callTimestamps: Array<{ model: string; t: number; costUsd: number }> = [];
 // Cap the per-instance call log so a hot loop can't OOM us. Anything
 // older than the daily-cost summary window (24h + slack) is irrelevant.
@@ -114,6 +131,22 @@ export function recordUsage(params: {
   bucket.costUsd += costUsd;
   buckets.set(model, bucket);
 
+  // Parallel per-action bucket. Calls without an action key still
+  // contribute to a synthetic no-action bucket so the totals reconcile
+  // against the per-model side.
+  const actionKey = action ?? NO_ACTION_KEY;
+  const actionBucket = actionBuckets.get(actionKey) ?? {
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    costUsd: 0,
+  };
+  actionBucket.calls += 1;
+  actionBucket.inputTokens += inputTokens;
+  actionBucket.outputTokens += outputTokens;
+  actionBucket.costUsd += costUsd;
+  actionBuckets.set(actionKey, actionBucket);
+
   callTimestamps.push({ model, t: Date.now(), costUsd });
   if (callTimestamps.length > MAX_CALL_LOG) {
     // Drop the oldest 20% — cheaper than splice(0, 1) per call when we hit
@@ -136,21 +169,28 @@ export function recordUsage(params: {
   });
 }
 
+export interface UsageBucketStats {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
 export interface UsageSummary {
   windowMs: number;
   totalCalls: number;
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCostUsd: number;
-  byModel: Record<
-    string,
-    {
-      calls: number;
-      inputTokens: number;
-      outputTokens: number;
-      costUsd: number;
-    }
-  >;
+  byModel: Record<string, UsageBucketStats>;
+  /**
+   * Per-action rollup using the optional `action` recordUsage field.
+   * Calls without action contribute to the synthetic `__no-action`
+   * key. Same in-window ratio approximation as `byModel` — usable for
+   * the dashboard's "which feature burned today" sub-card; not
+   * billing-grade.
+   */
+  byAction: Record<string, UsageBucketStats>;
 }
 
 /**
@@ -167,6 +207,7 @@ export function summarizeRecentUsage(windowMs: number): UsageSummary {
     totalOutputTokens: 0,
     totalCostUsd: 0,
     byModel: {},
+    byAction: {},
   };
   for (const m of buckets.keys()) {
     summary.byModel[m] = {
@@ -198,6 +239,31 @@ export function summarizeRecentUsage(windowMs: number): UsageSummary {
     summary.totalOutputTokens += summary.byModel[m].outputTokens;
     summary.totalCostUsd += summary.byModel[m].costUsd;
   }
+
+  // Per-action rollup. Same approximation: scale cumulative bucket
+  // totals by the ratio of recent vs lifetime calls. The per-call log
+  // doesn't carry the action label (we'd have to re-key it during
+  // logEvent emission to add it), so we apply a single recent-call
+  // ratio derived from the global recent/total — coarser than the
+  // per-model version, but the dashboard surfaces this as "which
+  // feature is burning the budget" which is a 10x order-of-magnitude
+  // signal, not a 1% one.
+  const totalLifetimeCalls = Array.from(buckets.values()).reduce(
+    (acc, b) => acc + b.calls,
+    0,
+  );
+  const recentRatio =
+    totalLifetimeCalls > 0 ? recent.length / totalLifetimeCalls : 0;
+  for (const [actionKey, b] of actionBuckets) {
+    const recentCalls = Math.round(b.calls * recentRatio);
+    summary.byAction[actionKey] = {
+      calls: recentCalls,
+      inputTokens: Math.round(b.inputTokens * recentRatio),
+      outputTokens: Math.round(b.outputTokens * recentRatio),
+      costUsd: b.costUsd * recentRatio,
+    };
+  }
+
   return summary;
 }
 
@@ -294,6 +360,7 @@ export function evaluateBudgetAlert(input: {
  *  test's accounting doesn't leak into the next. */
 export function _resetUsageBuckets(): void {
   buckets.clear();
+  actionBuckets.clear();
   callTimestamps.length = 0;
 }
 
@@ -317,6 +384,16 @@ export interface MonthlyForecast {
   /** Projected total at month end = monthToDateUsd + trailingDailyAvgUsd
    *  × remainingDays. This is the headline number for the dashboard. */
   monthEndForecastUsd: number;
+  /**
+   * "Linear month" projection — what the month would total if every day
+   * matched the trailing average. Differs from monthEndForecastUsd in
+   * that it ignores the actual month-to-date spend, so it answers the
+   * question "is our current burn rate sustainable in a fresh month?"
+   * Useful when ops just bumped the budget mid-month — month-end is
+   * skewed by the prior over-spend, month-start projection isolates
+   * just the rate.
+   */
+  monthStartForecastUsd: number;
   /** Configured monthly budget (env or default — same accessor that
    *  evaluateBudgetAlert uses). */
   monthlyBudgetUsd: number;
@@ -399,6 +476,12 @@ export function forecastMonthlyCostUsd(input: {
   const monthEndForecastUsd =
     input.monthToDateUsd + trailingDailyAvgUsd * remainingDays;
 
+  // Pure rate-based projection — what the month would total if every
+  // day matched the trailing average from day 1. Unlike monthEnd, this
+  // ignores accumulated month-to-date so a mid-month budget bump
+  // doesn't bias the picture upward.
+  const monthStartForecastUsd = trailingDailyAvgUsd * daysInMonth;
+
   const monthlyBudgetUsd = (() => {
     const raw = process.env.ANTHROPIC_MONTHLY_BUDGET_USD;
     const n = raw ? Number(raw) : NaN;
@@ -419,8 +502,105 @@ export function forecastMonthlyCostUsd(input: {
     trailingDaysSampled,
     remainingDays,
     monthEndForecastUsd,
+    monthStartForecastUsd,
     monthlyBudgetUsd,
     forecastPct,
     pace,
+  };
+}
+
+// =====================================================================
+// Daily cost spike detection (this PR)
+// =====================================================================
+
+export interface DailyCostSpikeResult {
+  /** True when the most-recent day's spend is at least
+   *  (1 + spikeThresholdPct/100)x the prior day's spend AND the prior
+   *  day spend is non-trivial (> $0.10 — avoids false alarms when
+   *  yesterday was effectively zero). */
+  spiked: boolean;
+  /**
+   * Percent change vs prior day, rounded to 1 decimal. Positive means
+   * today exceeds yesterday. `null` when there isn't enough data
+   * (less than 2 snapshots) — the dashboard renders "n/a" in that case.
+   */
+  deltaPct: number | null;
+  /** USD spent on the most-recent observation day. */
+  todayUsd: number;
+  /** USD spent on the day immediately before. Null when only 1
+   *  snapshot row exists. */
+  prevUsd: number | null;
+  /** Threshold the result was evaluated against. */
+  spikeThresholdPct: number;
+}
+
+const SPIKE_PRIOR_FLOOR_USD = 0.1;
+
+/**
+ * Compare the two most-recent daily snapshots and decide whether
+ * today's spend is a notable jump from yesterday's. Used by the
+ * /api/cron/ai-cost-summary cron to fire a Sentry warning when the
+ * burn rate suddenly steps up (e.g. someone shipped a new caller
+ * loop without rate limits).
+ *
+ * Floor guard: we ignore the prior-day denominator when it's < $0.10.
+ * Otherwise a $0.20 day after a $0.05 day reads as +300% and the
+ * operator gets a useless alert. Pretty rare in practice — the tests
+ * pin both branches explicitly.
+ *
+ * Returns a structured shape rather than just a boolean so the cron's
+ * Sentry message can include the absolute numbers + threshold without
+ * recomputing.
+ */
+export function detectDailyCostSpike(
+  snapshots: CostSnapshotInput[],
+  options: { spikeThresholdPct?: number } = {},
+): DailyCostSpikeResult {
+  const spikeThresholdPct = options.spikeThresholdPct ?? 30;
+
+  const sorted = [...snapshots].sort(
+    (a, b) => b.snapshotDate.getTime() - a.snapshotDate.getTime(),
+  );
+
+  if (sorted.length < 1) {
+    return {
+      spiked: false,
+      deltaPct: null,
+      todayUsd: 0,
+      prevUsd: null,
+      spikeThresholdPct,
+    };
+  }
+  const todayUsd = sorted[0].dailyUsedUsd;
+  if (sorted.length < 2) {
+    return {
+      spiked: false,
+      deltaPct: null,
+      todayUsd,
+      prevUsd: null,
+      spikeThresholdPct,
+    };
+  }
+  const prevUsd = sorted[1].dailyUsedUsd;
+
+  // Floor guard: yesterday near-zero would make any positive number
+  // read as a spike. Skip the spike check (return spiked=false +
+  // honest deltaPct so the dashboard can still render the number).
+  const denominator = Math.max(prevUsd, SPIKE_PRIOR_FLOOR_USD);
+  const deltaPctRaw = ((todayUsd - prevUsd) / denominator) * 100;
+  const deltaPct = Math.round(deltaPctRaw * 10) / 10;
+
+  // Honest spike: today > yesterday × (1 + threshold/100) AND the
+  // yesterday baseline isn't a sub-floor anomaly.
+  const spiked =
+    prevUsd >= SPIKE_PRIOR_FLOOR_USD &&
+    todayUsd > prevUsd * (1 + spikeThresholdPct / 100);
+
+  return {
+    spiked,
+    deltaPct,
+    todayUsd,
+    prevUsd,
+    spikeThresholdPct,
   };
 }

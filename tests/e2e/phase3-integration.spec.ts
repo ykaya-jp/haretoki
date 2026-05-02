@@ -110,6 +110,15 @@ test.describe("Phase 3 integration smoke", () => {
     expect(response?.status()).toBe(404);
   });
 
+  test("/admin/feedback: 404 for unauthenticated visitors (Beta inbox)", async ({
+    page,
+  }) => {
+    // /mypage/feedback writes audit rows readable on /admin/feedback.
+    // Same allow-list pattern as the other /admin/* views.
+    const response = await page.goto("/admin/feedback");
+    expect(response?.status()).toBe(404);
+  });
+
   test("public family route is in the route table (the file resolves)", async ({
     page,
   }) => {

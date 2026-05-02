@@ -60,6 +60,9 @@ export type AuditAction =
   | "admin.visit_reminders.viewed"
   | "admin.partner_l2_stats.viewed"
   | "admin.health.viewed"
+  | "admin.feedback.viewed"
+  /** Beta feedback inbox — user submits via /mypage/feedback. */
+  | "user.feedback.submitted"
   | "cron.email-suppression-retry.failed"
   | "cron.ai-cost-summary.snapshot-failed"
   | "webhook.resend.suppression-applied"
