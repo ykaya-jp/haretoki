@@ -20,7 +20,7 @@ import { RecommendationCard } from "@/components/onboarding/recommendation-card"
 // (the inline cards that needed them were extracted). Loader2 stays for
 // the saving state on the question flow's submit button; Sparkles +
 // ChevronLeft remain in the question / progress chrome.
-import { Loader2, Sparkles, ChevronLeft } from "lucide-react";
+import { Loader2, Sparkles, ChevronLeft, Check } from "lucide-react";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 
@@ -107,10 +107,21 @@ interface OnboardingAnswer {
  * replaced with the typed value before saving, so the persisted
  * `answers.area` shape stays a plain string array.
  */
+/**
+ * A-7 — Coach 2-fragment welcome (採用要素 #2).
+ *
+ * Steps 1 and 4 carry an optional `welcome` line that renders above
+ * the question inside the Coach speech bubble — the first one frames
+ * the entire flow ("I'm about to ask you four things"), the last one
+ * acknowledges the home stretch ("only one more"). Steps 2 and 3 stay
+ * single-fragment so the bubble doesn't read like the Coach is
+ * over-narrating every turn.
+ */
 const QUESTIONS = [
   {
     id: "style",
     question: "お気に入りの雰囲気は？",
+    welcome: "ふたりの好みを聞かせてください",
     subtitle: "思い浮かぶものを、いくつでも",
     type: "pills" as const,
     options: [
@@ -150,6 +161,7 @@ const QUESTIONS = [
   {
     id: "budget",
     question: "だいたいの予算は？",
+    welcome: "最後の質問です",
     subtitle: "おおよそで構いません、見直せます",
     type: "pills" as const,
     options: [
@@ -181,6 +193,12 @@ export function OnboardingFlow() {
   // so a couple can deselect / reselect "その他のエリア" without losing
   // what they typed mid-flow.
   const [otherAreaText, setOtherAreaText] = useState("");
+  // A-7 (採用要素 #1): pulse marker for the "step ✓ confirmed" gold
+  // check that fires for ~250ms after the couple taps 次へ. Holds the
+  // step index that just completed so the pop only shows on that
+  // bubble, not on the next one. Reduced-motion users skip the pulse
+  // entirely (see triggerStepPulse below).
+  const [pulseStep, setPulseStep] = useState<number | null>(null);
   // chatHistory state is no longer rendered (Zone 3 reads `answers`
   // directly via summarizeAnswer). Kept around — and the setter
   // continues to be populated below — so a future cleanup pass (A-6)
@@ -248,13 +266,50 @@ export function OnboardingFlow() {
    * Jump back to an earlier step. Drops the in-flight pill / number /
    * free-form area selection so the question renders cleanly with the
    * persisted answer ready to be re-edited.
+   *
+   * A-7 (採用要素 #3): wrap the React state update in
+   * `document.startViewTransition` so the Coach bubble + zone 3 chip
+   * cross-fade with the browser's native View Transitions API. The
+   * page-level `@view-transition { navigation: auto }` rule already
+   * unlocks the API for this document (ADR-0007); calling
+   * startViewTransition imperatively here gives us the same morph on
+   * a same-page state change. If the browser does not support the
+   * API, or the user prefers reduced motion, we fall back to the
+   * plain state update so the rewind still works.
    */
   function rewindToStep(targetIndex: number) {
     if (targetIndex >= step || targetIndex < 0) return;
-    setSelectedPills([]);
-    setGuestCount("");
-    setOtherAreaText("");
-    setStep(targetIndex);
+    const apply = () => {
+      setSelectedPills([]);
+      setGuestCount("");
+      setOtherAreaText("");
+      setStep(targetIndex);
+    };
+    const doc = typeof document !== "undefined" ? document : null;
+    const startVT = doc as (Document & { startViewTransition?: (cb: () => void) => unknown }) | null;
+    if (!prefersReduced && startVT && typeof startVT.startViewTransition === "function") {
+      startVT.startViewTransition(apply);
+      return;
+    }
+    apply();
+  }
+
+  /**
+   * A-7 (採用要素 #1): fire a 250ms gold-check pulse on the just-
+   * completed step. The pulse is rendered as a small pill anchored
+   * to the Coach bubble; it cleans itself up via setTimeout so we
+   * don't carry a "stuck pulse" if the user advances rapidly.
+   * Reduced-motion users get no pulse — the function returns
+   * immediately. Re-firing on the same step (rare; only happens if
+   * a couple taps 次へ twice within 250ms) is harmless: setTimeout
+   * resets the same state.
+   */
+  function triggerStepPulse(stepIndex: number) {
+    if (prefersReduced) return;
+    setPulseStep(stepIndex);
+    setTimeout(() => {
+      setPulseStep((cur) => (cur === stepIndex ? null : cur));
+    }, 250);
   }
 
   /**
@@ -315,6 +370,7 @@ export function OnboardingFlow() {
     setOtherAreaText("");
 
     if (step < QUESTIONS.length - 1) {
+      triggerStepPulse(step);
       setStep(step + 1);
     } else {
       // Build final answers inline to avoid stale closure over `answers`
@@ -385,6 +441,7 @@ export function OnboardingFlow() {
     setOtherAreaText("");
 
     if (step < QUESTIONS.length - 1) {
+      triggerStepPulse(step);
       setStep(step + 1);
     } else {
       // On the final step, include the current-step selection in the saved
@@ -710,7 +767,7 @@ export function OnboardingFlow() {
               <span aria-hidden="true" className="opacity-30">/</span>
               <span>{QUESTIONS.length}</span>
               <span aria-hidden="true" className="px-1 opacity-30">·</span>
-              <span className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[0.02em] text-foreground">
+              <span className="text-sm font-light tracking-[0.02em] text-foreground">
                 {stepLabel}
               </span>
             </p>
@@ -747,7 +804,7 @@ export function OnboardingFlow() {
         >
           <div className="flex gap-3">
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
               style={{
                 background: "var(--gold-subtle)",
                 boxShadow: "0 1px 4px color-mix(in oklab, var(--gold-warm) 22%, transparent)",
@@ -755,6 +812,31 @@ export function OnboardingFlow() {
               aria-hidden="true"
             >
               <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
+              {/* A-7 (採用要素 #1): step-confirmed gold check pop. The
+                  pulse fires for ~250ms when the just-completed step
+                  was the previous index — the bubble that was on
+                  screen when the couple tapped 次へ. Uses framer-motion
+                  with a spring so the pop reads as a real haptic
+                  acknowledgement rather than a fade. The reduced-motion
+                  branch is handled in triggerStepPulse (it never sets
+                  pulseStep so this block is omitted entirely). */}
+              {pulseStep !== null && pulseStep === step - 1 && (
+                <motion.div
+                  key={`pulse-${pulseStep}`}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 360, damping: 18 }}
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full text-white"
+                  style={{
+                    background: "var(--gold-warm)",
+                    boxShadow:
+                      "0 2px 6px color-mix(in oklab, var(--gold-warm) 38%, transparent)",
+                  }}
+                >
+                  <Check className="h-3 w-3" strokeWidth={2.6} />
+                </motion.div>
+              )}
             </div>
             <div className="flex-1 space-y-2">
               <p className="text-eyebrow tracking-[0.2em] text-[var(--gold-warm)]">
@@ -780,10 +862,20 @@ export function OnboardingFlow() {
                     borderBottom: "1px solid color-mix(in oklab, var(--gold-warm) 16%, transparent)",
                   }}
                 />
-                <p className="font-[family-name:var(--font-display)] text-[18px] font-light leading-[1.5] tracking-[-0.005em] text-foreground">
+                {/* A-7 (採用要素 #2): Coach 2-fragment welcome.
+                    Only steps 1 and 4 carry a welcome line — step 1
+                    frames the whole flow, step 4 acknowledges the home
+                    stretch. Mid-flow steps stay single-fragment so the
+                    Coach doesn't read as over-narrating every turn. */}
+                {currentQ.welcome && (
+                  <p className="mb-2 text-eyebrow text-[var(--gold-warm)]">
+                    {currentQ.welcome}
+                  </p>
+                )}
+                <p className="text-h3 font-light leading-[1.5] tracking-[-0.005em] text-foreground">
                   {currentQ.question}
                 </p>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-meta leading-relaxed text-muted-foreground">
                   {currentQ.subtitle}
                 </p>
               </div>
@@ -829,7 +921,7 @@ export function OnboardingFlow() {
                 placeholder="例: 仙台、大阪、福岡 …"
                 aria-label="その他のエリアを書く"
                 maxLength={40}
-                className="h-11 text-[14px]"
+                className="h-11 text-sm"
               />
             </div>
           )}
@@ -845,9 +937,9 @@ export function OnboardingFlow() {
                 onChange={(e) => setGuestCount(e.target.value)}
                 placeholder="例: 80"
                 aria-label="ゲストの想定人数"
-                className="h-12 max-w-[180px] text-center text-[18px] tabular-nums"
+                className="h-12 max-w-[180px] text-center text-lg tabular-nums"
               />
-              <p className="text-[12px] text-muted-foreground">名</p>
+              <p className="text-xs text-muted-foreground">名</p>
             </div>
           )}
 
@@ -855,7 +947,7 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={handleSkip}
-              className="inline-flex min-h-11 items-center px-2 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              className="inline-flex min-h-11 items-center px-2 text-meta text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
               スキップ
             </button>
@@ -920,15 +1012,15 @@ export function OnboardingFlow() {
                       className="h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-[var(--gold-warm)]"
                       strokeWidth={1.5}
                     />
-                    <span className="text-[12px] tabular-nums text-muted-foreground">
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       Step {i + 1}
                     </span>
-                    <span className="text-[12px] text-muted-foreground">·</span>
-                    <span className="font-[family-name:var(--font-display)] text-[13px] font-light tracking-[0.02em] text-foreground/80">
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-meta font-light tracking-[0.02em] text-foreground/80">
                       {STEP_LABELS[i]}
                     </span>
-                    <span className="text-[12px] text-muted-foreground/50">·</span>
-                    <span className="flex-1 truncate text-[13px] text-foreground">
+                    <span className="text-xs text-muted-foreground/50">·</span>
+                    <span className="flex-1 truncate text-meta text-foreground">
                       {summary}
                     </span>
                   </button>
