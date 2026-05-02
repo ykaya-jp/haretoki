@@ -79,6 +79,16 @@ export async function cachedAskClaude(opts: {
   promptVersion: string | number;
   /** Optional retry behavior. Defaults to 3 attempts (matches askClaude). */
   retry?: boolean;
+  /**
+   * Round 22: per-call upstream timeout in ms. Pass-through to askClaude
+   * — same semantics as askClaude({timeoutMs}). Use this for callers
+   * that previously wrapped cachedAskClaude in their own Promise.race
+   * (onboarding recommendations is the canonical example: it raced a
+   * 20s timer against the Claude call so the page wouldn't hang).
+   * Returns null when the timeout fires (the same way an unrecoverable
+   * 5xx returns null), so the caller's null-handling path covers both.
+   */
+  timeoutMs?: number;
 }): Promise<string | null> {
   const model = opts.model ?? MODEL.HAIKU;
   const hash = computeInputHash(
@@ -100,6 +110,7 @@ export async function cachedAskClaude(opts: {
       userMessage: opts.userMessage,
       model,
       maxTokens: opts.maxTokens,
+      timeoutMs: opts.timeoutMs,
     });
 
   let response: string;

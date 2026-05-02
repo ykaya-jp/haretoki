@@ -6,13 +6,8 @@ import { prisma } from "@/server/db";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { getOrCreateProject } from "@/server/actions/projects";
-import {
-  isClaudeAvailable,
-  askClaude,
-  withRetry,
-  computeInputHash,
-} from "@/lib/anthropic";
-import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
+import { isClaudeAvailable } from "@/lib/anthropic";
+import { cachedAskClaude } from "@/lib/ai-cache";
 import { MODEL } from "@/lib/models";
 
 // Bump when ONBOARDING_RECOMMENDATION_PROMPT semantics change so post-
@@ -226,67 +221,46 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
     const userMessage =
       ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote;
 
-    // Cache lookup: same conditions + same exclusion list → same Claude
-    // recommendation. Conditions rarely change between the onboarding
-    // landing → first explore round-trip, so this is the highest-leverage
-    // cache surface in the onboarding flow.
-    const cacheHash = computeInputHash(
-      JSON.stringify({
-        system: ONBOARDING_RECOMMENDATION_PROMPT.system,
-        user: userMessage,
-        model: MODEL.HAIKU,
-        version: ONBOARDING_REC_PROMPT_VERSION,
-      }),
-    );
-    const cachedRec = await getCachedResponse(cacheHash);
-    if (cachedRec) {
-      try {
-        const parsed = JSON.parse(
-          cachedRec.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim(),
-        );
-        if (parsed?.recommendations && Array.isArray(parsed.recommendations)) {
-          return parsed;
-        }
-      } catch {
-        // Fall through and regenerate — a corrupt cache row shouldn't break
-        // the user-facing call.
-      }
-    }
+    // Round 22: switched from the inline computeInputHash + getCachedResponse
+    // + Promise.race(withRetry(askClaude), 20s timer) + setCachedResponse
+    // construction to the unified cachedAskClaude wrapper — closing the
+    // last 1/3 hole in the cache-call-shape audit (review-summary +
+    // url-extraction migrated in round 15; onboarding was held back
+    // because the wrapper didn't yet support the 20s race timeout).
+    //
+    // The new `timeoutMs` option threads through to askClaude, which uses
+    // the same AbortController-based abort cachedAskClaude already owned
+    // for the non-onboarding paths. Hash recipe is now uniform across all
+    // three cached prompts: { system, user, model, version, maxTokens }.
+    //
+    // Cache eviction note: maxTokens is now part of the hash, so existing
+    // AiCache rows for onboarding are MISS under the new key — Claude
+    // call volume bumps for ~24h then settles. Same one-time cost the
+    // round 15 cache refactors paid; acceptable for the contract uniformity.
+    const response = await cachedAskClaude({
+      system: ONBOARDING_RECOMMENDATION_PROMPT.system,
+      userMessage,
+      model: MODEL.HAIKU,
+      promptVersion: ONBOARDING_REC_PROMPT_VERSION,
+      timeoutMs: 20_000,
+    });
 
-    // 20s hard timeout so a hung API call doesn't block the page indefinitely.
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Claude request timed out after 20s")), 20_000),
-    );
-
-    let response: string;
-    try {
-      response = await Promise.race([
-        withRetry(() =>
-          askClaude({
-            system: ONBOARDING_RECOMMENDATION_PROMPT.system,
-            userMessage,
-          }),
-        ),
-        timeoutPromise,
-      ]);
-    } catch (apiError) {
-      // Log credit/billing and other API errors so they're diagnosable without
-      // surfacing the raw error to the user.
-      if (apiError instanceof Error) {
-        const msg = apiError.message;
-        if (msg.includes("credit") || msg.includes("billing") || msg.includes("402")) {
-          console.error("[fetchClaudeRecommendations] Billing/credit error:", msg);
-        } else if (msg.includes("timed out")) {
-          console.warn("[fetchClaudeRecommendations] Request timed out");
-        } else {
-          console.error("[fetchClaudeRecommendations] API error:", msg);
-        }
-      }
+    if (response === null) {
+      // cachedAskClaude returns null on retry exhaustion / timeout / Claude
+      // unavailable. The old inline path logged credit / billing / timeout
+      // distinctively; we lose the per-class log here but the same
+      // information flows through to Sentry via askClaude's structured
+      // error path + the daily ai-cost-summary cron. Net win on
+      // maintainability.
+      console.warn("[fetchClaudeRecommendations] cachedAskClaude returned null");
       return null;
     }
 
     // Strip markdown code fences in case Claude wraps the JSON.
-    const cleaned = response.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+    const cleaned = response
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/, "")
+      .trim();
 
     let result;
     try {
@@ -296,13 +270,12 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       return null;
     }
     if (!result.recommendations || !Array.isArray(result.recommendations)) {
-      console.warn("[fetchClaudeRecommendations] Unexpected response shape:", Object.keys(result ?? {}));
+      console.warn(
+        "[fetchClaudeRecommendations] Unexpected response shape:",
+        Object.keys(result ?? {}),
+      );
       return null;
     }
-    // Persist the raw response (not the parsed object) so future cache hits
-    // re-run the same JSON.parse + validation path — keeps every code path
-    // consistent and avoids serialising parsed objects we don't need to.
-    await setCachedResponse(cacheHash, response, MODEL.HAIKU);
     return result;
   } catch (err) {
     console.error("[fetchClaudeRecommendations] Unexpected error:", err);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
 import { captureError } from "@/lib/sentry";
@@ -185,9 +186,10 @@ async function handle(request: Request) {
   const startedAt = Date.now();
   const dailyMs = 24 * 60 * 60 * 1000;
   const monthlyMs = 30 * dailyMs;
-  const [daily, monthly] = await Promise.all([
+  const [daily, monthly, tierStats] = await Promise.all([
     buildSummary(dailyMs),
     buildSummary(monthlyMs),
+    buildTierStats(dailyMs),
   ]);
 
   const alert = evaluateBudgetAlert({
@@ -215,6 +217,11 @@ async function handle(request: Request) {
         monthlyBudgetUsd: alert.monthly.budgetUsd,
         dailyByBucket: daily.byBucket,
         shouldAlert: alert.shouldAlert,
+        // Prisma's Json column rejects literal null; use Prisma.JsonNull
+        // so the column's nullable storage gets a real SQL NULL on quiet
+        // days (vs the JSON value `"null"`, which would silently parse
+        // as a non-null object on read).
+        tierStats: tierStats ?? Prisma.JsonNull,
       },
       create: {
         snapshotDate,
@@ -224,6 +231,7 @@ async function handle(request: Request) {
         monthlyBudgetUsd: alert.monthly.budgetUsd,
         dailyByBucket: daily.byBucket,
         shouldAlert: alert.shouldAlert,
+        tierStats: tierStats ?? Prisma.JsonNull,
       },
     });
   } catch (err) {
@@ -241,5 +249,73 @@ async function handle(request: Request) {
     daily,
     monthly,
     alert,
+    tierStats,
   });
+}
+
+/**
+ * Round 22: per-action tier hit-rate snapshot.
+ *
+ * Today only the estimate-pdf path emits tier metadata via
+ * `event:"estimate_extract_tier"`. Until log-drain parsing wires that
+ * directly, we approximate from durable DB rows:
+ *
+ *   calls       = COUNT(Estimate where sourceType="ai_extracted" in window)
+ *   cacheWrites = COUNT(AiCache where model="claude-sonnet-4-6" in window)
+ *   cacheHits   = max(0, calls - cacheWrites)
+ *   hitRate     = cacheHits / calls (rounded to 1 decimal)
+ *
+ * Limitation: signed-URL fallback (round 14's tier=signed-url) ALSO
+ * writes to AiCache (the buffer hash recipe is the same), so this
+ * count cannot split files-api vs signed-url. Once a Vercel log drain
+ * is wired the structured event emits the real tier and we can replace
+ * the recipe below with a precise per-tier count. Until then, the
+ * dashboard renders a 2-bucket cache/non-cache split with a clear note
+ * about the approximation.
+ *
+ * Returns null when both counts are zero (the snapshot column tolerates
+ * null cleanly, and rendering "(no data)" is more honest than 0%
+ * for a quiet day).
+ */
+async function buildTierStats(
+  windowMs: number,
+): Promise<Prisma.InputJsonObject | null> {
+  const end = new Date();
+  const start = new Date(end.getTime() - windowMs);
+
+  const [estimateCalls, sonnetCacheWrites] = await Promise.all([
+    prisma.estimate
+      .count({
+        where: {
+          createdAt: { gte: start, lte: end },
+          sourceType: "ai_extracted",
+        },
+      })
+      .catch(() => 0),
+    prisma.aiCache
+      .count({
+        where: {
+          createdAt: { gte: start, lte: end },
+          model: "claude-sonnet-4-6",
+        },
+      })
+      .catch(() => 0),
+  ]);
+
+  if (estimateCalls === 0 && sonnetCacheWrites === 0) return null;
+
+  const cacheHits = Math.max(0, estimateCalls - sonnetCacheWrites);
+  const hitRate =
+    estimateCalls > 0
+      ? Number(((cacheHits / estimateCalls) * 100).toFixed(1))
+      : 0;
+
+  return {
+    "estimate-pdf": {
+      calls: estimateCalls,
+      cacheHits,
+      cacheWrites: sonnetCacheWrites,
+      hitRate,
+    },
+  };
 }
