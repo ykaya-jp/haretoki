@@ -39,6 +39,11 @@ export default function robots(): MetadataRoute.Robots {
           "/settings",
           "/callback",
           "/monitoring",
+          // Operator-only dashboards (cost, audit, ...). Each page also
+          // sets `robots: { index: false }` per-page metadata + 404s
+          // non-admins via requireAdmin(); this disallow is the third
+          // locked door.
+          "/admin",
         ],
       },
     ],

@@ -2,10 +2,31 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { VenueImage } from "@/components/ui/venue-image";
 import { Heart, BarChart3, Shield, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { DemoSequence } from "./demo-sequence";
+
+// DemoSequence is the animated phone mockup that lives mid-page (after the
+// hero, problem statement, and stats). It pulls in framer-motion's
+// AnimatePresence + 4 sequential animation states + 8 lucide icons + a
+// 5-second loop interval — none of which is needed for the LCP-critical
+// hero. Lazy-loading it through next/dynamic keeps the landing's first
+// chunk smaller and defers the cost until the section actually scrolls
+// into view (whileInView triggers shortly before render). ssr: false so
+// the loop's setInterval never runs at SSR time.
+const DemoSequence = dynamic(
+  () => import("./demo-sequence").then((m) => ({ default: m.DemoSequence })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-hidden="true"
+        className="mx-auto aspect-[9/16] w-full max-w-[280px] animate-pulse rounded-3xl bg-muted/40"
+      />
+    ),
+  },
+);
 
 const STATS = [
   {
