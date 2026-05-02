@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+// Link / framer-motion previously used by the inline step === -1 hero —
+// moved into OnboardingHero as part of A-3. Re-add here when a downstream
+// task needs them in the question / recommendations flow again.
 import { PillOptions } from "@/components/ui/pill-options";
 import { SkyChip } from "@/components/home/sky-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/actions/onboarding";
 import { recommendVenuesFromConditions, type DbVenueRecommendation } from "@/server/actions/onboarding-recs";
-import { updateDisplayName } from "@/server/actions/profile";
 import { createVenue } from "@/server/actions/venues";
+import { OnboardingHero } from "@/components/onboarding/onboarding-hero";
 import { Loader2, Sparkles, Plus, MapPin } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -92,7 +93,9 @@ export function OnboardingFlow() {
   const [step, setStep] = useState(() =>
     Object.keys(answers).length > 0 ? 0 : -1,
   );
-  const [displayName, setDisplayName] = useState("");
+  // Round 17 (A-3): displayName + updateDisplayName moved into
+  // OnboardingHero — the gateway screen owns name capture so the
+  // question flow state stays focused on the 4 conditions.
   const [selectedPills, setSelectedPills] = useState<string[]>([]);
   const [guestCount, setGuestCount] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
@@ -512,88 +515,11 @@ export function OnboardingFlow() {
     );
   }
 
+  // Round 17 (A-3): Hero gateway delegated to OnboardingHero. Onboarding
+  // name capture + sky gradient + serif title + dual CTA all live in the
+  // hero component; advancing the flow is a single onStart callback.
   if (step === -1) {
-    const introSteps = [
-      "お好みを4問だけ、そっと伺います",
-      "おふたりに合う式場を、AI がいくつかご提案します",
-      "気になった場所は、このアプリで比べながら選べます",
-    ];
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center gap-10 px-4 py-10 text-center"
-      >
-        <div className="space-y-5">
-          <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
-            Haretoki
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-light leading-snug tracking-[-0.005em] text-foreground">
-            晴れの日を、ふたりで描きはじめる。
-          </h1>
-        </div>
-
-        <ol className="w-full space-y-4 text-left">
-          {introSteps.map((text, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span
-                aria-hidden
-                className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[var(--gold-subtle)] text-xs font-medium tabular-nums text-[var(--gold-warm)]"
-              >
-                {i + 1}
-              </span>
-              <span className="pt-0.5 text-sm font-medium leading-relaxed text-foreground/80">
-                {text}
-              </span>
-            </li>
-          ))}
-        </ol>
-
-        <div className="w-full space-y-2 text-left">
-          <label
-            htmlFor="display-name"
-            className="text-eyebrow text-muted-foreground"
-          >
-            お名前 (任意)
-          </label>
-          <Input
-            id="display-name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="例: ゆうすけ"
-            maxLength={50}
-            className="h-11"
-          />
-          <p className="text-xs text-muted-foreground">
-            ホームや見学メモで呼びかけに使わせていただきます。あとで変更できます。
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col items-center gap-4">
-          <Button
-            onClick={async () => {
-              const trimmed = displayName.trim();
-              if (trimmed) {
-                // Fire and forget — フォールバック的に "(未設定)" を避けるための best-effort
-                updateDisplayName(trimmed).catch(() => {});
-              }
-              setStep(0);
-            }}
-            className="h-11 min-h-11 w-full rounded-full"
-          >
-            はじめる
-          </Button>
-          <Link
-            href="/explore?addVenue=1"
-            prefetch={true}
-            className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline"
-          >
-            スキップして式場を追加
-          </Link>
-        </div>
-      </motion.div>
-    );
+    return <OnboardingHero onStart={() => setStep(0)} />;
   }
 
   const moods = ["cloudy", "break", "clear", "sunny"] as const;
