@@ -58,7 +58,11 @@ export type AuditAction =
   | "cron.email-suppression-retry.failed"
   | "cron.ai-cost-summary.snapshot-failed"
   | "webhook.resend.suppression-applied"
-  | "system.secret-rotated";
+  | "system.secret-rotated"
+  /** Track C-1 family read-only invitation lifecycle. */
+  | "family.invitation.created"
+  | "family.invitation.viewed"
+  | "family.invitation.revoked";
 
 export type AuditActorRole = "user" | "admin" | "system" | "cron" | "webhook";
 

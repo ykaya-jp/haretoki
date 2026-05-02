@@ -10,6 +10,8 @@ const PUBLIC_PATHS = [
   "/accept-invite",
   "/demo",
   "/invite",
+  /** Track C-1: family read-only invitation landing — no auth required. */
+  "/family",
   "/privacy",
   "/terms",
 ] as const;

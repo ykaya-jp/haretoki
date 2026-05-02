@@ -153,19 +153,21 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  projectMembers         ProjectMember[]
-  visitRatings           VisitRating[]
-  visitNotes             VisitNote[]
-  favorites              VenueFavorite[]
-  notificationPreference NotificationPreference?
-  notifications          Notification[]
-  createdInvitations     ProjectInvitation[]     @relation("ProjectInvitationCreator")
-  consumedInvitations    ProjectInvitation[]     @relation("ProjectInvitationConsumer")
-  agreements             CoupleAgreement[]
-  savedSearches          SavedSearch[]
-  decisionTodosCompleted DecisionTodo[]          @relation("decision_todo_completer")
-  pushSubscriptions      PushSubscription[]
-  visitRemindersSent     VisitReminderSent[]
+  projectMembers           ProjectMember[]
+  visitRatings             VisitRating[]
+  visitNotes               VisitNote[]
+  favorites                VenueFavorite[]
+  notificationPreference   NotificationPreference?
+  notifications            Notification[]
+  createdInvitations       ProjectInvitation[]     @relation("ProjectInvitationCreator")
+  consumedInvitations      ProjectInvitation[]     @relation("ProjectInvitationConsumer")
+  agreements               CoupleAgreement[]
+  savedSearches            SavedSearch[]
+  decisionTodosCompleted   DecisionTodo[]          @relation("decision_todo_completer")
+  pushSubscriptions        PushSubscription[]
+  visitRemindersSent       VisitReminderSent[]
+  familyInvitationsCreated FamilyInvitation[]      @relation("FamilyInvitationCreator")
+  familyInvitationsRevoked FamilyInvitation[]      @relation("FamilyInvitationRevoker")
 
   @@map("users")
 }
@@ -182,20 +184,21 @@ model Project {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  members          ProjectMember[]
-  venues           Venue[]
-  estimates        Estimate[]
-  analyses         AiAnalysis[]
-  decisions        Decision[]
-  partnerReactions PartnerReaction[]
-  coachMessages    CoachMessage[]
-  coachSessions    CoachSession[]
-  checklists       ProjectChecklist[]
-  rituals          DailyRitual[]
-  invitations      ProjectInvitation[]
-  agreements       CoupleAgreement[]
-  savedSearches    SavedSearch[]
-  decisionTodos    DecisionTodo[]
+  members           ProjectMember[]
+  venues            Venue[]
+  estimates         Estimate[]
+  analyses          AiAnalysis[]
+  decisions         Decision[]
+  partnerReactions  PartnerReaction[]
+  coachMessages     CoachMessage[]
+  coachSessions     CoachSession[]
+  checklists        ProjectChecklist[]
+  rituals           DailyRitual[]
+  invitations       ProjectInvitation[]
+  agreements        CoupleAgreement[]
+  savedSearches     SavedSearch[]
+  decisionTodos     DecisionTodo[]
+  familyInvitations FamilyInvitation[]
 
   @@map("projects")
 }
@@ -870,6 +873,58 @@ model VisitReminderSent {
   /// Foreign-key driven cleanup when a Visit is hard-deleted.
   @@index([visitId])
   @@map("visit_reminder_sent")
+}
+
+/// Track C-1 family read-only share link.
+///
+/// Public token grants ANY visitor (no auth) read-only access to a
+/// project's Decision view. To bound the blast radius:
+///   - 32-byte crypto-random token (256 bits, hex-encoded → 64 chars).
+///     Brute force is not feasible; URL leak is the realistic threat.
+///   - `expiresAt` defaults to 30 days from creation; the dispatcher
+///     rejects past-dated rows so a leaked URL has a hard ceiling.
+///   - `revokedAt` lets the owner kill a link instantly without waiting
+///     for natural expiry. Public route checks both gates.
+///   - At most one *active* (unrevoked + unexpired) link per project at
+///     a time — issuing a new one revokes any prior live link to keep
+///     the surface attackers can probe minimal.
+///
+/// Audit:
+///   - `family.invitation.created` on issue
+///   - `family.invitation.viewed`  on each consume (rate-limited per IP)
+///   - `family.invitation.revoked` on owner revoke
+///
+/// Telemetry:
+///   - `viewCount` is a per-link rolling counter for the owner UI.
+///   - `lastViewedAt` shows "最後にXさんが見ました" affordance.
+///   - `lastViewedIpHash` (sha256-first-16 of redacted /24) lets the
+///     owner spot "誰かが共有した URL を別の人が叩いている" without
+///     storing raw IPs.
+model FamilyInvitation {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId        String    @map("project_id") @db.Uuid
+  /// 64-char hex string (32 bytes). Unique = lookup index for /family/[token].
+  token            String    @unique
+  createdBy        String    @map("created_by") @db.Uuid
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  revokedBy        String?   @map("revoked_by") @db.Uuid
+  viewCount        Int       @default(0) @map("view_count")
+  lastViewedAt     DateTime? @map("last_viewed_at")
+  /// sha256(redactedIp).slice(0,16). Owner-facing UI only — never echoed
+  /// to the public route. Null until the first successful view.
+  lastViewedIpHash String?   @map("last_viewed_ip_hash")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User    @relation("FamilyInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  revoker User?   @relation("FamilyInvitationRevoker", fields: [revokedBy], references: [id])
+
+  /// Owner-facing list — "this project's links, newest first".
+  @@index([projectId, createdAt])
+  /// Retention sweep — purge expired+revoked links older than horizon.
+  @@index([expiresAt])
+  @@map("family_invitations")
 }
 
 model NotificationPreference {
