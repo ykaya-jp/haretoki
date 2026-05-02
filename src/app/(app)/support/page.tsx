@@ -180,6 +180,11 @@ export default async function SupportPage() {
       </section>
 
       <p className="text-[12px] text-muted-foreground">
+        まずは{" "}
+        <Link href="/help" className="text-[var(--gold-warm)] underline">
+          ヘルプセンター
+        </Link>
+        {" "}でお探しの内容が見つかるかもしれません。
         個人情報の取り扱いについては{" "}
         <Link href="/privacy" className="text-[var(--gold-warm)] underline">
           プライバシーポリシー

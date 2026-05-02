@@ -19,7 +19,7 @@ export default function TermsPage() {
         利用規約
       </h1>
       <p className="mt-1 text-[12px] text-muted-foreground">
-        最終更新: 2026 年 5 月 2 日
+        最終更新: 2026 年 5 月 3 日
       </p>
 
       <div className="prose prose-sm mt-8 max-w-none text-[14px] leading-[1.9] text-foreground dark:prose-invert">
@@ -73,7 +73,16 @@ export default function TermsPage() {
         </ul>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          5. 免責事項
+          5. 利用料金
+        </h2>
+        <p>
+          現在、本サービスは無料でお使いいただけます。クレジットカード等の登録は不要です。
+          将来、有料プランをご用意する場合は、ログイン後の画面で事前にお知らせし、
+          ご同意いただいた方のみが対象となります。既存の無料機能は引き続き無料でお使いいただける形を検討しています。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          6. 免責事項
         </h2>
         <p>
           本サービスの利用により生じた損害について、運営者は故意または重大な過失がある場合を除き、
@@ -82,7 +91,7 @@ export default function TermsPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          6. 退会とアカウントの削除
+          7. 退会とアカウントの削除
         </h2>
         <p>
           いつでも、ご自身の判断で本サービスを退会できます。
@@ -98,7 +107,7 @@ export default function TermsPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          7. 規約の変更
+          8. 規約の変更
         </h2>
         <p>
           本規約は、サービスの改善や法令改正に応じて変更されることがあります。
@@ -107,16 +116,41 @@ export default function TermsPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          8. 準拠法
+          9. 未成年の方の利用
+        </h2>
+        <p>
+          結婚式場さがしというサービスの性質上、本サービスは原則として満 18 歳以上の方を対象としています。
+          18 歳未満の方が本サービスを利用される場合は、保護者の同意のもとでご利用ください。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          10. サービスの停止・終了
+        </h2>
+        <p>
+          運営者は、システムメンテナンス、障害対応、その他やむを得ない事情により、
+          本サービスの提供を一時停止または終了する場合があります。終了の場合は、
+          可能な限り事前にお知らせし、おふたりの記録をダウンロードできる期間を設けます。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          11. 準拠法・管轄
         </h2>
         <p>本規約は日本法に準拠し、東京地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
 
-        <p className="mt-12 text-[12px] text-muted-foreground">
-          ご質問・ご指摘は{" "}
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          12. 運営者・お問い合わせ
+        </h2>
+        <p>
+          本サービスの運営者については、launch 前に正式な事業者表記を本セクションに掲載します。
+          現時点でのお問い合わせは{" "}
           <Link href="/support" className="text-[var(--gold-warm)] underline">
             サポート窓口
           </Link>
-          {" "}からお寄せください。
+          {" "}からお寄せください。プライバシーに関するお問い合わせは{" "}
+          <Link href="/privacy" className="text-[var(--gold-warm)] underline">
+            プライバシーポリシー
+          </Link>
+          {" "}の「個人情報取扱事業者」セクションも併せてご確認ください。
         </p>
       </div>
     </article>

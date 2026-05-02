@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         プライバシーポリシー
       </h1>
       <p className="mt-1 text-[12px] text-muted-foreground">
-        最終更新: 2026 年 5 月 2 日
+        最終更新: 2026 年 5 月 3 日
       </p>
 
       <div className="prose prose-sm mt-8 max-w-none text-[14px] leading-[1.9] text-foreground dark:prose-invert">
@@ -133,7 +133,67 @@ export default function PrivacyPage() {
         </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
-          7. お問い合わせ
+          7. 海外への移転
+        </h2>
+        <p>
+          本サービスが利用する一部の事業者のサーバーは日本国外に所在しています。
+          おふたりの情報は、サービス提供に必要な範囲で日本国外（米国・EU 等）の
+          サーバーで処理される場合があります。具体的な事業者と所在地は次のとおりです。
+        </p>
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <strong>Supabase</strong>（米国）— アカウント認証、データベース、
+            ファイルストレージ、リアルタイム同期。本サービスのデータ本体が保存される
+            主要事業者。
+          </li>
+          <li>
+            <strong>Vercel</strong>（米国）— 本サービスのホスティング、
+            アクセスログ、パフォーマンス計測。
+          </li>
+          <li>
+            <strong>Anthropic</strong>（米国）— AI 機能（コーチ会話、見積もり分析、
+            口コミ要約）の処理。送信前に個人を特定しうる文字列はサーバー側で除去します。
+          </li>
+          <li>
+            <strong>Resend</strong>（米国）— メール配信（パートナー招待、
+            お問い合わせ自動応答）。
+          </li>
+          <li>
+            <strong>PostHog</strong>（EU）— 匿名アクセスログによるサービス改善分析。
+          </li>
+          <li>
+            <strong>Sentry</strong>（米国）— クラッシュレポート（不具合の記録）。
+          </li>
+        </ul>
+        <p>
+          いずれも、各社のプライバシーポリシーおよび GDPR / 個人情報保護法相当の枠組みに
+          基づいて運用されています。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          8. 未成年の方の情報の取扱い
+        </h2>
+        <p>
+          本サービスは原則として満 18 歳以上の方を対象としています。18 歳未満の方が
+          ご利用される場合は、保護者の同意のもとでご利用ください。18 歳未満であることが
+          判明した場合、保護者の方からのご請求により、おふたりの情報を速やかに削除します。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          9. 個人情報取扱事業者
+        </h2>
+        <p>
+          本サービスの運営者および個人情報取扱事業者の正式表記は、launch 前に本セクションに
+          掲載します。それまでの間、個人情報の開示・訂正・利用停止・削除のご請求は{" "}
+          <Link href="/support" className="text-[var(--gold-warm)] underline">
+            サポート窓口
+          </Link>
+          {" "}でお受けします。ご本人確認のため、ご請求時に登録メールアドレスからの
+          ご連絡をお願いいたします。
+        </p>
+
+        <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
+          10. お問い合わせ
         </h2>
         <p>
           プライバシーや個人情報に関するお問い合わせは、{" "}
@@ -141,6 +201,11 @@ export default function PrivacyPage() {
             サポート窓口
           </Link>
           {" "}からお寄せください。通常 3 営業日以内にお返事します。
+          よくあるご質問は{" "}
+          <Link href="/help" className="text-[var(--gold-warm)] underline">
+            ヘルプセンター
+          </Link>
+          {" "}にもまとめています。
         </p>
 
         <p className="mt-12 text-[12px] text-muted-foreground">
