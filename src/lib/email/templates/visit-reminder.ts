@@ -46,6 +46,14 @@ const PHASE_COPY: Record<
     lead: "今日が見学日です。\n会場までの行き方と、見ておきたいポイントを最後に確認しましょう。",
     cta: "チェックリストを開く",
   },
+  // Track B-2: post-visit memo nudge sent JST 22:00. Copy mirrors the
+  // toast surfaced by `completeVisit` so the user recognises the
+  // affordance whether they tap the toast or the email.
+  way_home: {
+    subject: (venue) => `${venue} の見学、お疲れさまでした（Haretoki）`,
+    lead: "印象が新しいうちに、おふたりの見学メモを残しておきませんか。\n帰り道のメモが、あとで比べるときの灯りになります。",
+    cta: "メモを残す",
+  },
 };
 
 /**

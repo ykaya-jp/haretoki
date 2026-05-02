@@ -53,7 +53,13 @@ export type LogEventName =
   /** Daily soft-bounce email re-enable cron summary. */
   | "email_suppression_retry"
   /** Daily AiCostSnapshot + AuditLog rolling deletion summary. */
-  | "data_retention_sweep";
+  | "data_retention_sweep"
+  /**
+   * Track B-2: per-user push fan-out abort signal (currently only
+   * `vapid-missing`, logged once per user per cron tick — operator
+   * misconfig surface).
+   */
+  | "push_send_skipped";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */

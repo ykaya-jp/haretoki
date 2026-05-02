@@ -84,6 +84,7 @@ async function handle(request: Request) {
 
   let snapshotsDeleted = 0;
   let auditDeleted = 0;
+  let visitReminderSentDeleted = 0;
 
   try {
     const snapResult = await prisma.aiCostSnapshot.deleteMany({
@@ -114,6 +115,23 @@ async function handle(request: Request) {
     });
   }
 
+  // Track B-2: prune dedupe rows older than the cutoff. The visit-reminder
+  // dispatcher only consults rows for upcoming/today visits, so anything
+  // older than DATA_RETENTION_DAYS will never be looked up again. The
+  // (sent_at) index on visit_reminder_sent makes this a fast range scan.
+  try {
+    const visitReminderResult = await prisma.visitReminderSent.deleteMany({
+      where: { sentAt: { lt: cutoff } },
+    });
+    visitReminderSentDeleted = visitReminderResult.count;
+  } catch (err) {
+    captureError(err, {
+      component: "db",
+      alertRoute: "p2-email",
+      extra: { action: "data-retention-sweep:visit-reminder-sent" },
+    });
+  }
+
   const durationMs = Date.now() - start;
   logEvent({
     event: "data_retention_sweep",
@@ -122,6 +140,7 @@ async function handle(request: Request) {
       cutoffIsoDate: cutoff.toISOString(),
       snapshotsDeleted,
       auditDeleted,
+      visitReminderSentDeleted,
       exemptActions: RETENTION_EXEMPT_ACTIONS,
       durationMs,
     },
@@ -133,6 +152,7 @@ async function handle(request: Request) {
     cutoffIsoDate: cutoff.toISOString(),
     snapshotsDeleted,
     auditDeleted,
+    visitReminderSentDeleted,
     durationMs,
   });
 }

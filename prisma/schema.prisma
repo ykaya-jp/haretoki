@@ -159,27 +159,28 @@ model User {
   favorites              VenueFavorite[]
   notificationPreference NotificationPreference?
   notifications          Notification[]
-  createdInvitations     ProjectInvitation[] @relation("ProjectInvitationCreator")
-  consumedInvitations    ProjectInvitation[] @relation("ProjectInvitationConsumer")
+  createdInvitations     ProjectInvitation[]     @relation("ProjectInvitationCreator")
+  consumedInvitations    ProjectInvitation[]     @relation("ProjectInvitationConsumer")
   agreements             CoupleAgreement[]
   savedSearches          SavedSearch[]
-  decisionTodosCompleted DecisionTodo[]     @relation("decision_todo_completer")
+  decisionTodosCompleted DecisionTodo[]          @relation("decision_todo_completer")
   pushSubscriptions      PushSubscription[]
+  visitRemindersSent     VisitReminderSent[]
 
   @@map("users")
 }
 
 model Project {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String
-  conditions  Json?
-  currentStep Int      @default(1) @map("current_step")
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  conditions           Json?
+  currentStep          Int      @default(1) @map("current_step")
   /// F3: cancelDecision 時に控えた直前の selectedVenueId。次の makeDecision
   /// で同一 venue なら todo 完了状態を保ち、別 venue なら reset するための
   /// 比較材料。cancel→make 以外では参照されない。
-  lastCancelledVenueId String? @map("last_cancelled_venue_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  lastCancelledVenueId String?  @map("last_cancelled_venue_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   members          ProjectMember[]
   venues           Venue[]
@@ -201,17 +202,17 @@ model Project {
 
 /// E-1 Weather Ritual: 朝/夕に Claude が生成する 1 文。日次キャッシュ。
 model DailyRitual {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId  String   @map("project_id") @db.Uuid
-  date       DateTime @db.Date
-  weather    String   // "cloudy" | "break" | "clear" | "sunny"
-  headline   String   // 明朝 1 文 (20-40 字)
-  mood       String?  // 補足 (60 字)
-  ctaLabel   String?  @map("cta_label")
-  ctaHref    String?  @map("cta_href")
-  seenAt     DateTime? @map("seen_at")
-  actedAt    DateTime? @map("acted_at")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
+  date      DateTime  @db.Date
+  weather   String // "cloudy" | "break" | "clear" | "sunny"
+  headline  String // 明朝 1 文 (20-40 字)
+  mood      String? // 補足 (60 字)
+  ctaLabel  String?   @map("cta_label")
+  ctaHref   String?   @map("cta_href")
+  seenAt    DateTime? @map("seen_at")
+  actedAt   DateTime? @map("acted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -221,17 +222,17 @@ model DailyRitual {
 }
 
 model ProjectMember {
-  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId  String       @map("project_id") @db.Uuid
-  userId     String       @map("user_id") @db.Uuid
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId  String      @map("project_id") @db.Uuid
+  userId     String      @map("user_id") @db.Uuid
   role       ProjectRole
-  invitedAt  DateTime     @default(now()) @map("invited_at")
-  acceptedAt DateTime?    @map("accepted_at")
+  invitedAt  DateTime    @default(now()) @map("invited_at")
+  acceptedAt DateTime?   @map("accepted_at")
   /// W12-1: per-member dimension weights (1-5 integer scale, 3=neutral default).
   /// Stored as Json keyed by Tier1Dimension (see src/lib/constants.ts). NULL =
   /// unset → computeWeighted() treats every dimension as weight 3 (equal),
   /// keeping current non-weighted callers behavior intact for existing rows.
-  weights    Json?        @map("weights")
+  weights    Json?       @map("weights")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -245,23 +246,23 @@ model ProjectMember {
 /// one-time consume 型。リンクを受け取った partner が Google OAuth でログインし、
 /// このトークンを consume すると自動で ProjectMember を作る。
 model ProjectInvitation {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId   String    @map("project_id") @db.Uuid
-  token       String    @unique
-  createdBy   String    @map("created_by") @db.Uuid
-  expiresAt   DateTime  @map("expires_at")
-  consumedAt  DateTime? @map("consumed_at")
-  consumedBy  String?   @map("consumed_by") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  token        String    @unique
+  createdBy    String    @map("created_by") @db.Uuid
+  expiresAt    DateTime  @map("expires_at")
+  consumedAt   DateTime? @map("consumed_at")
+  consumedBy   String?   @map("consumed_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
   // F4: guest view tracking — owner sees "相棒さんが見ました" without
   // the partner needing a full account. Written by the guest route
   // handler at most once per guest session (cookie screenCount gate).
   lastViewedAt DateTime? @map("last_viewed_at")
   viewCount    Int       @default(0) @map("view_count")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator User    @relation("ProjectInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  consumer User?  @relation("ProjectInvitationConsumer", fields: [consumedBy], references: [id])
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator  User    @relation("ProjectInvitationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  consumer User?   @relation("ProjectInvitationConsumer", fields: [consumedBy], references: [id])
 
   @@index([projectId])
   @@index([expiresAt])
@@ -269,34 +270,34 @@ model ProjectInvitation {
 }
 
 model Venue {
-  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId      String      @map("project_id") @db.Uuid
-  name           String
-  location       String?
-  accessInfo     String?     @map("access_info")
-  capacityMin    Int?        @map("capacity_min")
-  capacityMax    Int?        @map("capacity_max")
-  ceremonyStyles String[]    @map("ceremony_styles")
-  sourceUrls     String[]    @map("source_urls")
-  photoUrls      String[]    @default([]) @map("photo_urls")
-  status         VenueStatus @default(researching)
-  costMin        Int?        @map("cost_min")
-  costMax        Int?        @map("cost_max")
-  dressBringIn   DressBringIn? @map("dress_bring_in")
-  dressBringInFee Int?       @map("dress_bring_in_fee")
+  id                        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId                 String          @map("project_id") @db.Uuid
+  name                      String
+  location                  String?
+  accessInfo                String?         @map("access_info")
+  capacityMin               Int?            @map("capacity_min")
+  capacityMax               Int?            @map("capacity_max")
+  ceremonyStyles            String[]        @map("ceremony_styles")
+  sourceUrls                String[]        @map("source_urls")
+  photoUrls                 String[]        @default([]) @map("photo_urls")
+  status                    VenueStatus     @default(researching)
+  costMin                   Int?            @map("cost_min")
+  costMax                   Int?            @map("cost_max")
+  dressBringIn              DressBringIn?   @map("dress_bring_in")
+  dressBringInFee           Int?            @map("dress_bring_in_fee")
   /// @deprecated Free-text legacy column. Retained for data preservation — new
   /// reads/filters should use `paymentMethodEnums`. Left un-dropped so historical
   /// free-text values (e.g. "カード", "分割 12回") remain queryable during the
   /// transition window (R1.5c → R2).
-  paymentMethods     String[]        @default([]) @map("payment_methods")
-  paymentMethodEnums PaymentMethod[] @default([]) @map("payment_method_enums")
+  paymentMethods            String[]        @default([]) @map("payment_methods")
+  paymentMethodEnums        PaymentMethod[] @default([]) @map("payment_method_enums")
   /// Max allowed installment count. Null = unknown or not supported.
-  maxInstallments    Int?            @map("max_installments")
-  reviewEstimateDeltaYen    Int?     @map("review_estimate_delta_yen")
-  reviewEstimateDeltaPct    Decimal? @map("review_estimate_delta_pct") @db.Decimal(5, 2)
-  reviewEstimateSampleCount Int?     @map("review_estimate_sample_count")
+  maxInstallments           Int?            @map("max_installments")
+  reviewEstimateDeltaYen    Int?            @map("review_estimate_delta_yen")
+  reviewEstimateDeltaPct    Decimal?        @map("review_estimate_delta_pct") @db.Decimal(5, 2)
+  reviewEstimateSampleCount Int?            @map("review_estimate_sample_count")
   /// R-2 気分で探す: 式場の雰囲気タグ (VibeTag[])
-  vibeTags           String[]        @default([]) @map("vibe_tags")
+  vibeTags                  String[]        @default([]) @map("vibe_tags")
   /// AI-clustered review summary. Rolled up from the multi-page review
   /// corpus during URL import. Schema:
   ///   {
@@ -306,16 +307,16 @@ model Venue {
   ///     totalOnSource: number | null,   // site's headline count (e.g. zexy 1400)
   ///   }
   /// Null means clustering hasn't run (or isn't available for this venue).
-  reviewClusters  Json?              @map("review_clusters")
+  reviewClusters            Json?           @map("review_clusters")
 
   /// Deep extraction (v2) — JSON-LD derived
-  externalRatingValue Float?    @map("external_rating_value")
-  externalReviewCount Int?      @map("external_review_count")
-  postalCode          String?   @map("postal_code") @db.VarChar(16)
-  streetAddress       String?   @map("street_address")
+  externalRatingValue Float?  @map("external_rating_value")
+  externalReviewCount Int?    @map("external_review_count")
+  postalCode          String? @map("postal_code") @db.VarChar(16)
+  streetAddress       String? @map("street_address")
   latitude            Float?
   longitude           Float?
-  phoneNumber         String?   @map("phone_number") @db.VarChar(32)
+  phoneNumber         String? @map("phone_number") @db.VarChar(32)
 
   /// Facilities
   hasParking         Boolean? @map("has_parking")
@@ -326,32 +327,32 @@ model Venue {
   barrierFree        Boolean? @map("barrier_free")
 
   /// Cost breakdown (complements costMin/costMax)
-  ceremonyFeeExact   Int?     @map("ceremony_fee_exact")
-  productionFeeMin   Int?     @map("production_fee_min")
-  productionFeeMax   Int?     @map("production_fee_max")
-  serviceFeeRate     Decimal? @map("service_fee_rate") @db.Decimal(4, 3)
+  ceremonyFeeExact Int?     @map("ceremony_fee_exact")
+  productionFeeMin Int?     @map("production_fee_min")
+  productionFeeMax Int?     @map("production_fee_max")
+  serviceFeeRate   Decimal? @map("service_fee_rate") @db.Decimal(4, 3)
 
   /// Operating
-  operatingHours     String?  @map("operating_hours") @db.VarChar(100)
-  closedDays         String[] @default([]) @map("closed_days")
+  operatingHours String?  @map("operating_hours") @db.VarChar(100)
+  closedDays     String[] @default([]) @map("closed_days")
 
   /// Cuisine
-  cuisineTypes       String[] @default([]) @map("cuisine_types")
-  chefCredentials    String?  @map("chef_credentials") @db.VarChar(500)
+  cuisineTypes    String[] @default([]) @map("cuisine_types")
+  chefCredentials String?  @map("chef_credentials") @db.VarChar(500)
 
   /// Dedupe key (lowercased, punctuation-stripped name)
-  normalizedName     String?  @map("normalized_name") @db.VarChar(200)
+  normalizedName String? @map("normalized_name") @db.VarChar(200)
 
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   /// W20-3: soft delete marker. `null` = live row, non-null timestamp = the
   /// couple has 手放した the venue but the row stays in place so we can
   /// surface 戻す later and audit the decision rather than vaporising the
   /// data on a stray tap. Every read path that surfaces venues to the
   /// user MUST `where: { deletedAt: null }`.
-  deletedAt      DateTime?   @map("deleted_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   scores           VenueScore[]
   estimates        Estimate[]
   visits           Visit[]
@@ -452,37 +453,38 @@ model EstimateItem {
 }
 
 model Visit {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueId     String      @map("venue_id") @db.Uuid
-  scheduledAt DateTime?   @map("scheduled_at")
-  status      VisitStatus @default(scheduled)
-  completedAt    DateTime?   @map("completed_at")
-  title          String?
-  memo           String?
-  reminderSentAt DateTime?   @map("reminder_sent_at")
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId            String      @map("venue_id") @db.Uuid
+  scheduledAt        DateTime?   @map("scheduled_at")
+  status             VisitStatus @default(scheduled)
+  completedAt        DateTime?   @map("completed_at")
+  title              String?
+  memo               String?
+  reminderSentAt     DateTime?   @map("reminder_sent_at")
   /// F2 (W15 audit): iCalendar SEQUENCE counter. Incremented on every visit
   /// re-schedule so external calendars (Google / Apple / Outlook) reliably
   /// overwrite existing events via the same UID. RFC 5545 §3.8.7.4 requires
   /// a non-negative integer; we start at 0 and use `{ increment: 1 }`.
-  sequence           Int        @default(0)
+  sequence           Int         @default(0)
   /// F2 (W15 audit): timestamp when the user successfully downloaded the
   /// .ics for this visit. Null = never exported. Set by the
   /// `markVisitCalendarExported` server action *after* the client-side
   /// download completes (not inside the route handler, to avoid prefetch /
   /// link-preview false positives). Also used to exclude externally-managed
   /// visits from the push-reminder cron.
-  calendarExportedAt DateTime?  @map("calendar_exported_at")
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  calendarExportedAt DateTime?   @map("calendar_exported_at")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
   /// W20-3: soft delete. Cascaded inside `deleteVenue`'s transaction so the
   /// PDP / past-visits view stops surfacing the row alongside the parent
   /// venue. Reserved for future per-visit "見学だけ取り消す" UI.
-  deletedAt   DateTime?   @map("deleted_at")
+  deletedAt          DateTime?   @map("deleted_at")
 
-  venue     Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  checklist VisitChecklistItem[]
-  notes     VisitNote[]
-  ratings   VisitRating[]
+  venue         Venue                @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checklist     VisitChecklistItem[]
+  notes         VisitNote[]
+  ratings       VisitRating[]
+  remindersSent VisitReminderSent[]
 
   @@index([venueId])
   @@index([venueId, deletedAt])
@@ -532,21 +534,21 @@ model VisitChecklistItem {
 }
 
 model VisitNote {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  visitId     String   @map("visit_id") @db.Uuid
-  userId      String?  @map("user_id") @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitId     String    @map("visit_id") @db.Uuid
+  userId      String?   @map("user_id") @db.Uuid
   content     String
   tags        String[]
-  locationLat Decimal? @map("location_lat") @db.Decimal(9, 6)
-  locationLng Decimal? @map("location_lng") @db.Decimal(9, 6)
-  createdAt   DateTime @default(now()) @map("created_at")
+  locationLat Decimal?  @map("location_lat") @db.Decimal(9, 6)
+  locationLng Decimal?  @map("location_lng") @db.Decimal(9, 6)
+  createdAt   DateTime  @default(now()) @map("created_at")
   /// W20-3: soft delete. Cascades via `deleteVenue`'s transaction; the same
   /// column also lets the couple 手放す a single memo without losing the
   /// rest of the visit's notes.
   deletedAt   DateTime? @map("deleted_at")
 
-  visit Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  user  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  visit Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  user  User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   media VisitNoteMedia[]
 
   @@index([visitId])
@@ -701,15 +703,15 @@ model VenueFavorite {
 }
 
 model VenuePlan {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueId        String   @map("venue_id") @db.Uuid
-  name           String
-  basePrice      Int?     @map("base_price")
-  guestCountMin  Int?     @map("guest_count_min")
-  guestCountMax  Int?     @map("guest_count_max")
-  includedItems  Json     @default("[]") @map("included_items")
-  excludedItems  Json     @default("[]") @map("excluded_items")
-  bringInItems   Json     @default("[]") @map("bring_in_items")
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId            String   @map("venue_id") @db.Uuid
+  name               String
+  basePrice          Int?     @map("base_price")
+  guestCountMin      Int?     @map("guest_count_min")
+  guestCountMax      Int?     @map("guest_count_max")
+  includedItems      Json     @default("[]") @map("included_items")
+  excludedItems      Json     @default("[]") @map("excluded_items")
+  bringInItems       Json     @default("[]") @map("bring_in_items")
   // Legacy free-text field. Preserved for backfill; new edits use the
   // structured columns below + dressAllowanceNote for free-form notes.
   dressAllowance     String?  @map("dress_allowance")
@@ -717,10 +719,10 @@ model VenuePlan {
   dressBrideCount    Int?     @map("dress_bride_count")
   dressGroomCount    Int?     @map("dress_groom_count")
   dressBudgetCapYen  Int?     @map("dress_budget_cap_yen")
-  campaigns      Json     @default("[]")
-  notes          String?
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  campaigns          Json     @default("[]")
+  notes              String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
@@ -729,17 +731,17 @@ model VenuePlan {
 }
 
 model Review {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueId         String       @map("venue_id") @db.Uuid
-  source          ReviewSource
-  sourceUrl       String       @map("source_url")
-  rating          Decimal?     @db.Decimal(2, 1)
-  aiSummary       String?      @map("ai_summary")
-  sentiment       Json?
-  categorySummary Json?        @map("category_summary")
-  isNegative      Boolean      @default(false) @map("is_negative")
-  estimateIncrease Json?       @map("estimate_increase")
-  fetchedAt       DateTime     @default(now()) @map("fetched_at")
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId          String       @map("venue_id") @db.Uuid
+  source           ReviewSource
+  sourceUrl        String       @map("source_url")
+  rating           Decimal?     @db.Decimal(2, 1)
+  aiSummary        String?      @map("ai_summary")
+  sentiment        Json?
+  categorySummary  Json?        @map("category_summary")
+  isNegative       Boolean      @default(false) @map("is_negative")
+  estimateIncrease Json?        @map("estimate_increase")
+  fetchedAt        DateTime     @default(now()) @map("fetched_at")
 
   venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
@@ -832,13 +834,51 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+/// Track B-2 visit-reminder dispatcher dedupe gate.
+///
+/// One row per (userId × visitId × phase × scheduledDateKey). Created
+/// with prisma.create + P2002 catch so two concurrent cron invocations
+/// can't double-send — DB enforces the uniqueness atomically, no
+/// count-then-create race.
+///
+/// `scheduledDateKey` is the JST `YYYY-MM-DD` of the visit at the
+/// moment of send. Including it (instead of just `(userId, visitId,
+/// phase)`) is the designer-warned-about scheduledAt-change
+/// invalidation: if the user reschedules to a different day, the new
+/// send produces a different key and the unique constraint doesn't
+/// suppress it. Same-day time tweaks reuse the key (no spam).
+///
+/// Retention: rows older than DATA_RETENTION_DAYS are swept by the
+/// existing /api/cron/data-retention-sweep — this table joins the
+/// retention horizon so we don't accumulate unbounded dedupe history.
+model VisitReminderSent {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  visitId          String   @map("visit_id") @db.Uuid
+  /// "day_before" | "morning_of" | "way_home" — matches VisitReminderPhase.
+  phase            String
+  /// JST YYYY-MM-DD of the visit at send time. See model docstring.
+  scheduledDateKey String   @map("scheduled_date_key")
+  sentAt           DateTime @default(now()) @map("sent_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, visitId, phase, scheduledDateKey])
+  /// Retention sweep filter — `sent_at < now() - DATA_RETENTION_DAYS`.
+  @@index([sentAt])
+  /// Foreign-key driven cleanup when a Visit is hard-deleted.
+  @@index([visitId])
+  @@map("visit_reminder_sent")
+}
+
 model NotificationPreference {
-  id               String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String                @unique @map("user_id") @db.Uuid
-  frequency        NotificationFrequency @default(auto)
-  pushEnabled      Boolean               @default(false) @map("push_enabled")
-  emailEnabled     Boolean               @default(true) @map("email_enabled")
-  pushSubscription Json?                 @map("push_subscription")
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String                @unique @map("user_id") @db.Uuid
+  frequency             NotificationFrequency @default(auto)
+  pushEnabled           Boolean               @default(false) @map("push_enabled")
+  emailEnabled          Boolean               @default(true) @map("email_enabled")
+  pushSubscription      Json?                 @map("push_subscription")
   /// P2.D Resend bounce / complaint suppression metadata.
   ///
   /// `emailSuppressedReason` records WHY the email leg was disabled so
@@ -857,10 +897,10 @@ model NotificationPreference {
   ///
   /// `emailSuppressedAt` is set whenever a suppression is recorded so
   /// the retry cron can compare against `now - 7 days`.
-  emailSuppressedReason String?   @map("email_suppressed_reason")
-  emailSuppressedAt    DateTime? @map("email_suppressed_at")
-  createdAt        DateTime              @default(now()) @map("created_at")
-  updatedAt        DateTime              @updatedAt @map("updated_at")
+  emailSuppressedReason String?               @map("email_suppressed_reason")
+  emailSuppressedAt     DateTime?             @map("email_suppressed_at")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -905,28 +945,28 @@ model VenueChecklistAnswer {
 }
 
 model Notification {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  type      String
-  title     String
-  body      String
-  href      String?
-  read      Boolean   @default(false)
-  readAt    DateTime? @map("read_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  type                String
+  title               String
+  body                String
+  href                String?
+  read                Boolean   @default(false)
+  readAt              DateTime? @map("read_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
   /// P2.D Resend webhook: the message id returned by Resend when the
   /// notification's email was dispatched. Null when the notification was
   /// in-app only (no email leg) or when the in-app row predates this
   /// column. Indexed because the webhook handler looks up notifications
   /// by this id when an event arrives.
-  resendMessageId String? @map("resend_message_id")
+  resendMessageId     String?   @map("resend_message_id")
   /// Latest Resend delivery status if known. Stringly-typed (rather than
   /// an enum) so adding new event types (`email.scheduled`,
   /// `email.delayed`, etc.) doesn't require a migration. App-level
   /// constants in `src/lib/email/delivery.ts` define the legal values
   /// (`sent` / `delivered` / `delivery_delayed` / `bounced` /
   /// `complained` / `opened` / `clicked`).
-  emailDeliveryStatus String? @map("email_delivery_status")
+  emailDeliveryStatus String?   @map("email_delivery_status")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -979,26 +1019,26 @@ model CoupleAgreement {
 /// cron's heavy aggregation. Stringly-typed `byBucket` (Json) so a new
 /// model class doesn't require a migration.
 model AiCostSnapshot {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// JST date (YYYY-MM-DD) the cron observed. UNIQUE so re-running the
   /// cron same day upserts the row instead of duplicating.
-  snapshotDate      DateTime @unique @map("snapshot_date") @db.Date
+  snapshotDate     DateTime @unique @map("snapshot_date") @db.Date
   /// Daily window (24h) totals.
-  dailyUsedUsd      Decimal  @map("daily_used_usd") @db.Decimal(10, 4)
-  dailyBudgetUsd    Decimal  @map("daily_budget_usd") @db.Decimal(10, 4)
+  dailyUsedUsd     Decimal  @map("daily_used_usd") @db.Decimal(10, 4)
+  dailyBudgetUsd   Decimal  @map("daily_budget_usd") @db.Decimal(10, 4)
   /// Monthly window (30d) totals.
-  monthlyUsedUsd    Decimal  @map("monthly_used_usd") @db.Decimal(10, 4)
-  monthlyBudgetUsd  Decimal  @map("monthly_budget_usd") @db.Decimal(10, 4)
+  monthlyUsedUsd   Decimal  @map("monthly_used_usd") @db.Decimal(10, 4)
+  monthlyBudgetUsd Decimal  @map("monthly_budget_usd") @db.Decimal(10, 4)
   /// Per-bucket detail (haiku / sonnet / sonnet-pdf) — same shape as the
   /// cron's daily.byBucket. `Json` so adding a new model class doesn't
   /// require a migration. App-level types in
   /// `src/lib/anthropic-cost-snapshot.ts`.
-  dailyByBucket     Json     @map("daily_by_bucket")
+  dailyByBucket    Json     @map("daily_by_bucket")
   /// True when the cron's evaluateBudgetAlert tripped at least one
   /// threshold. Lets the admin page colour the row red without
   /// re-deriving the comparison.
-  shouldAlert       Boolean  @default(false) @map("should_alert")
-  createdAt         DateTime @default(now()) @map("created_at")
+  shouldAlert      Boolean  @default(false) @map("should_alert")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([snapshotDate(sort: Desc)])
   @@map("ai_cost_snapshots")
@@ -1020,33 +1060,33 @@ model AiCostSnapshot {
 /// delete). Both nullable — system events without a specific subject
 /// (cron started, secret rotated) leave them empty.
 model AuditLog {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   /// Action verb namespaced by domain — see `src/server/audit.ts`'s
   /// `AuditAction` union for the canonical list. Stringly-typed so
   /// adding a new action doesn't require a migration.
-  action      String
+  action     String
   /// Free-form actor identifier. Auth'd user → user UUID. Admin via
   /// allow-list → user UUID + `actorRole="admin"`. Cron / webhook /
   /// system → sentinel string (`cron:<name>`, `system:<name>`).
-  actorId     String   @map("actor_id")
+  actorId    String   @map("actor_id")
   /// Optional role label for the actor — `user` / `admin` / `system`
   /// / `cron`. Null when the action is system-only and the actorId
   /// already encodes the role.
-  actorRole   String?  @map("actor_role")
+  actorRole  String?  @map("actor_role")
   /// What was acted upon. Null for system-level events.
-  targetType  String?  @map("target_type")
-  targetId    String?  @map("target_id")
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
   /// IP address (truncated to /24 for IPv4 / /48 for IPv6 by the
   /// caller, NOT here — the helper takes care of redaction). Null
   /// for actions that don't originate from an HTTP request.
-  ipAddress   String?  @map("ip_address")
+  ipAddress  String?  @map("ip_address")
   /// User agent string (truncated to 256 chars by the caller).
-  userAgent   String?  @map("user_agent")
+  userAgent  String?  @map("user_agent")
   /// Free-form structured detail — e.g. `{ "email_hash": "...",
   /// "deleted_project_ids": [...] }`. Avoid raw PII; the helper
   /// hashes emails before storing.
-  detail      Json?
-  createdAt   DateTime @default(now()) @map("created_at")
+  detail     Json?
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([action, createdAt(sort: Desc)])
   @@index([actorId, createdAt(sort: Desc)])
@@ -1073,12 +1113,12 @@ model AiCache {
 /// No FK on project_id to keep the counter resilient across project churn —
 /// if a project is deleted the row just becomes orphaned scoring data.
 model ApiUsageCounter {
-  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId                String   @map("project_id") @db.Uuid
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
   /// YYYY-MM key. Cheaper than a date range for upsert + index.
-  yearMonth                String   @map("year_month")
-  placesAutocompleteCount  Int      @default(0) @map("places_autocomplete_count")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  yearMonth               String   @map("year_month")
+  placesAutocompleteCount Int      @default(0) @map("places_autocomplete_count")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@unique([projectId, yearMonth])
   @@map("api_usage_counter")
