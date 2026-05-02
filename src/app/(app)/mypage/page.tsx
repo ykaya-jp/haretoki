@@ -17,6 +17,7 @@ import {
   FileText,
   ShieldCheck,
   Heart,
+  BookOpen,
 } from "lucide-react";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -305,10 +306,17 @@ export default async function MyPage() {
 
         <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)] divide-y divide-border/50">
           <SettingsRow
+            icon={BookOpen}
+            tone="accent"
+            label="ヘルプセンター"
+            meta="よくある質問と使い方ガイド"
+            href="/help"
+          />
+          <SettingsRow
             icon={LifeBuoy}
             tone="accent"
             label="サポート窓口"
-            meta="よくある質問とお問い合わせ"
+            meta="お問い合わせフォーム"
             href="/support"
           />
           <SettingsRow
