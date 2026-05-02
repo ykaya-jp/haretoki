@@ -7,8 +7,7 @@ import { Loader2, Trophy, Medal } from "lucide-react";
 import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
-
-const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
+import { LUXURY_EASE } from "@/lib/motion-variants";
 
 interface WeightedVenue {
   id: string;

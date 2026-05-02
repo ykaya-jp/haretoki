@@ -27,6 +27,7 @@ import { getCoupleRatings } from "@/server/actions/ratings";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { ShareButton } from "@/components/ui/share-button";
 import { cn } from "@/lib/utils";
+import { LUXURY_EASE } from "@/lib/motion-variants";
 import {
   aggregatePartnerDiffAcrossVenues,
   classifyAdvantage,
@@ -62,8 +63,6 @@ import {
  *     NOT a full-cell gold fill. Previous version saturated columns
  *     in gold which made 4-column matrices feel like a trophy shelf.
  */
-
-const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 type OwnerFilter = "all" | "mine" | "partner" | "both";
 

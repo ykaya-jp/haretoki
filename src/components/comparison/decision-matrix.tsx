@@ -8,11 +8,10 @@ import { getMatrixData, type MatrixData } from "@/server/actions/matrix";
 import { getMatrixInsight, type MatrixInsight } from "@/server/actions/matrix-insight";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+import { LUXURY_EASE } from "@/lib/motion-variants";
 
 const HIDDEN_DIMS_KEY = "haretoki:matrix:hidden-dims";
 const VENUE_FILTERS_KEY = "haretoki:matrix:venue-filters";
-
-const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   credit_card: "カード",

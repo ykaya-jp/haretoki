@@ -62,15 +62,20 @@ export function DecisionCeremony({
   useEffect(() => {
     if (phase !== "celebration") return;
 
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // `prefersReduced` is already captured via `useReducedMotion()`
+    // at the top of the component (line ~60). Re-reading via
+    // `window.matchMedia` here was a leftover from before the hook
+    // was added — it returned the same boolean but bypassed the
+    // hook's runtime-toggle subscription, so a couple who flipped
+    // their OS preference mid-ceremony would have stayed on the
+    // motion path. Reusing the hook value keeps both branches
+    // honest about the current preference state.
 
     // Reduced-motion path: skip the cloud→break→sunny sequence entirely,
     // show the hero card immediately, auto-advance fast.
     // Defer setSkyStage via rAF so it doesn't fire synchronously inside
     // the effect (React 19 cascading-render lint rule).
-    if (prefersReducedMotion) {
+    if (prefersReduced) {
       const rafId = requestAnimationFrame(() => setSkyStage("sunny"));
       const quick = setTimeout(() => setPhase("summary"), 1400);
       return () => {
@@ -116,7 +121,7 @@ export function DecisionCeremony({
       clearTimeout(advanceT);
       clearTimeout(confettiT);
     };
-  }, [phase]);
+  }, [phase, prefersReduced]);
 
   const handleSaveReason = async (
     tags: string[] = selectedTags,
