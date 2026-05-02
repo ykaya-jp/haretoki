@@ -6,6 +6,7 @@ import {
 } from "@/server/actions/checklist";
 import { getCoupleWeights } from "@/server/actions/weights";
 import { getMatrixInsight } from "@/server/actions/matrix-insight";
+import { getMatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -95,11 +96,19 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
   // partners' priorities, not only the viewer's. `.catch(null)` keeps the
   // page usable on the first visit when the weights row is absent and on
   // solo projects (getCoupleWeights returns couple=mine in that case).
-  const [matrix, coupleWeights, matrixInsight] = await Promise.all([
-    getComparisonMatrix(ids),
-    getCoupleWeights().catch(() => null),
-    getMatrixInsight().catch(() => null),
-  ]);
+  //
+  // R3: matrixReviewInsight runs in parallel too — it fetches its own
+  // per-venue review aggregates and Claude call (cached 3d), so the
+  // page's blocking wait is bounded by the slowest of the four.
+  // `.catch(null)` keeps the page rendering when reviews are absent,
+  // Claude is unavailable, or the call times out.
+  const [matrix, coupleWeights, matrixInsight, matrixReviewInsight] =
+    await Promise.all([
+      getComparisonMatrix(ids),
+      getCoupleWeights().catch(() => null),
+      getMatrixInsight().catch(() => null),
+      getMatrixReviewInsight(ids).catch(() => null),
+    ]);
   const insufficient = matrix.venues.length === 1;
 
   return (
@@ -131,6 +140,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
             matrix={matrix}
             weights={coupleWeights?.couple ?? null}
             matrixInsight={matrixInsight}
+            matrixReviewInsight={matrixReviewInsight}
           />
       )}
     </div>

@@ -106,6 +106,7 @@ enum AiAnalysisType {
   visit_prep
   coach_chat
   rating_comparison
+  matrix_review_insight
 }
 
 enum NotificationFrequency {
