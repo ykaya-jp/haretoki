@@ -14,6 +14,14 @@ const PUBLIC_PATHS = [
   "/family",
   "/privacy",
   "/terms",
+  /**
+   * /admin/* は middleware で auth-gate しない。`requireAdmin` (src/server/admin.ts)
+   * が page-level で `notFound()` を投げる contract → 未認証でも 404 を返す
+   * (302 → /login だと「ここに admin URL がある」という enumeration leak になる)。
+   * phase3-integration.spec.ts の closed-by-default 404 アサートを満たすために
+   * 必須。
+   */
+  "/admin",
 ] as const;
 
 function isPublicPath(pathname: string): boolean {

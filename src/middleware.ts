@@ -47,6 +47,13 @@ export async function middleware(request: NextRequest) {
     "/family",
     "/privacy",
     "/terms",
+    /**
+     * /admin/* も onboarding redirect から除外。requireAdmin が notFound()
+     * で 404 を返すため、middleware が先に /onboarding に飛ばすと
+     * 「admin URL の存在」が enumeration leak する。supabase/middleware の
+     * PUBLIC_PATHS と対称にしておく。
+     */
+    "/admin",
   ];
   if (pathname === "/" || excludedPaths.some((p) => pathname.startsWith(p))) {
     applySecurityHeaders(response, nonce);
