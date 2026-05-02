@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   FileText,
   ShieldCheck,
+  Heart,
 } from "lucide-react";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -257,6 +258,13 @@ export default async function MyPage() {
             label="残した検索条件"
             meta="新しい式場が出たらお知らせ"
             href="/mypage/saved-searches"
+          />
+          <SettingsRow
+            icon={Heart}
+            tone="accent"
+            label="家族に伝える"
+            meta="決まった式場をご家族とおすそわけ"
+            href="/mypage/family-share"
           />
           <SettingsRow
             icon={Settings}

@@ -43,6 +43,8 @@ export async function middleware(request: NextRequest) {
     "/callback",
     "/demo",
     "/invite",
+    /** Track C-1: family read-only landing — auth-free. */
+    "/family",
     "/privacy",
     "/terms",
   ];
