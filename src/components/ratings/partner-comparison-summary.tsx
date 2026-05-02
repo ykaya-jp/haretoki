@@ -133,10 +133,21 @@ export function PartnerComparisonSummary({
               key={dim}
               className={cn(
                 "relative flex items-center gap-3 rounded-lg px-3 py-2",
+                // Dark-mode parity (round-22): the `transparent` anchor
+                // on the bg color-mix collapsed into whatever sat behind
+                // the row, which under the dark palette left the agreed
+                // and disagreed rows visually indistinguishable. Anchor
+                // the wash to var(--card) — the surface the comparison
+                // summary actually renders on — so the warm tint holds
+                // a fixed mix in either theme. Same recipe W21-5 used
+                // for the notification + checklist fix. Border-l keeps
+                // its `transparent` anchor on the agreement row because
+                // a 1-2px hairline is tinted by alpha, not by surface
+                // colour, and reads consistently regardless of theme.
                 isAgreed &&
-                  "border-l-2 border-l-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_55%,transparent)]",
+                  "border-l-2 border-l-[color-mix(in_oklab,var(--gold-warm)_45%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_55%,var(--card))]",
                 isDisagreed &&
-                  "border-l-[3px] border-l-[var(--gold-warm)] bg-[color-mix(in_oklab,var(--gold-warm)_8%,transparent)]",
+                  "border-l-[3px] border-l-[var(--gold-warm)] bg-[color-mix(in_oklab,var(--gold-warm)_8%,var(--card))]",
               )}
               aria-label={
                 isDisagreed
