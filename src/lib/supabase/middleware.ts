@@ -14,14 +14,6 @@ const PUBLIC_PATHS = [
   "/family",
   "/privacy",
   "/terms",
-  /**
-   * /admin/* は middleware で auth-gate しない。`requireAdmin` (src/server/admin.ts)
-   * が page-level で `notFound()` を投げる contract → 未認証でも 404 を返す
-   * (302 → /login だと「ここに admin URL がある」という enumeration leak になる)。
-   * phase3-integration.spec.ts の closed-by-default 404 アサートを満たすために
-   * 必須。
-   */
-  "/admin",
 ] as const;
 
 function isPublicPath(pathname: string): boolean {
@@ -90,6 +82,15 @@ export async function updateSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
+    // Closed-by-default 404 for /admin/* — leaking the existence of these
+    // URLs via 302 → /login is the enumeration leak that requireAdmin
+    // (src/server/admin.ts) already mitigates page-level. We reproduce
+    // the behaviour at the middleware boundary so unauth visitors never
+    // reach the prerendered page (which Vercel was serving with status
+    // 200 even though the body was the notFound UI).
+    if (request.nextUrl.pathname.startsWith("/admin")) {
+      return new NextResponse(null, { status: 404 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
