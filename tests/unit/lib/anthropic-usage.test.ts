@@ -11,6 +11,7 @@ import {
   recordUsage,
   summarizeRecentUsage,
   evaluateBudgetAlert,
+  forecastMonthlyCostUsd,
   _resetUsageBuckets,
 } from "@/lib/anthropic-usage";
 
@@ -123,5 +124,135 @@ describe("evaluateBudgetAlert", () => {
     const r = evaluateBudgetAlert({ dailyUsedUsd: 7.5, monthlyUsedUsd: 100 });
     expect(r.daily.pct).toBe(75);
     expect(r.monthly.pct).toBe(50);
+  });
+});
+
+describe("forecastMonthlyCostUsd", () => {
+  beforeEach(() => {
+    delete process.env.ANTHROPIC_MONTHLY_BUDGET_USD;
+  });
+
+  function snap(date: string, usd: number) {
+    return { snapshotDate: new Date(date), dailyUsedUsd: usd };
+  }
+
+  it("projects month-end from a 7-day trailing average", () => {
+    // 7 days × $2/day = $14 trailing avg → $2/day projection.
+    // Now = 2026-05-10 (10th day of 31). monthToDate = $20 (10 days × $2
+    // already in the monthly window). Remaining days = 31 - 10 = 21.
+    // Forecast = $20 + $2 × 21 = $62.
+    const snapshots = Array.from({ length: 7 }, (_, i) =>
+      snap(`2026-05-${String(4 + i).padStart(2, "0")}`, 2),
+    );
+    const r = forecastMonthlyCostUsd({
+      snapshots,
+      monthToDateUsd: 20,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.trailingDailyAvgUsd).toBeCloseTo(2, 5);
+    expect(r.trailingDaysSampled).toBe(7);
+    expect(r.remainingDays).toBe(21);
+    expect(r.monthEndForecastUsd).toBeCloseTo(62, 5);
+  });
+
+  it("only consumes the most-recent windowDays snapshots even when more are passed", () => {
+    // 14 snapshots all $1, but windowDays defaults to 7 — avg should be
+    // $1, NOT smoothed across 14 (which would also be $1, so this guards
+    // the slice() behaviour rather than the math).
+    const snapshots = Array.from({ length: 14 }, (_, i) =>
+      snap(`2026-05-${String(1 + i).padStart(2, "0")}`, 1),
+    );
+    const r = forecastMonthlyCostUsd({
+      snapshots,
+      monthToDateUsd: 14,
+      now: new Date(Date.UTC(2026, 4, 14)),
+    });
+    expect(r.trailingDaysSampled).toBe(7);
+  });
+
+  it("respects custom windowDays", () => {
+    // windowDays=3, snapshots [10, 5, 1] → avg ≈ 5.33
+    const snapshots = [
+      snap("2026-05-10", 1),
+      snap("2026-05-09", 5),
+      snap("2026-05-08", 10),
+    ];
+    const r = forecastMonthlyCostUsd({
+      snapshots,
+      monthToDateUsd: 16,
+      windowDays: 3,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.trailingDailyAvgUsd).toBeCloseTo(16 / 3, 4);
+  });
+
+  it("handles an empty snapshot list gracefully (zero avg)", () => {
+    const r = forecastMonthlyCostUsd({
+      snapshots: [],
+      monthToDateUsd: 0,
+      now: new Date(Date.UTC(2026, 4, 1)),
+    });
+    expect(r.trailingDaysSampled).toBe(0);
+    expect(r.trailingDailyAvgUsd).toBe(0);
+    expect(r.monthEndForecastUsd).toBe(0);
+  });
+
+  it("classifies pace=under when forecast ≤ 80% budget", () => {
+    process.env.ANTHROPIC_MONTHLY_BUDGET_USD = "100";
+    const r = forecastMonthlyCostUsd({
+      snapshots: [snap("2026-05-10", 2)],
+      monthToDateUsd: 20,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    // forecast = 20 + 2*21 = 62 → 62% of $100 budget
+    expect(r.forecastPct).toBe(62);
+    expect(r.pace).toBe("under");
+  });
+
+  it("classifies pace=watch when forecast is 80-110% budget", () => {
+    process.env.ANTHROPIC_MONTHLY_BUDGET_USD = "100";
+    // forecast = 50 + 2*21 = 92 → 92%
+    const r = forecastMonthlyCostUsd({
+      snapshots: [snap("2026-05-10", 2)],
+      monthToDateUsd: 50,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.forecastPct).toBe(92);
+    expect(r.pace).toBe("watch");
+  });
+
+  it("classifies pace=over when forecast > 110% budget", () => {
+    process.env.ANTHROPIC_MONTHLY_BUDGET_USD = "100";
+    // forecast = 80 + 5*21 = 185 → 185%
+    const r = forecastMonthlyCostUsd({
+      snapshots: [snap("2026-05-10", 5)],
+      monthToDateUsd: 80,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.forecastPct).toBe(185);
+    expect(r.pace).toBe("over");
+  });
+
+  it("re-sorts unsorted snapshots and only takes the most recent window", () => {
+    // Out-of-order input — recipe must pick the 7 most recent dates.
+    const snapshots = [
+      snap("2026-05-01", 1),
+      snap("2026-05-08", 8),
+      snap("2026-05-03", 3),
+      snap("2026-05-10", 10),
+      snap("2026-05-05", 5),
+      snap("2026-05-09", 9),
+      snap("2026-05-04", 4),
+      snap("2026-05-07", 7),
+      snap("2026-05-02", 2),
+      snap("2026-05-06", 6),
+    ];
+    const r = forecastMonthlyCostUsd({
+      snapshots,
+      monthToDateUsd: 55,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    // Most recent 7 = May 4..10 → avg = (4+5+6+7+8+9+10)/7 = 7
+    expect(r.trailingDailyAvgUsd).toBeCloseTo(7, 5);
   });
 });

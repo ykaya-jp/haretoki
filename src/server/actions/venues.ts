@@ -7,10 +7,16 @@ import { venueSchema } from "@/server/actions/venue-schema";
 import type { VenueInput } from "@/server/actions/venue-schema";
 import { Prisma, type VenueStatus } from "@/generated/prisma/client";
 import { z } from "zod";
-import { askClaude, isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
-import { computeInputHash } from "@/lib/anthropic";
-import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
+import { isClaudeAvailable, ClaudeCreditsError } from "@/lib/claude";
+import { cachedAskClaude } from "@/lib/ai-cache";
+import { MODEL } from "@/lib/models";
 import { URL_EXTRACTION_SYSTEM_PROMPT } from "@/lib/prompts/url-extraction";
+
+// Round 15 (2026-05-02) — bump when URL_EXTRACTION_SYSTEM_PROMPT
+// semantics change so cached extractions from a prior prompt revision
+// aren't served against the new schema contract. cachedAskClaude folds
+// this into the cache key.
+const URL_EXTRACTION_PROMPT_VERSION = 1;
 import {
   checkRateLimit,
   rateLimitErrorMessage,
@@ -1233,21 +1239,20 @@ export async function addVenueFromUrl(url: string): Promise<{
     });
     const structured = parseJsonLd(jsonLdBlobs);
 
-    const urlExtractionHash = computeInputHash(
-      JSON.stringify({ system: URL_EXTRACTION_SYSTEM_PROMPT, user: prompt }),
-    );
-    const cachedExtraction = await getCachedResponse(urlExtractionHash);
-    let claudeResponse: string | null;
-    if (cachedExtraction) {
-      claudeResponse = cachedExtraction;
-    } else {
-      claudeResponse = await askClaude(URL_EXTRACTION_SYSTEM_PROMPT, prompt, {
-        maxTokens: 4096,
-      });
-      if (claudeResponse) {
-        await setCachedResponse(urlExtractionHash, claudeResponse, "claude-haiku-4-5-20251001");
-      }
-    }
+    // Round 15: switched from the low-level computeInputHash + getCachedResponse
+    // + askClaude + setCachedResponse trio to the unified cachedAskClaude
+    // wrapper. Behavior is identical (cache lookup → askClaude with retry →
+    // cache write) but the hash recipe now includes model + URL_EXTRACTION_
+    // PROMPT_VERSION + maxTokens, so a model swap or prompt revision
+    // invalidates stale rows automatically — same contract every other
+    // cached prompt in src/server/actions/* now follows.
+    const claudeResponse = await cachedAskClaude({
+      system: URL_EXTRACTION_SYSTEM_PROMPT,
+      userMessage: prompt,
+      model: MODEL.HAIKU,
+      maxTokens: 4096,
+      promptVersion: URL_EXTRACTION_PROMPT_VERSION,
+    });
 
     // If Claude failed entirely, try to rescue with JSON-LD + og metadata
     // alone. This is lower-confidence but gives zexy / hanayume pages a

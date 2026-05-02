@@ -296,3 +296,131 @@ export function _resetUsageBuckets(): void {
   buckets.clear();
   callTimestamps.length = 0;
 }
+
+// =====================================================================
+// Cost forecasting (Round 15 — Phase 2.D commercial readiness)
+// =====================================================================
+
+export interface MonthlyForecast {
+  /** USD spent so far this month (the cron's monthly window). */
+  monthToDateUsd: number;
+  /** Mean daily spend over the trailing window (default 7 days) used as
+   *  the per-day projection rate. */
+  trailingDailyAvgUsd: number;
+  /** Days observed in the trailing window. Lower than `windowDays` when
+   *  the table doesn't yet have that many snapshots — affects how much
+   *  weight to put on the projection. */
+  trailingDaysSampled: number;
+  /** Days remaining in the current calendar month (today is day 0 — the
+   *  forecast assumes today's spend is already in monthToDateUsd). */
+  remainingDays: number;
+  /** Projected total at month end = monthToDateUsd + trailingDailyAvgUsd
+   *  × remainingDays. This is the headline number for the dashboard. */
+  monthEndForecastUsd: number;
+  /** Configured monthly budget (env or default — same accessor that
+   *  evaluateBudgetAlert uses). */
+  monthlyBudgetUsd: number;
+  /** monthEndForecastUsd / monthlyBudgetUsd × 100, capped to a sane
+   *  display range (>= 0). */
+  forecastPct: number;
+  /** Three-bucket signal for the dashboard pill colour. */
+  pace: "under" | "watch" | "over";
+}
+
+/** Snapshot-row shape consumed by forecast(). Decimal columns from
+ *  prisma.aiCostSnapshot.findMany are coerced to plain numbers by the
+ *  caller before passing in — this module stays Prisma-free so it can be
+ *  unit-tested without a DB. */
+export interface CostSnapshotInput {
+  snapshotDate: Date;
+  dailyUsedUsd: number;
+}
+
+/**
+ * Project the current calendar month's total spend from a trailing
+ * average of daily snapshots.
+ *
+ * Recipe:
+ *   1. Sort the supplied snapshots by date desc, take the most recent N
+ *      (default 7).
+ *   2. Mean of `dailyUsedUsd` over those N days = trailingDailyAvgUsd.
+ *   3. Compute `daysInMonth - dayOfMonth` for the supplied `now` (default
+ *      = current time) — that's the remaining-days multiplier.
+ *   4. forecast = monthToDateUsd + trailingDailyAvgUsd * remainingDays.
+ *   5. pace bucket: ≤80% budget = "under", 80-110% = "watch", >110% =
+ *      "over". Lets the dashboard render a colour pill without inline
+ *      threshold logic.
+ *
+ * The forecast is intentionally NOT seasonality-adjusted — we don't have
+ * enough months of data to fit weekday / weekend curves yet. Treat it
+ * as a linear projection that's accurate enough to catch a budget breach
+ * mid-month with the daily cron snapshot as the trigger.
+ */
+export function forecastMonthlyCostUsd(input: {
+  snapshots: CostSnapshotInput[];
+  monthToDateUsd: number;
+  /** Default = 7. Lower with very fresh deploys; higher only smooths
+   *  weekday spikes (we don't yet have enough data to pick a value
+   *  empirically — 7 matches the grain of an A/B-able calendar week). */
+  windowDays?: number;
+  /** Override for testing — defaults to current Date(). */
+  now?: Date;
+}): MonthlyForecast {
+  const windowDays = Math.max(1, input.windowDays ?? 7);
+  const now = input.now ?? new Date();
+
+  // Pull the most-recent N snapshots (already createdAt-desc by default
+  // from caller, but re-sort here to make the function order-agnostic
+  // against the caller).
+  const sorted = [...input.snapshots].sort(
+    (a, b) => b.snapshotDate.getTime() - a.snapshotDate.getTime(),
+  );
+  const recent = sorted.slice(0, windowDays);
+  const trailingDaysSampled = recent.length;
+  const trailingSum = recent.reduce((acc, r) => acc + r.dailyUsedUsd, 0);
+  const trailingDailyAvgUsd =
+    trailingDaysSampled > 0 ? trailingSum / trailingDaysSampled : 0;
+
+  // Remaining-days math: days in month - current day-of-month.
+  // Example: 2026-05-02 → daysInMonth=31, dayOfMonth=2 → remainingDays=29.
+  // We don't subtract 1 because today's spend is already counted inside
+  // monthToDateUsd — the projection covers ONLY future days.
+  //
+  // Construct via Date.UTC(...) — `new Date(year, month, day)` is *local*
+  // time, which on a JST host shifts the "0th of next month" trick back
+  // a day (UTC 31st becomes UTC 30th) and the forecast comes out one day
+  // short. UTC math gives the right answer in any timezone.
+  const daysInMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const dayOfMonth = now.getUTCDate();
+  const remainingDays = Math.max(0, daysInMonth - dayOfMonth);
+
+  const monthEndForecastUsd =
+    input.monthToDateUsd + trailingDailyAvgUsd * remainingDays;
+
+  const monthlyBudgetUsd = (() => {
+    const raw = process.env.ANTHROPIC_MONTHLY_BUDGET_USD;
+    const n = raw ? Number(raw) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : 100;
+  })();
+
+  const forecastPct =
+    monthlyBudgetUsd > 0
+      ? Math.max(0, (monthEndForecastUsd / monthlyBudgetUsd) * 100)
+      : 0;
+
+  const pace: MonthlyForecast["pace"] =
+    forecastPct <= 80 ? "under" : forecastPct <= 110 ? "watch" : "over";
+
+  return {
+    monthToDateUsd: input.monthToDateUsd,
+    trailingDailyAvgUsd,
+    trailingDaysSampled,
+    remainingDays,
+    monthEndForecastUsd,
+    monthlyBudgetUsd,
+    forecastPct,
+    pace,
+  };
+}

@@ -3,9 +3,15 @@
 import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
-import { isClaudeAvailable, askClaude, withRetry, computeInputHash, stripPII } from "@/lib/anthropic";
-import { getCachedResponse, setCachedResponse } from "@/lib/ai-cache";
+import { isClaudeAvailable, computeInputHash, stripPII } from "@/lib/anthropic";
+import { cachedAskClaude } from "@/lib/ai-cache";
+import { MODEL } from "@/lib/models";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
+
+// Round 15 (2026-05-02) — bump when REVIEW_SUMMARY_PROMPT semantics change
+// so cached summaries from a prior prompt revision aren't served against
+// the new contract. cachedAskClaude folds this into the cache key.
+const REVIEW_SUMMARY_PROMPT_VERSION = 1;
 import { guardExternalUrl } from "@/lib/url-guard";
 import type { ReviewSource } from "@/generated/prisma/client";
 import {
@@ -290,21 +296,27 @@ async function analyzeVenueReviewsInner(
       return { ok: false, reason: "no-reviews" };
     }
 
-    // Send to Claude for analysis
+    // Send to Claude for analysis. Round 15: switched from the low-level
+    // computeInputHash + getCachedResponse + setCachedResponse trio to the
+    // unified cachedAskClaude wrapper. Behavior is identical (cache lookup
+    // → askClaude with retry → cache write) but the hash recipe now includes
+    // model + REVIEW_SUMMARY_PROMPT_VERSION + maxTokens, so a model swap or
+    // prompt revision invalidates stale rows automatically — same contract
+    // every other cached prompt in src/server/actions/* now follows.
     const strippedContent = stripPII(textContent);
     const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name);
-    const reviewCacheHash = computeInputHash(
-      JSON.stringify({ system: REVIEW_SUMMARY_PROMPT.system, user: reviewUserMessage }),
-    );
-    const cachedReview = await getCachedResponse(reviewCacheHash);
-    const claudeResponse = cachedReview ?? await withRetry(() =>
-      askClaude({
-        system: REVIEW_SUMMARY_PROMPT.system,
-        userMessage: reviewUserMessage,
-      })
-    );
-    if (!cachedReview) {
-      await setCachedResponse(reviewCacheHash, claudeResponse, "claude-haiku-4-5-20251001");
+    const claudeResponse = await cachedAskClaude({
+      system: REVIEW_SUMMARY_PROMPT.system,
+      userMessage: reviewUserMessage,
+      model: MODEL.SONNET,
+      promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
+    });
+    if (claudeResponse === null) {
+      return {
+        ok: false,
+        reason: "api-error",
+        message: "AI 分析を取得できませんでした",
+      };
     }
 
     // Claude occasionally wraps the JSON in ```json …``` fences or adds
