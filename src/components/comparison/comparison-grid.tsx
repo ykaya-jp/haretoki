@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { ComparisonMatrix } from "@/lib/comparison-types";
 import { ComparisonHeaderColumn } from "./comparison-header-column";
 import { ComparisonRow } from "./comparison-row";
+import { ComparisonReviewRow } from "./comparison-review-row";
 import { ChecklistAnswerRow } from "./comparison-checklist-row";
 import {
   COMPARE_FIELDS,
@@ -85,16 +86,29 @@ export function ComparisonGrid({ matrix, weights = null }: ComparisonGridProps) 
   const N = venues.length;
   const gridTemplateColumns = `160px repeat(${N}, minmax(160px, 1fr))`;
 
+  // R2 — only show the cross-venue review row when at least one venue
+  // has a populated reviewSummary. Hides the row entirely when nothing
+  // has been imported yet, instead of rendering N empty cells.
+  const showReviewRow = venues.some(
+    (v) => v.reviewSummary !== undefined && v.reviewSummary.count > 0,
+  );
+
   // Pre-compute rowIndex assignment so the JSX below stays readable.
   type Slot =
     | { kind: "group-heading"; group: FieldGroup; label: string }
     | { kind: "field"; fieldId: string }
+    | { kind: "review-heading" }
+    | { kind: "review-row" }
     | { kind: "checklist-heading"; label: string }
     | { kind: "checklist-item"; itemId: string };
   const slots: Slot[] = [];
   for (const [group, fields] of fieldGroups) {
     slots.push({ kind: "group-heading", group, label: FIELD_GROUP_LABELS[group] });
     for (const f of fields) slots.push({ kind: "field", fieldId: f.id });
+  }
+  if (showReviewRow) {
+    slots.push({ kind: "review-heading" });
+    slots.push({ kind: "review-row" });
   }
   for (const g of checklistGroups) {
     slots.push({ kind: "checklist-heading", label: g.label });
@@ -169,6 +183,28 @@ export function ComparisonGrid({ matrix, weights = null }: ComparisonGridProps) 
                 <ComparisonRow
                   key={`field-${slot.fieldId}`}
                   field={field}
+                  venues={venues}
+                  rowIndex={row}
+                />
+              );
+            }
+            if (slot.kind === "review-heading") {
+              return (
+                <div
+                  key={`review-heading-${si}`}
+                  style={{ gridRow: row, gridColumn: `1 / -1` }}
+                  className="border-b border-border/40 bg-[color-mix(in_oklab,var(--gold-warm)_4%,var(--background))] px-3 py-1.5"
+                >
+                  <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-[var(--gold-warm)]">
+                    口コミ
+                  </span>
+                </div>
+              );
+            }
+            if (slot.kind === "review-row") {
+              return (
+                <ComparisonReviewRow
+                  key={`review-row-${si}`}
                   venues={venues}
                   rowIndex={row}
                 />

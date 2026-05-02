@@ -7,6 +7,10 @@
  * re-exports these so existing imports stay stable.
  */
 
+import type { ReviewAggregate } from "@/lib/review-aggregations";
+
+export type { ReviewAggregate } from "@/lib/review-aggregations";
+
 /**
  * Maximum number of venues the comparison board can display at once.
  *
@@ -62,6 +66,17 @@ export interface ComparisonVenue {
   /** Deep extraction — cuisine */
   cuisineTypes: string[];
   chefCredentials: string | null;
+
+  /**
+   * R2 — cross-venue review summary surfaced on /compare. Optional so
+   * callers (= getComparisonMatrix in checklist.ts and any future
+   * matrix builder) can populate it without breaking older callers
+   * that don't compute it. `undefined` = "not fetched"; the helper
+   * `aggregateReviewsForVenue` always returns a populated object so a
+   * `summary === null` + `count === 0` field reads as "no reviews
+   * yet" in the UI.
+   */
+  reviewSummary?: ReviewAggregate;
 }
 
 export interface ComparisonAnswer {

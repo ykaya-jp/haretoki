@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Star, Crown } from "lucide-react";
+import {
+  Star,
+  Crown,
+  Sparkles,
+  ThumbsUp,
+  AlertCircle,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeCompositeScore } from "@/lib/venue-score";
 import {
@@ -322,6 +329,16 @@ function VenueCardView({
           </div>
         ))}
 
+        {/* R2 — cross-venue review summary collapsible. Only renders
+            when this venue has reviewSummary with count > 0; otherwise
+            we hide the section entirely (vs showing "口コミ 0 件" which
+            reads as a bug to the couple). */}
+        {venue.reviewSummary && venue.reviewSummary.count > 0 && (
+          <div className="bg-background">
+            <ReviewSummarySection summary={venue.reviewSummary} />
+          </div>
+        )}
+
         {checklistGroups.length > 0 && visibleFields.length > 0 && (
           <div className="h-2 bg-background" />
         )}
@@ -346,6 +363,128 @@ function VenueCardView({
       </dl>
     </div>
   );
+}
+
+function ReviewSummarySection({
+  summary,
+}: {
+  summary: NonNullable<ComparisonVenue["reviewSummary"]>;
+}) {
+  // Default to expanded when there's actual content (strengths/concerns/
+  // summary text) — mobile users have already committed to one venue per
+  // viewport here, so hiding the payload behind a tap costs more than it
+  // saves. The chevron still works for collapsing if the card scrolls
+  // past comfortable height.
+  const hasPayload =
+    summary.summary !== null ||
+    summary.strengths.length > 0 ||
+    summary.concerns.length > 0;
+  const [open, setOpen] = useState(hasPayload);
+  const sentimentLabel = formatSentimentLabel(summary.sentimentAvg);
+
+  return (
+    <div className="border-t border-border/30">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left active:bg-muted/40"
+      >
+        <div className="flex items-center gap-1.5">
+          <Sparkles
+            className="h-3 w-3 text-[var(--gold-warm)]"
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+          <span className="text-[12px] font-medium text-foreground">
+            口コミ要約
+          </span>
+          <span className="tabular-nums text-[11px] text-muted-foreground">
+            {summary.count.toLocaleString("ja-JP")} 件
+          </span>
+          {sentimentLabel && (
+            <span className="text-[10.5px] text-muted-foreground">
+              · {sentimentLabel}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+          strokeWidth={2}
+          aria-hidden="true"
+        />
+      </button>
+      {open && hasPayload && (
+        <div className="space-y-2.5 border-t border-border/20 bg-[color-mix(in_oklab,var(--gold-warm)_3%,var(--background))] px-4 py-3">
+          {summary.summary && (
+            <p className="text-[12.5px] leading-relaxed text-foreground/90">
+              {summary.summary}
+            </p>
+          )}
+          {summary.strengths.length > 0 && (
+            <div>
+              <div className="mb-1 flex items-center gap-1">
+                <ThumbsUp
+                  className="h-3 w-3 text-[var(--gold-warm)]"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-[var(--gold-warm)]">
+                  強み
+                </span>
+              </div>
+              <ul className="space-y-0.5 pl-4">
+                {summary.strengths.map((s, i) => (
+                  <li
+                    key={`s-${i}`}
+                    className="list-disc text-[12px] leading-snug text-foreground/85 marker:text-[var(--gold-warm)]/60"
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {summary.concerns.length > 0 && (
+            <div>
+              <div className="mb-1 flex items-center gap-1">
+                <AlertCircle
+                  className="h-3 w-3 text-muted-foreground"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  気になる点
+                </span>
+              </div>
+              <ul className="space-y-0.5 pl-4">
+                {summary.concerns.map((c, i) => (
+                  <li
+                    key={`c-${i}`}
+                    className="list-disc text-[12px] leading-snug text-foreground/85 marker:text-muted-foreground/50"
+                  >
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatSentimentLabel(avg: number | null): string | null {
+  if (avg === null) return null;
+  if (avg >= 0.5) return "ポジティブ寄り";
+  if (avg >= 0.15) return "ややポジティブ";
+  if (avg > -0.15) return "中立";
+  if (avg > -0.5) return "やや慎重";
+  return "ネガティブ寄り";
 }
 
 function FieldRowMobile({
