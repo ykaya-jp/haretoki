@@ -126,8 +126,13 @@ describe("csp/isCspDisabled + isCspReportOnly", () => {
     expect(isCspDisabled()).toBe(false);
   });
 
-  it("isCspReportOnly defaults to false", () => {
-    expect(isCspReportOnly()).toBe(false);
+  it("isCspReportOnly defaults to true (safer rollout — see csp.ts comment)", () => {
+    // Inverted from previous default (false) after the 2026-05-03 prod-down
+    // incident: enforce mode without nonce propagation in root layout
+    // blocks every Next.js bundle. Until layout reads x-nonce + attaches
+    // it to <Script>, report-only is the floor.
+    delete process.env.CSP_REPORT_ONLY;
+    expect(isCspReportOnly()).toBe(true);
   });
 
   it("CSP_REPORT_ONLY accepts '1' or 'true'", () => {
@@ -135,6 +140,13 @@ describe("csp/isCspDisabled + isCspReportOnly", () => {
     expect(isCspReportOnly()).toBe(true);
     process.env.CSP_REPORT_ONLY = "true";
     expect(isCspReportOnly()).toBe(true);
+  });
+
+  it("isCspReportOnly returns false only when explicitly set to '0' or 'false'", () => {
+    process.env.CSP_REPORT_ONLY = "0";
+    expect(isCspReportOnly()).toBe(false);
+    process.env.CSP_REPORT_ONLY = "false";
+    expect(isCspReportOnly()).toBe(false);
   });
 });
 
