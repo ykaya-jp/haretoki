@@ -6,6 +6,7 @@ import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth";
 import { captureError } from "@/lib/sentry";
 import type { VisitReminderPhase } from "@/lib/visit-reminders";
+import type { RealtimePushEvent } from "@/lib/push/realtime-copy";
 
 export type FrequencyMode = "auto" | "quiet" | "off";
 
@@ -18,6 +19,13 @@ export interface ReminderTimingFlags {
   wayHome: boolean;
 }
 
+export interface PartnerActivityFlags {
+  partnerRating: boolean;
+  partnerNote: boolean;
+  decisionSaved: boolean;
+  weddingDateSet: boolean;
+}
+
 export interface NotificationPreferenceData {
   frequency: FrequencyMode;
   emailEnabled: boolean;
@@ -28,6 +36,12 @@ export interface NotificationPreferenceData {
    * written". Defaults to all-true to mirror the schema default.
    */
   reminderTimings: ReminderTimingFlags;
+  /**
+   * P3 L3 W2 — couple-activity push toggles. Always returned (defaults
+   * all-true) so the dispatcher gate has the same shape regardless of
+   * whether the user has opened settings.
+   */
+  partnerActivity: PartnerActivityFlags;
 }
 
 const DEFAULT_PREF: NotificationPreferenceData = {
@@ -35,6 +49,12 @@ const DEFAULT_PREF: NotificationPreferenceData = {
   emailEnabled: true,
   pushEnabled: false,
   reminderTimings: { dayBefore: true, morningOf: true, wayHome: true },
+  partnerActivity: {
+    partnerRating: true,
+    partnerNote: true,
+    decisionSaved: true,
+    weddingDateSet: true,
+  },
 };
 
 /** Returns the current user's notification preference, defaulting if absent. */
@@ -50,6 +70,10 @@ export async function getMyNotificationPreference(): Promise<NotificationPrefere
       remindersDayBefore: true,
       remindersMorningOf: true,
       remindersWayHome: true,
+      notifyPartnerRating: true,
+      notifyPartnerNote: true,
+      notifyDecisionSaved: true,
+      notifyWeddingDateSet: true,
     },
   });
 
@@ -63,6 +87,12 @@ export async function getMyNotificationPreference(): Promise<NotificationPrefere
       dayBefore: pref.remindersDayBefore,
       morningOf: pref.remindersMorningOf,
       wayHome: pref.remindersWayHome,
+    },
+    partnerActivity: {
+      partnerRating: pref.notifyPartnerRating,
+      partnerNote: pref.notifyPartnerNote,
+      decisionSaved: pref.notifyDecisionSaved,
+      weddingDateSet: pref.notifyWeddingDateSet,
     },
   };
 }
@@ -155,6 +185,83 @@ export async function updateVisitReminderTiming(
       component: "auth",
       alertRoute: "p3-digest",
       extra: { action: "notification-pref:update-timing", phase },
+    });
+    return { ok: false, error: "通知設定の保存に失敗しました" };
+  }
+}
+
+/**
+ * P3 L3 W2: map RealtimePushEvent → preference column. One edit
+ * here propagates everywhere that consumes the toggles (UI setter +
+ * dispatcher gate). `satisfies` enforces exhaustiveness — adding a
+ * new event without an entry here is a compile error.
+ */
+const PARTNER_EVENT_TO_COLUMN = {
+  partner_rating_added: "notifyPartnerRating",
+  partner_note_added: "notifyPartnerNote",
+  decision_saved: "notifyDecisionSaved",
+  wedding_date_set: "notifyWeddingDateSet",
+} as const satisfies Record<RealtimePushEvent, string>;
+
+const updatePartnerActivitySchema = z.object({
+  event: z.enum([
+    "partner_rating_added",
+    "partner_note_added",
+    "decision_saved",
+    "wedding_date_set",
+  ]),
+  enabled: z.boolean(),
+});
+
+export type UpdatePartnerActivityInput = z.infer<
+  typeof updatePartnerActivitySchema
+>;
+
+export interface UpdatePartnerActivityResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * P3 L3 W2: toggle a single couple-activity push event on/off for
+ * the current user. Same upsert-shape as `updateVisitReminderTiming`
+ * (B-3) so the UI pattern is symmetric. The dispatcher
+ * (`dispatchRealtimeEvent`) reads these columns BEFORE creating a
+ * `PushSendLog` throttle row, so flipping a toggle back on later
+ * doesn't get swallowed by a stale throttle entry.
+ */
+export async function updatePartnerActivityToggle(
+  input: UpdatePartnerActivityInput,
+): Promise<UpdatePartnerActivityResult> {
+  const parsed = updatePartnerActivitySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "通知設定の値が不正です" };
+  }
+  const { event, enabled } = parsed.data;
+  const column = PARTNER_EVENT_TO_COLUMN[event];
+
+  const user = await requireUser();
+
+  try {
+    await prisma.notificationPreference.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        emailEnabled: true,
+        pushEnabled: false,
+        // Only the targeted column gets the explicit value; the
+        // other 3 inherit the schema default `true`.
+        [column]: enabled,
+      },
+      update: { [column]: enabled },
+    });
+    revalidatePath("/settings");
+    return { ok: true };
+  } catch (err) {
+    captureError(err, {
+      component: "auth",
+      alertRoute: "p3-digest",
+      extra: { action: "notification-pref:update-partner-activity", event },
     });
     return { ok: false, error: "通知設定の保存に失敗しました" };
   }

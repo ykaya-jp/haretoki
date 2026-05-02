@@ -166,6 +166,7 @@ model User {
   decisionTodosCompleted   DecisionTodo[]          @relation("decision_todo_completer")
   pushSubscriptions        PushSubscription[]
   visitRemindersSent       VisitReminderSent[]
+  pushSendLogs             PushSendLog[]
   familyInvitationsCreated FamilyInvitation[]      @relation("FamilyInvitationCreator")
   familyInvitationsRevoked FamilyInvitation[]      @relation("FamilyInvitationRevoker")
 
@@ -881,6 +882,48 @@ model VisitReminderSent {
   @@map("visit_reminder_sent")
 }
 
+/// Phase 3 Level 3 wave 2 — couple-activity push throttle.
+///
+/// One row per (recipient × kind × scope × hour bucket). Created with
+/// prisma.create + P2002 catch so concurrent broadcasts from the
+/// Realtime layer can't double-notify the partner — DB enforces the
+/// uniqueness atomically (same race-safety contract as
+/// VisitReminderSent).
+///
+/// `hourBucket` is `floor(now().getTime() / (60 * 60 * 1000))` —
+/// including it in the unique key gives an automatic 1h cool-down
+/// per (kind, scope): a second event in the same hour P2002s and is
+/// silently skipped, the next hour rolls a fresh bucket and the
+/// next event sends. Same shape that protected B-2 against
+/// scheduledAt-change invalidation, applied here for time-window
+/// invalidation instead of date-change invalidation.
+///
+/// Retention: rows older than DATA_RETENTION_DAYS are pruned by the
+/// existing /api/cron/data-retention-sweep.
+model PushSendLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientUserId String   @map("recipient_user_id") @db.Uuid
+  /// "partner_rating_added" | "partner_note_added" |
+  /// "decision_saved" | "wedding_date_set" — matches RealtimePushEvent
+  /// in src/lib/push/realtime-copy.ts.
+  kind            String
+  /// venueId | projectId | visitId depending on kind. Stringly-typed
+  /// (not a FK) so a hard delete of the scope row doesn't break the
+  /// throttle log retention sweep.
+  scopeId         String   @map("scope_id")
+  /// Unix epoch hour of send — `floor(sentAt / 3600s)`. See model
+  /// docstring for why this is part of the unique key.
+  hourBucket      Int      @map("hour_bucket")
+  sentAt          DateTime @default(now()) @map("sent_at")
+
+  recipient User @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@unique([recipientUserId, kind, scopeId, hourBucket])
+  /// Retention sweep filter — `sent_at < now() - DATA_RETENTION_DAYS`.
+  @@index([sentAt])
+  @@map("push_send_logs")
+}
+
 /// Track C-1 family read-only share link.
 ///
 /// Public token grants ANY visitor (no auth) read-only access to a
@@ -969,6 +1012,16 @@ model NotificationPreference {
   remindersDayBefore    Boolean               @default(true) @map("reminders_day_before")
   remindersMorningOf    Boolean               @default(true) @map("reminders_morning_of")
   remindersWayHome      Boolean               @default(true) @map("reminders_way_home")
+  /// Phase 3 Level 3 wave 2 — partner activity push toggles. Each maps
+  /// 1:1 to a `RealtimePushEvent` consumed by `dispatchRealtimeEvent`:
+  /// false silently skips that event WITHOUT recording a PushSendLog
+  /// throttle row, so re-enabling later still fires the next event.
+  /// Defaults are true so the wave-1 Realtime broadcasts can ship
+  /// notifications without an opt-in step.
+  notifyPartnerRating   Boolean               @default(true) @map("notify_partner_rating")
+  notifyPartnerNote     Boolean               @default(true) @map("notify_partner_note")
+  notifyDecisionSaved   Boolean               @default(true) @map("notify_decision_saved")
+  notifyWeddingDateSet  Boolean               @default(true) @map("notify_wedding_date_set")
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 

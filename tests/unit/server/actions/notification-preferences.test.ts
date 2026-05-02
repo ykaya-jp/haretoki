@@ -41,6 +41,7 @@ vi.mock("next/cache", () => ({
 
 import {
   updateVisitReminderTiming,
+  updatePartnerActivityToggle,
   getMyNotificationPreference,
 } from "@/server/actions/notification-preferences";
 
@@ -154,6 +155,12 @@ describe("getMyNotificationPreference — defaults", () => {
       remindersDayBefore: true,
       remindersMorningOf: false,
       remindersWayHome: true,
+      // P3 L3 W2 — 4 new partner-activity columns. All defaulted to
+      // true by the schema; tests below cover the false case.
+      notifyPartnerRating: true,
+      notifyPartnerNote: true,
+      notifyDecisionSaved: true,
+      notifyWeddingDateSet: true,
     });
 
     const result = await getMyNotificationPreference();
@@ -166,5 +173,146 @@ describe("getMyNotificationPreference — defaults", () => {
     expect(result.frequency).toBe("quiet");
     expect(result.emailEnabled).toBe(false);
     expect(result.pushEnabled).toBe(true);
+  });
+});
+
+describe("getMyNotificationPreference — P3 L3 W2 partner activity", () => {
+  it("returns all-true partner activity flags when no row exists", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const result = await getMyNotificationPreference();
+
+    expect(result.partnerActivity).toEqual({
+      partnerRating: true,
+      partnerNote: true,
+      decisionSaved: true,
+      weddingDateSet: true,
+    });
+  });
+
+  it("projects all 4 partner activity columns when a row exists (mixed values)", async () => {
+    mockFindUnique.mockResolvedValue({
+      frequency: "auto",
+      emailEnabled: true,
+      pushEnabled: true,
+      remindersDayBefore: true,
+      remindersMorningOf: true,
+      remindersWayHome: true,
+      notifyPartnerRating: true,
+      notifyPartnerNote: false,
+      notifyDecisionSaved: true,
+      notifyWeddingDateSet: false,
+    });
+
+    const result = await getMyNotificationPreference();
+
+    expect(result.partnerActivity).toEqual({
+      partnerRating: true,
+      partnerNote: false,
+      decisionSaved: true,
+      weddingDateSet: false,
+    });
+  });
+});
+
+describe("updatePartnerActivityToggle — validation", () => {
+  it("rejects an unknown event BEFORE touching the DB", async () => {
+    const result = await updatePartnerActivityToggle({
+      // @ts-expect-error — testing the runtime guard
+      event: "ghost_appeared",
+      enabled: true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/不正/);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-boolean enabled BEFORE touching the DB", async () => {
+    const result = await updatePartnerActivityToggle({
+      event: "partner_rating_added",
+      // @ts-expect-error — testing the runtime guard
+      enabled: 1,
+    });
+    expect(result.ok).toBe(false);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("updatePartnerActivityToggle — upsert composition", () => {
+  it("maps partner_rating_added → notifyPartnerRating column", async () => {
+    mockUpsert.mockResolvedValue({});
+    const result = await updatePartnerActivityToggle({
+      event: "partner_rating_added",
+      enabled: false,
+    });
+    expect(result).toEqual({ ok: true });
+    const args = mockUpsert.mock.calls[0][0];
+    expect(args.where).toEqual({ userId: "user-1" });
+    expect(args.update).toEqual({ notifyPartnerRating: false });
+    expect(args.create).toMatchObject({
+      userId: "user-1",
+      notifyPartnerRating: false,
+      emailEnabled: true,
+      pushEnabled: false,
+    });
+    // CRITICAL: the other 3 partner columns are NOT in the create
+    // payload — they must inherit the schema default (true).
+    expect(args.create).not.toHaveProperty("notifyPartnerNote");
+    expect(args.create).not.toHaveProperty("notifyDecisionSaved");
+    expect(args.create).not.toHaveProperty("notifyWeddingDateSet");
+  });
+
+  it("maps partner_note_added → notifyPartnerNote column", async () => {
+    mockUpsert.mockResolvedValue({});
+    await updatePartnerActivityToggle({
+      event: "partner_note_added",
+      enabled: true,
+    });
+    expect(mockUpsert.mock.calls[0][0].update).toEqual({
+      notifyPartnerNote: true,
+    });
+  });
+
+  it("maps decision_saved → notifyDecisionSaved column", async () => {
+    mockUpsert.mockResolvedValue({});
+    await updatePartnerActivityToggle({
+      event: "decision_saved",
+      enabled: false,
+    });
+    expect(mockUpsert.mock.calls[0][0].update).toEqual({
+      notifyDecisionSaved: false,
+    });
+  });
+
+  it("maps wedding_date_set → notifyWeddingDateSet column", async () => {
+    mockUpsert.mockResolvedValue({});
+    await updatePartnerActivityToggle({
+      event: "wedding_date_set",
+      enabled: true,
+    });
+    expect(mockUpsert.mock.calls[0][0].update).toEqual({
+      notifyWeddingDateSet: true,
+    });
+  });
+
+  it("revalidates /settings on success", async () => {
+    mockUpsert.mockResolvedValue({});
+    await updatePartnerActivityToggle({
+      event: "partner_rating_added",
+      enabled: true,
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/settings");
+  });
+
+  it("captures DB failure and returns user-safe error", async () => {
+    mockUpsert.mockRejectedValue(new Error("connection lost"));
+    const result = await updatePartnerActivityToggle({
+      event: "partner_rating_added",
+      enabled: false,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/失敗/);
+    expect(mockCaptureError).toHaveBeenCalledTimes(1);
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
   });
 });
