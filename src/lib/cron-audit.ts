@@ -67,6 +67,7 @@ export const CRON_NAMES = [
   "decision-followup",
   "email-suppression-retry",
   "generate-rituals",
+  "monthly-report",
   "saved-search-notify",
   "supabase-health",
   "visit-reminders-day-before",

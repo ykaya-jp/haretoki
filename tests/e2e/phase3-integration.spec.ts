@@ -119,6 +119,16 @@ test.describe("Phase 3 integration smoke", () => {
     expect(response?.status()).toBe(404);
   });
 
+  test("/admin/metrics: 404 for unauthenticated visitors (long-term trend dashboard)", async ({
+    page,
+  }) => {
+    // Phase 4 metrics dashboard joins audit_logs + notifications +
+    // PushSendLog + AiCostSnapshot to surface MAU/funnel/cost — all
+    // signal worth keeping inside the admin gate.
+    const response = await page.goto("/admin/metrics");
+    expect(response?.status()).toBe(404);
+  });
+
   test("public family route is in the route table (the file resolves)", async ({
     page,
   }) => {
