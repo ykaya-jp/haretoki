@@ -125,29 +125,10 @@ describe("getCoupleRatings — viewer awareness", () => {
   });
 });
 
-describe("getPartnerRatings — legacy compat shape", () => {
-  beforeEach(() => {
-    requireUserMock.mockReset();
-    requireProjectMembershipMock.mockReset();
-    requireVenueAccessMock.mockReset();
-    findMembersMock.mockReset();
-    findRatingsMock.mockReset();
-
-    requireProjectMembershipMock.mockResolvedValue({ projectId: "p" });
-    requireVenueAccessMock.mockResolvedValue({});
-    findMembersMock.mockResolvedValue([ownerMember, partnerMember]);
-    findRatingsMock.mockResolvedValue(ratingsRows);
-  });
-
-  it("preserves the prior { ownerRatings, partnerRatings } shape for unmigrated callers", async () => {
-    // Owner viewer — the legacy assumption ("viewer is owner") holds, so
-    // the proxy gives the same answer the original function did.
-    requireUserMock.mockResolvedValue({ id: "owner-id" });
-    const { getPartnerRatings } = await import("@/server/actions/ratings");
-    const r = await getPartnerRatings("venue-1");
-    expect(r).toHaveProperty("ownerRatings");
-    expect(r).toHaveProperty("partnerRatings");
-    expect(r.ownerRatings?.name).toBe("オーナー");
-    expect(r.partnerRatings?.name).toBe("パートナー");
-  });
-});
+// Round 24 (Phase 3 wave 1.5): the legacy `getPartnerRatings` proxy
+// has been deleted now that all callers (compare-redesigned + the
+// venue page) migrated to `getCoupleRatings`. The "compat shape"
+// describe block that lived here is intentionally removed — leaving
+// it would test code that no longer exists. The bug-history comments
+// in this file (and in compare-redesigned.tsx L117) are the only
+// remaining trace of the old role-keyed function.

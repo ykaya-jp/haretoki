@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS, DIMENSION_HELP } from "@/lib/constants";
 import { saveDirectRatings } from "@/server/actions/ratings";
+import { track } from "@/lib/analytics";
 
 const HALF_STEPS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5] as const;
 
@@ -168,6 +169,13 @@ export function RatingSection({
       if (timerRef.current) clearTimeout(timerRef.current);
       setSaving(true);
       setJustSaved(false);
+      // Snapshot the pre-save baseline so we can decide added vs
+      // edited AFTER the server confirms. Reading `lastSavedRef`
+      // directly inside the timeout would reflect any later concurrent
+      // save that already advanced the baseline — capturing here
+      // pins the analytics decision to the user action that started
+      // this debounce window.
+      const baselineBeforeSave = { ...lastSavedRef.current };
       timerRef.current = setTimeout(async () => {
         const rollback = () => {
           setRatings((prev) => {
@@ -196,6 +204,25 @@ export function RatingSection({
                 : "うまく残せませんでした。もう一度お試しください",
             );
             return;
+          }
+          // Phase 3 wave 1.5 analytics — fire one track event per
+          // dimension successfully saved. "added" = the viewer had no
+          // previous score on this dimension; "edited" = there was
+          // already a score and the viewer changed it. Owner vs
+          // partner is NOT a property here — the funnel's whole
+          // point is that *anyone* in the couple can rate, so the
+          // event itself is role-agnostic. Admin-side segmentation
+          // can join on the userId already attached by the analytics
+          // helper.
+          //
+          // Decision pinned against the snapshot taken BEFORE this
+          // save started; the post-save advance happens immediately
+          // below.
+          for (const [dim, score] of Object.entries(delta)) {
+            const prevScore = baselineBeforeSave[dim] ?? 0;
+            const eventName =
+              prevScore > 0 ? "partner_rating_edited" : "partner_rating_added";
+            track(eventName, { venueId, dimension: dim, score });
           }
           // Advance the rollback baseline only after the DB confirms.
           lastSavedRef.current = { ...lastSavedRef.current, ...delta };

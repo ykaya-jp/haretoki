@@ -23,7 +23,7 @@ import {
   getMatrixInsight,
   type MatrixInsight,
 } from "@/server/actions/matrix-insight";
-import { getPartnerRatings } from "@/server/actions/ratings";
+import { getCoupleRatings } from "@/server/actions/ratings";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { cn } from "@/lib/utils";
 import {
@@ -111,14 +111,20 @@ export function CompareRedesigned() {
   // chip. Off by default — the natural Tier-1 order is still the best
   // first read for most couples.
   const [sortByPartnerDiff, setSortByPartnerDiff] = useState(false);
-  // venueId → { ownerRatings, partnerRatings } map. Populated lazily
+  // venueId → { own, other } map (viewer-aware shape). Populated lazily
   // the first time the couple flips the partner-diff sort on, keyed by
-  // the currently-selected venues. We deliberately reuse the existing
-  // per-venue `getPartnerRatings` server action here instead of adding
-  // a matrix-wide one — the constraint is "no server/schema changes"
-  // and N calls for N selected venues (typically 2-4) is cheap enough.
+  // the currently-selected venues. Round 24: migrated from the
+  // role-keyed `getPartnerRatings` to viewer-aware `getCoupleRatings`
+  // — the "意見差を上に" feature reads more naturally as
+  // "あなた vs 相手" than as "owner vs partner" since the partner
+  // viewer was previously seeing their own scores in the "owner" slot
+  // (the same double-count bug round 23 fixed for rating-section).
+  // The diff magnitude itself is symmetric (|own − other|) so the
+  // ranking is unaffected by which side gets which slot — but the
+  // per-venue cache and downstream consumers now use the viewer-aware
+  // names too, keeping the mental model consistent.
   const [partnerMap, setPartnerMap] = useState<
-    Record<string, { owner: Record<string, number> | null; partner: Record<string, number> | null }>
+    Record<string, { own: Record<string, number> | null; other: Record<string, number> | null }>
   >({});
   const [partnerLoading, setPartnerLoading] = useState(false);
 
@@ -176,20 +182,20 @@ export function CompareRedesigned() {
     });
     void Promise.all(
       missing.map((id) =>
-        getPartnerRatings(id)
+        getCoupleRatings(id)
           .then((r) => ({
             id,
-            owner: r.ownerRatings?.ratings ?? null,
-            partner: r.partnerRatings?.ratings ?? null,
+            own: r.ownRatings?.ratings ?? null,
+            other: r.otherRatings?.ratings ?? null,
           }))
-          .catch(() => ({ id, owner: null, partner: null })),
+          .catch(() => ({ id, own: null, other: null })),
       ),
     ).then((results) => {
       if (cancelled) return;
       setPartnerMap((prev) => {
         const next = { ...prev };
         for (const r of results) {
-          next[r.id] = { owner: r.owner, partner: r.partner };
+          next[r.id] = { own: r.own, other: r.other };
         }
         return next;
       });
@@ -330,10 +336,16 @@ export function CompareRedesigned() {
   if (sortByPartnerDiff) {
     const perVenueDiffs: PartnerOpinionDiff[][] = venueIds.map((id) => {
       const cached = partnerMap[id];
+      // computePartnerOpinionDiff is symmetric in its two ratings args
+      // (it computes |a − b|), so we can pass {own, other} into the
+      // {owner, partner} parameter slots without changing the magnitude
+      // result. The function name still says "partner" because the
+      // ranking semantics — "where do the two of you disagree most" —
+      // are identical regardless of which side gets which slot.
       return computePartnerOpinionDiff(
         data.dimensions.map((d) => d.id),
-        cached?.owner ?? null,
-        cached?.partner ?? null,
+        cached?.own ?? null,
+        cached?.other ?? null,
       );
     });
     for (const d of data.dimensions) {

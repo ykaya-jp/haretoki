@@ -122,6 +122,67 @@ const FUNNEL_RUNGS: Array<{
   },
 ];
 
+/**
+ * Partner Level 2 funnel rungs (Phase 3 wave 1.5).
+ *
+ * Once the partner has joined the project, this is the funnel that
+ * tracks how far they walk into "actually using" their new full-member
+ * powers — first they SEE the upgrade hint on a venue page, then they
+ * either dismiss it or click through to the rating section, then they
+ * leave their first own rating, then they (eventually) come back and
+ * edit it, and finally they open the couple-comparison surface to
+ * compare their scores against the owner's.
+ *
+ * Same `event` + `payload` contract as the L1 funnel above — the
+ * count column is still placeholder until either PostHog query or a
+ * dedicated Prisma table lands. The rows EXIST now so when we wire
+ * counts in, partner adoption is visible end-to-end on day one.
+ */
+const PARTNER_L2_RUNGS: Array<{
+  event: string;
+  payload?: Record<string, unknown>;
+  label: string;
+  emittedBy: string;
+  note: string;
+}> = [
+  {
+    event: "onboarding_partner_can_rate_seen",
+    label: "Partner can-rate hint seen",
+    emittedBy: "partner-can-rate-hint.tsx (wave 1.4)",
+    note: "Server gates the mount: only fires for partner-role members with zero own ratings on this venue. Idempotent per dismiss state.",
+  },
+  {
+    event: "onboarding_partner_can_rate_clicked",
+    label: "Partner hint → rating section",
+    emittedBy: "partner-can-rate-hint.tsx",
+    note: "Tap on 「自分の評価を加える」 — smooth-scrolls to the rating section instead of navigating away (Wave 1.1 made the section editable for partner role).",
+  },
+  {
+    event: "onboarding_partner_can_rate_dismissed",
+    label: "Partner can-rate hint dismissed",
+    emittedBy: "partner-can-rate-hint.tsx",
+    note: "Tap × — persisted to localStorage, never re-renders. Clean churn signal vs the click-through above.",
+  },
+  {
+    event: "partner_rating_added",
+    label: "First rating on a dimension",
+    emittedBy: "rating-section.tsx (debouncedSave success branch)",
+    note: "Fires per dimension when the previous score for that (viewer, venue, dimension) was 0. Role-agnostic by design: the funnel measures couple participation, not owner-vs-partner segmentation (the user id is on every event for downstream split).",
+  },
+  {
+    event: "partner_rating_edited",
+    label: "Rating changed on a dimension",
+    emittedBy: "rating-section.tsx",
+    note: "Same source as above; fires when the previous score was non-zero. Edited >> added is the healthy ratio (couples revisit ratings as they tour more venues).",
+  },
+  {
+    event: "couple_comparison_viewed",
+    label: "Couple comparison opened",
+    emittedBy: "partner-comparison-summary.tsx (mount effect, rAF deferred)",
+    note: "Fires once per venueId mount. The rate at which this lifts after a partner_rating_added is the wave 1.3 polish payoff — the side-by-side now has both columns populated.",
+  },
+];
+
 function fmtPayload(p: Record<string, unknown> | undefined): string {
   if (!p) return "—";
   return Object.entries(p)
@@ -164,6 +225,14 @@ export default async function AdminOnboardingFunnelPage() {
       </header>
 
       <section className="rounded-lg border">
+        <header className="border-b bg-muted/20 px-3 py-2.5">
+          <h2 className="text-[13px] font-medium">
+            L1 — Onboarding to recommendations
+          </h2>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+            Hero impression → recommendations reached → partner invite hint.
+          </p>
+        </header>
         <table className="w-full text-[13px]">
           <thead className="border-b bg-muted/40 text-left">
             <tr>
@@ -176,6 +245,57 @@ export default async function AdminOnboardingFunnelPage() {
           </thead>
           <tbody className="divide-y">
             {FUNNEL_RUNGS.map((rung, i) => (
+              <tr key={`${rung.event}-${i}`} className="align-top">
+                <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
+                  {String(i + 1).padStart(2, "0")}
+                </td>
+                <td className="px-3 py-2.5">
+                  <p className="font-medium">{rung.label}</p>
+                  <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                    {rung.note}
+                  </p>
+                </td>
+                <td className="px-3 py-2.5 font-mono text-[11.5px]">
+                  <code className="rounded bg-muted px-1.5 py-0.5">
+                    {rung.event}
+                  </code>
+                  <p className="mt-1 text-muted-foreground">{rung.emittedBy}</p>
+                </td>
+                <td className="px-3 py-2.5 font-mono text-[11.5px] text-muted-foreground">
+                  {fmtPayload(rung.payload)}
+                </td>
+                <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
+                  —
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="mt-6 rounded-lg border">
+        <header className="border-b bg-muted/20 px-3 py-2.5">
+          <h2 className="text-[13px] font-medium">
+            L2 — Partner participation (Phase 3 wave 1.x)
+          </h2>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+            Upgrade hint → first own rating → couple comparison opened. Where
+            the funnel narrows tells us whether the L2 surface is reaching
+            partners and whether they actually rate after seeing it.
+          </p>
+        </header>
+        <table className="w-full text-[13px]">
+          <thead className="border-b bg-muted/40 text-left">
+            <tr>
+              <th className="px-3 py-2 font-medium">#</th>
+              <th className="px-3 py-2 font-medium">Stage</th>
+              <th className="px-3 py-2 font-medium">Event</th>
+              <th className="px-3 py-2 font-medium">Payload filter</th>
+              <th className="px-3 py-2 font-medium tabular-nums">Count (7d)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {PARTNER_L2_RUNGS.map((rung, i) => (
               <tr key={`${rung.event}-${i}`} className="align-top">
                 <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
                   {String(i + 1).padStart(2, "0")}
