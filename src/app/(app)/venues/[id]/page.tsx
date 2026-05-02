@@ -6,7 +6,7 @@ import {
   getVenueVisits,
   getVenueLatestEstimateTotal,
 } from "@/server/actions/venues";
-import { getPartnerRatings } from "@/server/actions/ratings";
+import { getCoupleRatings } from "@/server/actions/ratings";
 import { getFavorites } from "@/server/actions/favorites";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
@@ -332,12 +332,16 @@ async function RatingWithPartner({
   venueId: string;
   userRatings: Record<string, number>;
 }) {
-  const partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
+  // Round 23 (Phase 3 wave 1.1): viewer-aware couple ratings — `other`
+  // is whoever the viewer ISN'T (regardless of role), so partner viewing
+  // their own page sees their rating in the "あなた" row + the owner's
+  // rating in the "パートナー" row, instead of seeing themselves twice.
+  const coupleRatingsData = await getCoupleRatings(venueId).catch(() => null);
 
   const partnerRatings: Record<string, number> = {};
-  if (partnerRatingsData?.partnerRatings) {
+  if (coupleRatingsData?.otherRatings) {
     for (const [dim, score] of Object.entries(
-      partnerRatingsData.partnerRatings.ratings,
+      coupleRatingsData.otherRatings.ratings,
     )) {
       partnerRatings[dim] = score;
     }
