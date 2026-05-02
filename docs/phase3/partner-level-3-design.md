@@ -176,6 +176,41 @@ model VisitNote {
 
 **観測トリガー**: 5 分以内に同 visit を 2 人が編集したイベントが月 5 件以上で着手。
 
+#### Wave 3.3 status — schema 部分は意図的に保留 (round 33)
+
+`VisitNote.version` Int 追加は schema migration を必要とする。Phase 3 全体で
+`prisma/schema.prisma` を触る並行作業 (worker A の Realtime publication、
+worker B の round 21 admin/audit) があるため、 conflict-resolution 一本のために
+schema を取りに行くと merge 衝突 risk が上がる。round 33 では以下を **schema
+を触らずに先行投入** した:
+
+- `src/lib/sync/offline-reconcile.ts` — generic offline mutation queue。
+  visit-note-queue.ts (W20-1 の単一目的版) を namespace 引数付きで一般化。
+  rating / note / 将来の checklist-answer すべてが同 primitive を共有できる。
+- `shouldAcceptServerUpdate` / `dropStaleQueuedEntries` LWW 比較ヘルパー —
+  Realtime event を受けたとき、 queue 上の payload と timestamp 比較して
+  「 server が新しい → 受け入れ + queued は drop」 / 「queued が新しい →
+  flush で server を上書き」 を判定する primitives。
+- `<QueuedSavingIndicator>` UI primitive — 「オフラインで一時保存しました」
+  「保存待機中 (N 件)」 を任意の form 横に subtle に表示する。
+  `useOnlineStatus` + `queueLength()` を組み合わせるだけ。
+
+**残作業 (実 schema migration を伴う)**:
+
+1. `VisitNote.version Int @default(0)` 追加 + WHERE-version UPDATE
+   migration。これは独立した round で `prisma migrate dev` を取って単独 PR。
+2. `useRealtimeProject` (worker A 担当 wave 3.1) と本 round の reconcile lib
+   を結合する hook。subscribe → onUpdate で `shouldAcceptServerUpdate` を
+   gate にして cache を update / 棄却。
+3. 競合 dialog の 3 択 UI — server が conflict (0 行 update) を返したとき。
+   worker A の Realtime channel を subscribe している前提なので順序は
+   wave 3.1 → 3.3 dialog の順。
+
+これらが揃うと wave 3 全体が完了する。Round 33 の commit は (1)〜(3) 全部の
+**foundation** を提供するが、couples が手で触る効果はまだ無い (queue を
+読み書きする form 側 wire-up は wave 3.1 の RealtimeProvider が固まって
+からのほうが clean)。
+
 ### Wave 3.4: docs + analytics (~0.5 day)
 
 - 本 doc を「実装完了」に更新
