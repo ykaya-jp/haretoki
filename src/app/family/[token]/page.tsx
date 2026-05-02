@@ -1,7 +1,24 @@
+import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
 import { Heart, Sparkles } from "lucide-react";
 import { consumeFamilyInvitationView } from "@/server/actions/family-invitations";
+
+export const metadata: Metadata = {
+  title: "おふたりからのおしらせ",
+  description: "おふたりが選んだ式場のおしらせです。",
+  // Token URL — must NEVER be indexed or followed. Crawlers stumbling
+  // onto a leaked token would (a) burn the per-IP rate-limit and (b)
+  // potentially mark the view as "consumed" against legitimate
+  // recipients. Belt-and-suspenders: also covered by the noindex
+  // header in robots.ts.
+  robots: { index: false, follow: false, nocache: true },
+  // No OG / Twitter — share previews of family-only URLs leak the
+  // token via `og:url`, which is exactly the privacy boundary we
+  // want to keep tight.
+  openGraph: undefined,
+  twitter: undefined,
+};
 
 /**
  * Track C-1 family read-only landing.

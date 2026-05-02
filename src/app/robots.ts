@@ -31,6 +31,7 @@ export default function robots(): MetadataRoute.Robots {
           "/api",
           "/accept-invite",
           "/invite", // E-11 招待リンク: token URLs should never be indexed
+          "/family", // C-1 family-share read-only token URLs — per-recipient, must not be indexed
           "/demo", // デモ環境 — SEO からは除外
           "/visits",
           "/checklist",

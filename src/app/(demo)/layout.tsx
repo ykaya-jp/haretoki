@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { DemoBottomNav } from "@/components/demo/demo-bottom-nav";
@@ -5,6 +6,22 @@ import { DemoBodyMarker } from "@/components/demo/demo-body-marker";
 import { DemoDataProvider } from "@/components/demo/demo-data-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { Toaster } from "@/components/ui/sonner";
+
+export const metadata: Metadata = {
+  title: "体験する",
+  description:
+    "Haretoki の式場選びを、サンプルデータで体験できます。登録不要、3 分ほどでひと通りの流れがわかります。",
+  // Opt out of indexing — the demo dataset is seeded fixtures, not
+  // real venues, and we don't want search results to confuse it
+  // with the real product surface. The /demo route stays linkable
+  // (followable) from the landing CTA so couples can still share
+  // the experience by URL.
+  robots: { index: false, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FAF6EE",
+};
 
 // (demo) route group — unauthenticated walkthrough.
 // Mirrors the (app) layout's skeleton (main + bottom nav + toaster) but:

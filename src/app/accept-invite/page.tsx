@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -5,6 +6,16 @@ import { getPendingInvitation } from "@/server/actions/invitations";
 import { Toaster } from "@/components/ui/sonner";
 import { AcceptInviteForm } from "./accept-invite-form";
 import AcceptInviteLoading from "./loading";
+
+export const metadata: Metadata = {
+  title: "招待を確認",
+  description:
+    "おふたりのプロジェクトに招かれました。短いひとつの確認で、ふたりの式場選びに合流できます。",
+  // The invite acceptance flow is per-recipient and short-lived; we
+  // don't want it surfaced in search and we don't want crawlers
+  // following the form into a redirect loop.
+  robots: { index: false, follow: false },
+};
 
 async function AcceptInviteContent() {
   // Under cacheComponents (PPR) any route that reads cookies / auth must

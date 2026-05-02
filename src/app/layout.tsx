@@ -90,10 +90,13 @@ export const metadata: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: ["/og-image.png"],
   },
-  icons: {
-    icon: "/icons/logo.png",
-    apple: "/icons/icon-192.png",
-  },
+  // Icon links are auto-injected by `src/app/icon.tsx` (32x32 favicon)
+  // and `src/app/apple-icon.tsx` (180x180 iOS touch icon). The
+  // pre-existing `src/app/favicon.ico` covers the legacy `/favicon.ico`
+  // request that older crawlers still issue. We deliberately do NOT
+  // re-declare them under `metadata.icons` because the dual paths
+  // would inject duplicate `<link rel="icon">` tags — Next.js prefers
+  // the file-based routes when both exist.
 };
 
 export const viewport: Viewport = {
