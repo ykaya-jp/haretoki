@@ -59,6 +59,16 @@ const WASH_BY_STAGE: Record<SkyStage, string> = {
  *  accumulated rows. Mirrors the QUESTIONS array order. */
 const STEP_LABELS = ["雰囲気", "ゲスト人数", "エリア", "予算"] as const;
 
+/** A-2: sentinel id used inside the area question to mark the
+ *  "free-form fallback" pill. Selecting this pill reveals a text
+ *  input below; the typed value replaces the sentinel before being
+ *  saved into `answers.area`, so downstream code (saveOnboardingAnswers,
+ *  summarizeAnswer, AI prompt context) never sees the placeholder.
+ *  Underscore-bracketed shape so it can never collide with a real
+ *  area name a couple might type ("その他のエリア" is the visible
+ *  label; the id is only used in component-local state). */
+const AREA_OTHER_SENTINEL = "__other__";
+
 interface VenueRecommendation {
   name: string;
   location: string;
@@ -75,11 +85,28 @@ interface OnboardingAnswer {
   budget?: { min: number; max: number };
 }
 
+/**
+ * A-2 — Question copy + lexicon pass.
+ *
+ * All four questions softened to the brand's lexicon: 丁寧体 maintained,
+ * "ご予算の目安" → "だいたいの予算は？" style口語化, every subtitle ≤
+ * 24 全角字 so each one reads in a single mobile line on 375px without
+ * wrap.
+ *
+ * Area options: the previous pin set was 表参道 / 青山 / 銀座 / 恵比寿
+ * + 横浜 / 舞浜 — biased to 5 central-Tokyo wards plus 1 Kanagawa + 1
+ * Chiba (audit-sub-A2 flagged this as "couples outside this footprint
+ * have nothing to pick"). The new "その他のエリア" sentinel reveals a
+ * free-form text input so couples in 関西・北海道・東北・九州 etc. can
+ * still answer the question instead of skipping it. The sentinel is
+ * replaced with the typed value before saving, so the persisted
+ * `answers.area` shape stays a plain string array.
+ */
 const QUESTIONS = [
   {
     id: "style",
-    question: "どんな雰囲気がお好みですか？",
-    subtitle: "思い浮かぶ雰囲気を、いくつか選んでみてください",
+    question: "お気に入りの雰囲気は？",
+    subtitle: "思い浮かぶものを、いくつでも",
     type: "pills" as const,
     options: [
       { id: "チャペル", label: "チャペル" },
@@ -92,14 +119,14 @@ const QUESTIONS = [
   },
   {
     id: "guests",
-    question: "ゲストは何名くらいをお考えですか？",
-    subtitle: "だいたいで大丈夫です。あとから変えられます",
+    question: "ゲストはだいたい何名？",
+    subtitle: "だいたいで大丈夫、あとから変えられます",
     type: "number" as const,
   },
   {
     id: "area",
-    question: "気になるエリアはありますか？",
-    subtitle: "ふたりの日常の、延長線にある街で",
+    question: "気になる街はある？",
+    subtitle: "ふたりの暮らしの、延長線で",
     type: "pills" as const,
     options: [
       { id: "表参道", label: "表参道" },
@@ -108,12 +135,17 @@ const QUESTIONS = [
       { id: "恵比寿", label: "恵比寿" },
       { id: "横浜", label: "横浜" },
       { id: "舞浜", label: "舞浜" },
+      // Free-form fallback. Selecting reveals a text input below.
+      // Visible label is intentionally longer / more verbose than the
+      // place-name pills so the affordance reads as "an escape hatch"
+      // rather than yet another preset option.
+      { id: AREA_OTHER_SENTINEL, label: "その他のエリア" },
     ],
   },
   {
     id: "budget",
-    question: "ご予算の目安はありますか？",
-    subtitle: "おおよそで構いません。あとで見直せます",
+    question: "だいたいの予算は？",
+    subtitle: "おおよそで構いません、見直せます",
     type: "pills" as const,
     options: [
       { id: "200", label: "〜200万" },
@@ -139,6 +171,11 @@ export function OnboardingFlow() {
   // question flow state stays focused on the 4 conditions.
   const [selectedPills, setSelectedPills] = useState<string[]>([]);
   const [guestCount, setGuestCount] = useState("");
+  // A-2: free-form area input shown only when AREA_OTHER_SENTINEL is
+  // among the selected area pills. Held separately from selectedPills
+  // so a couple can deselect / reselect "その他のエリア" without losing
+  // what they typed mid-flow.
+  const [otherAreaText, setOtherAreaText] = useState("");
   // chatHistory state is no longer rendered (Zone 3 reads `answers`
   // directly via summarizeAnswer). Kept around — and the setter
   // continues to be populated below — so a future cleanup pass (A-6)
@@ -203,15 +240,33 @@ export function OnboardingFlow() {
   }
 
   /**
-   * Jump back to an earlier step. Drops the in-flight pill / number
-   * selection so the question renders cleanly with the persisted
-   * answer ready to be re-edited.
+   * Jump back to an earlier step. Drops the in-flight pill / number /
+   * free-form area selection so the question renders cleanly with the
+   * persisted answer ready to be re-edited.
    */
   function rewindToStep(targetIndex: number) {
     if (targetIndex >= step || targetIndex < 0) return;
     setSelectedPills([]);
     setGuestCount("");
+    setOtherAreaText("");
     setStep(targetIndex);
+  }
+
+  /**
+   * A-2: build the persisted area string array from the current pill
+   * selection. The sentinel id is filtered out of the saved value and
+   * (if the user typed something into the free-form input) replaced
+   * with that text. Trailing whitespace + duplicates with existing
+   * pills are dropped so a couple can not produce
+   * `["表参道", "表参道"]` by typing the same name into the input.
+   */
+  function buildAreaAnswer(pills: string[], freeText: string): string[] {
+    const presets = pills.filter((p) => p !== AREA_OTHER_SENTINEL);
+    const trimmed = freeText.trim();
+    if (!trimmed) return presets;
+    if (!pills.includes(AREA_OTHER_SENTINEL)) return presets;
+    if (presets.includes(trimmed)) return presets;
+    return [...presets, trimmed];
   }
 
   const handleNext = () => {
@@ -226,8 +281,9 @@ export function OnboardingFlow() {
       if (count > 0) setAnswers((prev) => ({ ...prev, guestCount: count }));
       userAnswer = count > 0 ? `${count}名` : "スキップ";
     } else if (q.id === "area") {
-      setAnswers((prev) => ({ ...prev, area: selectedPills }));
-      userAnswer = selectedPills.join("、") || "スキップ";
+      const areaArr = buildAreaAnswer(selectedPills, otherAreaText);
+      setAnswers((prev) => ({ ...prev, area: areaArr }));
+      userAnswer = areaArr.join("、") || "スキップ";
     } else if (q.id === "budget") {
       const budgetMap: Record<string, { min: number; max: number }> = {
         "200": { min: 0, max: 2000000 },
@@ -251,6 +307,7 @@ export function OnboardingFlow() {
 
     setSelectedPills([]);
     setGuestCount("");
+    setOtherAreaText("");
 
     if (step < QUESTIONS.length - 1) {
       setStep(step + 1);
@@ -265,7 +322,7 @@ export function OnboardingFlow() {
         const count = parseInt(guestCount, 10);
         if (count > 0) finalAnswers.guestCount = count;
       } else if (q.id === "area") {
-        finalAnswers.area = selectedPills;
+        finalAnswers.area = buildAreaAnswer(selectedPills, otherAreaText);
       } else if (q.id === "budget") {
         const budgetMap: Record<string, { min: number; max: number }> = {
           "200": { min: 0, max: 2000000 },
@@ -320,6 +377,7 @@ export function OnboardingFlow() {
     ]);
     setSelectedPills([]);
     setGuestCount("");
+    setOtherAreaText("");
 
     if (step < QUESTIONS.length - 1) {
       setStep(step + 1);
@@ -336,7 +394,8 @@ export function OnboardingFlow() {
         const count = parseInt(guestCount, 10);
         if (count > 0) finalAnswers.guestCount = count;
       } else if (q.id === "area") {
-        if (selectedPills.length > 0) finalAnswers.area = selectedPills;
+        const areaArr = buildAreaAnswer(selectedPills, otherAreaText);
+        if (areaArr.length > 0) finalAnswers.area = areaArr;
       } else if (q.id === "budget") {
         const budgetMap: Record<string, { min: number; max: number }> = {
           "200": { min: 0, max: 2000000 },
@@ -775,6 +834,33 @@ export function OnboardingFlow() {
               }}
               multiSelect={currentQ.id !== "budget"}
             />
+          )}
+
+          {/* A-2 free-form area fallback. Only the area question opts in,
+              and the input is only revealed once the couple actually
+              selects "その他のエリア" — keeps the surface uncluttered for
+              folks happy with the preset chips. The typed value gets
+              merged into answers.area via buildAreaAnswer at submit. */}
+          {currentQ.id === "area" && selectedPills.includes(AREA_OTHER_SENTINEL) && (
+            <div className="space-y-1.5 pt-1">
+              <label
+                htmlFor="onboarding-other-area"
+                className="text-eyebrow tracking-[0.2em] text-muted-foreground"
+              >
+                ほかの街
+              </label>
+              <Input
+                id="onboarding-other-area"
+                type="text"
+                inputMode="text"
+                value={otherAreaText}
+                onChange={(e) => setOtherAreaText(e.target.value)}
+                placeholder="例: 仙台、大阪、福岡 …"
+                aria-label="その他のエリアを書く"
+                maxLength={40}
+                className="h-11 text-[14px]"
+              />
+            </div>
           )}
 
           {currentQ.type === "number" && (
