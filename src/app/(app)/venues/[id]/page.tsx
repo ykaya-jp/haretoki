@@ -576,6 +576,7 @@ async function VisitsContent({
       projectId={projectId}
       currentUserId={user.id}
       partnerUserId={partnerUserId}
+      vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
       visits={visits.map((v) => ({
         id: v.id,
         scheduledAt: v.scheduledAt,

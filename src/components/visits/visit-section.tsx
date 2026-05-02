@@ -20,6 +20,7 @@ import {
   removeFromQueue,
   type QueuedVisitNotePayload,
 } from "@/lib/visit-note-queue";
+import { PermissionSheet } from "@/components/notifications/permission-sheet";
 
 interface Visit {
   id: string;
@@ -54,9 +55,16 @@ interface VisitSectionProps {
   currentUserId?: string;
   /** Partner's user id — used to label notes "パートナー" */
   partnerUserId?: string;
+  /**
+   * VAPID public key — passed from the server component so the value tracks
+   * the deploy environment. Empty string disables the post-save permission
+   * sheet (e.g. preview deploys that skipped the env). The PermissionSheet
+   * itself also no-ops when the browser doesn't support push.
+   */
+  vapidPublicKey?: string;
 }
 
-export function VisitSection({ venueId, venueName, visits, currentUserId, partnerUserId }: VisitSectionProps) {
+export function VisitSection({ venueId, venueName, visits, currentUserId, partnerUserId, vapidPublicKey }: VisitSectionProps) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleMemo, setScheduleMemo] = useState("");
@@ -79,6 +87,9 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
   // F2: avoid double-triggering the ics fetch if the toast action is tapped
   // twice, or if the user schedules → tap → re-schedules within the toast window.
   const icsBusyRef = useRef(false);
+  // B-1: visit id of the just-saved schedule. PermissionSheet keys off this
+  // value — a new id triggers the 1-sec delayed prompt; null keeps it idle.
+  const [pushPromptKey, setPushPromptKey] = useState<string | null>(null);
 
   // F2 (W15 audit): download + persist .ics for a visit the user just created.
   // Kept inside the component (not a helper) so it has router/toast scope.
@@ -148,6 +159,11 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
         // couple's personal calendar. 8s duration gives enough time to tap
         // without feeling rushed.
         const newVisitId = result.visitId;
+        // B-1: surface the push permission sheet 1 sec after this toast.
+        // PermissionSheet handles all suppression logic (already-decided,
+        // unsupported browser, "受け取らない" persisted) so we just hand
+        // over the trigger key and let it decide whether to show.
+        if (newVisitId) setPushPromptKey(newVisitId);
         toast.success("見学の予定を残しました", {
           description: "ふたりのカレンダーに入れておきますか？",
           action: newVisitId
@@ -658,6 +674,12 @@ export function VisitSection({ venueId, venueName, visits, currentUserId, partne
           </button>
         </div>
       )}
+      {vapidPublicKey ? (
+        <PermissionSheet
+          triggerKey={pushPromptKey}
+          vapidPublicKey={vapidPublicKey}
+        />
+      ) : null}
     </section>
   );
 }
