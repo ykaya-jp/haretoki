@@ -139,13 +139,13 @@ export default async function MyPage() {
         </div>
       </section>
 
-      {/* Partner — `id="partner-invite"` is the hash anchor target the
-          onboarding partner-hint links to (round 20 / A-5:
-          `/mypage#partner-invite`). When the spec'd dedicated route
-          `/mypage/partner-invite` lands later, this id can stay or go
-          freely; the onboarding-side href is the only thing that has
-          to flip. `scroll-mt-16` keeps the section header from being
-          hidden behind a future sticky header. */}
+      {/* Partner — `id="partner-invite"` is preserved as a backward-
+          compat anchor for any in-flight bookmarks of the old A-5
+          hash deep-link (`/mypage#partner-invite`). The onboarding
+          hint now points at the dedicated /mypage/partner-invite
+          route (round 21). The two surfaces render the same partner
+          components from src/components/partner/ so visual edits
+          propagate via the leaf, not via a duplicated panel. */}
       <section
         id="partner-invite"
         aria-labelledby="section-partner"
