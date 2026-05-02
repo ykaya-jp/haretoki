@@ -115,7 +115,16 @@ export async function runVisitReminderCron(
             select: {
               email: true,
               notificationPreference: {
-                select: { frequency: true, emailEnabled: true },
+                select: {
+                  frequency: true,
+                  emailEnabled: true,
+                  // Track B-3: per-timing toggles. The dispatcher gates
+                  // on these BEFORE creating a dedupe row so flipping a
+                  // timing back on later still fires future reminders.
+                  remindersDayBefore: true,
+                  remindersMorningOf: true,
+                  remindersWayHome: true,
+                },
               },
             },
           },
@@ -150,8 +159,27 @@ export async function runVisitReminderCron(
       for (const member of members) {
         const pref = member.user.notificationPreference;
         // "off" silences in-app + email + push — same shape as the AI
-        // insights frequency gate (`getAIInsights`).
+        // insights frequency gate (`getAIInsights`). No dedupe row is
+        // created so a later "auto" toggle re-arms this user.
         if (pref?.frequency === "off") {
+          skipped++;
+          continue;
+        }
+        // Track B-3: "quiet" (= 重要なときだけ) restricts to the
+        // forward-looking prep reminder. T-1h (morning_of) and T+30m
+        // (way_home) are nudges, not load-bearing — keeping the user in
+        // the loop with the day-before reminder alone matches the B-0
+        // doc semantics. Skip without dedupe row so toggling back to
+        // "auto" later still sends the rest.
+        if (pref?.frequency === "quiet" && phase !== "day_before") {
+          skipped++;
+          continue;
+        }
+        // Track B-3: per-timing opt-out. Same skip-without-dedupe shape
+        // — the user can re-enable later and the next cron will fire
+        // for any future visit. Default true (set in B-3 migration) so
+        // existing rows keep B-2 behaviour.
+        if (!isPhaseEnabledForPref(phase, pref)) {
           skipped++;
           continue;
         }
@@ -401,4 +429,27 @@ function pushTargetUrl(
   // day_before still routes to the venue page (no /prep page exposed
   // by the prep ICS yet — keeps the link safe even on cold accounts).
   return `/venues/${venueId}`;
+}
+
+/**
+ * Read the per-timing toggle for `phase` off the user's preference row.
+ * `null` (no row yet) treats every phase as enabled — matches the
+ * schema default (true for all 3 columns) so the dispatcher behaves
+ * identically before and after a user opens the settings page.
+ */
+function isPhaseEnabledForPref(
+  phase: VisitReminderPhase,
+  pref:
+    | {
+        remindersDayBefore: boolean;
+        remindersMorningOf: boolean;
+        remindersWayHome: boolean;
+      }
+    | null
+    | undefined,
+): boolean {
+  if (!pref) return true;
+  if (phase === "day_before") return pref.remindersDayBefore;
+  if (phase === "morning_of") return pref.remindersMorningOf;
+  return pref.remindersWayHome;
 }

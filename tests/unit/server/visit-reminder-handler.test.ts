@@ -88,7 +88,15 @@ const baseMember = {
   userId: "user-A",
   user: {
     email: "couple@example.com",
-    notificationPreference: { frequency: "auto", emailEnabled: true },
+    notificationPreference: {
+      frequency: "auto",
+      emailEnabled: true,
+      // Track B-3 — defaults match the schema (all-on) so existing tests
+      // see the same dispatcher behaviour as before B-3 shipped.
+      remindersDayBefore: true,
+      remindersMorningOf: true,
+      remindersWayHome: true,
+    },
   },
 };
 
@@ -185,7 +193,13 @@ describe("runVisitReminderCron — frequency=off silences all surfaces", () => {
         ...baseMember,
         user: {
           ...baseMember.user,
-          notificationPreference: { frequency: "off", emailEnabled: true },
+          notificationPreference: {
+            frequency: "off",
+            emailEnabled: true,
+            remindersDayBefore: true,
+            remindersMorningOf: true,
+            remindersWayHome: true,
+          },
         },
       },
     ]);
@@ -226,7 +240,13 @@ describe("runVisitReminderCron — push and email are independent", () => {
         ...baseMember,
         user: {
           ...baseMember.user,
-          notificationPreference: { frequency: "auto", emailEnabled: false },
+          notificationPreference: {
+            frequency: "auto",
+            emailEnabled: false,
+            remindersDayBefore: true,
+            remindersMorningOf: true,
+            remindersWayHome: true,
+          },
         },
       },
     ]);
@@ -309,5 +329,121 @@ describe("runVisitReminderCron — multi-member fan-out", () => {
     expect(result.skipped).toBe(1);
     expect(mockSendEmail).toHaveBeenCalledTimes(1);
     expect(mockSendPushToUser).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("runVisitReminderCron — Track B-3 per-timing toggles", () => {
+  function memberWithTimings(overrides: {
+    dayBefore?: boolean;
+    morningOf?: boolean;
+    wayHome?: boolean;
+    frequency?: string;
+  }) {
+    return {
+      ...baseMember,
+      user: {
+        ...baseMember.user,
+        notificationPreference: {
+          frequency: overrides.frequency ?? "auto",
+          emailEnabled: true,
+          remindersDayBefore: overrides.dayBefore ?? true,
+          remindersMorningOf: overrides.morningOf ?? true,
+          remindersWayHome: overrides.wayHome ?? true,
+        },
+      },
+    };
+  }
+
+  it("day_before phase: skips silently when remindersDayBefore=false (no dedupe row)", async () => {
+    mockVisitFindMany.mockResolvedValue([baseVisit]);
+    mockMemberFindMany.mockResolvedValue([memberWithTimings({ dayBefore: false })]);
+
+    const result = await runVisitReminderCron("day_before", NOW_FRI_19_JST);
+
+    expect(result.skipped).toBe(1);
+    expect(result.notified).toBe(0);
+    expect(result.pushed).toBe(0);
+    expect(result.emailed).toBe(0);
+    // CRITICAL: no dedupe row — re-enabling later must allow the next
+    // qualifying visit to fire.
+    expect(mockSentCreate).not.toHaveBeenCalled();
+    expect(mockSendPushToUser).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("morning_of phase: respects remindersMorningOf independently of day_before", async () => {
+    mockVisitFindMany.mockResolvedValue([
+      { ...baseVisit, scheduledAt: new Date(Date.UTC(2026, 4, 15, 4, 0, 0)) },
+    ]);
+    mockMemberFindMany.mockResolvedValue([
+      memberWithTimings({ dayBefore: true, morningOf: false }),
+    ]);
+    const NOW_FRI_08_JST = new Date(Date.UTC(2026, 4, 14, 23, 0, 0));
+
+    const result = await runVisitReminderCron("morning_of", NOW_FRI_08_JST);
+
+    expect(result.skipped).toBe(1);
+    expect(mockSentCreate).not.toHaveBeenCalled();
+  });
+
+  it("way_home phase: respects remindersWayHome", async () => {
+    const NOW_FRI_22_JST = new Date(Date.UTC(2026, 4, 15, 13, 0, 0));
+    mockVisitFindMany.mockResolvedValue([
+      { ...baseVisit, scheduledAt: new Date(Date.UTC(2026, 4, 15, 5, 0, 0)) },
+    ]);
+    mockMemberFindMany.mockResolvedValue([memberWithTimings({ wayHome: false })]);
+
+    const result = await runVisitReminderCron("way_home", NOW_FRI_22_JST);
+
+    expect(result.skipped).toBe(1);
+    expect(mockSentCreate).not.toHaveBeenCalled();
+  });
+
+  it("frequency=quiet restricts to day_before only (T-1h is suppressed)", async () => {
+    mockVisitFindMany.mockResolvedValue([
+      { ...baseVisit, scheduledAt: new Date(Date.UTC(2026, 4, 15, 4, 0, 0)) },
+    ]);
+    mockMemberFindMany.mockResolvedValue([
+      memberWithTimings({ frequency: "quiet" }),
+    ]);
+    const NOW_FRI_08_JST = new Date(Date.UTC(2026, 4, 14, 23, 0, 0));
+
+    const result = await runVisitReminderCron("morning_of", NOW_FRI_08_JST);
+
+    expect(result.skipped).toBe(1);
+    expect(result.notified).toBe(0);
+    expect(mockSentCreate).not.toHaveBeenCalled();
+  });
+
+  it("frequency=quiet still fires day_before (the 'important' phase)", async () => {
+    mockVisitFindMany.mockResolvedValue([baseVisit]);
+    mockMemberFindMany.mockResolvedValue([
+      memberWithTimings({ frequency: "quiet" }),
+    ]);
+    mockSentCreate.mockResolvedValue({ id: "sent-1" });
+
+    const result = await runVisitReminderCron("day_before", NOW_FRI_19_JST);
+
+    expect(result.notified).toBe(1);
+    expect(result.emailed).toBe(1);
+  });
+
+  it("missing notificationPreference (null) treats every phase as enabled", async () => {
+    // Couples who never opened settings before B-3 shipped have no
+    // preference row. Their behaviour must match the schema default
+    // (all timings on) — this matches the docstring guarantee on
+    // isPhaseEnabledForPref.
+    mockVisitFindMany.mockResolvedValue([baseVisit]);
+    mockMemberFindMany.mockResolvedValue([
+      {
+        ...baseMember,
+        user: { ...baseMember.user, notificationPreference: null },
+      },
+    ]);
+    mockSentCreate.mockResolvedValue({ id: "sent-1" });
+
+    const result = await runVisitReminderCron("day_before", NOW_FRI_19_JST);
+
+    expect(result.notified).toBe(1);
   });
 });

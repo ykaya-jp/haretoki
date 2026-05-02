@@ -899,6 +899,15 @@ model NotificationPreference {
   /// the retry cron can compare against `now - 7 days`.
   emailSuppressedReason String?               @map("email_suppressed_reason")
   emailSuppressedAt     DateTime?             @map("email_suppressed_at")
+  /// Track B-3 per-timing visit-reminder toggles. Each maps 1:1 to a
+  /// VisitReminderPhase consumed by the cron dispatcher: a `false`
+  /// value silently skips that phase for this user without recording
+  /// a VisitReminderSent dedupe row, so re-enabling later still fires
+  /// future reminders. Defaults are `true` so the B-2 cron behaviour
+  /// stays intact for existing rows after the additive migration.
+  remindersDayBefore    Boolean               @default(true) @map("reminders_day_before")
+  remindersMorningOf    Boolean               @default(true) @map("reminders_morning_of")
+  remindersWayHome      Boolean               @default(true) @map("reminders_way_home")
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
