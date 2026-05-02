@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
@@ -13,11 +14,54 @@ import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
 // the new contract. cachedAskClaude folds this into the cache key.
 const REVIEW_SUMMARY_PROMPT_VERSION = 1;
 import { guardExternalUrl } from "@/lib/url-guard";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import type { ReviewSource } from "@/generated/prisma/client";
 import {
   parseEstimateIncrease,
   aggregateEstimateIncrease,
 } from "@/server/actions/review-schema";
+
+/**
+ * Batch import 入口 (R1) — 大量 URL 取り込み時の防衛線。
+ *
+ * Cap 10: Anthropic throttle / cost / UX 待ち時間のバランス。10 件超えは
+ * zod で reject、user に「分割して再度貼付」を案内する設計。
+ *
+ * Allowed domain list は analyzeVenueReviewsInner と同じ 5 サイト。本来 1
+ * 箇所に export const で集約したいが analyzeVenueReviewsInner は inner
+ * 内で定義しており、touch すると既存挙動に影響するリスクがある。R1 では
+ * batch 入口で fail-fast の重複定義に留め、リファクタは別 round。
+ */
+const BATCH_URL_CAP = 10;
+const BATCH_ALLOWED_REVIEW_DOMAINS = [
+  "zexy.net", "www.zexy.net",
+  "weddingpark.net", "www.weddingpark.net",
+  "hana-yume.net", "www.hana-yume.net",
+  "wedding.mynavi.jp",
+  "mwed.jp", "www.mwed.jp",
+] as const;
+
+const batchImportSchema = z.object({
+  urls: z
+    .array(z.string().url("有効な URL を入力してください"))
+    .min(1, "URL を 1 件以上入力してください")
+    .max(
+      BATCH_URL_CAP,
+      `1 度に取り込めるのは ${BATCH_URL_CAP} 件までです。分割してお試しください`,
+    ),
+});
+
+export interface BatchImportPerUrl {
+  url: string;
+  status: "saved" | "skipped" | "failed";
+  /** Skip の理由 (例: "既に取り込み済") or 失敗の理由 (例: "対応していないサイトです") */
+  message?: string;
+}
+
+export interface BatchImportResult {
+  summary: { saved: number; skipped: number; failed: number };
+  perUrl: BatchImportPerUrl[];
+}
 
 /**
  * Normalise a Claude completion into something JSON.parse can consume.
@@ -507,6 +551,183 @@ async function getVenueReviewsCached(venueId: string, projectId: string) {
  * Foundation for Sprint 4's "口コミ AI 要約 バッチ" — call from an admin UI
  * or a future cron to re-run analysis after prompt improvements.
  */
+/**
+ * R1 — 複数 URL を 1 batch で順次取り込む。
+ *
+ * 使い方: review-section.tsx の「複数 URL を貼る」 sheet から呼ばれる。
+ * 単 URL 取り込み (`analyzeVenueReviews`) を順次 await する thin wrapper
+ * + cap / dedup / per-URL 失敗継続 を担当。
+ *
+ * Rate-limit:
+ *   - 入口で `URL_IMPORT` (5/min) を 1 回消費。内部の N call は counted
+ *     しない (= 1 batch で 5/min を 1 ずつ消費する設計)。これは既存
+ *     `batchAnalyzeVenueReviews` と同じ方針 (再生成バッチも 1 操作 1
+ *     ラベルで count)。
+ *
+ * Dedup:
+ *   - 既存 (venueId, source, sourceUrl) prefix-match で skip。
+ *     `saveExtractedReviews` が `#rev-{hash}` フラグメント付きで子レビュー
+ *     を upsert するので、parent URL を貼り直したケースは「parent と
+ *     同じ baseSourceUrl で始まる Review が 1 つでもあれば既取込」とみ
+ *     なす (= `startsWith(sourceUrl)`)。
+ *
+ * Sequential:
+ *   - `for (const url of input.urls)` + await。1 URL 失敗は loop 継続
+ *     (既存 `batchAnalyzeVenueReviews` の pattern を踏襲)。並列化しない
+ *     のは Anthropic throttle + 同一 venue への upsert 競合回避のため。
+ *
+ * Returns:
+ *   - `{summary: {saved, skipped, failed}, perUrl: [{url, status, message}]}`
+ *   - `summary.saved + summary.skipped + summary.failed === input.urls.length`
+ *     (完全 partition、UI で sanity check 可能)
+ */
+export async function batchImportReviewUrls(
+  venueId: string,
+  urls: string[],
+  source: ReviewSource,
+): Promise<
+  | BatchImportResult
+  | { error: string }
+> {
+  const parsed = batchImportSchema.safeParse({ urls });
+  if (!parsed.success) {
+    return {
+      error:
+        parsed.error.issues[0]?.message ?? "入力内容を確認してください",
+    };
+  }
+  const validatedUrls = parsed.data.urls;
+
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  // Verify venue ownership before any rate-limit cost.
+  const venue = await prisma.venue.findFirst({
+    where: { id: venueId, projectId },
+    select: { id: true },
+  });
+  if (!venue) {
+    return { error: "式場が見つかりません" };
+  }
+
+  // Single rate-limit hit per batch (matches batchAnalyzeVenueReviews).
+  // Counting per-URL would starve a 10-URL batch with the 5/min cap.
+  const rl = await checkRateLimit(`url_import:${user.id}`, RATE_LIMITS.URL_IMPORT);
+  if (!rl.allowed) {
+    return {
+      error: `取り込みの頻度が高すぎます。${rl.retryAfterSec}秒後に再度お試しください。`,
+    };
+  }
+
+  // Pull all existing review sourceUrls for this venue+source up-front so
+  // dedup is O(1) per input URL instead of N round-trips. The set holds
+  // the **base** URL (no fragment) — Review rows from saveExtractedReviews
+  // carry `#rev-{hash}` suffixes per individual review, but we strip them
+  // for the prefix-match check.
+  const existingRows = await prisma.review.findMany({
+    where: { venueId, source },
+    select: { sourceUrl: true },
+  });
+  const existingBases = new Set<string>();
+  for (const row of existingRows) {
+    const base = row.sourceUrl.split("#")[0];
+    existingBases.add(base);
+  }
+
+  const perUrl: BatchImportPerUrl[] = [];
+  let saved = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const url of validatedUrls) {
+    // Layer 1: SSRF + scheme guard (same helper analyzeVenueReviewsInner uses).
+    const guard = guardExternalUrl(url);
+    if (!guard.ok) {
+      perUrl.push({
+        url,
+        status: "failed",
+        message:
+          guard.reason === "scheme"
+            ? "HTTPS の URL のみ対応しています"
+            : guard.reason === "invalid"
+              ? "有効な URL ではありません"
+              : "この URL は取得できません",
+      });
+      failed++;
+      continue;
+    }
+
+    // Layer 2: domain allowlist. Duplicated from analyzeVenueReviewsInner
+    // intentionally so this batch can fail-fast before paying the per-URL
+    // 15s timeout cost — the inner check is the source of truth, this is
+    // an early-reject mirror.
+    const hostname = guard.url.hostname;
+    const allowed = BATCH_ALLOWED_REVIEW_DOMAINS.some(
+      (d) => hostname === d || hostname.endsWith("." + d),
+    );
+    if (!allowed) {
+      perUrl.push({
+        url,
+        status: "failed",
+        message:
+          "対応していないサイトではありません。ゼクシィ、Wedding Park、ハナユメ、マイナビ、みんなのウェディングの URL を入力してください",
+      });
+      failed++;
+      continue;
+    }
+
+    // Layer 3: dedup. Prefix-match against existing Review.sourceUrl bases
+    // (saveExtractedReviews appends `#rev-{hash}` per individual review,
+    // so equality on the base URL means "we already imported this page").
+    const baseUrl = url.split("#")[0];
+    if (existingBases.has(baseUrl)) {
+      perUrl.push({
+        url,
+        status: "skipped",
+        message: "既に取り込み済の URL です",
+      });
+      skipped++;
+      continue;
+    }
+
+    // Layer 4: actual analyze. 15s per-URL timeout lives inside
+    // analyzeVenueReviews; we don't add another wrapping race here.
+    const result = await analyzeVenueReviews(venueId, url, source);
+    if (result.ok) {
+      perUrl.push({ url, status: "saved" });
+      saved++;
+      // Add to set so a duplicate URL appearing later in the same batch
+      // dedups against this just-saved row instead of being re-fetched.
+      existingBases.add(baseUrl);
+    } else {
+      const reasonLabel =
+        result.reason === "timeout"
+          ? "時間切れになりました (15 秒以内に応答なし)"
+          : result.reason === "no-reviews"
+            ? "口コミが見つかりませんでした"
+            : (result.message ?? "取り込みに失敗しました");
+      perUrl.push({ url, status: "failed", message: reasonLabel });
+      failed++;
+    }
+  }
+
+  // Single revalidation at the end (vs per-URL) — the inner action's
+  // own revalidatePath calls already invalidated the cache between
+  // each successful save, so this is a final belt-and-braces.
+  // Next 16.2 + cacheComponents requires the `{ expire: 0 }` second arg
+  // (matches the existing call sites at L:514, L:906).
+  if (saved > 0) {
+    revalidateTag(`venue:${venueId}`, { expire: 0 });
+    revalidateTag(`project:${projectId}`, { expire: 0 });
+    revalidatePath(`/venues/${venueId}`);
+  }
+
+  return {
+    summary: { saved, skipped, failed },
+    perUrl,
+  };
+}
+
 export async function batchAnalyzeVenueReviews(
   venueId: string,
   opts: { force?: boolean } = {},
