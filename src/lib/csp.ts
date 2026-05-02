@@ -134,10 +134,33 @@ export function isCspDisabled(): boolean {
   return v === "1" || v === "true";
 }
 
-/** Returns true when CSP should be emitted in Report-Only mode. */
+/**
+ * Returns true when CSP should be emitted in Report-Only mode.
+ *
+ * Default = **report-only** (safer rollout). Enforcement requires the
+ * env var to be explicitly set to `"0"` or `"false"`. This is a
+ * deliberate fail-open posture because Next.js script tags don't yet
+ * receive the per-request nonce (root `app/layout.tsx` doesn't read
+ * `headers().get("x-nonce")` and propagate it to `<Script nonce={...}>`).
+ * Until that propagation is wired, enforce mode would block every
+ * `_next/static/chunks/*.js` and brick the entire app — which is
+ * exactly what happened in the 2026-05-03 prod-down incident (login /
+ * signup rendered blank because the React hydration bundle was CSP-
+ * blocked).
+ *
+ * Re-enable enforce mode by:
+ *   1. Wiring nonce propagation in `src/app/layout.tsx`
+ *      (read `headers().get("x-nonce")`, pass to root layout, and
+ *      attach via `<Script nonce={nonce}>` for every Next.js bundle).
+ *   2. Setting `CSP_REPORT_ONLY=0` in the relevant Vercel env.
+ *
+ * Until step 1 is shipped, leave this default-on so report-only is the
+ * floor and the app stays visible.
+ */
 export function isCspReportOnly(): boolean {
   const v = process.env.CSP_REPORT_ONLY;
-  return v === "1" || v === "true";
+  if (v === undefined || v === "") return true;
+  return v !== "0" && v !== "false";
 }
 
 /**
