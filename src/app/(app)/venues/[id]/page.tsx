@@ -25,6 +25,7 @@ import { VenueWhisper } from "@/components/venues/venue-whisper";
 import { PlanSection } from "@/components/venues/plan-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
+import { PartnerCanRateHint } from "@/components/ratings/partner-can-rate-hint";
 import { VisitSection } from "@/components/visits/visit-section";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
@@ -164,7 +165,11 @@ export default async function VenueDetailPage({
 
         {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
         <Suspense fallback={<RatingSkeleton />}>
-          <RatingWithPartner venueId={venue.id} userRatings={userRatings} />
+          <RatingWithPartner
+            venueId={venue.id}
+            userRatings={userRatings}
+            viewerIsPartner={!isOwner}
+          />
         </Suspense>
 
         {/* Fact Sheet — external rating ★, address, phone, map.
@@ -328,9 +333,14 @@ export default async function VenueDetailPage({
 async function RatingWithPartner({
   venueId,
   userRatings,
+  viewerIsPartner,
 }: {
   venueId: string;
   userRatings: Record<string, number>;
+  /** Wave 1.4 — true when the current viewer is the partner-role
+   *  member. Combined with `userRatings` emptiness below to gate the
+   *  partner-can-rate upgrade hint. Owners never see the hint. */
+  viewerIsPartner: boolean;
 }) {
   const partnerRatingsData = await getPartnerRatings(venueId).catch(() => null);
 
@@ -343,9 +353,16 @@ async function RatingWithPartner({
     }
   }
   const hasPartner = Object.keys(partnerRatings).length > 0;
+  // Wave 1.4 gate — partner-role + zero own ratings on this venue.
+  // Both conditions are required; an owner never sees the hint, and a
+  // partner who has already started rating doesn't either (they've
+  // already discovered the new capability the hint is meant to surface).
+  const showCanRateHint =
+    viewerIsPartner && Object.keys(userRatings).length === 0;
 
   return (
     <>
+      {showCanRateHint && <PartnerCanRateHint />}
       <RatingSection
         venueId={venueId}
         initialRatings={userRatings}
