@@ -18,6 +18,7 @@ vi.mock("@/server/auth", () => ({
 const venueFindMany = vi.fn();
 const projectChecklistFindMany = vi.fn();
 const answerFindMany = vi.fn();
+const reviewFindMany = vi.fn();
 
 vi.mock("@/server/db", () => ({
   prisma: {
@@ -28,6 +29,7 @@ vi.mock("@/server/db", () => ({
     venueChecklistAnswer: {
       findMany: (...args: unknown[]) => answerFindMany(...args),
     },
+    review: { findMany: (...args: unknown[]) => reviewFindMany(...args) },
   },
 }));
 
@@ -39,6 +41,7 @@ describe("getComparisonMatrix — Deep Extraction fields", () => {
     venueFindMany.mockReset();
     projectChecklistFindMany.mockReset().mockResolvedValue([]);
     answerFindMany.mockReset().mockResolvedValue([]);
+    reviewFindMany.mockReset().mockResolvedValue([]);
   });
 
   it("selects all 19+ Deep Extraction columns (contract guard)", async () => {

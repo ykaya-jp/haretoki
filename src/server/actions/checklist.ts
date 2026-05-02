@@ -8,6 +8,7 @@ import { CHECKLIST_PRESETS, STARTER_PRESET_IDS, getPresetById } from "@/lib/chec
 import { getChecklistItemsForDimension, ITEM_TO_DIMENSION } from "@/lib/dimension-checklist-map";
 import { calculateDimensionScore } from "@/lib/checklist-score-calculator";
 import type { Tier1Dimension } from "@/lib/constants";
+import { getReviewSummariesForVenues } from "@/server/actions/comparison";
 import {
   COMPARE_MAX_VENUES,
   type ComparisonAnswer,
@@ -396,6 +397,14 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
     },
   });
 
+  // R2 — pull cross-venue review summaries in a single query and attach
+  // per venue. We pass the *project-validated* ids (= venues.map(v.id))
+  // rather than raw input ids so the helper can stay auth-free; the
+  // upstream membership gate has already filtered the set.
+  const reviewSummaries = await getReviewSummariesForVenues(
+    venues.map((v) => v.id),
+  );
+
   // Restore requested order and convert Decimal to number
   const orderedVenues: ComparisonVenue[] = ids
     .map((id) => venues.find((v) => v.id === id))
@@ -434,6 +443,7 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
         source: s.source as string,
         score: Number(s.score),
       })),
+      reviewSummary: reviewSummaries.get(v.id),
     }));
 
   // Active items for this project

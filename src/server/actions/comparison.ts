@@ -7,6 +7,10 @@ import { isClaudeAvailable, askClaude, withRetry, computeInputHash } from "@/lib
 import { MODEL } from "@/lib/models";
 import { COMPARISON_PROMPT } from "@/lib/prompts/comparison";
 import { getCachedAnalysis, setCachedAnalysis } from "@/server/ai/cache";
+import {
+  aggregateReviewsForVenue,
+  type ReviewAggregate,
+} from "@/lib/review-aggregations";
 
 // Bump this when COMPARISON_PROMPT semantics change so old cached comparison
 // outputs aren't served against a new prompt contract.
@@ -226,4 +230,57 @@ function generateTemplateInsight(venues: ComparisonVenue[]): ComparisonInsight {
     text: parts.join(" "),
     recommendations,
   };
+}
+
+/**
+ * R2 — pull review-summary aggregates for a set of venues in ONE
+ * round-trip and group in JS. Used by `getComparisonMatrix` (in
+ * checklist.ts) to populate `ComparisonVenue.reviewSummary` for the
+ * cross-venue text comparison row on /compare.
+ *
+ * Why a single `findMany` instead of N per-venue queries: comparison
+ * boards routinely show 3-10 venues; the per-venue version would
+ * issue 10 queries against the same indexed table for the same
+ * window. The single `IN ()` query lets Postgres use the
+ * (venueId) index once and stream the rows; we group in JS.
+ *
+ * Auth scope: callers (= getComparisonMatrix) already validate
+ * ProjectMembership + ownership on the venue rows themselves. This
+ * helper does NOT re-check; passing arbitrary venueIds returns
+ * arbitrary review rows. Always upstream-gate the venueId list.
+ *
+ * Empty input → empty Map. Never throws on the happy path.
+ */
+export async function getReviewSummariesForVenues(
+  venueIds: string[],
+): Promise<Map<string, ReviewAggregate>> {
+  const out = new Map<string, ReviewAggregate>();
+  if (venueIds.length === 0) return out;
+
+  const rows = await prisma.review.findMany({
+    where: { venueId: { in: venueIds } },
+    select: {
+      venueId: true,
+      aiSummary: true,
+      sentiment: true,
+      categorySummary: true,
+      fetchedAt: true,
+    },
+  });
+
+  // Group by venueId in JS — the row count for a couple-scale comparison
+  // is small (<200 rows total), so the JS group is faster than a second
+  // round-trip with `groupBy`.
+  const grouped = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const list = grouped.get(row.venueId);
+    if (list) list.push(row);
+    else grouped.set(row.venueId, [row]);
+  }
+
+  for (const venueId of venueIds) {
+    const venueRows = grouped.get(venueId) ?? [];
+    out.set(venueId, aggregateReviewsForVenue(venueRows));
+  }
+  return out;
 }
