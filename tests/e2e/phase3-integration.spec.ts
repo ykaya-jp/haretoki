@@ -109,4 +109,33 @@ test.describe("Phase 3 integration smoke", () => {
     const url = response?.url() ?? page.url();
     expect(url).not.toContain("/login");
   });
+
+  test("D2 invite welcome: malformed token shows the editorial fail card (no crash)", async ({
+    page,
+  }) => {
+    // Token shape gate fires BEFORE any DB query. The D2 editorial
+    // refresh kept the same enumeration-mitigation copy, so a
+    // malformed token must always render "うまくお渡しできませんでした".
+    const response = await page.goto("/invite/not-a-real-token");
+    expect(response?.status() ?? 0).toBeLessThan(500);
+    await expect(
+      page.getByText("うまくお渡しできませんでした"),
+    ).toBeVisible();
+  });
+
+  test("D2 invite welcome: unknown 64-hex token also collapses to invalid card (enumeration mitigation)", async ({
+    page,
+  }) => {
+    // 64 hex chars passes the early shape guard and probes the DB.
+    // The "invalid" + "stale" branches share copy by design so a
+    // probe can't distinguish "token never existed" from "already
+    // consumed". A new test would catch a regression that splits the
+    // two branches' copy by accident.
+    const fakeButShapedRight = "a".repeat(64);
+    const response = await page.goto(`/invite/${fakeButShapedRight}`);
+    expect(response?.status() ?? 0).toBeLessThan(500);
+    await expect(
+      page.getByText("うまくお渡しできませんでした"),
+    ).toBeVisible();
+  });
 });

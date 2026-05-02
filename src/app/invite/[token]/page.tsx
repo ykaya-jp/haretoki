@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { consumeInvitationLink } from "@/server/actions/invitation-links";
 import { prisma } from "@/server/db";
@@ -9,23 +10,28 @@ import {
   GUEST_COOKIE_NAME,
   verifyGuestSession,
 } from "@/lib/guest-session";
+import { SkyChip } from "@/components/home/sky-chip";
 
 /**
- * F4 1-tap invitation landing.
+ * F4 1-tap invitation landing — D2 editorial refresh (DESIGN.md v4.2).
  *
- * Flow (rewritten for Level 1 guest support):
- *   1. Authed + already-consumed (stale) → quietly redirect /home so the
- *      partner doesn't see an error card for "you already joined".
- *   2. Authed + valid → previous behavior: consume, redirect /home?invited=1.
- *      When consume returns `already_joined`, surface a confirm page.
- *   3. Unauthed + invalid/expired/stale → generic InvalidCard (enumeration
- *      mitigation: invalid + stale are rendered identically).
- *   4. Unauthed + valid → welcome card with TWO CTAs:
- *          - 「ここだけ見る」 → POST /invite/[token]/guest-start (cookie)
- *          - 「参加する」    → /signup?next=/invite/[token]
- *      When `?confirm=join` is set, show Level 3 昇格 confirm before signup.
- *      When `?switch=1`        is set, show cross-project confirm
- *      before issuing a replacement guest cookie.
+ * Visual language:
+ *   - Welcome: 朝のひかり wash (gold-warm tinted gradient) + SkyChip(break)
+ *     + Shippori serif h1 + amber-tinted primary CTA — "曇り→晴れ間" の
+ *     ブランドメタファーがここで初めて partner に届く
+ *   - JoinConfirm / SwitchConfirm: 同じ editorial 言語、 トーンを微妙に
+ *     落として「これから一緒に決める」 切替の重みを伝える
+ *   - Invalid: 鈍色の SkyChip(cloudy) + muted-fg + 同じ vocabulary。
+ *     "原因不明" は維持 (enumeration mitigation §2.6 — invalid と stale
+ *     を同コピーで描画して token 存在判定をさせない)
+ *
+ * Logic flow (unchanged from F4 / Level 3):
+ *   1. Authed + already-consumed (stale) → quietly redirect /home
+ *   2. Authed + valid → consume + redirect /home?invited=1
+ *   3. Authed + valid + !confirm=join → JoinConfirmCard
+ *   4. Unauthed + invalid/expired/stale → InvalidCard
+ *   5. Unauthed + valid + switch=1 → SwitchConfirmCard
+ *   6. Unauthed + valid → WelcomeCard
  */
 export default async function InvitePage({
   params,
@@ -50,9 +56,6 @@ export default async function InvitePage({
 
   // ── Authed path ──────────────────────────────────────────────────
   if (user) {
-    // Peek before consuming so "stale" (already joined) doesn't show a
-    // hostile error. The consume call itself also returns stale, but we
-    // want the authed-path redirect to be silent.
     const peek = await prisma.projectInvitation.findUnique({
       where: { token },
       select: { consumedAt: true, consumedBy: true },
@@ -61,9 +64,6 @@ export default async function InvitePage({
       redirect("/home");
     }
 
-    // Level 3 合流 confirm — partner must acknowledge before we flip
-    // ProjectInvitation.consumedAt. Stops silent auto-join when the
-    // link is forwarded.
     if (confirm !== "join") {
       const invitation = await prisma.projectInvitation.findUnique({
         where: { token },
@@ -86,9 +86,6 @@ export default async function InvitePage({
 
     const result = await consumeInvitationLink(token);
     if (result.ok) {
-      // W20-4: forward the auto-discard count so /home can toast
-      // "以前の空の式場さがしは整理しました" instead of letting the
-      // partner wonder why their throw-away project vanished.
       const params = new URLSearchParams({ invited: "1" });
       if (result.discardedProjectCount > 0) {
         params.set("discarded", String(result.discardedProjectCount));
@@ -96,7 +93,6 @@ export default async function InvitePage({
       redirect(`/home?${params.toString()}`);
     }
     if (result.reason === "stale") {
-      // Stale but authed → quiet redirect (design §2.5)
       redirect("/home");
     }
     return <InvalidCard reason={result.reason} />;
@@ -113,9 +109,6 @@ export default async function InvitePage({
     },
   });
 
-  // Enumeration mitigation: invalid / stale are rendered identically so
-  // an attacker can't distinguish "token doesn't exist" from "already
-  // used". Only expired gets a distinct card (owner can re-issue).
   if (!invitation) return <InvalidCard reason="invalid" />;
   if (invitation.consumedAt) return <InvalidCard reason="invalid" />;
   if (invitation.expiresAt < new Date()) return <InvalidCard reason="expired" />;
@@ -125,8 +118,6 @@ export default async function InvitePage({
     invitation.creator.email.split("@")[0] ??
     "ふたりのひとり";
 
-  // Cross-project switch confirm (design §4.5): when a guest cookie
-  // already points to another project, ask before overwriting.
   if (switchParam === "1") {
     const cookieStore = await cookies();
     const raw = cookieStore.get(GUEST_COOKIE_NAME)?.value;
@@ -158,73 +149,140 @@ export default async function InvitePage({
   }
 
   return (
-    <div className="flex min-h-[70dvh] items-center justify-center px-6 py-10">
-      <div className="w-full max-w-[360px] space-y-6 text-center">
-        <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
-          <span>Invitation</span>
-        </p>
-        <div
-          aria-hidden="true"
-          className="mx-auto h-px w-24"
-          style={{
-            background:
-              "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 45%, transparent) 50%, transparent 100%)",
-          }}
-        />
-        <h1 className="font-[family-name:var(--font-display)] text-[24px] font-light leading-[1.35] tracking-[-0.005em]">
-          こんにちは、
-          <br />
-          <span className="font-normal">{inviterName}さんの相棒さん</span>。
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {inviterName}さんが、ふたりで選ぶ場所に招いてくれました。
-          <br />
-          まずは、ちょっと覗いてみますか。
-        </p>
-
-        <div className="space-y-2.5">
-          {/* Primary: Level 1 guest view — POST to keep the cookie-
-             setting surface server-only (no JS required). */}
-          <form action={`/invite/${token}/guest-start`} method="post">
-            <button
-              type="submit"
-              className="inline-flex h-12 w-full items-center justify-center rounded-[14px] border bg-background text-[14.5px] font-medium active:scale-[0.98] transition"
-              style={{
-                borderColor: "color-mix(in oklab, var(--gold-warm) 55%, transparent)",
-                color: "var(--gold-warm)",
-              }}
-            >
-              ここだけ見る
-            </button>
-          </form>
-          <Link
-            href={`/signup?next=${encodeURIComponent(`/invite/${token}`)}`}
-            className="inline-flex h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
-          >
-            参加する(アカウントを作る)
-          </Link>
-        </div>
-
-        <p className="text-[11px] text-muted-foreground/70">
-          アカウント登録は後からでも大丈夫です。
-          <br />
-          このリンクは{" "}
-          {new Date(invitation.expiresAt).toLocaleDateString("ja-JP")}
-          {" "}まで有効です。
-        </p>
-      </div>
-    </div>
+    <WelcomeCard
+      token={token}
+      inviterName={inviterName}
+      expiresAt={invitation.expiresAt}
+    />
   );
 }
 
 // ── UI fragments ──────────────────────────────────────────────────
 
 /**
- * Level 3 合流 confirm — the partner is authed but we insist on a
- * deliberate "合流しますか？" tap before consuming the token. Guards
- * against link forwarding + silent auto-join (design §2.6, §4.5).
+ * Welcome — the moment the partner sees Haretoki for the first time.
+ * Editorial v4.2 vocabulary: 朝のひかり wash + SkyChip(break) + Shippori
+ * serif h1 + gold-warm gradient hairline. Two CTAs:
+ *   - primary (amber-tinted bordered): "ここだけ見る" — guest cookie path
+ *   - secondary (text link): "参加する" — signup path
+ *
+ * Tone deliberately welcoming but not pushy: the inviter set the
+ * expectation, we honour it without sales copy.
+ */
+function WelcomeCard({
+  token,
+  inviterName,
+  expiresAt,
+}: {
+  token: string;
+  inviterName: string;
+  expiresAt: Date;
+}) {
+  return (
+    <main
+      className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-b from-amber-50/50 via-background to-background"
+      aria-labelledby="invite-welcome-heading"
+    >
+      {/* 朝のひかり — radial wash sits behind the card, never above the
+          fold. Mirrors the Hero entry treatment in EditorialHero. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[60vh]"
+        style={{
+          background:
+            "radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--gold-warm) 14%, transparent) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[420px] items-center justify-center px-6 py-12">
+        <div className="w-full space-y-8 text-center">
+          <header className="space-y-4">
+            <p className="text-[11.5px] uppercase tracking-[0.28em] text-muted-foreground">
+              <span className="font-medium text-[var(--gold-warm)]">
+                HARETOKI
+              </span>
+              <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+              <span>Invitation</span>
+            </p>
+            <div className="flex justify-center">
+              <SkyChip mood="break" size={64} />
+            </div>
+            <div
+              aria-hidden="true"
+              className="mx-auto h-px w-32"
+              style={{
+                background:
+                  "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 50%, transparent) 50%, transparent 100%)",
+              }}
+            />
+          </header>
+
+          <div className="space-y-4">
+            <h1
+              id="invite-welcome-heading"
+              className="font-[family-name:var(--font-display)] text-[26px] font-light leading-[1.4] tracking-[-0.005em] text-foreground"
+            >
+              {inviterName}さんが、
+              <br />
+              <span className="font-normal">
+                ふたりで選ぶ場所
+              </span>
+              に招いてくれました。
+            </h1>
+            <p className="text-[13.5px] leading-relaxed text-muted-foreground">
+              アカウントを作らずに、まずは
+              <br />
+              ちょっと覗いてみるところから。
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {/* Primary: Level 1 guest view via POST so the cookie set
+                stays server-only (no client JS required). Amber-tinted
+                outline mirrors the family-share Active link CTA so the
+                partner-facing surface reads as one visual family. */}
+            <form action={`/invite/${token}/guest-start`} method="post">
+              <button
+                type="submit"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-[14px] border bg-background text-[14.5px] font-medium tracking-[0.01em] shadow-sm transition active:scale-[0.98]"
+                style={{
+                  borderColor:
+                    "color-mix(in oklab, var(--gold-warm) 60%, transparent)",
+                  color: "var(--gold-warm)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--gold-warm) 4%, var(--background))",
+                }}
+              >
+                ここだけ見る
+              </button>
+            </form>
+            <Link
+              href={`/signup?next=${encodeURIComponent(`/invite/${token}`)}`}
+              className="inline-flex min-h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              アカウントを作って参加する
+            </Link>
+          </div>
+
+          <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+            アカウント登録は後からでも大丈夫です。
+            <br />
+            このリンクは{" "}
+            <span className="tabular-nums">
+              {new Date(expiresAt).toLocaleDateString("ja-JP")}
+            </span>
+            {" "}まで有効です。
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * Level 3 合流 confirm — partner is authed; we insist on a deliberate
+ * tap before consuming. Same editorial frame as WelcomeCard with a
+ * slightly hushed wash (the user has decided, this is just confirming).
  */
 function JoinConfirmCard({
   token,
@@ -234,47 +292,84 @@ function JoinConfirmCard({
   inviterName: string;
 }) {
   return (
-    <div className="flex min-h-[70dvh] items-center justify-center px-6 py-10">
-      <div className="w-full max-w-[360px] space-y-6 text-center">
-        <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
-          <span>Join</span>
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.4]">
-          {inviterName}さんの相棒として、
-          <br />
-          合流しますか？
-        </h1>
-        <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-          合流すると、{inviterName}さんと同じ式場さがしに参加できます。
-          <br />
-          ご自身の印象やハートも、ここに残せるようになります。
-        </p>
-        <div className="space-y-2.5">
-          <Link
-            href={`/invite/${token}?confirm=join`}
-            prefetch={false}
-            className="inline-flex h-12 w-full items-center justify-center rounded-[14px] bg-primary text-[14.5px] font-medium text-primary-foreground shadow-sm active:scale-[0.98] transition"
-          >
-            合流する
-          </Link>
-          <Link
-            href="/home"
-            className="inline-flex h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
-          >
-            いまはやめておく
-          </Link>
+    <main
+      className="relative min-h-[100dvh] bg-gradient-to-b from-amber-50/30 via-background to-background"
+      aria-labelledby="invite-join-heading"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[50vh]"
+        style={{
+          background:
+            "radial-gradient(120% 50% at 50% 0%, color-mix(in oklab, var(--gold-warm) 10%, transparent) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[420px] items-center justify-center px-6 py-12">
+        <div className="w-full space-y-7 text-center">
+          <header className="space-y-4">
+            <p className="text-[11.5px] uppercase tracking-[0.28em] text-muted-foreground">
+              <span className="font-medium text-[var(--gold-warm)]">
+                HARETOKI
+              </span>
+              <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+              <span>Join</span>
+            </p>
+            <div className="flex justify-center">
+              <SkyChip mood="break" size={56} />
+            </div>
+            <div
+              aria-hidden="true"
+              className="mx-auto h-px w-24"
+              style={{
+                background:
+                  "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 45%, transparent) 50%, transparent 100%)",
+              }}
+            />
+          </header>
+
+          <div className="space-y-3">
+            <h1
+              id="invite-join-heading"
+              className="font-[family-name:var(--font-display)] text-[24px] font-light leading-[1.45] tracking-[-0.005em] text-foreground"
+            >
+              {inviterName}さんの相棒として、
+              <br />
+              <span className="font-normal">合流しますか</span>。
+            </h1>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              合流すると、おふたりの式場さがしに参加できます。
+              <br />
+              ご自身の印象や ハートも、ここに残せるようになります。
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <Link
+              href={`/invite/${token}?confirm=join`}
+              prefetch={false}
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-[14px] bg-primary text-[14.5px] font-medium tracking-[0.01em] text-primary-foreground shadow-sm transition active:scale-[0.98]"
+            >
+              合流する
+            </Link>
+            <Link
+              href="/home"
+              className="inline-flex min-h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              いまはやめておく
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 /**
- * Cross-project switch confirm (design §4.5). Partner previously opened
- * a guest session for owner A; now tapping owner B's link. We preserve
- * A's cookie until they explicitly say "switch".
+ * Cross-project switch confirm — partner already has a guest session
+ * for owner A; switching to owner B replaces that. Tone is more cautious
+ * than JoinConfirm because the action is destructive (the previous
+ * session view becomes inaccessible without re-tapping A's link).
  */
 function SwitchConfirmCard({
   token,
@@ -288,56 +383,83 @@ function SwitchConfirmCard({
   newInviterName: string;
 }) {
   return (
-    <div className="flex min-h-[70dvh] items-center justify-center px-6 py-10">
-      <div className="w-full max-w-[360px] space-y-6 text-center">
-        <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="font-medium text-[var(--gold-warm)]">HARETOKI</span>
-          <span aria-hidden="true" className="mx-2 opacity-30">·</span>
-          <span>Switch</span>
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.45]">
-          いまは {currentInviterName} さんの
-          <br />
-          「{currentProjectName}」を見ています。
-          <br />
-          {newInviterName} さんの招待に
-          <br />
-          切り替えますか？
-        </h1>
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          切り替えると、{currentInviterName}さんの見ていた画面は閉じます。
-          もう一度見るには、{currentInviterName}さんのリンクをもう一度タップしてください。
-        </p>
-        <div className="space-y-2.5">
-          <form action={`/invite/${token}/guest-start?confirm=1`} method="post">
-            <button
-              type="submit"
-              className="inline-flex h-12 w-full items-center justify-center rounded-[14px] bg-primary text-[14.5px] font-medium text-primary-foreground shadow-sm active:scale-[0.98] transition"
+    <main
+      className="relative min-h-[100dvh] bg-gradient-to-b from-muted/30 via-background to-background"
+      aria-labelledby="invite-switch-heading"
+    >
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[420px] items-center justify-center px-6 py-12">
+        <div className="w-full space-y-6 text-center">
+          <header className="space-y-3">
+            <p className="text-[11.5px] uppercase tracking-[0.28em] text-muted-foreground">
+              <span className="font-medium text-[var(--gold-warm)]">
+                HARETOKI
+              </span>
+              <span aria-hidden="true" className="mx-2 opacity-30">·</span>
+              <span>Switch</span>
+            </p>
+            <div className="flex justify-center">
+              <SkyChip mood="cloudy" size={56} />
+            </div>
+            <div
+              aria-hidden="true"
+              className="mx-auto h-px w-24 bg-border"
+            />
+          </header>
+
+          <div className="space-y-3">
+            <h1
+              id="invite-switch-heading"
+              className="font-[family-name:var(--font-display)] text-[22px] font-light leading-[1.5] tracking-[-0.005em] text-foreground"
             >
-              {newInviterName}さんの招待に切り替える
-            </button>
-          </form>
-          <Link
-            href={`/invite/${token}/view`}
-            className="inline-flex h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
-          >
-            いまの画面にもどる
-          </Link>
+              いまは {currentInviterName}さんの
+              <br />
+              「{currentProjectName}」を見ています。
+              <br />
+              {newInviterName}さんの招待に
+              <br />
+              <span className="font-normal">切り替えますか</span>。
+            </h1>
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+              切り替えると、{currentInviterName}さんの見ていた画面は閉じます。
+              もう一度見るには、{currentInviterName}さんのリンクを
+              もう一度タップしてください。
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <form action={`/invite/${token}/guest-start?confirm=1`} method="post">
+              <button
+                type="submit"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-[14px] bg-primary px-4 text-[14px] font-medium tracking-[0.01em] text-primary-foreground shadow-sm transition active:scale-[0.98]"
+              >
+                {newInviterName}さんの招待に切り替える
+              </button>
+            </form>
+            <Link
+              href={`/invite/${token}/view`}
+              className="inline-flex min-h-11 w-full items-center justify-center text-[13px] text-muted-foreground underline-offset-4 hover:underline"
+            >
+              いまの画面にもどる
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
+/**
+ * Fail state. Editorial vocabulary preserved but the wash is muted +
+ * the SkyChip is cloudy — the partner immediately reads "this isn't
+ * for me". Copy stays identical for invalid + stale per the §2.6
+ * enumeration-mitigation contract; expired / self / already_joined
+ * each get a distinct line because each points at a real recovery.
+ */
 function InvalidCard({
   reason,
 }: {
   reason: "invalid" | "expired" | "stale" | "self" | "already_joined";
 }) {
-  // §2.6 enumeration mitigation: invalid + stale share copy so attackers
-  // can't distinguish "token missing" from "token consumed". Only
-  // expired + self + already_joined warrant distinct messages because
-  // each points at a real recovery action.
   const messages: Record<typeof reason, string> = {
     invalid:
       "このリンクは、うまく読み取れませんでした。送ってくれた方に、もう一度お伝えください。",
@@ -351,28 +473,58 @@ function InvalidCard({
   };
 
   return (
-    <div
-      className="flex min-h-[70dvh] items-center justify-center px-6 py-10"
+    <main
+      className="relative min-h-[100dvh] bg-gradient-to-b from-muted/40 via-background to-background"
       role="alert"
       aria-live="polite"
+      aria-labelledby="invite-invalid-heading"
     >
-      <div className="w-full max-w-[360px] space-y-5 text-center">
-        <p className="text-[11.5px] uppercase tracking-[0.2em] text-muted-foreground">
-          Invitation
-        </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[20px] font-light leading-[1.45]">
-          この招待は、お渡しできませんでした。
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {messages[reason]}
-        </p>
-        <Link
-          href="/home"
-          className="inline-flex h-11 items-center justify-center rounded-[14px] bg-primary px-6 text-[13px] font-medium text-primary-foreground"
-        >
-          ホームへ
-        </Link>
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[420px] items-center justify-center px-6 py-12">
+        <div className="w-full space-y-6 text-center">
+          <header className="space-y-4">
+            <p className="text-[11.5px] uppercase tracking-[0.28em] text-muted-foreground">
+              Invitation
+            </p>
+            {/*
+              CloudOff icon inside a hushed circular surface — quieter
+              than SkyChip(cloudy) so the fail state never reads as
+              "still in the brand journey". The stroke + text-muted
+              kombination signals "this surface is closed".
+            */}
+            <div
+              aria-hidden="true"
+              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-border/60 bg-muted/40"
+            >
+              <CloudOff className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
+            </div>
+            <div
+              aria-hidden="true"
+              className="mx-auto h-px w-20 bg-border"
+            />
+          </header>
+
+          <div className="space-y-3">
+            <h1
+              id="invite-invalid-heading"
+              className="font-[family-name:var(--font-display)] text-[20px] font-light leading-[1.5] tracking-[-0.005em] text-foreground"
+            >
+              この招待は、
+              <br />
+              うまくお渡しできませんでした。
+            </h1>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              {messages[reason]}
+            </p>
+          </div>
+
+          <Link
+            href="/home"
+            className="inline-flex min-h-11 items-center justify-center rounded-[14px] bg-primary px-6 text-[13px] font-medium text-primary-foreground"
+          >
+            ホームへ
+          </Link>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
