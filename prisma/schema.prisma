@@ -164,6 +164,7 @@ model User {
   agreements             CoupleAgreement[]
   savedSearches          SavedSearch[]
   decisionTodosCompleted DecisionTodo[]     @relation("decision_todo_completer")
+  pushSubscriptions      PushSubscription[]
 
   @@map("users")
 }
@@ -783,6 +784,52 @@ model CoachMessage {
   // few dozen messages. Composite makes both index-ordered reads.
   @@index([sessionId, createdAt])
   @@map("coach_messages")
+}
+
+/// P2.D Track B-1 — per-device Web Push subscription. One user can have
+/// multiple devices (laptop browser + phone PWA) so this is a 1-to-many
+/// off `User` rather than a Json column on NotificationPreference.
+///
+/// `endpoint` is the push service URL FCM / APNs / etc. assigns; it's
+/// stable per (browser install, app origin) and naturally unique. We
+/// upsert on it so the same browser re-subscribing (after reload /
+/// permission re-grant) doesn't create duplicates.
+///
+/// `p256dh` + `auth` are the symmetric crypto keys the push service
+/// hands back at subscribe time; web-push needs both to encrypt the
+/// outbound payload. They're not secrets per se (only useful when
+/// combined with the recipient's specific endpoint), but treat them as
+/// per-user data and never log raw values.
+///
+/// Lifecycle:
+///   - upsert by endpoint when the browser's `pushManager.subscribe()`
+///     resolves
+///   - delete by endpoint when the browser's
+///     `subscription.unsubscribe()` is called or when web-push reports
+///     410 Gone (the user disabled the OS-level notification)
+///   - GDPR cascade: deletes when the User is deleted
+///
+/// Legacy: `NotificationPreference.pushSubscription` (Json) was the
+/// pre-B-1 single-device store. Left in place to avoid a destructive
+/// migration; the dispatcher (B-2) reads exclusively from this table
+/// going forward.
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  /// Truncated User-Agent string captured at subscribe time so the
+  /// settings UI can show "MacBook (Chrome)" etc. for multi-device
+  /// users — sized to 256 chars (same cap as audit_logs).
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model NotificationPreference {
