@@ -371,6 +371,15 @@ export function OnboardingFlow() {
 
     if (step < QUESTIONS.length - 1) {
       triggerStepPulse(step);
+      // Funnel-stage event so /admin/onboarding-funnel can count drop-off
+      // between every step boundary, not just hero→completed. step is
+      // 0-indexed (matches QUESTIONS); STEP_LABELS gives the human-readable
+      // bucket so the funnel chart can label each rung without a join.
+      track("onboarding_step_completed", {
+        step: step + 1,
+        stepId: QUESTIONS[step]?.id ?? "unknown",
+        label: STEP_LABELS[step] ?? "",
+      });
       setStep(step + 1);
     } else {
       // Build final answers inline to avoid stale closure over `answers`
@@ -442,6 +451,15 @@ export function OnboardingFlow() {
 
     if (step < QUESTIONS.length - 1) {
       triggerStepPulse(step);
+      // Funnel-stage event so /admin/onboarding-funnel can count drop-off
+      // between every step boundary, not just hero→completed. step is
+      // 0-indexed (matches QUESTIONS); STEP_LABELS gives the human-readable
+      // bucket so the funnel chart can label each rung without a join.
+      track("onboarding_step_completed", {
+        step: step + 1,
+        stepId: QUESTIONS[step]?.id ?? "unknown",
+        label: STEP_LABELS[step] ?? "",
+      });
       setStep(step + 1);
     } else {
       // On the final step, include the current-step selection in the saved

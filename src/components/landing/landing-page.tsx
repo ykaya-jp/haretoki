@@ -105,9 +105,69 @@ const staggerIn = {
   }),
 };
 
-export function LandingPage() {
+/**
+ * Landing copy variants (Phase 2 prep — Phase 3 will wire to a real
+ * A/B framework).
+ *
+ * The `control` variant ships the copy currently in production; the
+ * `warm` variant softens the hero into "ふたりで描く" personalisation
+ * + drops the inquisitive Q from the lead so couples are invited
+ * rather than pitched to. Only the three highest-signal slots are
+ * forked (hero h1 / hero lead / commitment headline) — everything
+ * else (feature grid, problem statement, CTA labels, footer) stays
+ * shared so the diff between variants is genuinely about voice, not
+ * surface area.
+ *
+ * Both variants are bundled into the same client chunk so a future
+ * A/B framework can swap them via cookie / experiment SDK without a
+ * round-trip to fetch the alternate copy. To dogfood locally:
+ *
+ *   - Start the dev server, open `?v=warm` in the URL → warm copy
+ *   - `NEXT_PUBLIC_LANDING_VARIANT=warm` in `.env.local` → warm copy
+ *     baked into every preview build
+ *   - Default (no env, no query) → control copy
+ */
+export type LandingVariant = "control" | "warm";
+
+const LANDING_COPY: Record<
+  LandingVariant,
+  {
+    heroH1: { line1: string; line2: string };
+    heroLead: { line1: string; line2: string; line3: string };
+    commitmentH2: { line1: string; line2: string };
+  }
+> = {
+  control: {
+    heroH1: { line1: "その直感、", line2: "信じていい日にする。" },
+    heroLead: {
+      line1: "見積もりの不透明さも、",
+      line2: "比較しきれない不安も。",
+      line3: "ここで、晴れにできます。",
+    },
+    commitmentH2: { line1: "広告のない、", line2: "ふたりだけの判断材料" },
+  },
+  warm: {
+    heroH1: { line1: "ふたりで、", line2: "晴れの日を描く。" },
+    heroLead: {
+      line1: "見積もりの不透明さも、",
+      line2: "比べきれない迷いも。",
+      line3: "おふたりのペースで、晴れに。",
+    },
+    commitmentH2: { line1: "広告に縛られない、", line2: "ふたりだけのものさし" },
+  },
+};
+
+export interface LandingPageProps {
+  /** Server-decided copy variant. Defaults to "control" so any
+   *  caller that has not opted into the A/B prep continues to render
+   *  exactly the production copy. */
+  variant?: LandingVariant;
+}
+
+export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
+  const copy = LANDING_COPY[variant] ?? LANDING_COPY.control;
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh bg-background" data-landing-variant={variant}>
       {/* ─── Hero ─── */}
       <section className="hero-sunlight relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         {/* Background chapel image with warm overlay */}
@@ -158,9 +218,9 @@ export function LandingPage() {
             variants={fadeUp}
             className="font-[family-name:var(--font-display)] text-[clamp(1.75rem,5vw,3.5rem)] font-light leading-[1.2] tracking-[-0.015em] text-foreground"
           >
-            その直感、
+            {copy.heroH1.line1}
             <br />
-            信じていい日にする。
+            {copy.heroH1.line2}
           </motion.h1>
 
           <motion.p
@@ -168,11 +228,11 @@ export function LandingPage() {
             variants={fadeUp}
             className="mx-auto max-w-md text-[15px] leading-[2] text-muted-foreground"
           >
-            見積もりの不透明さも、
+            {copy.heroLead.line1}
             <br />
-            比較しきれない不安も。
+            {copy.heroLead.line2}
             <br />
-            ここで、晴れにできます。
+            {copy.heroLead.line3}
           </motion.p>
 
           <motion.ul
@@ -463,9 +523,9 @@ export function LandingPage() {
             私たちの約束
           </div>
           <h2 className="mb-6 font-[family-name:var(--font-display)] text-[clamp(1.25rem,2.5vw,2rem)] font-light leading-[1.4] tracking-[0.06em]">
-            広告のない、
+            {copy.commitmentH2.line1}
             <br />
-            ふたりだけの判断材料
+            {copy.commitmentH2.line2}
           </h2>
           <p className="text-[15px] leading-[2] text-muted-foreground">
             式場からの掲載料は受け取りません。
@@ -521,7 +581,14 @@ export function LandingPage() {
               サポート窓口
             </Link>
           </div>
-          <div className="mt-12 h-px w-full bg-border/40" />
+          {/* Hairline matches SiteFooter (round 14 P2 design pass) — same
+              gold-fade gradient instead of the flat border/40 we shipped
+              originally, so the landing → in-app rhythm reads continuous
+              when a couple goes from /` to /home. */}
+          <div
+            aria-hidden="true"
+            className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_20%,transparent)] to-transparent"
+          />
           <p className="mt-8 text-xs text-muted-foreground/40">
             © 2026 Haretoki
           </p>
