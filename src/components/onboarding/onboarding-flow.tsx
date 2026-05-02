@@ -14,8 +14,12 @@ import { saveOnboardingAnswers, getOnboardingRecommendations } from "@/server/ac
 import { recommendVenuesFromConditions, type DbVenueRecommendation } from "@/server/actions/onboarding-recs";
 import { createVenue } from "@/server/actions/venues";
 import { OnboardingHero } from "@/components/onboarding/onboarding-hero";
-import { Loader2, Sparkles, Plus, MapPin, ChevronLeft } from "lucide-react";
-import Image from "next/image";
+import { RecommendationCard } from "@/components/onboarding/recommendation-card";
+// Round 19 (A-4): Plus / MapPin / Image moved into RecommendationCard
+// (the inline cards that needed them were extracted). Loader2 stays for
+// the saving state on the question flow's submit button; Sparkles +
+// ChevronLeft remain in the question / progress chrome.
+import { Loader2, Sparkles, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 
@@ -464,188 +468,148 @@ export function OnboardingFlow() {
 
   if (showRecommendations) {
     return (
-      <div className="mx-auto max-w-lg space-y-6 py-4">
-        {/* DB venue recommendations — top 3 from existing venues */}
+      <div className="mx-auto max-w-lg space-y-8 py-6">
+        {/* Round 19 (A-4): Coach reveal h1. Replaces the prior dual
+            "Haretoki Suggests" / "登録済み式場から" eyebrow pair with a
+            single editorial moment that frames the entire reveal as
+            a coach voice. The Shippori serif at 24px scales the
+            moment to match DecisionCeremony / Hero / Step 1 hero
+            typography family. */}
+        <div className="space-y-2 text-center">
+          <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
+            COACH
+          </p>
+          <h1 className="font-[family-name:var(--font-display)] text-[24px] font-light leading-snug tracking-[-0.005em] text-foreground sm:text-[26px]">
+            ふたりの好みから、
+            <br />
+            3 つ選んでみました
+          </h1>
+          {advice && !isLoadingRecs ? (
+            <p className="mx-auto max-w-md pt-2 text-sm font-light leading-relaxed text-foreground/75">
+              {advice}
+            </p>
+          ) : null}
+        </div>
+
+        {/* AI 生成 venue recommendations — top of the reveal stack. The
+            A-0 Refero analysis flagged Notion's "pre-populated template"
+            pattern as the canonical winner; AI 上 / DB 下 mirrors that
+            (AI proposals carry the coach's framing, DB matches are the
+            secondary "あなたに近い実例" support). */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles
+              className="h-4 w-4 text-[var(--gold-warm)]"
+              strokeWidth={1.5}
+            />
+            <p className="text-eyebrow text-[var(--gold-warm)]">
+              コーチからの提案
+            </p>
+          </div>
+
+          {isLoadingRecs ? (
+            // Skeleton shimmer — 3 cards with 180ms stagger so the
+            // animation doesn't hit all at once and overwhelm the eye.
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="animate-pulse space-y-3 rounded-2xl border p-5"
+                  style={{
+                    borderColor:
+                      "color-mix(in oklab, var(--gold-warm) 15%, transparent)",
+                    animationDelay: `${i * 180}ms`,
+                  }}
+                >
+                  <div className="aspect-[16/9] w-full rounded-xl bg-muted" />
+                  <div className="h-5 w-3/4 rounded-full bg-muted" />
+                  <div className="h-3 w-1/2 rounded-full bg-muted" />
+                  <div className="h-3 w-full rounded-full bg-muted" />
+                  <div className="h-10 w-full rounded-full bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : recommendations.length > 0 ? (
+            <div className="space-y-3">
+              {recommendations.map((rec) => (
+                <RecommendationCard
+                  key={rec.name}
+                  variant="ai"
+                  name={rec.name}
+                  location={rec.location}
+                  reason={rec.reason}
+                  photoUrl={null}
+                  estimatedPrice={rec.estimatedPrice}
+                  strengths={rec.strengths}
+                  isAdding={addingVenues.has(rec.name)}
+                  onAdd={() => handleAddVenue(rec)}
+                />
+              ))}
+            </div>
+          ) : (
+            // 0 件 fallback — preserved from Onb-3.
+            <div className="space-y-2 py-10 text-center">
+              <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground/70">
+                ちょうど合う場所が、いまは見つかりませんでした。
+              </p>
+              <p className="text-sm text-muted-foreground">
+                条件を少し広げて、ふたりで探してみませんか。
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* Gold hairline separator — only renders when both AI + DB
+            sections have something to show. Visually delineates "コーチ
+            の提案" (上) from "あなたに近い実例" (下) without adding chrome. */}
+        {!isLoadingDbRecs &&
+        dbRecs.length > 0 &&
+        (recommendations.length > 0 || isLoadingRecs) ? (
+          <div
+            aria-hidden
+            className="mx-auto h-px w-24"
+            style={{
+              background: `linear-gradient(to right, transparent, var(--gold-warm), transparent)`,
+            }}
+          />
+        ) : null}
+
+        {/* DB venue recommendations — subtle support tier. Matches the
+            existing venues the couple has registered against the
+            project's conditions. Tap → /venues/<id>. */}
         {isLoadingDbRecs ? (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground animate-pulse">
+            <p className="animate-pulse text-sm text-muted-foreground">
               相性のよさそうな式場を探しています…
             </p>
           </div>
         ) : dbRecs.length > 0 ? (
-          <div className="space-y-4">
-            {/* Summary header */}
-            <div
-              className="rounded-r-2xl border-l-[3px] p-4 space-y-1"
-              style={{
-                borderLeftColor: "var(--gold-warm)",
-                background: "color-mix(in oklab, var(--gold-subtle) 60%, var(--background))",
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
-                <p className="text-eyebrow text-[var(--gold-warm)]">登録済み式場から</p>
-              </div>
-              <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
-                {dbRecsSummary}
+          <section className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-eyebrow text-muted-foreground">
+                あなたに近い実例
               </p>
-            </div>
-
-            {/* Venue cards */}
-            <div className="space-y-3">
-              {dbRecs.map((rec) => (
-                <a
-                  key={rec.venueId}
-                  href={`/venues/${rec.venueId}`}
-                  className="block rounded-2xl border overflow-hidden active:scale-[0.98] transition-transform"
-                  style={{
-                    background: "color-mix(in oklab, var(--gold-subtle) 30%, var(--card))",
-                    borderColor: "color-mix(in oklab, var(--gold-warm) 18%, transparent)",
-                  }}
-                >
-                  {rec.photoUrl && (
-                    <div className="relative w-full aspect-[4/3]">
-                      <Image
-                        src={rec.photoUrl}
-                        alt={rec.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 512px) 100vw, 512px"
-                      />
-                    </div>
-                  )}
-                  <div className="p-4 space-y-2">
-                    <p className="font-[family-name:var(--font-display)] text-[18px] font-light leading-snug text-foreground">
-                      {rec.name}
-                    </p>
-                    {rec.location && (
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-none" strokeWidth={1.5} />
-                        {rec.location}
-                      </p>
-                    )}
-                    <p className="text-sm leading-relaxed text-foreground/80">{rec.reason}</p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Onb-3: skeleton shimmer while loading / Onb-2: editorial header */}
-        {isLoadingRecs ? (
-          <div className="space-y-4">
-            {/* Skeleton shimmer — 3 cards with 180ms stagger */}
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border p-5 space-y-3 animate-pulse"
-                style={{
-                  borderColor: "color-mix(in oklab, var(--gold-warm) 15%, transparent)",
-                  animationDelay: `${i * 180}ms`,
-                }}
-              >
-                <div className="h-5 w-3/4 rounded-full bg-muted" />
-                <div className="h-3 w-1/2 rounded-full bg-muted" />
-                <div className="h-3 w-full rounded-full bg-muted" />
-                <div className="h-9 w-full rounded-full bg-muted" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            {/* Editorial AI insight header */}
-            <div
-              className="rounded-r-2xl border-l-[3px] p-4 space-y-2"
-              style={{
-                borderLeftColor: "var(--gold-warm)",
-                background: "color-mix(in oklab, var(--gold-subtle) 60%, var(--background))",
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
-                <p className="text-eyebrow text-[var(--gold-warm)]">Haretoki Suggests</p>
-              </div>
-              {advice ? (
-                <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
-                  {advice}
+              {dbRecsSummary ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {dbRecsSummary}
                 </p>
               ) : null}
             </div>
-
-            {/* Recommendation cards — editorial style */}
-            {recommendations.length > 0 ? (
-              <div className="space-y-3">
-                {recommendations.map((rec) => (
-                  <div
-                    key={rec.name}
-                    className="rounded-2xl border p-5 space-y-3"
-                    style={{
-                      background: "color-mix(in oklab, var(--gold-subtle) 30%, var(--card))",
-                      borderColor: "color-mix(in oklab, var(--gold-warm) 18%, transparent)",
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-0.5">
-                        {/* Venue name in Noto Serif JP 19px */}
-                        <p className="font-[family-name:var(--font-display)] text-[19px] font-light leading-snug text-foreground">
-                          {rec.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{rec.location}</p>
-                      </div>
-                      {rec.estimatedPrice && (
-                        <p className="font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums text-muted-foreground whitespace-nowrap">
-                          {Math.round(rec.estimatedPrice / 10000)}<span className="text-xs ml-0.5">万〜</span>
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-sm leading-relaxed text-foreground/80">{rec.reason}</p>
-                    {rec.strengths.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {rec.strengths.map((s) => (
-                          <span
-                            key={s}
-                            className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground"
-                            style={{
-                              background: "color-mix(in oklab, var(--gold-warm) 8%, var(--muted))",
-                            }}
-                          >
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      disabled={addingVenues.has(rec.name)}
-                      onClick={() => handleAddVenue(rec)}
-                    >
-                      {addingVenues.has(rec.name) ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-1" />
-                          気になるリストに入れる
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Onb-3: 0件フォールバック */
-              <div className="py-10 text-center space-y-2">
-                <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground/70">
-                  ちょうど合う場所が、いまは見つかりませんでした。
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  条件を少し広げて、ふたりで探してみませんか。
-                </p>
-              </div>
-            )}
-          </>
-        )}
+            <div className="space-y-3">
+              {dbRecs.map((rec) => (
+                <RecommendationCard
+                  key={rec.venueId}
+                  variant="db"
+                  venueId={rec.venueId}
+                  name={rec.name}
+                  location={rec.location}
+                  reason={rec.reason}
+                  photoUrl={rec.photoUrl}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* Primary CTA: proceed to home. The cookie is already set by
             saveOnboardingAnswers() above, so we can navigate directly. */}
