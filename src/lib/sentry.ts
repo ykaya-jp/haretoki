@@ -38,7 +38,9 @@ export type SentryComponent =
   | "auth"
   | "db"
   | "support"
-  | "rate-limit";
+  | "rate-limit"
+  /** Track B-2 web-push send pipeline (per-endpoint failures + VAPID setup). */
+  | "push.send";
 
 /**
  * Operator-facing routing key. The Sentry alert rule filters on this tag

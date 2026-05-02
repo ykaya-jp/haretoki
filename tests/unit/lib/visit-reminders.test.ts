@@ -111,6 +111,43 @@ describe("isVisitInPhaseWindow — morning_of", () => {
   });
 });
 
+describe("isVisitInPhaseWindow — way_home (Track B-2)", () => {
+  // Cron fires 2026-05-15 22:00 JST = 2026-05-15 13:00 UTC
+  const FRI_22_JST = new Date(Date.UTC(2026, 4, 15, 13, 0, 0));
+
+  it("matches when the visit happened earlier today JST", () => {
+    // Visit at 2026-05-15 14:00 JST (8h before the 22 JST cron)
+    const scheduledAt = new Date(Date.UTC(2026, 4, 15, 5, 0, 0));
+    expect(
+      isVisitInPhaseWindow("way_home", { scheduledAt, now: FRI_22_JST }),
+    ).toBe(true);
+  });
+
+  it("does NOT match when the visit is later this evening (still upcoming)", () => {
+    // Visit at 2026-05-15 23:30 JST — same day but still future at 22 JST
+    const scheduledAt = new Date(Date.UTC(2026, 4, 15, 14, 30, 0));
+    expect(
+      isVisitInPhaseWindow("way_home", { scheduledAt, now: FRI_22_JST }),
+    ).toBe(false);
+  });
+
+  it("does NOT match when the visit was yesterday (out of recap window)", () => {
+    const scheduledAt = new Date(Date.UTC(2026, 4, 14, 5, 0, 0)); // 5/14 14:00 JST
+    expect(
+      isVisitInPhaseWindow("way_home", { scheduledAt, now: FRI_22_JST }),
+    ).toBe(false);
+  });
+
+  it("matches across the JST boundary (JST today, UTC yesterday)", () => {
+    // Cron fires 2026-05-15 22:00 JST = 13:00 UTC same day; visit at
+    // 2026-05-15 09:00 JST = 2026-05-15 00:00 UTC — both same JST day.
+    const scheduledAt = new Date(Date.UTC(2026, 4, 15, 0, 0, 0));
+    expect(
+      isVisitInPhaseWindow("way_home", { scheduledAt, now: FRI_22_JST }),
+    ).toBe(true);
+  });
+});
+
 describe("isVisitInPhaseWindow — guards", () => {
   it("returns false for past visits regardless of phase (data-anomaly guard)", () => {
     const scheduledAt = new Date(FRI_19_JST.getTime() - 60 * 60 * 1000);

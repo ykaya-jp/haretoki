@@ -1,12 +1,16 @@
 /**
  * Visit reminder scheduling — daily-cron edition (Hobby-plan compatible).
  *
- * Two phases run as separate Vercel cron entries:
+ * Three phases run as separate Vercel cron entries:
  * - `day_before` fires at 19:00 JST → notifies couples whose visit lands
  *   on the next JST calendar day. Evening lead-time matches the
  *   "夜にメール届いて翌日の予定確認" ergonomics.
  * - `morning_of` fires at 08:00 JST → notifies couples whose visit lands
  *   today (JST). Morning lead-time covers final prep + departure.
+ * - `way_home`   fires at 22:00 JST → reminds couples whose visit was
+ *   earlier today (JST) to leave a memo while impressions are fresh.
+ *   Track B-2 addition; the candidate filter switches to "scheduled
+ *   today AND already past" instead of "future today".
  *
  * The earlier hourly design also offered `before_departure` (~2h before
  * the visit start). That tier is dropped here because Vercel Hobby cron
@@ -16,7 +20,7 @@
  * daily-only baseline.
  */
 
-export type VisitReminderPhase = "day_before" | "morning_of";
+export type VisitReminderPhase = "day_before" | "morning_of" | "way_home";
 
 const HOUR_MS = 60 * 60 * 1000;
 const JST_OFFSET_MS = 9 * HOUR_MS;
@@ -60,9 +64,18 @@ export function isVisitInPhaseWindow(
   input: ClassifyInput,
 ): boolean {
   const deltaMs = input.scheduledAt.getTime() - input.now.getTime();
+  const visitKey = jstDateKey(input.scheduledAt);
+
+  if (phase === "way_home") {
+    // Memo nudge: the visit was earlier *today* (JST). Past-only — a
+    // visit later this evening shouldn't fire the recap nudge yet.
+    if (deltaMs >= 0) return false;
+    return visitKey === jstDateKey(input.now);
+  }
+
+  // day_before / morning_of are forward-looking; past visits are noise.
   if (deltaMs <= 0) return false;
 
-  const visitKey = jstDateKey(input.scheduledAt);
   if (phase === "day_before") {
     return visitKey === jstTomorrowDateKey(input.now);
   }
