@@ -1,13 +1,15 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   updateNotificationFrequency,
   type FrequencyMode,
 } from "@/server/actions/notification-preferences";
+import { NotificationPreviewModal } from "@/components/settings/notification-preview-modal";
+import { track } from "@/lib/analytics";
 
 const MODES: Array<{
   id: FrequencyMode;
@@ -40,6 +42,7 @@ export function NotificationSettings({
 }: NotificationSettingsProps) {
   const [frequency, setFrequency] = useState<FrequencyMode>(initialFrequency);
   const [isPending, startTransition] = useTransition();
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   function handleSelect(mode: FrequencyMode) {
     if (mode === frequency || isPending) return;
@@ -99,6 +102,29 @@ export function NotificationSettings({
           </p>
         ) : null,
       )}
+
+      {/* Comprehension nudge — show what kinds of pushes actually
+          arrive *before* the OS permission prompt. Permission denial
+          is sticky on iOS / Android, so couples who say no once
+          rarely re-enable; previewing first lifts the opt-in rate.
+          The button stays muted-style so it does not compete with
+          the segmented frequency picker above. */}
+      <button
+        type="button"
+        onClick={() => {
+          track("notification_preview_cta_clicked");
+          setPreviewOpen(true);
+        }}
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] text-muted-foreground transition-colors active:scale-[0.97] hover:text-foreground"
+      >
+        <Eye className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden="true" />
+        届く通知の例を見る
+      </button>
+
+      <NotificationPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+      />
     </div>
   );
 }
