@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET/POST /api/cron/decision-followup
@@ -109,6 +110,10 @@ async function handleCron(request: Request) {
     notified += members.length;
   }
 
+  await recordCronRun("decision-followup", {
+    ok: true,
+    durationMs: Date.now() - start,
+  });
   return NextResponse.json({
     ok: true,
     durationMs: Date.now() - start,

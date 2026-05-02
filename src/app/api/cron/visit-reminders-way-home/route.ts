@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runVisitReminderCron } from "@/server/cron/visit-reminder-handler";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET/POST /api/cron/visit-reminders-way-home
@@ -40,6 +41,11 @@ async function handleCron(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const start = Date.now();
   const result = await runVisitReminderCron("way_home");
+  await recordCronRun("visit-reminders-way-home", {
+    ok: true,
+    durationMs: Date.now() - start,
+  });
   return NextResponse.json({ phase: "way_home", ...result });
 }

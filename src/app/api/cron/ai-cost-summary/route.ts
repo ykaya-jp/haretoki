@@ -3,6 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db";
 import { evaluateBudgetAlert, estimateCostUsd } from "@/lib/anthropic-usage";
 import { captureError } from "@/lib/sentry";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET|POST /api/cron/ai-cost-summary
@@ -243,6 +244,7 @@ async function handle(request: Request) {
   }
 
   const durationMs = Date.now() - startedAt;
+  await recordCronRun("ai-cost-summary", { ok: true, durationMs });
   return NextResponse.json({
     ok: true,
     durationMs,

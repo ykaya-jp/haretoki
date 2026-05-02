@@ -6,6 +6,7 @@ import {
 } from "@/lib/health-check";
 import { captureMessage } from "@/lib/sentry";
 import { logEvent } from "@/lib/observability";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET|POST /api/cron/supabase-health
@@ -47,6 +48,10 @@ export async function POST(request: Request) {
 }
 
 async function handleCron(request: Request) {
+  // Phase 4 launch-readiness — wall-time for the cron run is measured
+  // from the auth gate forward (excludes the trivial config check) so
+  // /admin/health's "duration" column reflects the actual probe time.
+  const start = Date.now();
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     return NextResponse.json(
@@ -70,6 +75,11 @@ async function handleCron(request: Request) {
       component: "cron.health",
       alertRoute: "p2-email",
       extra: { action: "supabase-health:env-missing" },
+    });
+    await recordCronRun("supabase-health", {
+      ok: false,
+      durationMs: Date.now() - start,
+      error: "env-missing",
     });
     return NextResponse.json({ ok: false, reason: "env-missing" });
   }
@@ -120,6 +130,11 @@ async function handleCron(request: Request) {
     });
   }
 
+  await recordCronRun("supabase-health", {
+    ok: status !== "failed",
+    durationMs: Date.now() - start,
+    ...(status === "failed" && probe.error ? { error: probe.error } : {}),
+  });
   return NextResponse.json({
     ok: true,
     status,

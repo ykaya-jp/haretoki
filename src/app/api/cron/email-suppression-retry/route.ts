@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { captureError } from "@/lib/sentry";
 import { logEvent } from "@/lib/observability";
 import { SOFT_BOUNCE_RETRY_DAYS } from "@/lib/email/suppression";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * GET|POST /api/cron/email-suppression-retry
@@ -94,6 +95,10 @@ async function handle(request: Request) {
     },
   });
 
+  await recordCronRun("email-suppression-retry", {
+    ok: true,
+    durationMs: Date.now() - start,
+  });
   return NextResponse.json({
     ok: true,
     retried,

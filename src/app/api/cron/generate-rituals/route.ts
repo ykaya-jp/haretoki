@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateRitualsForAllActiveProjects } from "@/server/actions/ritual";
+import { recordCronRun } from "@/lib/cron-audit";
 
 /**
  * POST /api/cron/generate-rituals
@@ -39,5 +40,6 @@ async function handleCron(request: Request) {
   const result = await generateRitualsForAllActiveProjects();
   const durationMs = Date.now() - start;
 
+  await recordCronRun("generate-rituals", { ok: true, durationMs });
   return NextResponse.json({ ok: true, durationMs, ...result });
 }
