@@ -12,6 +12,7 @@ import { AIInsightCard } from "@/components/ai/insight-card";
 import { RecentVenues } from "@/components/home/recent-venues";
 import { getHomeStage } from "@/components/home/home-stage";
 import { NextStepsCard } from "@/components/decision-todos/next-steps-card";
+import { CountdownCard } from "@/components/home/countdown-card";
 import { InvitationArrivalToast } from "@/components/home/invitation-arrival-toast";
 
 export const metadata: Metadata = {
@@ -131,6 +132,12 @@ export default async function HomePage() {
         isRitualCta={isRitualCta}
         hasRitual={!!ritual}
       />
+
+      {/* C-2: post-decision wedding-day countdown. Server Component returns
+          null when there's no Decision, so pre-decision users still see the
+          unchanged hero. After a decision lands the countdown becomes the
+          dominant card and "Next steps" sits underneath as the action body. */}
+      {progress.hasDecision && <CountdownCard />}
 
       {/* F3: Post-decision "Next steps" card. Server Component — returns null
           when there's no decision or all todos are complete, so heroes stay
