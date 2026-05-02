@@ -29,7 +29,7 @@ export function OnboardingGate() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
         <Loader2 className="h-6 w-6 animate-spin text-[var(--gold-warm)]" />
-        <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
+        <p className="text-eyebrow text-muted-foreground">
           準備しています...
         </p>
       </div>

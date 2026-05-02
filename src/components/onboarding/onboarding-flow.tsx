@@ -486,7 +486,7 @@ export function OnboardingFlow() {
                 <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.5} />
                 <p className="text-eyebrow text-[var(--gold-warm)]">登録済み式場から</p>
               </div>
-              <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
+              <p className="text-sm font-light leading-relaxed text-foreground">
                 {dbRecsSummary}
               </p>
             </div>
@@ -515,12 +515,12 @@ export function OnboardingFlow() {
                     </div>
                   )}
                   <div className="p-4 space-y-2">
-                    <p className="font-[family-name:var(--font-display)] text-[18px] font-light leading-snug text-foreground">
+                    <p className="text-h3 font-light leading-snug text-foreground">
                       {rec.name}
                     </p>
                     {rec.location && (
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-none" strokeWidth={1.5} />
+                        <MapPin className="h-4 w-4 flex-none" strokeWidth={1.5} />
                         {rec.location}
                       </p>
                     )}
@@ -567,7 +567,7 @@ export function OnboardingFlow() {
                 <p className="text-eyebrow text-[var(--gold-warm)]">Haretoki Suggests</p>
               </div>
               {advice ? (
-                <p className="font-[family-name:var(--font-display)] text-sm font-light leading-relaxed text-foreground">
+                <p className="text-sm font-light leading-relaxed text-foreground">
                   {advice}
                 </p>
               ) : null}
@@ -587,14 +587,19 @@ export function OnboardingFlow() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-0.5">
-                        {/* Venue name in Noto Serif JP 19px */}
-                        <p className="font-[family-name:var(--font-display)] text-[19px] font-light leading-snug text-foreground">
+                        {/* Venue name — was Shippori 19px; the typography
+                            invariant only allows the display serif at
+                            ≥24px, so we keep the size slot (text-h3 = 18px)
+                            and switch to Noto Sans. The legacy comment is
+                            preserved in this commit message rather than
+                            inline. */}
+                        <p className="text-h3 font-light leading-snug text-foreground">
                           {rec.name}
                         </p>
                         <p className="text-xs text-muted-foreground">{rec.location}</p>
                       </div>
                       {rec.estimatedPrice && (
-                        <p className="font-[family-name:var(--font-display)] text-[22px] font-light tabular-nums text-muted-foreground whitespace-nowrap">
+                        <p className="text-h2 font-light tabular-nums text-muted-foreground whitespace-nowrap">
                           {Math.round(rec.estimatedPrice / 10000)}<span className="text-xs ml-0.5">万〜</span>
                         </p>
                       )}
@@ -636,7 +641,7 @@ export function OnboardingFlow() {
             ) : (
               /* Onb-3: 0件フォールバック */
               <div className="py-10 text-center space-y-2">
-                <p className="font-[family-name:var(--font-display)] text-[15px] font-light text-foreground/70">
+                <p className="text-body font-light text-foreground/70">
                   ちょうど合う場所が、いまは見つかりませんでした。
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -739,7 +744,7 @@ export function OnboardingFlow() {
               <span aria-hidden="true" className="opacity-30">/</span>
               <span>{QUESTIONS.length}</span>
               <span aria-hidden="true" className="px-1 opacity-30">·</span>
-              <span className="font-[family-name:var(--font-display)] text-[14px] font-light tracking-[0.02em] text-foreground">
+              <span className="text-sm font-light tracking-[0.02em] text-foreground">
                 {stepLabel}
               </span>
             </p>
@@ -809,10 +814,10 @@ export function OnboardingFlow() {
                     borderBottom: "1px solid color-mix(in oklab, var(--gold-warm) 16%, transparent)",
                   }}
                 />
-                <p className="font-[family-name:var(--font-display)] text-[18px] font-light leading-[1.5] tracking-[-0.005em] text-foreground">
+                <p className="text-h3 font-light leading-[1.5] tracking-[-0.005em] text-foreground">
                   {currentQ.question}
                 </p>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-meta leading-relaxed text-muted-foreground">
                   {currentQ.subtitle}
                 </p>
               </div>
@@ -858,7 +863,7 @@ export function OnboardingFlow() {
                 placeholder="例: 仙台、大阪、福岡 …"
                 aria-label="その他のエリアを書く"
                 maxLength={40}
-                className="h-11 text-[14px]"
+                className="h-11 text-sm"
               />
             </div>
           )}
@@ -874,9 +879,9 @@ export function OnboardingFlow() {
                 onChange={(e) => setGuestCount(e.target.value)}
                 placeholder="例: 80"
                 aria-label="ゲストの想定人数"
-                className="h-12 max-w-[180px] text-center text-[18px] tabular-nums"
+                className="h-12 max-w-[180px] text-center text-lg tabular-nums"
               />
-              <p className="text-[12px] text-muted-foreground">名</p>
+              <p className="text-xs text-muted-foreground">名</p>
             </div>
           )}
 
@@ -884,7 +889,7 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={handleSkip}
-              className="inline-flex min-h-11 items-center px-2 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              className="inline-flex min-h-11 items-center px-2 text-meta text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
               スキップ
             </button>
@@ -946,18 +951,18 @@ export function OnboardingFlow() {
                   >
                     <ChevronLeft
                       aria-hidden="true"
-                      className="h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-[var(--gold-warm)]"
+                      className="h-4 w-4 text-muted-foreground/60 transition-colors group-hover:text-[var(--gold-warm)]"
                       strokeWidth={1.5}
                     />
-                    <span className="text-[12px] tabular-nums text-muted-foreground">
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       Step {i + 1}
                     </span>
-                    <span className="text-[12px] text-muted-foreground">·</span>
-                    <span className="font-[family-name:var(--font-display)] text-[13px] font-light tracking-[0.02em] text-foreground/80">
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-meta font-light tracking-[0.02em] text-foreground/80">
                       {STEP_LABELS[i]}
                     </span>
-                    <span className="text-[12px] text-muted-foreground/50">·</span>
-                    <span className="flex-1 truncate text-[13px] text-foreground">
+                    <span className="text-xs text-muted-foreground/50">·</span>
+                    <span className="flex-1 truncate text-meta text-foreground">
                       {summary}
                     </span>
                   </button>
