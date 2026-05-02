@@ -74,8 +74,9 @@ export async function middleware(request: NextRequest) {
 function applySecurityHeaders(response: NextResponse, nonce: string): void {
   if (isCspDisabled()) return;
 
-  const csp = buildCspHeader({ nonce });
-  const headerName = isCspReportOnly()
+  const reportOnly = isCspReportOnly();
+  const csp = buildCspHeader({ nonce, reportOnly });
+  const headerName = reportOnly
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
   response.headers.set(headerName, csp);

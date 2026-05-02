@@ -118,8 +118,16 @@ export function buildCspHeader(opts: BuildCspOptions): string {
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
     "object-src": ["'none'"],
-    "upgrade-insecure-requests": [],
   };
+
+  // `upgrade-insecure-requests` is silently ignored by browsers when
+  // delivered in a Report-Only policy (CSP Level 3 §6.1) and they emit
+  // a noisy console warning. Skip it in report-only mode so prod stays
+  // free of irrelevant warnings while we keep the directive in enforce
+  // mode where it still matters.
+  if (!opts.reportOnly) {
+    directives["upgrade-insecure-requests"] = [];
+  }
 
   return Object.entries(directives)
     .map(([key, values]) =>
