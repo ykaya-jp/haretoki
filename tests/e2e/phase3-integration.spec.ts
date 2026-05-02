@@ -98,6 +98,18 @@ test.describe("Phase 3 integration smoke", () => {
     expect(response?.status()).toBe(404);
   });
 
+  test("/admin/health: 404 for unauthenticated visitors (post-2026-05-03 incident health page)", async ({
+    page,
+  }) => {
+    // The new operator-facing health view sits under the same admin
+    // allow-list as the other /admin/* surfaces. Sentinel: a future
+    // refactor that accidentally exposed it publicly would surface
+    // env-presence + Supabase URL signal that's worth keeping inside
+    // the gate.
+    const response = await page.goto("/admin/health");
+    expect(response?.status()).toBe(404);
+  });
+
   test("public family route is in the route table (the file resolves)", async ({
     page,
   }) => {

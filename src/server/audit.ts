@@ -59,6 +59,7 @@ export type AuditAction =
   | "admin.family_share.viewed"
   | "admin.visit_reminders.viewed"
   | "admin.partner_l2_stats.viewed"
+  | "admin.health.viewed"
   | "cron.email-suppression-retry.failed"
   | "cron.ai-cost-summary.snapshot-failed"
   | "webhook.resend.suppression-applied"
