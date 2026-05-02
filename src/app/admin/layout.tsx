@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { ShieldAlert } from "lucide-react";
 import { requireAdmin } from "@/server/admin";
 
@@ -35,14 +36,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Force dynamic — admin pages must run requireAdmin() per-request, not
- * once at build time. Prior to this, Next.js prerendered /admin/* with
- * the build-time `notFound()` result and Vercel served the cached HTML
- * with status 200, defeating the closed-by-default contract. The auth
- * gate fires correctly when this layout opts out of static rendering.
- */
-export const dynamic = "force-dynamic";
 
 const NAV: Array<{ href: string; label: string }> = [
   { href: "/admin/cost", label: "Cost" },
@@ -58,6 +51,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Cache Components mode is on globally — `export const dynamic = "force-
+  // dynamic"` is rejected. `connection()` opts this layout into per-request
+  // rendering instead, so requireAdmin() runs against the real session
+  // every request rather than once at build time (which produced cached
+  // 200 + notFound body, defeating the closed-by-default contract).
+  await connection();
   const admin = await requireAdmin();
 
   return (
