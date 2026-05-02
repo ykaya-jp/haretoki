@@ -19,6 +19,11 @@ const TTL_DAYS: Partial<Record<AiAnalysisType, number>> = {
   rating_comparison: 1,
   fit_reason: 14,
   matrix_insight: 3,
+  // R3 cross-venue review insight — same TTL as `matrix_insight`
+  // because the cache key already covers the venue selection + each
+  // venue's review summary, so a 3-day window matches the cadence of
+  // a couple bumping their candidate list during shopping.
+  matrix_review_insight: 3,
   // coach_chat: no cache
 };
 
