@@ -1,11 +1,17 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function MyPageLoading() {
   return (
-    <div className="space-y-8">
-      <div className="h-8 w-32 animate-pulse rounded bg-muted" />
+    <div
+      className="space-y-8"
+      aria-busy="true"
+      aria-label="マイページを読み込み中"
+    >
+      <Skeleton aria-hidden="true" className="h-8 w-32" />
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="space-y-3">
-          <div className="h-3 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-24 animate-pulse rounded-2xl bg-muted/60" />
+        <div key={i} aria-hidden="true" className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-24 rounded-2xl" />
         </div>
       ))}
     </div>

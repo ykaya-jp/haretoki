@@ -17,10 +17,14 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function VenueDetailLoading() {
   return (
-    <div className="space-y-6 pb-20">
-      <Skeleton className="h-4 w-12" />
-      <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
-      <div className="space-y-3">
+    <div
+      className="space-y-6 pb-20"
+      aria-busy="true"
+      aria-label="式場の詳細を読み込み中"
+    >
+      <Skeleton aria-hidden="true" className="h-4 w-12" />
+      <Skeleton aria-hidden="true" className="aspect-[4/3] w-full rounded-2xl" />
+      <div aria-hidden="true" className="space-y-3">
         <Skeleton className="h-7 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
       </div>

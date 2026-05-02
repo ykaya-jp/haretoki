@@ -2,19 +2,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PreparationLoading() {
   return (
-    <div className="space-y-8 pb-24">
-      <div className="space-y-2">
+    <div
+      className="space-y-8 pb-24"
+      aria-busy="true"
+      aria-label="準備リストを読み込み中"
+    >
+      <div aria-hidden="true" className="space-y-2">
         <Skeleton className="h-3 w-36" />
         <Skeleton className="h-7 w-56" />
         <Skeleton className="h-4 w-48" />
       </div>
 
-      <div className="flex justify-center">
+      <div aria-hidden="true" className="flex justify-center">
         <Skeleton className="h-24 w-24 rounded-full" />
       </div>
 
       {[1, 2].map((g) => (
-        <div key={g} className="space-y-3">
+        <div key={g} aria-hidden="true" className="space-y-3">
           <Skeleton className="h-4 w-32" />
           {[1, 2, 3].map((i) => (
             <div
