@@ -1108,6 +1108,15 @@ model AiCostSnapshot {
   /// threshold. Lets the admin page colour the row red without
   /// re-deriving the comparison.
   shouldAlert      Boolean  @default(false) @map("should_alert")
+  /// Round 22 (Phase 2 D): per-action tier statistics. Today only the
+  /// estimate-pdf path emits tier metadata; shape:
+  ///   { "estimate-pdf": { calls: number, cacheHits: number, cacheWrites: number, hitRate: number } }
+  /// Recipe is DB-derived approximation (Estimate.createdAt count -
+  /// AiCache.createdAt count where model="claude-sonnet-4-6"); we
+  /// cannot yet split files-api vs signed-url tiers without log-drain
+  /// parsing. `Json?` so adding new actions doesn't require a migration
+  /// and rows from before round 22 stay readable as null.
+  tierStats        Json?    @map("tier_stats")
   createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([snapshotDate(sort: Desc)])

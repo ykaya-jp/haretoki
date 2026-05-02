@@ -37,6 +37,13 @@ interface SnapshotRow {
   monthlyBudgetUsd: number;
   shouldAlert: boolean;
   dailyByBucket: Record<string, { calls: number; estCostUsd: number }> | null;
+  /** Round 22: per-action tier hit-rate snapshot. Null on rows from
+   *  before the column existed; null too on quiet days (cron writes
+   *  null when there's no estimate-pdf activity to report). */
+  tierStats: Record<
+    string,
+    { calls: number; cacheHits: number; cacheWrites: number; hitRate: number }
+  > | null;
 }
 
 function pct(used: number, budget: number): number {
@@ -122,6 +129,16 @@ export default async function AdminCostPage() {
       (r.dailyByBucket as Record<
         string,
         { calls: number; estCostUsd: number }
+      > | null) ?? null,
+    tierStats:
+      (r.tierStats as Record<
+        string,
+        {
+          calls: number;
+          cacheHits: number;
+          cacheWrites: number;
+          hitRate: number;
+        }
       > | null) ?? null,
   }));
 
@@ -317,6 +334,69 @@ export default async function AdminCostPage() {
           for the breakdown.
         </p>
       </section>
+
+      {/* Round 22: estimate-pdf tier hit-rate trend, persisted per-day
+          via AiCostSnapshot.tierStats. Same recipe as the 24h section
+          above, but read from the snapshot rows so historical days
+          appear instead of just "today". Pre-round-22 rows + quiet
+          days both render as "—" (the cron writes null for both). */}
+      {snapshots.some((s) => s.tierStats?.["estimate-pdf"]) && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-base font-medium">
+            Estimate-PDF tier history
+          </h2>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Date</th>
+                  <th className="px-3 py-2 font-medium">Calls</th>
+                  <th className="px-3 py-2 font-medium">Cache hits</th>
+                  <th className="px-3 py-2 font-medium">Cache writes</th>
+                  <th className="px-3 py-2 font-medium">Hit rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshots.map((s) => {
+                  const t = s.tierStats?.["estimate-pdf"] ?? null;
+                  return (
+                    <tr key={s.snapshotDate.toISOString()}>
+                      <td className="px-3 py-2 font-mono">
+                        {fmtJstDate(s.snapshotDate)}
+                      </td>
+                      <td className="px-3 py-2 font-mono">{t?.calls ?? "—"}</td>
+                      <td className="px-3 py-2 font-mono">
+                        {t?.cacheHits ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 font-mono">
+                        {t?.cacheWrites ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 font-mono">
+                        {t ? `${t.hitRate}%` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Persisted nightly by{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5">
+              /api/cron/ai-cost-summary
+            </code>{" "}
+            into{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5">
+              ai_cost_snapshots.tier_stats
+            </code>
+            . Same approximation as the 24h section above —{" "}
+            <code>analyses − writes ≈ hits</code>; signed-URL fallback
+            counts as a cache write so the &quot;hits&quot; bucket
+            isolates only the cache-short-circuit path. Empty cells = day
+            had no estimate-pdf activity (or pre-round-22 row).
+          </p>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 text-base font-medium">Last 30 snapshots</h2>
