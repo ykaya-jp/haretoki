@@ -92,7 +92,15 @@ export default async function AdminCostPage() {
   // the per-request rebuild is the correct semantic, not a regression.
   // eslint-disable-next-line react-hooks/purity
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [rows, estimateCount24h, aiCacheWrites24h] = await Promise.all([
+  // eslint-disable-next-line react-hooks/purity
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [
+    rows,
+    estimateCount24h,
+    aiCacheWrites24h,
+    realtimePublishedRows,
+    realtimeFailedCount,
+  ] = await Promise.all([
     prisma.aiCostSnapshot.findMany({
       orderBy: { snapshotDate: "desc" },
       take: 30,
@@ -113,6 +121,29 @@ export default async function AdminCostPage() {
           // sonnet+AiCache combination today). Other AiCache writers
           // use Haiku.
           model: "claude-sonnet-4-6",
+        },
+      })
+      .catch(() => 0),
+    // Phase 3 L3 wave 4 — Realtime broadcast metrics. publishRealtimeEvent
+    // writes one audit row per send (success: realtime.broadcast.published
+    // with detail.kind, failure: realtime.broadcast.failed). We pull all
+    // 7-day rows and group in JS rather than running 5 separate count()
+    // queries — the row count for a couple-scale workload is small (<1000
+    // per week), so the round-trip win matters more than the wire size.
+    prisma.auditLog
+      .findMany({
+        where: {
+          action: "realtime.broadcast.published",
+          createdAt: { gte: since7d },
+        },
+        select: { detail: true },
+      })
+      .catch(() => [] as Array<{ detail: unknown }>),
+    prisma.auditLog
+      .count({
+        where: {
+          action: "realtime.broadcast.failed",
+          createdAt: { gte: since7d },
         },
       })
       .catch(() => 0),
@@ -161,6 +192,43 @@ export default async function AdminCostPage() {
   const cacheHitPct =
     estimateCount24h > 0
       ? Math.round((approxCacheHits / estimateCount24h) * 100)
+      : 0;
+
+  // Group realtime publishes by `detail.kind` (the RealtimeEvent
+  // discriminator). Unknown kinds (= future events that ship before
+  // the dashboard knows about them) bucket into "other" so nothing
+  // disappears silently.
+  const realtimeKnownKinds = [
+    "rating_saved",
+    "note_added",
+    "decision_made",
+    "wedding_date_updated",
+  ] as const;
+  type RealtimeKnownKind = (typeof realtimeKnownKinds)[number];
+  const realtimeByKind: Record<RealtimeKnownKind | "other", number> = {
+    rating_saved: 0,
+    note_added: 0,
+    decision_made: 0,
+    wedding_date_updated: 0,
+    other: 0,
+  };
+  for (const row of realtimePublishedRows) {
+    const detail = row.detail as { kind?: string } | null;
+    const kind = detail?.kind;
+    if (
+      kind &&
+      (realtimeKnownKinds as readonly string[]).includes(kind)
+    ) {
+      realtimeByKind[kind as RealtimeKnownKind] += 1;
+    } else {
+      realtimeByKind.other += 1;
+    }
+  }
+  const realtimePublishedTotal = realtimePublishedRows.length;
+  const realtimeAttempts = realtimePublishedTotal + realtimeFailedCount;
+  const realtimeFailureRatePct =
+    realtimeAttempts > 0
+      ? Math.round((realtimeFailedCount / realtimeAttempts) * 100)
       : 0;
 
   return (
@@ -397,6 +465,107 @@ export default async function AdminCostPage() {
           </p>
         </section>
       )}
+
+      {/* Phase 3 L3 wave 4 — Realtime broadcast metric.
+          publishRealtimeEvent writes a `realtime.broadcast.published`
+          (or `.failed`) audit row per send; this section reads the
+          last 7d and groups by RealtimeEvent kind. Subscribe count +
+          per-client connection failure rate need client telemetry to
+          measure and are tracked in docs/phase3/partner-level-3-design.md
+          § 12 as wave-5 follow-up. */}
+      <section className="mb-8">
+        <h2 className="mb-3 text-base font-medium">
+          Realtime broadcasts (7d)
+        </h2>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+          <div>
+            <dt className="text-xs text-muted-foreground">Total publishes</dt>
+            <dd className="font-mono">{realtimePublishedTotal}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Failed publishes</dt>
+            <dd className="font-mono">
+              {realtimeFailedCount}
+              {realtimeAttempts > 0 && (
+                <span className="ml-2 text-muted-foreground">
+                  ({realtimeFailureRatePct}%)
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              Subscribe count (7d)
+            </dt>
+            <dd className="font-mono text-muted-foreground">— (wave 5)</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              Connection failure rate
+            </dt>
+            <dd className="font-mono text-muted-foreground">— (wave 5)</dd>
+          </div>
+        </dl>
+        <div className="mt-4 overflow-x-auto rounded-lg border">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="px-3 py-2 font-medium">Event kind</th>
+                <th className="px-3 py-2 font-medium">Count (7d)</th>
+                <th className="px-3 py-2 font-medium">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ...realtimeKnownKinds.map((k) => ({
+                  kind: k as string,
+                  count: realtimeByKind[k],
+                })),
+                { kind: "other", count: realtimeByKind.other },
+              ].map(({ kind, count }) => {
+                const share =
+                  realtimePublishedTotal > 0
+                    ? Math.round((count / realtimePublishedTotal) * 100)
+                    : 0;
+                return (
+                  <tr key={kind}>
+                    <td className="px-3 py-2 font-mono">{kind}</td>
+                    <td className="px-3 py-2 font-mono">{count}</td>
+                    <td className="px-3 py-2 font-mono">
+                      {realtimePublishedTotal > 0 ? `${share}%` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Source:{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">audit_logs</code>{" "}
+          rows where{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">
+            action = &apos;realtime.broadcast.published&apos;
+          </code>{" "}
+          (or{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">.failed</code>),
+          grouped by{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">detail.kind</code>.
+          Written by{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">
+            src/lib/realtime/publish.ts
+          </code>{" "}
+          one row per send. Subscribe count + per-client connection failure
+          rate require client telemetry — tracked as wave 5 in{" "}
+          <a
+            className="underline"
+            href="https://github.com/ykaya-jp/haretoki/blob/main/docs/phase3/partner-level-3-design.md"
+          >
+            docs/phase3/partner-level-3-design.md
+          </a>{" "}
+          § 12.
+        </p>
+      </section>
 
       <section>
         <h2 className="mb-3 text-base font-medium">Last 30 snapshots</h2>
