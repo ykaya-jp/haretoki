@@ -103,7 +103,11 @@ export function OnboardingHero({ onStart }: { onStart: () => void }) {
         <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
           Haretoki
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[28px] font-light leading-snug tracking-[-0.005em] text-foreground sm:text-3xl">
+        {/* A-6: --text-fluid-3xl is clamp(28→48px), which subsumes the
+            previous static 28 + sm:text-3xl pair into a single token
+            that scales fluidly. Shippori is kept (≥24px so the display
+            serif is allowed by the typography invariant). */}
+        <h1 className="font-[family-name:var(--font-display)] text-fluid-3xl font-light leading-snug tracking-[-0.005em] text-foreground">
           ふたりの晴れの日を、
           <br />
           ここから
