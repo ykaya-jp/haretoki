@@ -14,6 +14,7 @@ import {
   seedSystemTodos,
   resetSystemTodosCompletion,
 } from "@/lib/decision-todos/seed";
+import { parseWeddingDateInput } from "@/lib/wedding-countdown";
 
 const decisionSchema = z.object({
   selectedVenueId: z.string().uuid("式場を選択してください"),
@@ -197,4 +198,72 @@ export async function cancelDecision() {
   });
 
   return { cancelled: true as const };
+}
+
+/**
+ * Track C-2: set / clear the wedding date on the active Decision.
+ *
+ * Accepts an `YYYY-MM-DD` string (the HTML <input type="date"> default)
+ * or `null` to clear. Anything else is rejected as user input — never
+ * trust the client to hand us a Date instance, especially since
+ * Server Actions serialise via JSON.
+ *
+ * The persisted DateTime is JST midnight; see
+ * `src/lib/wedding-countdown.ts` for the reasoning.
+ */
+const weddingDateSchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "日付は YYYY-MM-DD で入力してください")
+    .nullable(),
+});
+
+export interface UpdateWeddingDateResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function updateWeddingDate(
+  input: z.input<typeof weddingDateSchema>,
+): Promise<UpdateWeddingDateResult> {
+  const parsed = weddingDateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "日付の形式が正しくありません" };
+  }
+
+  let weddingDate: Date | null = null;
+  if (parsed.data.date) {
+    weddingDate = parseWeddingDateInput(parsed.data.date);
+    if (!weddingDate) {
+      return { ok: false, error: "存在しない日付です" };
+    }
+  }
+
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  // updateMany so an absent Decision (decision not yet made) silently
+  // returns count=0 — the UI gates the date input behind the decided
+  // state already, so this is just defence in depth.
+  try {
+    const result = await prisma.decision.updateMany({
+      where: { projectId },
+      data: { weddingDate },
+    });
+    if (result.count === 0) {
+      return { ok: false, error: "まだ式場が決まっていません" };
+    }
+  } catch (err) {
+    captureError(err, {
+      action: "updateWeddingDate",
+      projectId,
+    });
+    return { ok: false, error: "日付の保存に失敗しました" };
+  }
+
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath("/home");
+  revalidatePath("/journey");
+
+  return { ok: true };
 }

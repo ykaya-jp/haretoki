@@ -619,12 +619,18 @@ model AiAnalysis {
 }
 
 model Decision {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId       String   @unique @map("project_id") @db.Uuid
-  selectedVenueId String   @unique @map("selected_venue_id") @db.Uuid
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String    @unique @map("project_id") @db.Uuid
+  selectedVenueId String    @unique @map("selected_venue_id") @db.Uuid
   rationale       String?
-  decidedAt       DateTime @default(now()) @map("decided_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  decidedAt       DateTime  @default(now()) @map("decided_at")
+  /// Track C-2: optional wedding day. Null until the couple chooses
+  /// (decision can land months before the actual ceremony date is set).
+  /// Stored as a JST midnight DateTime — date-only semantics. The
+  /// countdown widget keys off the `daysUntil` derived in
+  /// `src/lib/wedding-countdown.ts`.
+  weddingDate     DateTime? @map("wedding_date")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   venue   Venue   @relation(fields: [selectedVenueId], references: [id])

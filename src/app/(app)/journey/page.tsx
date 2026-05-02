@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getJourneyMilestones } from "@/server/actions/journey";
 import { JourneyTimeline } from "@/components/journey/journey-timeline";
+import { CountdownCard } from "@/components/home/countdown-card";
 
 export const metadata: Metadata = {
   title: "晴れまでの道",
@@ -59,6 +60,12 @@ export default async function JourneyPage() {
             "linear-gradient(to right, transparent 0%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 30%, color-mix(in oklab, var(--gold-warm) 40%, transparent) 70%, transparent 100%)",
         }}
       />
+
+      {/* C-2: Countdown card lands above the timeline so the "future" frame
+          (晴れの日まで) sits before the "past" frame (timeline). Returns
+          null pre-decision so the journey page is unchanged for couples
+          still venue-hunting. */}
+      <CountdownCard />
 
       {/* Timeline */}
       <section aria-label="マイルストーン一覧">
