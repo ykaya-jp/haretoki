@@ -3,6 +3,11 @@ import { requireAdmin } from "@/server/admin";
 import { activeBackendName } from "@/lib/rate-limit";
 import { recordAudit } from "@/server/audit";
 import { forecastMonthlyCostUsd } from "@/lib/anthropic-usage";
+import {
+  aggregatePushThrottleStats,
+  aggregateOptOutRates,
+  pushEventLabel,
+} from "@/lib/push-throttle-stats";
 
 /**
  * /admin/cost — Anthropic spend dashboard skeleton.
@@ -92,7 +97,15 @@ export default async function AdminCostPage() {
   // the per-request rebuild is the correct semantic, not a regression.
   // eslint-disable-next-line react-hooks/purity
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [rows, estimateCount24h, aiCacheWrites24h] = await Promise.all([
+  // eslint-disable-next-line react-hooks/purity
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [
+    rows,
+    estimateCount24h,
+    aiCacheWrites24h,
+    pushSendLogs7d,
+    notificationPrefs,
+  ] = await Promise.all([
     prisma.aiCostSnapshot.findMany({
       orderBy: { snapshotDate: "desc" },
       take: 30,
@@ -116,7 +129,43 @@ export default async function AdminCostPage() {
         },
       })
       .catch(() => 0),
+    // P3 L3 W2 monitoring — pull last 7d of PushSendLog rows for the
+    // realtime push activity section. Cap at 5000 rows so a future
+    // surge can't tip the dashboard into a multi-second query (the
+    // page is operator-facing — pulling more requires a real
+    // visualisation surface). The (sent_at) index makes the range
+    // scan cheap.
+    prisma.pushSendLog
+      .findMany({
+        where: { sentAt: { gte: since7d } },
+        select: {
+          recipientUserId: true,
+          kind: true,
+          scopeId: true,
+          hourBucket: true,
+          sentAt: true,
+        },
+        orderBy: { sentAt: "desc" },
+        take: 5000,
+      })
+      .catch(() => []),
+    // Per-event opt-out rate = users with notify*=false / total
+    // pref rows. Tiny projection so even a million-row pref table
+    // is one cheap scan.
+    prisma.notificationPreference
+      .findMany({
+        select: {
+          notifyPartnerRating: true,
+          notifyPartnerNote: true,
+          notifyDecisionSaved: true,
+          notifyWeddingDateSet: true,
+        },
+      })
+      .catch(() => []),
   ]);
+
+  const pushStats = aggregatePushThrottleStats(pushSendLogs7d);
+  const optOutStats = aggregateOptOutRates(notificationPrefs);
 
   const snapshots: SnapshotRow[] = rows.map((r) => ({
     snapshotDate: r.snapshotDate,
@@ -332,6 +381,89 @@ export default async function AdminCostPage() {
             event:&quot;estimate_extract_tier&quot;
           </code>
           for the breakdown.
+        </p>
+      </section>
+
+      {/*
+        P3 L3 W2 monitoring — Realtime push activity (7d).
+        Source rows: push_send_logs (PushSendLog model, P3 L3 W2).
+        What's covered + what isn't is documented in
+        src/lib/push-throttle-stats.ts — TL;DR: durable counts of
+        what was SENT plus per-event opt-out rate. The atomic
+        cool-down's silent skip count isn't durable (P2002 leaves no
+        row), so we don't pretend to surface it.
+      */}
+      <section className="mb-8 rounded-lg border p-4">
+        <h2 className="mb-3 text-base font-medium">
+          Realtime push activity · 7d
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b text-[10.5px] uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="py-2 pr-3">event</th>
+                <th className="py-2 pr-3 text-right">sent 24h</th>
+                <th className="py-2 pr-3 text-right">sent 7d</th>
+                <th className="py-2 pr-3 text-right">unique (recipient × scope)</th>
+                <th className="py-2 pr-3 text-right">hour-buckets touched</th>
+                <th className="py-2 pr-3 text-right">avg sends / active hour</th>
+                <th className="py-2 text-right">opt-out</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pushStats.map((s) => {
+                const optOut = optOutStats.find((o) => o.kind === s.kind);
+                return (
+                  <tr key={s.kind} className="border-b last:border-b-0">
+                    <td className="py-2 pr-3 font-mono">
+                      {pushEventLabel(s.kind)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {s.sent24h}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {s.sent7d}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {s.uniqueRecipientScopes7d}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {s.hourBucketsTouched7d}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {s.sendsPerActiveBucket7d > 0
+                        ? s.sendsPerActiveBucket7d.toFixed(1)
+                        : "—"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {optOut && optOut.totalUsersWithPref > 0 ? (
+                        <span
+                          title={`${optOut.optedOut} / ${optOut.totalUsersWithPref}`}
+                        >
+                          {optOut.optOutPct}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">n/a</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Throttle skip count (atomic 1-per-hour cool-down via P2002 on{" "}
+          <code className="rounded bg-muted px-1 py-0.5">push_send_logs</code>
+          ) is intentionally not durable — surfacing it would need
+          log-drain ingestion of the{" "}
+          <code className="rounded bg-muted px-1 py-0.5">
+            realtime_push_dispatch
+          </code>{" "}
+          event. The signal we DO have is opt-out rate (above) +
+          burst density (sends / active hour); a sustained
+          opt-out climb is the leading indicator that the copy or
+          frequency is wrong.
         </p>
       </section>
 
