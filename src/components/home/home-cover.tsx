@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { isLikelyAssetUrl } from "@/lib/url-import/extract-images";
 import type { Weather } from "@/lib/prompts/ritual";
 import { markRitualActed, markRitualSeen } from "@/server/actions/ritual";
+import { track } from "@/lib/analytics";
 
 interface CoverVenue {
   id: string;
@@ -39,6 +40,12 @@ export interface HomeCoverProps {
    *  Drives `markRitualSeen` on mount so we don't double-count on
    *  stage-only fallbacks. */
   hasRitual?: boolean;
+  /** Current journey-stage key. When provided, the CTA tap fires the
+   *  unified `onboarding_entry_clicked` PostHog event with this stage
+   *  in the payload — letting a single funnel measure conversion from
+   *  any home stage into the next step regardless of which surface
+   *  the couple started from. */
+  stageKey?: "start" | "adding" | "visiting" | "comparing" | "decided";
 }
 
 /**
@@ -58,6 +65,7 @@ export function HomeCover({
   coverVenue,
   isRitualCta = false,
   hasRitual = false,
+  stageKey,
 }: HomeCoverProps) {
   const seenRef = useRef(false);
   useEffect(() => {
@@ -173,7 +181,22 @@ export function HomeCover({
         <HaloTap className="w-full rounded-[14px]">
           <PrefetchLink
             href={ctaHref}
-            onClick={isRitualCta ? () => void markRitualActed() : undefined}
+            onClick={() => {
+              // Unified entry funnel — every home CTA tap is logged
+              // with its stage so PostHog can build a single
+              // conversion funnel keyed on `onboarding_entry_clicked`
+              // regardless of which step of the journey the couple is
+              // on. Same event name fires from OnboardingHero so the
+              // funnel can split by `from`.
+              if (stageKey) {
+                track("onboarding_entry_clicked", {
+                  from: "home",
+                  stage: stageKey,
+                  cta: ctaLabel,
+                });
+              }
+              if (isRitualCta) void markRitualActed();
+            }}
             className={cn(
               buttonVariants({ variant: "default", size: "default" }),
               "w-full justify-center rounded-[14px] text-[14.5px] font-medium tracking-wide",

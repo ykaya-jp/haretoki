@@ -146,6 +146,7 @@ export default async function HomePage() {
         coverVenue={firstVenue}
         isRitualCta={isRitualCta}
         hasRitual={!!ritual}
+        stageKey={stage.key}
       />
 
       {/* C-2: post-decision wedding-day countdown. Server Component returns
