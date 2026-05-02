@@ -6,6 +6,7 @@
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/server/db";
+import { recordAudit } from "@/server/audit";
 import {
   projectChannelName,
   REALTIME_EVENT,
@@ -89,6 +90,8 @@ export async function publishRealtimeEvent(
     config: { broadcast: { self: false, ack: false } },
   });
 
+  let succeeded = false;
+  let failureMessage: string | null = null;
   try {
     // Subscribe is required before send on Supabase Realtime — the
     // client refuses send() on a non-subscribed channel. We don't need
@@ -101,10 +104,12 @@ export async function publishRealtimeEvent(
       event: REALTIME_EVENT,
       payload: event,
     });
+    succeeded = true;
   } catch (err) {
     // Wide catch: we never want broadcast issues to surface as a
     // failed save. The Sentry pipeline already captures unhandled
     // errors elsewhere; here we deliberately swallow + log.
+    failureMessage = err instanceof Error ? err.message : String(err);
     console.warn("[realtime] publishRealtimeEvent failed:", err);
   } finally {
     try {
@@ -114,4 +119,21 @@ export async function publishRealtimeEvent(
       // down; we don't care, the GC will reclaim it.
     }
   }
+
+  // Phase 3 L3 wave 4 metric — one audit row per publish, success or
+  // failure, so /admin/cost can compute "broadcasts (7d)" and
+  // "failure rate" without a new schema. recordAudit is itself
+  // best-effort (Sentry-on-failure), so this never throws.
+  await recordAudit({
+    action: succeeded
+      ? "realtime.broadcast.published"
+      : "realtime.broadcast.failed",
+    actorId: event.actor.userId,
+    actorRole: "system",
+    target: { type: "project", id: projectId },
+    detail: {
+      kind: event.kind,
+      ...(failureMessage ? { error: failureMessage } : {}),
+    },
+  });
 }

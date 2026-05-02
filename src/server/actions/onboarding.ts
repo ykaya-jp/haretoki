@@ -14,7 +14,11 @@ import { MODEL } from "@/lib/models";
 // deploy callers don't replay the previous-version recommendation set.
 // 2026-05-02 round 2: bumped 1 → 2 for decision-driver inference,
 // budget-aligned diversity, area inference, rationale.note addition.
-const ONBOARDING_REC_PROMPT_VERSION = 2;
+// 2026-05-02 round 26 (Phase 3 wave 4): bumped 2 → 3 for couple-sync
+// diversity addendum in Section D — recommendations now bias toward
+// "話す材料が散る" 3 件 (主軸 / 予算上振れ枠 / 予算下振れ + 雰囲気差)
+// because the L2/L3 surface lets both partners rate side-by-side.
+const ONBOARDING_REC_PROMPT_VERSION = 3;
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
 import {
   AI_REC_VENUE_THRESHOLD,

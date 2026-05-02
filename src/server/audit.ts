@@ -66,7 +66,12 @@ export type AuditAction =
   /** Track C-1 family read-only invitation lifecycle. */
   | "family.invitation.created"
   | "family.invitation.viewed"
-  | "family.invitation.revoked";
+  | "family.invitation.revoked"
+  /** Phase 3 L3 wave 4 — Realtime broadcast metric. One row per
+   *  publish; `detail.kind` carries the RealtimeEvent kind so
+   *  per-kind aggregation on /admin/cost is a simple GROUP BY. */
+  | "realtime.broadcast.published"
+  | "realtime.broadcast.failed";
 
 export type AuditActorRole = "user" | "admin" | "system" | "cron" | "webhook";
 
