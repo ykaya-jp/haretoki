@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Eye, Plus, Share2, Trash2 } from "lucide-react";
+import { AlertTriangle, Copy, Eye, Plus, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,14 @@ interface Props {
 export function FamilyShareManager({ initialLinks }: Props) {
   const [links, setLinks] = useState<FamilyInvitationLink[]>(initialLinks);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  /**
+   * Track the link the user has tapped 取り消す on but not yet
+   * confirmed. Two-stage confirm guards against accidental destruction:
+   * the revoke is irreversible (a fresh issue produces a *new* token,
+   * not the same one), so a single mis-tap could break a link the
+   * couple already shared.
+   */
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
   const [isCreating, startCreate] = useTransition();
 
   const activeLink = links.find(
@@ -69,6 +77,7 @@ export function FamilyShareManager({ initialLinks }: Props) {
   }
 
   function handleRevoke(id: string) {
+    setConfirmRevokeId(null);
     setPendingId(id);
     startCreate(async () => {
       try {
@@ -176,7 +185,7 @@ export function FamilyShareManager({ initialLinks }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => handleRevoke(activeLink.id)}
+              onClick={() => setConfirmRevokeId(activeLink.id)}
               disabled={pendingId === activeLink.id || isCreating}
               className="min-h-11 gap-1.5 text-muted-foreground hover:text-foreground"
             >
@@ -184,6 +193,64 @@ export function FamilyShareManager({ initialLinks }: Props) {
               取り消す
             </Button>
           </div>
+
+          {/*
+            Two-stage revoke confirm. Surfacing inline (rather than a
+            modal) keeps the user's mental model anchored to the link
+            row they're affecting — they don't lose context to a
+            full-screen dialog. The amber tint signals destructive
+            without screaming red, matching DESIGN.md's restraint.
+          */}
+          {confirmRevokeId === activeLink.id ? (
+            <div
+              role="alertdialog"
+              aria-labelledby="family-revoke-confirm-heading"
+              aria-describedby="family-revoke-confirm-body"
+              className="space-y-3 rounded-xl border border-amber-200/60 bg-amber-50/60 p-4 text-sm dark:border-amber-900/40 dark:bg-amber-950/30"
+            >
+              <p
+                id="family-revoke-confirm-heading"
+                className="flex items-center gap-1.5 font-medium text-foreground"
+              >
+                <AlertTriangle
+                  className="h-4 w-4 text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
+                このリンクを取り消しますか？
+              </p>
+              <p
+                id="family-revoke-confirm-body"
+                className="text-xs leading-relaxed text-muted-foreground"
+              >
+                ご家族にすでにお渡ししたリンクは開けなくなります。
+                新しいリンクは「別のリンクを作り直す」でお作りいただけます。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleRevoke(activeLink.id)}
+                  disabled={pendingId === activeLink.id || isCreating}
+                  className="min-h-11 flex-1 gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  取り消す
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setConfirmRevokeId(null)}
+                  disabled={pendingId === activeLink.id || isCreating}
+                  className="min-h-11 gap-1.5"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  やめる
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border/60 bg-muted/30 p-5 text-center">
