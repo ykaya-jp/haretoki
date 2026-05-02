@@ -35,6 +35,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * Force dynamic — admin pages must run requireAdmin() per-request, not
+ * once at build time. Prior to this, Next.js prerendered /admin/* with
+ * the build-time `notFound()` result and Vercel served the cached HTML
+ * with status 200, defeating the closed-by-default contract. The auth
+ * gate fires correctly when this layout opts out of static rendering.
+ */
+export const dynamic = "force-dynamic";
+
 const NAV: Array<{ href: string; label: string }> = [
   { href: "/admin/cost", label: "Cost" },
   { href: "/admin/audit", label: "Audit" },
