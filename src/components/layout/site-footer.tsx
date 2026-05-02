@@ -54,6 +54,16 @@ export function SiteFooter() {
           ·
         </span>
         <Link
+          href="/mypage/feedback"
+          prefetch={false}
+          className="inline-flex min-h-[44px] items-center px-3 text-[13px] tracking-wide transition-colors duration-200 hover:text-foreground underline-offset-4 hover:underline"
+        >
+          フィードバック
+        </Link>
+        <span aria-hidden="true" className="hidden text-border sm:inline">
+          ·
+        </span>
+        <Link
           href="/terms"
           prefetch={false}
           className="inline-flex min-h-[44px] items-center px-3 text-[13px] tracking-wide transition-colors duration-200 hover:text-foreground underline-offset-4 hover:underline"

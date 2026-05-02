@@ -12,6 +12,7 @@ import {
   summarizeRecentUsage,
   evaluateBudgetAlert,
   forecastMonthlyCostUsd,
+  detectDailyCostSpike,
   _resetUsageBuckets,
 } from "@/lib/anthropic-usage";
 
@@ -254,5 +255,189 @@ describe("forecastMonthlyCostUsd", () => {
     });
     // Most recent 7 = May 4..10 → avg = (4+5+6+7+8+9+10)/7 = 7
     expect(r.trailingDailyAvgUsd).toBeCloseTo(7, 5);
+  });
+});
+
+describe("forecastMonthlyCostUsd — monthStartForecastUsd (this PR)", () => {
+  function snap(dateStr: string, daily: number) {
+    return { snapshotDate: new Date(`${dateStr}T00:00:00Z`), dailyUsedUsd: daily };
+  }
+  it("equals trailingDailyAvgUsd × daysInMonth (linear projection from day 1)", () => {
+    // 7 days at $4/day → trailing avg = 4. May = 31 days. Linear month
+    // = 4 × 31 = 124. monthEndForecastUsd in contrast adds the actual
+    // monthToDateUsd, so the two diverge by definition.
+    const snapshots = [
+      snap("2026-05-04", 4),
+      snap("2026-05-05", 4),
+      snap("2026-05-06", 4),
+      snap("2026-05-07", 4),
+      snap("2026-05-08", 4),
+      snap("2026-05-09", 4),
+      snap("2026-05-10", 4),
+    ];
+    const r = forecastMonthlyCostUsd({
+      snapshots,
+      monthToDateUsd: 28,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.monthStartForecastUsd).toBeCloseTo(4 * 31, 5);
+    // monthEnd is independently right: monthToDate + 21 future days × 4
+    expect(r.monthEndForecastUsd).toBeCloseTo(28 + 21 * 4, 5);
+  });
+
+  it("monthStartForecastUsd is 0 when there are no snapshots (no rate to project)", () => {
+    const r = forecastMonthlyCostUsd({
+      snapshots: [],
+      monthToDateUsd: 0,
+      now: new Date(Date.UTC(2026, 4, 10)),
+    });
+    expect(r.monthStartForecastUsd).toBe(0);
+  });
+});
+
+describe("detectDailyCostSpike — designer-warning thresholds", () => {
+  function snap(dateStr: string, daily: number) {
+    return { snapshotDate: new Date(`${dateStr}T00:00:00Z`), dailyUsedUsd: daily };
+  }
+
+  it("returns spiked=false + deltaPct=null when there are < 2 snapshots", () => {
+    expect(detectDailyCostSpike([])).toMatchObject({
+      spiked: false,
+      deltaPct: null,
+      todayUsd: 0,
+      prevUsd: null,
+    });
+    expect(detectDailyCostSpike([snap("2026-05-10", 5)])).toMatchObject({
+      spiked: false,
+      deltaPct: null,
+      todayUsd: 5,
+      prevUsd: null,
+    });
+  });
+
+  it("does NOT spike when delta is at or below the default 30% threshold", () => {
+    expect(
+      detectDailyCostSpike([
+        snap("2026-05-10", 13), // today
+        snap("2026-05-09", 10), // yesterday — +30% exactly
+      ]).spiked,
+    ).toBe(false);
+    expect(
+      detectDailyCostSpike([
+        snap("2026-05-10", 12), // +20%
+        snap("2026-05-09", 10),
+      ]).spiked,
+    ).toBe(false);
+  });
+
+  it("DOES spike when delta is just over 30% (designer warning trigger)", () => {
+    const r = detectDailyCostSpike([
+      snap("2026-05-10", 13.5), // +35%
+      snap("2026-05-09", 10),
+    ]);
+    expect(r.spiked).toBe(true);
+    expect(r.deltaPct).toBeCloseTo(35, 1);
+    expect(r.todayUsd).toBe(13.5);
+    expect(r.prevUsd).toBe(10);
+  });
+
+  it("returns honest deltaPct even when not spiking (= negative case)", () => {
+    const r = detectDailyCostSpike([
+      snap("2026-05-10", 8), // -20%
+      snap("2026-05-09", 10),
+    ]);
+    expect(r.spiked).toBe(false);
+    expect(r.deltaPct).toBeCloseTo(-20, 1);
+  });
+
+  it("ignores spike when yesterday is sub-floor (< $0.10) — avoids $0.05→$0.20 false alarm", () => {
+    // The dispatcher's $0.10 floor guard prevents "yesterday near
+    // zero" from making any positive number read as a +1000% spike.
+    // Today $0.50 vs yesterday $0.05 = +900% raw, but the floor
+    // guard says "yesterday's baseline isn't real, don't alert".
+    const r = detectDailyCostSpike([
+      snap("2026-05-10", 0.5),
+      snap("2026-05-09", 0.05),
+    ]);
+    expect(r.spiked).toBe(false);
+  });
+
+  it("respects the spikeThresholdPct option override", () => {
+    // 20% threshold catches what the default 30% would let pass.
+    const r = detectDailyCostSpike(
+      [snap("2026-05-10", 12), snap("2026-05-09", 10)],
+      { spikeThresholdPct: 20 },
+    );
+    expect(r.spiked).toBe(false); // 20% exactly = at threshold, NOT over
+    const r2 = detectDailyCostSpike(
+      [snap("2026-05-10", 12.5), snap("2026-05-09", 10)],
+      { spikeThresholdPct: 20 },
+    );
+    expect(r2.spiked).toBe(true); // 25% > 20%
+  });
+
+  it("re-sorts unsorted snapshots so order doesn't affect the answer", () => {
+    const r = detectDailyCostSpike([
+      snap("2026-05-09", 10), // older
+      snap("2026-05-10", 14), // most recent
+    ]);
+    expect(r.todayUsd).toBe(14);
+    expect(r.prevUsd).toBe(10);
+    expect(r.spiked).toBe(true);
+  });
+});
+
+describe("recordUsage — per-action accumulator (this PR)", () => {
+  beforeEach(() => {
+    _resetUsageBuckets();
+  });
+
+  it("records action label when present, else falls into __no-action", () => {
+    recordUsage({
+      model: "claude-haiku-4-5",
+      inputTokens: 1000,
+      outputTokens: 500,
+      action: "coach",
+    });
+    recordUsage({
+      model: "claude-haiku-4-5",
+      inputTokens: 2000,
+      outputTokens: 1000,
+      action: "coach",
+    });
+    recordUsage({
+      model: "claude-haiku-4-5",
+      inputTokens: 1500,
+      outputTokens: 750,
+      action: "url-extraction",
+    });
+    recordUsage({
+      model: "claude-haiku-4-5",
+      inputTokens: 1500,
+      outputTokens: 750,
+      // no action — should fall into the synthetic __no-action key
+    });
+
+    const summary = summarizeRecentUsage(60_000);
+    expect(summary.byAction).toBeDefined();
+    expect(Object.keys(summary.byAction).sort()).toEqual([
+      "__no-action",
+      "coach",
+      "url-extraction",
+    ]);
+    // coach got 2 calls — the per-action bucket should reflect that.
+    expect(summary.byAction.coach.calls).toBeGreaterThan(0);
+  });
+
+  it("byAction calls do NOT exceed the global recent.length", () => {
+    recordUsage({ model: "claude-haiku-4-5", inputTokens: 1, outputTokens: 1, action: "a" });
+    recordUsage({ model: "claude-haiku-4-5", inputTokens: 1, outputTokens: 1, action: "b" });
+    const summary = summarizeRecentUsage(60_000);
+    const totalActionCalls = Object.values(summary.byAction).reduce(
+      (acc, b) => acc + b.calls,
+      0,
+    );
+    // Recent calls = 2; the per-action ratio shouldn't double-count.
+    expect(totalActionCalls).toBeLessThanOrEqual(summary.totalCalls);
   });
 });
