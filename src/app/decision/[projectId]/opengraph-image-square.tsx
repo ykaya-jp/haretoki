@@ -8,25 +8,18 @@ import { loadGoogleFont } from "@/lib/og-fonts";
 
 export const runtime = "nodejs";
 export const alt = "式場が決まりました";
-export const size = { width: 1200, height: 630 };
+/**
+ * Square variant — 1080×1080, intended for Instagram (post + Reels
+ * cover) and any other 1:1 social tile. Next.js routes this as
+ * `/decision/<id>/opengraph-image-square` so a future page-level
+ * `metadata.openGraph.images` array can advertise both sizes side by
+ * side. Filename suffix follows Next.js's documented convention for
+ * multiple OG images per route.
+ */
+export const size = { width: 1080, height: 1080 };
 export const contentType = "image/png";
 
-/**
- * Decision OG image — 1200×630 (Twitter / LINE / Open Graph default).
- *
- * Round 18 (C-0): refactored to share its composition with the new
- * 1080×1080 square variant via `DecisionOgScene`. Adds a Noto Serif JP
- * font load (best-effort — falls back to satori's serif when the fetch
- * fails) so the venue name renders in the correct mincho weight that
- * the brand uses everywhere else, and a bottom-center "HARETOKI ·
- * ふたりの晴れの日" eyebrow that survives social-platform corner crops.
- *
- * Brand metaphor: 曇り (top haze) → 晴れ間 (gold band) → 晴れ (cream
- * floor). The sky gradient + sun composition are the brand's primary
- * "morning of the wedding day" visual; the photo (when present) drops
- * in as a soft landscape band, never as a bordered rectangle.
- */
-export default async function OgImage({
+export default async function OgImageSquare({
   params,
 }: {
   params: Promise<{ projectId: string }>;
@@ -45,9 +38,8 @@ export default async function OgImage({
   const decidedAt = decision?.decidedAt ?? new Date();
   const dateLabel = formatDecisionDate(decidedAt);
 
-  // Glyph subset for the Google Fonts request — only the characters
-  // that actually appear in the rendered scene. Subsetting keeps the
-  // Japanese serif payload at ~5–15 KB instead of 3 MB.
+  // Same subset recipe as the horizontal variant — the rendered text
+  // surface is identical between the two compositions.
   const subsetText = `${venueName}ここに、決めました。${dateLabel}`;
   const serif = await loadGoogleFont({
     family: "Noto+Serif+JP",
@@ -69,10 +61,6 @@ export default async function OgImage({
     ),
     {
       ...size,
-      // Pass loaded font to satori; if the fetch failed (`serif` is
-      // null) the array is empty and satori uses its built-in serif
-      // fallback — rendering still succeeds, just slightly less
-      // brand-faithful.
       fonts: serif
         ? [
             {
