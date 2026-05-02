@@ -16,13 +16,10 @@ import { track } from "@/lib/analytics";
  *
  * Round 20 (A-5):
  *   - Eyebrow "おふたりで使うともっと楽しい" (gold-warm, 11.5px tracking)
- *   - Inline link "パートナーを招く →" → /mypage#partner-invite
- *     (the master plan calls for /mypage/partner-invite as a route, but
- *     no such route exists yet — we link to /mypage with a hash anchor
- *     pinned on the partner section so the user lands directly on the
- *     invite UI. When the dedicated route lands later, swap the href
- *     in one line; the localStorage key + analytics events stay
- *     unchanged so the funnel data is comparable across the rename.)
+ *   - Inline link "パートナーを招く →" → /mypage/partner-invite
+ *     (round 21: dedicated route now exists. The mypage Partner section
+ *     is still preserved with `id="partner-invite"` for any in-flight
+ *     bookmarks of the old hash anchor.)
  *   - Dismiss "X" with localStorage `onboarding_partner_hint_dismissed`
  *     persistence — once dismissed, the entire component returns null
  *     for the lifetime of the device. There is no per-session reset.
@@ -122,7 +119,7 @@ export function OnboardingPartnerHint() {
         おふたりで使うともっと楽しい
       </p>
       <Link
-        href="/mypage#partner-invite"
+        href="/mypage/partner-invite"
         prefetch={true}
         onClick={handleClick}
         className="mt-2 inline-flex min-h-11 items-center gap-1 text-[15px] font-medium text-foreground hover:text-[var(--gold-warm)]"
