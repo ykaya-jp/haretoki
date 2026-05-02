@@ -527,6 +527,21 @@ export function OnboardingFlow() {
   if (showRecommendations) {
     return (
       <div className="mx-auto max-w-lg space-y-8 py-6">
+        {/* SR status — announces the loading / loaded transition for
+            users who can't see the editorial reveal animation.
+            aria-busy keeps the region polite mid-fetch, then flips
+            once both Promise.allSettled branches resolve. */}
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-busy={isLoadingRecs || isLoadingDbRecs}
+        >
+          {isLoadingRecs || isLoadingDbRecs
+            ? "ふたりに合う式場を探しています"
+            : "おすすめの式場が見つかりました。ホームへ進めます。"}
+        </p>
+
         {/* Round 19 (A-4): Coach reveal h1. Replaces the prior dual
             "Haretoki Suggests" / "登録済み式場から" eyebrow pair with a
             single editorial moment that frames the entire reveal as
@@ -727,6 +742,17 @@ export function OnboardingFlow() {
       transition={{ duration: prefersReduced ? 0 : 0.4 }}
       className="relative mx-auto max-w-lg overflow-hidden py-4"
     >
+      {/* Visually-hidden screen-reader status. The 4 visual signals
+          (skyChip / progress bar / step label / pulse check) all gated
+          behind aria-hidden, so without this region a SR user receives
+          no announcement when the couple advances or finishes the flow.
+          aria-live="polite" defers to the user's current speech so we
+          don't interrupt mid-utterance, role="status" matches WCAG
+          4.1.3 status-message guidance. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {`Step ${Math.min(step + 1, QUESTIONS.length)} / ${QUESTIONS.length}: ${STEP_LABELS[step] ?? ""}`}
+      </p>
+
       {/* Tri-stage cloudy → break → sunny background wash. Same recipe as
           DecisionCeremony; CSS gradients can't interpolate so we stack
           three layers and cross-fade by opacity. Reduced-motion users see
