@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/settings/logout-button";
 import { DataManagement } from "@/components/settings/data-management";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PushPermissionState } from "@/components/notifications/push-permission-state";
+import { ReminderTimingSettings } from "@/components/notifications/reminder-timing-settings";
 import { getMyNotificationPreference } from "@/server/actions/notification-preferences";
 import { ChevronLeft } from "lucide-react";
 
@@ -67,6 +68,9 @@ export default async function SettingsPage() {
         </div>
         <div className="space-y-5 rounded-2xl bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06)]">
           <NotificationSettings initialFrequency={notificationPref.frequency} />
+          <ReminderTimingSettings
+            initialTimings={notificationPref.reminderTimings}
+          />
           <PushPermissionState
             vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
           />
