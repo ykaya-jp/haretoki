@@ -51,7 +51,9 @@ export type LogEventName =
   /** GDPR data deletion completed. */
   | "user_delete"
   /** Daily soft-bounce email re-enable cron summary. */
-  | "email_suppression_retry";
+  | "email_suppression_retry"
+  /** Daily AiCostSnapshot + AuditLog rolling deletion summary. */
+  | "data_retention_sweep";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */

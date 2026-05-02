@@ -22,8 +22,21 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-export async function updateSession(request: NextRequest) {
-  const supabaseResponse = NextResponse.next({ request });
+export async function updateSession(
+  request: NextRequest,
+  /**
+   * Optional forwarded request headers (e.g. CSP nonce stamped by the
+   * outer middleware). Passing them here lets `NextResponse.next()`
+   * pipe the headers into the request the downstream Server Component
+   * sees via `headers()` — which is how `app/layout.tsx` reads
+   * `x-nonce` for inline-script gating.
+   */
+  forwardedHeaders?: Headers,
+) {
+  const nextOptions = forwardedHeaders
+    ? { request: { headers: forwardedHeaders } }
+    : { request };
+  const supabaseResponse = NextResponse.next(nextOptions);
 
   // Fast path: public routes don't need to know who the user is. The
   // previous implementation called supabase.auth.getUser() on every
@@ -53,7 +66,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          mutableResponse = NextResponse.next({ request });
+          mutableResponse = NextResponse.next(nextOptions);
           cookiesToSet.forEach(({ name, value, options }) =>
             mutableResponse.cookies.set(name, value, options),
           );
