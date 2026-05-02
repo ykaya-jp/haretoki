@@ -11,7 +11,8 @@
     "lint": "eslint",
     "test": "prisma generate && vitest run --reporter=verbose",
     "test:watch": "prisma generate && vitest --reporter=verbose",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "migrate:check": "bash scripts/check-migration-safety.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

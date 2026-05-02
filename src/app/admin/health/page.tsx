@@ -18,6 +18,18 @@ import {
 import { CRON_NAMES, type CronName } from "@/lib/cron-audit";
 import { getSentryIncidents } from "@/lib/sentry-incidents";
 import { AutoRefresh } from "@/components/admin/auto-refresh";
+import {
+  buildStorageListUrl,
+  classifyStorageUsage,
+  DEFAULT_STORAGE_LIMIT_BYTES,
+  formatBytes,
+  KNOWN_BUCKETS,
+  parseStorageListResponse,
+  STORAGE_CRITICAL_THRESHOLD_PCT,
+  STORAGE_WARN_THRESHOLD_PCT,
+  type KnownBucket,
+  type StorageStatus,
+} from "@/lib/storage-monitor";
 
 /**
  * /admin/health — multi-service health view.
@@ -102,6 +114,99 @@ async function liveProbeSupabase(): Promise<SupabaseLiveProbe | null> {
   }
 }
 
+interface BucketProbe {
+  bucket: KnownBucket;
+  totalBytes: number | null;
+  fileCount: number | null;
+  /** True when the page returned 1000 objects (= probe is a lower bound). */
+  paginated: boolean;
+  status: StorageStatus;
+  pct: number;
+  error: string | null;
+}
+
+/**
+ * Live probe a single bucket via Supabase Storage REST list endpoint.
+ * Reads the first page (≤ 1000 objects) and sums object metadata.size.
+ * Honest about the approximation — for 1000+ object buckets the
+ * `paginated` flag is true and the dashboard surfaces "lower bound".
+ *
+ * 5s AbortController timeout per bucket so a slow Storage doesn't
+ * stall the whole /admin/health page.
+ */
+async function liveProbeBucket(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  bucket: KnownBucket,
+  limitBytes: number,
+): Promise<BucketProbe> {
+  const STORAGE_PAGE_SIZE = 1000;
+  const url = buildStorageListUrl(supabaseUrl, bucket);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        limit: STORAGE_PAGE_SIZE,
+        offset: 0,
+        prefix: "",
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      const { status } = classifyStorageUsage(0, limitBytes);
+      return {
+        bucket,
+        totalBytes: null,
+        fileCount: null,
+        paginated: false,
+        status,
+        pct: 0,
+        error: `HTTP ${response.status}`,
+      };
+    }
+    const rows = (await response.json()) as ReadonlyArray<{
+      name: string;
+      metadata?: { size?: number | null } | null;
+    }>;
+    const { totalBytes, fileCount } = parseStorageListResponse(rows);
+    const cls = classifyStorageUsage(totalBytes, limitBytes);
+    return {
+      bucket,
+      totalBytes,
+      fileCount,
+      paginated: rows.length >= STORAGE_PAGE_SIZE,
+      status: cls.status,
+      pct: cls.pct,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      bucket,
+      totalBytes: null,
+      fileCount: null,
+      paginated: false,
+      status: "ok",
+      pct: 0,
+      error:
+        err instanceof Error && err.name === "AbortError"
+          ? "timeout after 5000ms"
+          : err instanceof Error
+            ? err.message
+            : "unknown fetch error",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default async function AdminHealthPage() {
   // Opt out of static prerender — the live Supabase probe must run
   // per-request. `connection()` is the Cache Components-compatible
@@ -126,6 +231,28 @@ export default async function AdminHealthPage() {
   // (Same disable as src/app/admin/cost/page.tsx:99.)
   // eslint-disable-next-line react-hooks/purity
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // Storage probe needs the service-role key to bypass RLS on
+  // storage.objects. Service-role is server-only and never reaches
+  // the client. When unset (= local dev w/o full env), the probe
+  // silently no-ops and the dashboard renders "env unset" cards.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const storageLimitBytes = (() => {
+    const raw = process.env.SUPABASE_STORAGE_LIMIT_BYTES;
+    const n = raw ? Number(raw) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : DEFAULT_STORAGE_LIMIT_BYTES;
+  })();
+
+  const bucketProbesPromise: Promise<BucketProbe[] | null> =
+    supabaseUrl && serviceRoleKey
+      ? Promise.all(
+          KNOWN_BUCKETS.map((bucket) =>
+            liveProbeBucket(supabaseUrl, serviceRoleKey, bucket, storageLimitBytes),
+          ),
+        )
+      : Promise.resolve(null);
+
   const [
     liveSupabase,
     envSupabase,
@@ -134,6 +261,7 @@ export default async function AdminHealthPage() {
     envResend,
     cronRunRows,
     sentryIncidents,
+    bucketProbes,
   ] = await Promise.all([
     liveProbeSupabase(),
     Promise.resolve(probeSupabaseEnv()),
@@ -152,6 +280,7 @@ export default async function AdminHealthPage() {
       })
       .catch(() => [] as Array<{ detail: unknown; createdAt: Date }>),
     getSentryIncidents(),
+    bucketProbesPromise,
   ]);
 
   // Group cron rows by detail.cron and keep the latest run per cron.
@@ -310,6 +439,102 @@ export default async function AdminHealthPage() {
         />
       </section>
 
+      {/*
+        Phase 4 storage usage. Per-bucket live probe via Supabase
+        Storage REST `/object/list` (≤ 1000 objects per page). Rows
+        with `paginated: true` declare "lower bound" honestly because
+        we don't paginate further — the list endpoint costs a row scan
+        and the operator just needs an order-of-magnitude signal.
+        For exact numbers + projection, the operator opens the
+        Supabase dashboard via the link below.
+      */}
+      <section className="mt-8 rounded-lg border p-4">
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <h2 className="text-base font-medium">Storage usage</h2>
+          <span className="text-[11px] text-muted-foreground">
+            limit{" "}
+            <code className="rounded bg-muted px-1 py-0.5">
+              {formatBytes(storageLimitBytes)}
+            </code>{" "}
+            · warn ≥ {STORAGE_WARN_THRESHOLD_PCT}% · critical ≥{" "}
+            {STORAGE_CRITICAL_THRESHOLD_PCT}%
+          </span>
+        </div>
+        {bucketProbes === null ? (
+          <p className="text-xs text-muted-foreground">
+            env unset — set{" "}
+            <code className="rounded bg-muted px-1 py-0.5">
+              NEXT_PUBLIC_SUPABASE_URL
+            </code>{" "}
+            +{" "}
+            <code className="rounded bg-muted px-1 py-0.5">
+              SUPABASE_SERVICE_ROLE_KEY
+            </code>{" "}
+            to enable per-bucket size probe.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {bucketProbes.map((p) => {
+              const widthPct = Math.max(2, Math.min(100, p.pct));
+              const barColour =
+                p.status === "critical"
+                  ? "bg-rose-500"
+                  : p.status === "warn"
+                    ? "bg-amber-500"
+                    : "bg-emerald-500";
+              return (
+                <li key={p.bucket} className="space-y-1.5 text-xs">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono">{p.bucket}</span>
+                    <StatusBadge
+                      status={mapStorageToHealth(p.status)}
+                      note={`${p.pct.toFixed(1)}%`}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-[10.5px] text-muted-foreground">
+                    <span className="font-mono tabular-nums">
+                      {p.totalBytes !== null
+                        ? `${formatBytes(p.totalBytes)} · ${p.fileCount ?? 0} files`
+                        : "—"}
+                    </span>
+                    {p.paginated ? (
+                      <span title="probe paged at first 1000 objects — actual total is HIGHER">
+                        lower bound
+                      </span>
+                    ) : null}
+                    {p.error ? (
+                      <span className="text-rose-700 dark:text-rose-300">
+                        {p.error}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    className="h-1 rounded-full bg-muted"
+                  >
+                    <div
+                      className={`h-full rounded-full transition-all ${barColour}`}
+                      style={{ width: `${widthPct}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Probe reads the first 1000 objects per bucket; for buckets
+          with more files the displayed total is a <em>lower bound</em>.
+          For exact numbers, open the Supabase dashboard → Storage tab.
+          Threshold: {STORAGE_WARN_THRESHOLD_PCT}% / {STORAGE_CRITICAL_THRESHOLD_PCT}%
+          of {formatBytes(storageLimitBytes)} (override via{" "}
+          <code className="rounded bg-muted px-1 py-0.5">
+            SUPABASE_STORAGE_LIMIT_BYTES
+          </code>{" "}
+          on Pro tier).
+        </p>
+      </section>
+
       {/* Phase 4: Sentry incidents (last 24h). Server-side fetch via
           REST API; falls back to a dashboard link when SENTRY_AUTH_TOKEN
           is unset (dev / preview). Counts are intentionally summarised
@@ -456,6 +681,20 @@ export default async function AdminHealthPage() {
       </footer>
     </main>
   );
+}
+
+/**
+ * Map storage-monitor's StorageStatus (`ok | warn | critical`) onto the
+ * StatusBadge's HealthStatus (`ok | degraded | failed`). The two
+ * vocabularies serve different surfaces (live probe vs storage usage
+ * threshold) so they stay distinct types — this adapter renders the
+ * storage-side semantics in the same badge component without
+ * widening the StatusBadge contract.
+ */
+function mapStorageToHealth(s: StorageStatus): HealthStatus {
+  if (s === "critical") return "failed";
+  if (s === "warn") return "degraded";
+  return "ok";
 }
 
 function StatusBadge({

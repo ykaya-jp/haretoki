@@ -10,6 +10,15 @@
             "command": "f=\"${CLAUDE_FILE_PATH:-}\"; case \"$f\" in *.env|*.env.*|*.key|*.pem|*credentials*|*service_role*) echo \"BLOCK: refused to write secret-like file: $f\" >&2; exit 2 ;; esac"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=\"${CLAUDE_TOOL_INPUT_command:-}\"; case \"$cmd\" in *\"prisma migrate dev\"*|*\"prisma migrate deploy\"*|*\"prisma db push\"*) bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/check-migration-safety.sh\" >&2 || { echo \"BLOCK: destructive prisma migration detected — set ALLOW_DESTRUCTIVE_MIGRATION=1 to override (after backup + review).\" >&2; exit 2; } ;; esac"
+          }
+        ]
       }
     ],
     "PostToolUse": [
