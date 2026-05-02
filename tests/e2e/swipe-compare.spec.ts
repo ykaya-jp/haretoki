@@ -42,21 +42,19 @@ test.describe("SwipeCompare mount smoke (W10-3)", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto("/candidates");
+    await page.goto("/candidates", { waitUntil: "networkidle" });
 
     // Unauthenticated visitors land on /login; authenticated ones see the
     // candidates page (h1 "候補") or the "最近見た式場" variant when
-    // ?view=recent. Use role-based locators so strict-mode duplicates
-    // (text appears in both heading and button) do not trip the assertion.
-    const loginHeading = page.getByRole("heading", { name: "ログイン" });
-    const candidatesHeading = page.getByRole("heading", { name: "候補" });
-    const recentHeading = page.getByRole("heading", { name: "最近見た式場" });
-
-    const isLogin = await loginHeading.isVisible().catch(() => false);
-    const isCandidates = await candidatesHeading.isVisible().catch(() => false);
-    const isRecent = await recentHeading.isVisible().catch(() => false);
-
-    expect(isLogin || isCandidates || isRecent).toBe(true);
+    // ?view=recent. Use a single OR-locator that toLocator-waits up to
+    // the action timeout so framer-motion stagger entry doesn't race the
+    // initial isVisible() check (was flaky on prod cold-start).
+    const anyLandmark = page
+      .getByRole("heading", { name: "ログイン" })
+      .or(page.getByRole("heading", { name: "候補" }))
+      .or(page.getByRole("heading", { name: "最近見た式場" }))
+      .first();
+    await expect(anyLandmark).toBeVisible({ timeout: 10000 });
   });
 
   test("/candidates with fewer than 5 favorites does not fall through to a broken SwipeCompare state", async ({
