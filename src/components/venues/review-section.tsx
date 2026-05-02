@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { ReviewSource } from "@/generated/prisma/client";
 import { ReviewEstimateEditSheet } from "@/components/venues/review-estimate-edit-sheet";
+import { BatchReviewImportSheet } from "@/components/venues/batch-review-import-sheet";
 
 interface EstimateIncrease {
   initial?: number;
@@ -228,6 +229,10 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
             <Plus className="h-4 w-4" />
             別サイトの口コミを追加
           </Button>
+          {/* R1 — 複数 URL を一度に取り込む sheet trigger。単 URL form の
+              横にもう 1 つ secondary button を置くだけで wired (sheet 自体
+              は内部 state)。mwed 大量取り込みが主用途。 */}
+          <BatchReviewImportSheet venueId={venueId} />
         </div>
       </div>
 
