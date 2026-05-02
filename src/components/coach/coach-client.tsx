@@ -2,14 +2,42 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import dynamic from "next/dynamic";
+import { History, Plus, Search } from "lucide-react";
 import { ChatBar } from "@/components/coach/chat-bar";
 import { ChatHistory } from "@/components/coach/chat-history";
 import { CoachQuickStart } from "@/components/coach/coach-quick-start";
-import { SessionHistorySheet } from "@/components/coach/session-history-sheet";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NightQuestionCard } from "@/components/coach/night-question-card";
+
+/**
+ * Phase 4 launch readiness — `SessionHistorySheet` is heavy
+ * (`@tanstack/react-virtual` + radix Sheet + 376 lines of list
+ * UI) and only opens when the operator taps the History icon.
+ * Lazy-loading via next/dynamic strips it from the initial chunk
+ * and replaces the trigger with a same-shape placeholder button
+ * during hydration. See docs/harness/bundle-baseline-2.md § 3 / E1.
+ */
+const SessionHistorySheet = dynamic(
+  () =>
+    import("@/components/coach/session-history-sheet").then(
+      (m) => m.SessionHistorySheet,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <button
+        type="button"
+        aria-label="チャット履歴を読み込み中"
+        disabled
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+      >
+        <History className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+      </button>
+    ),
+  },
+);
 import type { SessionListItem, SessionDetail } from "@/server/actions/coach";
 import type { AIInsight } from "@/server/actions/insights";
 import type { NightQuestion } from "@/lib/night-questions";

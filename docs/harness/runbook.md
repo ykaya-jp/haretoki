@@ -149,6 +149,56 @@ Realtime broadcast / Push 通知 / Family share / countdown / multi-device offli
 - `git push --force` / `git reset --hard` / `prisma migrate reset` はユーザー承認必須
 - `vercel env rm` 本番変数削除は事前に backup + 確認
 
+## GitHub branch protection — 必須 status check 化 (Phase 4 launch readiness)
+
+Beta launch 前に main / develop ブランチの **必須 status check** を Web UI で
+1 度だけ設定する。設定後はマージ前に `.github/workflows/ci.yml` の全 job が
+GREEN を要求される (= regress を main に乗せられない)。
+
+### main ブランチ
+
+GitHub → repo → Settings → Branches → "Add branch protection rule":
+
+- Branch name pattern: `main`
+- ✅ Require a pull request before merging
+  - ✅ Require approvals: **1**
+  - ✅ Dismiss stale pull request approvals when new commits are pushed
+- ✅ Require status checks to pass before merging
+  - ✅ Require branches to be up to date before merging
+  - **必須 status check** に追加 (ci.yml の job 名で指定):
+    - `Lint`
+    - `Type Check`
+    - `Build`
+    - `Prisma Validate`
+    - `Unit Test`
+    - `Bundle size guard`
+    - `E2E Test`
+- ✅ Require linear history
+- ✅ Do not allow bypassing the above settings
+- ❌ Allow force pushes (絶対 OFF)
+- ❌ Allow deletions (絶対 OFF)
+
+### develop ブランチ
+
+main と同等だが少し緩める (worker が PR せず直 push するケースを許容):
+
+- Branch name pattern: `develop`
+- ✅ Require status checks to pass before merging (PR 経由のときのみ enforce)
+- 必須 status check は同 7 つ
+- ❌ Require a pull request before merging (worker → 中央の merge は PR 経由
+  しないことが多い)
+- ❌ Require linear history (merge commit を許容)
+
+### 確認
+
+設定後、test PR を 1 本作って:
+
+- [ ] CI 全 job が走ること
+- [ ] 1 job でも fail なら merge button が disabled になること
+- [ ] approval 1 件無いと main への merge button が disabled になること
+
+完了したら test PR を close (merge せず破棄)。
+
 ## トラブルシュート
 
 - **prettier hook がループ**: `.claude/settings.json` の PostToolUse matcher を一時 comment out
