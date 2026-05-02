@@ -1,16 +1,22 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function HelpLoading() {
   return (
-    <div className="mx-auto max-w-2xl space-y-12 px-4 pb-32 pt-6">
-      <div className="space-y-3">
-        <div className="h-3 w-12 animate-pulse rounded bg-muted" />
-        <div className="h-8 w-56 animate-pulse rounded bg-muted/80" />
-        <div className="h-4 w-full animate-pulse rounded bg-muted/60" />
+    <div
+      className="mx-auto max-w-2xl space-y-12 px-4 pb-32 pt-6"
+      aria-busy="true"
+      aria-label="ヘルプを読み込み中"
+    >
+      <div aria-hidden="true" className="space-y-3">
+        <Skeleton className="h-3 w-12" />
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-full" />
       </div>
-      <div className="space-y-3">
-        <div className="h-5 w-32 animate-pulse rounded bg-muted/80" />
-        <div className="h-[420px] animate-pulse rounded-2xl bg-muted/40" />
+      <div aria-hidden="true" className="space-y-3">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-[420px] rounded-2xl" />
       </div>
-      <div className="h-32 animate-pulse rounded-2xl bg-muted/40" />
+      <Skeleton aria-hidden="true" className="h-32 rounded-2xl" />
     </div>
   );
 }
