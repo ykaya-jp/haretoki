@@ -138,24 +138,41 @@ export async function saveDirectRatings(venueId: string, input: RatingInput) {
 }
 
 /**
- * Get both owner and partner ratings for a venue, grouped by user.
- * Returns null for partnerRatings if no partner exists.
+ * Get the viewer's own ratings + the other member's ratings for a venue.
+ *
+ * **Viewer-aware** (Phase 3 wave 1.1, round 23): the prior shape
+ * `{ ownerRatings, partnerRatings }` was role-keyed, which double-
+ * counted whenever the partner viewed the page (their own rating
+ * surfaced in BOTH the "own" row and the "partner" row of the UI).
+ * The new shape `{ ownRatings, otherRatings }` keys on the viewer
+ * — `ownRatings` is whoever is signed in, `otherRatings` is the
+ * other project member regardless of role.
+ *
+ * Returns null for `otherRatings` when the project has no partner
+ * yet (single-member project). Returns null for `ownRatings` only
+ * when the viewer somehow isn't a project member at all (auth
+ * normally rejects that path before we reach here, but the null
+ * is a safer contract than throwing for the rare race).
  */
-export async function getPartnerRatings(venueId: string) {
+export async function getCoupleRatings(venueId: string) {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
   await requireVenueAccess(user.id, venueId);
 
-  // Get all project members
+  // Get all accepted project members. `acceptedAt` filter excludes a
+  // partner who was invited but hasn't joined yet — their userId would
+  // be null on the row anyway, but the filter makes intent explicit.
   const members = await prisma.projectMember.findMany({
     where: { projectId, acceptedAt: { not: null } },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
-  const owner = members.find((m) => m.role === "owner");
-  const partner = members.find((m) => m.role === "partner");
+  const viewer = members.find((m) => m.userId === user.id);
+  const other = members.find((m) => m.userId !== user.id);
 
-  // Get all visit ratings for this venue, grouped by userId
+  // Get all visit ratings for this venue. Pulling everyone's ratings in
+  // one shot (vs two userId-filtered queries) keeps the round-trip
+  // count at one and matches what the prior `getPartnerRatings` did.
   const allRatings = await prisma.visitRating.findMany({
     where: { visit: { venueId } },
     select: { userId: true, dimension: true, score: true },
@@ -173,17 +190,38 @@ export async function getPartnerRatings(venueId: string) {
   }
 
   return {
-    ownerRatings: owner
+    ownRatings: viewer
       ? {
-          name: owner.user.name ?? owner.user.email,
-          ratings: buildRatingsMap(owner.user.id),
+          name: viewer.user.name ?? viewer.user.email,
+          ratings: buildRatingsMap(viewer.user.id),
         }
       : null,
-    partnerRatings: partner
+    otherRatings: other
       ? {
-          name: partner.user.name ?? partner.user.email,
-          ratings: buildRatingsMap(partner.user.id),
+          name: other.user.name ?? other.user.email,
+          ratings: buildRatingsMap(other.user.id),
         }
       : null,
+  };
+}
+
+/**
+ * @deprecated Round 23 (Phase 3 wave 1.1) — use `getCoupleRatings`
+ * instead. This shape was role-keyed (`ownerRatings` / `partnerRatings`)
+ * which double-counted the partner's own rating when the partner was
+ * the viewer. The only known caller (the venue page) has been migrated
+ * to `getCoupleRatings`; this thin compat layer remains so any
+ * unmigrated caller still compiles, and will be removed in the wave
+ * that finishes Partner Level 2.
+ */
+export async function getPartnerRatings(venueId: string) {
+  const couple = await getCoupleRatings(venueId);
+  // Compat shape preserved for legacy callers — the names lie when
+  // the viewer is the partner (own = partner, "partner" = owner) but
+  // that's the same bug the original function had, so this proxy is
+  // strictly behaviour-preserving for anyone who hasn't migrated.
+  return {
+    ownerRatings: couple.ownRatings,
+    partnerRatings: couple.otherRatings,
   };
 }
