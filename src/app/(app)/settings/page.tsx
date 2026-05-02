@@ -6,6 +6,7 @@ import { DataManagement } from "@/components/settings/data-management";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PushPermissionState } from "@/components/notifications/push-permission-state";
 import { ReminderTimingSettings } from "@/components/notifications/reminder-timing-settings";
+import { PartnerActivitySettings } from "@/components/notifications/partner-activity-settings";
 import { getMyNotificationPreference } from "@/server/actions/notification-preferences";
 import { ChevronLeft } from "lucide-react";
 
@@ -70,6 +71,9 @@ export default async function SettingsPage() {
           <NotificationSettings initialFrequency={notificationPref.frequency} />
           <ReminderTimingSettings
             initialTimings={notificationPref.reminderTimings}
+          />
+          <PartnerActivitySettings
+            initialActivity={notificationPref.partnerActivity}
           />
           <PushPermissionState
             vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}

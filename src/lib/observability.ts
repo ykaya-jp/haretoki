@@ -59,7 +59,14 @@ export type LogEventName =
    * `vapid-missing`, logged once per user per cron tick — operator
    * misconfig surface).
    */
-  | "push_send_skipped";
+  | "push_send_skipped"
+  /**
+   * P3 L3 W2: per-couple-activity-event dispatch summary, emitted
+   * once per `dispatchRealtimeEvent` call. Couple activity is
+   * high-frequency so this is informational only — alerts derive
+   * from rolling Sentry events, not the log stream.
+   */
+  | "realtime_push_dispatch";
 
 interface LogEventInput {
   /** Event taxonomy name. Must be a known `LogEventName`. */

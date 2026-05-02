@@ -85,6 +85,7 @@ async function handle(request: Request) {
   let snapshotsDeleted = 0;
   let auditDeleted = 0;
   let visitReminderSentDeleted = 0;
+  let pushSendLogDeleted = 0;
 
   try {
     const snapResult = await prisma.aiCostSnapshot.deleteMany({
@@ -132,6 +133,23 @@ async function handle(request: Request) {
     });
   }
 
+  // P3 L3 W2: prune push throttle rows older than the cutoff. The
+  // dispatcher's hour-bucket key is only consulted for current-hour
+  // sends; rows past the cutoff carry no operational meaning. The
+  // (sent_at) index on push_send_logs makes this a fast range scan.
+  try {
+    const pushSendLogResult = await prisma.pushSendLog.deleteMany({
+      where: { sentAt: { lt: cutoff } },
+    });
+    pushSendLogDeleted = pushSendLogResult.count;
+  } catch (err) {
+    captureError(err, {
+      component: "db",
+      alertRoute: "p2-email",
+      extra: { action: "data-retention-sweep:push-send-log" },
+    });
+  }
+
   const durationMs = Date.now() - start;
   logEvent({
     event: "data_retention_sweep",
@@ -141,6 +159,7 @@ async function handle(request: Request) {
       snapshotsDeleted,
       auditDeleted,
       visitReminderSentDeleted,
+      pushSendLogDeleted,
       exemptActions: RETENTION_EXEMPT_ACTIONS,
       durationMs,
     },
@@ -153,6 +172,7 @@ async function handle(request: Request) {
     snapshotsDeleted,
     auditDeleted,
     visitReminderSentDeleted,
+    pushSendLogDeleted,
     durationMs,
   });
 }
