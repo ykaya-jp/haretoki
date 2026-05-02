@@ -129,9 +129,10 @@ test.describe("シナリオ4: 認証保護された領域", () => {
 
 test.describe("シナリオ5: 情報の一貫性", () => {
   test("ブランド名はHaretokiで統一", async ({ page }) => {
-    await page.goto("/");
-    // Old brand "VenueLens" should NOT appear anywhere
-    const bodyText = await page.locator("body").innerText();
+    await page.goto("/", { waitUntil: "networkidle" });
+    // framer-motion `initial="hidden"` で opacity:0 のままだと innerText は空に
+    // なる。textContent は visibility 無視で取れるので static copy 検証に向く。
+    const bodyText = await page.locator("body").textContent();
     expect(bodyText).not.toContain("VenueLens");
     expect(bodyText).toContain("Haretoki");
   });
@@ -200,13 +201,14 @@ test.describe("シナリオ6: Phase 1-3 実装範囲の網羅確認", () => {
     const ogImage = await page
       .locator('meta[property="og:image"]')
       .getAttribute("content");
-    expect(ogImage).toContain("og-image");
+    // Phase 2.C C-0 で Next.js dynamic OG (`/opengraph-image`) に移行済。
+    expect(ogImage).toMatch(/opengraph-image|og-image/);
   });
 
   test("Phase 2B: モダンなコピー — 「晴れの日」メタファー", async ({ page }) => {
-    await page.goto("/");
-    const bodyText = await page.locator("body").innerText();
-    // Footer tagline should mention the journey metaphor
+    await page.goto("/", { waitUntil: "networkidle" });
+    // textContent で hidden state の文言まで拾う (innerText 仕様回避)。
+    const bodyText = await page.locator("body").textContent();
     expect(bodyText).toContain("晴れの日");
   });
 

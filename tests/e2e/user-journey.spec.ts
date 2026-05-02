@@ -135,7 +135,9 @@ test.describe("花嫁のユースケース — 認証不要", () => {
     const ogImage = await page.locator('meta[property="og:image"]').getAttribute("content");
 
     expect(ogTitle).toContain("Haretoki");
-    expect(ogImage).toContain("og-image");
+    // Phase 2.C C-0 で Next.js dynamic OG (`/opengraph-image`) に移行済。
+    // 旧 static `/og-image.png` も含む両 pattern に match させる。
+    expect(ogImage).toMatch(/opengraph-image|og-image/);
   });
 
   test("ファビコンが設定されている", async ({ page }) => {
@@ -165,7 +167,12 @@ test.describe("アクセシビリティ - 基本チェック", () => {
 
   test("タッチターゲットが44px以上 - ランディングCTA", async ({ page }) => {
     await page.goto("/");
-    const cta = page.locator("text=無料ではじめる").first();
+    // CTA は <Link> の中に "無料ではじめる" + <ChevronRight icon> が並ぶ
+    // 構造。`text=` の strict match では mixed content で null 返るので
+    // role + name regex で安定 locate。framer-motion stagger 完了を待つ
+    // ため visible 待機を 1 段挟む。
+    const cta = page.getByRole("link", { name: /無料ではじめる/ }).first();
+    await expect(cta).toBeVisible({ timeout: 5000 });
     const box = await cta.boundingBox();
     expect(box).not.toBeNull();
     if (box) {

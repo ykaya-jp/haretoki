@@ -76,8 +76,12 @@ test.describe("Invite link flow", () => {
     // but never the error boundary. For this well-formed-but-missing
     // token we expect the InvalidCard path.
     await expect(page.getByText("うまく表示できませんでした")).not.toBeVisible();
+    // D2 (round 28) updated the copy to "うまくお渡しできませんでした" —
+    // matches via substring rather than exact heading text since the
+    // heading wraps with a `<br>` ("この招待は、" / "うまくお渡し
+    // できませんでした。").
     await expect(
-      page.getByText("この招待は、お渡しできませんでした。"),
+      page.getByText("うまくお渡しできませんでした"),
     ).toBeVisible();
   });
 });
