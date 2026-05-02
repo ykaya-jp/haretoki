@@ -8,6 +8,10 @@ import { isClaudeAvailable, askClaude, withRetry } from "@/lib/anthropic";
 import { getAllChecklistItems } from "@/lib/checklist-templates";
 import { uploadChecklistPhoto } from "@/lib/supabase/storage";
 import type { ScoreDimension } from "@/generated/prisma/client";
+import {
+  publishRealtimeEvent,
+  resolveActor,
+} from "@/lib/realtime/publish";
 
 const scheduleVisitSchema = z.object({
   scheduledAt: z.coerce.date(),
@@ -157,6 +161,18 @@ export async function addVisitNote(
   });
 
   revalidatePath(`/venues/${visit.venue.id}`);
+
+  // Phase 3 L3 wave 1 — broadcast a note_added so the partner's open
+  // client paints a "{name}さんがメモを残しました" toast. Best-effort.
+  // visit.venue.projectId is loaded by requireVisitAccess above.
+  const actor = await resolveActor(user.id);
+  await publishRealtimeEvent(visit.venue.projectId, {
+    kind: "note_added",
+    actor,
+    venueId: visit.venue.id,
+    visitId,
+  });
+
   return { success: true, noteId: note.id };
 }
 

@@ -82,6 +82,15 @@ vi.mock("@/lib/decision-todos/seed", () => ({
   resetSystemTodosCompletion: (projectId: string) => resetSpy(projectId),
 }));
 
+// Phase 3 L3 wave 1 — makeDecision now calls publishRealtimeEvent +
+// resolveActor. Both are best-effort and out of scope for this
+// integration test, so we stub them to keep the suite focused on
+// venue/todo-reset logic.
+vi.mock("@/lib/realtime/publish", () => ({
+  publishRealtimeEvent: vi.fn().mockResolvedValue(undefined),
+  resolveActor: vi.fn().mockResolvedValue({ userId: "user-1", name: "Owner" }),
+}));
+
 beforeEach(() => {
   decisionFindUnique.mockReset();
   projectFindUnique.mockReset();

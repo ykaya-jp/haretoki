@@ -6,6 +6,10 @@ import { requireUser, requireProjectMembership, requireVenueAccess } from "@/ser
 import { ratingSchema } from "@/server/actions/rating-schema";
 import type { RatingInput } from "@/server/actions/rating-schema";
 import type { ScoreDimension } from "@/generated/prisma/client";
+import {
+  publishRealtimeEvent,
+  resolveActor,
+} from "@/lib/realtime/publish";
 
 // --- Server actions ---
 
@@ -100,6 +104,18 @@ export async function saveRatings(
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath(`/venues/${venueId}`);
+
+  // Phase 3 L3 wave 1 — broadcast a semantic event so the partner's
+  // open client paints a "{name}さんが評価を残しました" toast and
+  // refreshes their view. Best-effort: the helper swallows errors so
+  // a flaky realtime socket can't poison the success path.
+  const actor = await resolveActor(user.id);
+  await publishRealtimeEvent(projectId, {
+    kind: "rating_saved",
+    actor,
+    venueId,
+    dimensionCount: Object.keys(parsed.data.ratings).length,
+  });
 
   return { success: true as const };
 }

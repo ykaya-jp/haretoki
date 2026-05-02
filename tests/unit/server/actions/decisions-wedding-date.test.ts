@@ -53,6 +53,16 @@ vi.mock("@/lib/decision-todos/seed", () => ({
   resetSystemTodosCompletion: vi.fn(),
 }));
 
+// Phase 3 L3 wave 1 — updateWeddingDate / makeDecision now call
+// publishRealtimeEvent + resolveActor. Both are best-effort and out of
+// scope for this test suite, so we stub them so the existing
+// `prisma.user.findUnique` mock isn't required and the test stays
+// focused on the decision-side behaviour.
+vi.mock("@/lib/realtime/publish", () => ({
+  publishRealtimeEvent: vi.fn().mockResolvedValue(undefined),
+  resolveActor: vi.fn().mockResolvedValue({ userId: "user-1", name: "Owner" }),
+}));
+
 import { updateWeddingDate } from "@/server/actions/decisions";
 
 beforeEach(() => {
