@@ -145,7 +145,16 @@ export function DimensionRatings({
                 <button
                   type="button"
                   onClick={() => handleAcceptSuggestion(dimension, suggestion.suggestedScore)}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--gold-warm)]/10 text-[var(--gold-warm)] transition-colors active:bg-[var(--gold-warm)]/20"
+                  // W21-5 / round-22 dark-mode parity: the prior class
+                  // `bg-[var(--gold-warm)]/10` (opacity-suffix on a
+                  // token) collapses to the card colour in dark mode,
+                  // making the suggestion-accept affordance vanish the
+                  // moment a couple switches theme. color-mix anchored
+                  // to var(--card) keeps a fixed warm tint under both
+                  // palettes; active: uses the same recipe at 22% so
+                  // the press state still reads "deeper" without going
+                  // theme-blind.
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--gold-warm)_10%,var(--card))] text-[var(--gold-warm)] transition-colors active:bg-[color-mix(in_oklab,var(--gold-warm)_22%,var(--card))]"
                   aria-label="提案を反映"
                 >
                   <Check className="h-4 w-4" strokeWidth={2} />
