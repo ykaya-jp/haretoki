@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/server/auth";
 import { ThemeSwitcher } from "@/components/settings/theme-switcher";
@@ -9,6 +10,15 @@ import { ReminderTimingSettings } from "@/components/notifications/reminder-timi
 import { PartnerActivitySettings } from "@/components/notifications/partner-activity-settings";
 import { getMyNotificationPreference } from "@/server/actions/notification-preferences";
 import { ChevronLeft } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "整える",
+  description:
+    "テーマ、通知の頻度、データの取り扱い、ログアウト。おふたりに合わせて整えられます。",
+  // Settings is per-account state — no value to a search crawler and
+  // we shouldn't leak the route's existence either.
+  robots: { index: false, follow: false },
+};
 
 /**
  * D5 audit verdict (designer backlog 🟢 D5, 2026-05-03):

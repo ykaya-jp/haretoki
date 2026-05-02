@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import Link from "next/link";
@@ -11,6 +12,18 @@ import {
   verifyGuestSession,
 } from "@/lib/guest-session";
 import { SkyChip } from "@/components/home/sky-chip";
+
+export const metadata: Metadata = {
+  title: "おふたりからの招待",
+  description:
+    "おふたりのプロジェクトに招かれました。1 タップで合流できます。",
+  // Same logic as /family/[token]: token URLs are per-recipient and
+  // single-use; crawler indexing or social-share previews would burn
+  // the consumption counter and leak the token in `og:url`.
+  robots: { index: false, follow: false, nocache: true },
+  openGraph: undefined,
+  twitter: undefined,
+};
 
 /**
  * F4 1-tap invitation landing — D2 editorial refresh (DESIGN.md v4.2).
