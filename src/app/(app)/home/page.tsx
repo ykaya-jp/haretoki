@@ -14,6 +14,9 @@ import { getHomeStage } from "@/components/home/home-stage";
 import { NextStepsCard } from "@/components/decision-todos/next-steps-card";
 import { CountdownCard } from "@/components/home/countdown-card";
 import { InvitationArrivalToast } from "@/components/home/invitation-arrival-toast";
+import { PartnerWelcomeModal } from "@/components/onboarding/partner-welcome-modal";
+import { requireUser, requireProjectMembership } from "@/server/auth";
+import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
   title: "ホーム",
@@ -47,12 +50,24 @@ function jstTodayLabel(): { dateLabel: string; timeOfDayLabel: string } {
 }
 
 export default async function HomePage() {
-  const [pendingInvitation, homeData, insights, ritual] = await Promise.all([
-    getPendingInvitation(),
-    getHomeData(),
-    getAIInsights(),
-    getTodayRitual(),
-  ]);
+  // Auth + role first so the welcome-modal gate has the answer
+  // ready before we kick off the home data fetches.
+  const user = await requireUser();
+  const membership = await requireProjectMembership(user.id);
+  const isPartner = membership.role === "partner";
+
+  const [pendingInvitation, homeData, insights, ritual, ownerName] =
+    await Promise.all([
+      getPendingInvitation(),
+      getHomeData(),
+      getAIInsights(),
+      getTodayRitual(),
+      // D3: only fetch the owner name when the viewer is a partner.
+      // Owners don't need it (the modal never renders for them) and
+      // skipping the query keeps the home-page TTFB unchanged for the
+      // common case.
+      isPartner ? resolveOwnerName(membership.projectId) : null,
+    ]);
 
   if (pendingInvitation) {
     redirect("/accept-invite");
@@ -205,6 +220,34 @@ export default async function HomePage() {
       )}
 
       <TimeEcho firstVenue={homeData.firstVenue} />
+
+      {/* D3 partner welcome modal — server-gated by isPartner so an
+          owner never receives this component in their tree. The
+          client component layers a localStorage dismiss check on
+          top so a partner only sees it once per device. */}
+      {isPartner && ownerName && (
+        <PartnerWelcomeModal ownerName={ownerName} />
+      )}
     </div>
   );
+}
+
+/**
+ * Resolves the owner's display name for the welcome modal. Falls
+ * back to "おふたりの相棒" when the owner has not set a profile
+ * name yet so the modal headline ("{owner name}さんに招かれて、…")
+ * still reads as a sentence.
+ *
+ * Kept inline with the page (rather than promoted to
+ * server/actions/projects.ts) because this is the only caller and
+ * the query shape is minimal — adding a new exported action would
+ * be over-engineered for a single welcome surface.
+ */
+async function resolveOwnerName(projectId: string): Promise<string> {
+  const owner = await prisma.projectMember.findFirst({
+    where: { projectId, role: "owner" },
+    select: { user: { select: { name: true } } },
+  });
+  const name = owner?.user?.name?.trim();
+  return name && name.length > 0 ? name : "おふたりの相棒";
 }
