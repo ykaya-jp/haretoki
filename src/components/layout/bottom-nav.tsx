@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Home, Search, Heart, MessageSquare, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useHaptic } from "@/hooks/use-haptic";
 
 interface NavItem {
   href: string;
@@ -35,6 +36,7 @@ function matchesHref(pathname: string, href: string): boolean {
 export function BottomNav({ badges }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const haptic = useHaptic();
 
   // Eagerly prefetch all tabs after mount so taps on any tab feel instant.
   // /home, /explore, /candidates already get link-level prefetch (undefined =
@@ -128,6 +130,12 @@ export function BottomNav({ badges }: BottomNavProps) {
                   return;
                 }
                 if (matchesHref(pathname, item.href)) return;
+                // "select" pulse fires on tap intent, before the
+                // navigation begins, so the haptic feels coupled to
+                // the user's tap rather than to the page transition.
+                // useHaptic respects prefers-reduced-motion + skips
+                // on browsers that don't expose navigator.vibrate.
+                haptic("select");
                 setPendingHref(item.href);
               }}
               className={cn(
