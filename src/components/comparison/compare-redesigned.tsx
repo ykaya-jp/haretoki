@@ -25,6 +25,7 @@ import {
 } from "@/server/actions/matrix-insight";
 import { getCoupleRatings } from "@/server/actions/ratings";
 import { AIInsightCard } from "@/components/ai/insight-card";
+import { ShareButton } from "@/components/ui/share-button";
 import { cn } from "@/lib/utils";
 import {
   aggregatePartnerDiffAcrossVenues,
@@ -763,6 +764,27 @@ export function CompareRedesigned() {
               })
             )}
             </div>
+          </div>
+
+          {/* Share entry — pass the current matrix (with the exact
+              venue selection) to a friend or family member via the OS
+              share sheet, falling back to clipboard. The URL preserves
+              `?venueIds=` so the recipient lands on the same view. */}
+          <div className="flex justify-center px-3 pt-1">
+            <ShareButton
+              title="式場の比較"
+              text="今、この式場たちを比べてみてるよ。見てみて。"
+              url={(() => {
+                if (typeof window === "undefined") return undefined;
+                const ids = venueIds.join(",");
+                return ids
+                  ? `${window.location.origin}/compare?venueIds=${ids}`
+                  : window.location.href;
+              })()}
+              analyticsKind="compare"
+              variant="ghost"
+              label="この比較を友だちに伝える"
+            />
           </div>
 
           {/* AI insight */}

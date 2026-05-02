@@ -34,25 +34,96 @@ import { track } from "@/lib/analytics";
  * with the brand's standard easing (cubic-bezier(0.16, 1, 0.3, 1)) —
  * matching DecisionCeremony / Step 1 transitions for visual continuity.
  *
- * Analytics: `onboarding_hero_seen` fires once on mount (idempotent via
- * useEffect deps) so the funnel can measure hero exposure separately
- * from `onboarding_started` (CTA tap). The "あとで" secondary CTA is
- * routed to /home and tracked via `onboarding_hero_deferred`.
+ * Analytics:
+ *   - `onboarding_hero_seen` fires once on mount (idempotent via
+ *     useEffect deps) so the funnel can measure hero exposure separately
+ *     from the CTA tap.
+ *   - `onboarding_entry_clicked` fires on the primary CTA tap with a
+ *     `{ from: "onboarding_hero", variant }` payload — same event name
+ *     emitted on the home start-stage CTA so a single PostHog funnel
+ *     can compare conversion across the two entry points.
+ *   - `onboarding_started` (legacy) is preserved so existing dashboards
+ *     keep working; new dashboards should listen on
+ *     `onboarding_entry_clicked` going forward.
+ *   - The "あとで" secondary CTA is routed to /home and tracked via
+ *     `onboarding_hero_deferred`.
  */
-export function OnboardingHero({ onStart }: { onStart: () => void }) {
+
+/**
+ * Onboarding hero copy variants (Phase 3 prep — Phase 4 will wire
+ * server-decided experiment buckets).
+ *
+ * `control` keeps the production hero. `warm` softens the headline
+ * into a couple-first invitation. The serif headline is the only
+ * surface that forks (button label / subtitle / display-name help-text
+ * stay shared) — every variant should still read as "Haretoki" so the
+ * A/B is genuinely about voice, not surface area.
+ */
+export type OnboardingHeroVariant = "control" | "warm";
+
+const ONBOARDING_HERO_COPY: Record<
+  OnboardingHeroVariant,
+  {
+    headlineLine1: string;
+    headlineLine2: string;
+    subtitleLine1: string;
+    subtitleLine2: string;
+  }
+> = {
+  control: {
+    headlineLine1: "ふたりの晴れの日を、",
+    headlineLine2: "ここから",
+    subtitleLine1: "コーチが 4 つの質問で",
+    subtitleLine2: "おふたりの好みを聞きます",
+  },
+  warm: {
+    headlineLine1: "おふたりらしい一日を、",
+    headlineLine2: "ここで描きはじめる",
+    subtitleLine1: "4 つのやさしい質問から、",
+    subtitleLine2: "ふたりに合う場所が見えてきます",
+  },
+};
+
+export interface OnboardingHeroProps {
+  onStart: () => void;
+  /** Server-decided copy variant. Defaults to `control` so callers
+   *  who haven't opted into the prep continue to render exactly the
+   *  production copy. */
+  variant?: OnboardingHeroVariant;
+}
+
+export function OnboardingHero({
+  onStart,
+  variant = "control",
+}: OnboardingHeroProps) {
+  const copy = ONBOARDING_HERO_COPY[variant] ?? ONBOARDING_HERO_COPY.control;
   const [displayName, setDisplayName] = useState("");
   const [isStarting, setIsStarting] = useState(false);
 
   // Fire once on mount — useEffect deps [] guarantees a single emit
   // even if the parent re-renders. Funnel analysis treats this as the
-  // "user reached the gateway" event.
+  // "user reached the gateway" event. The `variant` is included so
+  // the funnel can split impressions per copy bucket too.
   useEffect(() => {
-    track("onboarding_hero_seen");
+    track("onboarding_hero_seen", { variant });
+    // variant is captured intentionally on first mount only — re-firing
+    // on a variant change would double-count the same session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleStart = async () => {
     if (isStarting) return;
     setIsStarting(true);
+    // Unified entry event — same name as the home start-stage CTA so
+    // PostHog can build a single conversion funnel keyed on
+    // `onboarding_entry_clicked` regardless of which surface the
+    // couple started from.
+    track("onboarding_entry_clicked", {
+      from: "onboarding_hero",
+      variant,
+    });
+    // Legacy event — kept in place so existing dashboards don't break
+    // until the migration round flips them to the unified event.
     track("onboarding_started");
     const trimmed = displayName.trim();
     if (trimmed) {
@@ -65,7 +136,7 @@ export function OnboardingHero({ onStart }: { onStart: () => void }) {
   };
 
   const handleDeferred = () => {
-    track("onboarding_hero_deferred");
+    track("onboarding_hero_deferred", { variant });
     // /home navigation is handled by the <Link>; this just emits the
     // event. The middleware honors the onboarding_completed cookie
     // separately, so leaving without completing means the user will
@@ -99,7 +170,7 @@ export function OnboardingHero({ onStart }: { onStart: () => void }) {
         }}
       />
 
-      <div className="space-y-4">
+      <div className="space-y-4" data-onboarding-variant={variant}>
         <p className="text-eyebrow font-medium text-[var(--gold-warm)]">
           Haretoki
         </p>
@@ -108,14 +179,14 @@ export function OnboardingHero({ onStart }: { onStart: () => void }) {
             that scales fluidly. Shippori is kept (≥24px so the display
             serif is allowed by the typography invariant). */}
         <h1 className="font-[family-name:var(--font-display)] text-fluid-3xl font-light leading-snug tracking-[-0.005em] text-foreground">
-          ふたりの晴れの日を、
+          {copy.headlineLine1}
           <br />
-          ここから
+          {copy.headlineLine2}
         </h1>
         <p className="text-sm font-light leading-relaxed text-foreground/75">
-          コーチが 4 つの質問で
+          {copy.subtitleLine1}
           <br />
-          おふたりの好みを聞きます
+          {copy.subtitleLine2}
         </p>
       </div>
 

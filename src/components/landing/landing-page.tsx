@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { VenueImage } from "@/components/ui/venue-image";
 import { Heart, BarChart3, Shield, ChevronRight, Sparkles, Eye, ClipboardCheck, Link2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  EASE_OUT_SOFT,
+  DURATION,
+  STAGGER,
+  fadeUpVariants,
+} from "@/lib/motion-tokens";
+import { cn } from "@/lib/utils";
 
 // DemoSequence is the animated phone mockup that lives mid-page (after the
 // hero, problem statement, and stats). It pulls in framer-motion's
@@ -87,23 +95,46 @@ const FEATURES = [
   },
 ];
 
+// Hero variant — heavier 30px slide + dramatic ~0.9s tail so the
+// chapel image, h1, lead, benefits panel cascade in like an unfolding
+// scroll rather than a quick reveal. Tokens come from
+// `@/lib/motion-tokens` so the brand ease + stagger cadence stay in
+// lockstep with onboarding-flow / decision-ceremony / partner-welcome
+// modal — retunes there now propagate here automatically.
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.2, duration: 1.0, ease: [0.16, 1, 0.3, 1] as const },
+    transition: {
+      delay: i * STAGGER.editorial,
+      duration: DURATION.enterDramatic,
+      ease: EASE_OUT_SOFT,
+    },
   }),
 };
 
-const staggerIn = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.18, duration: 0.9, ease: [0.16, 1, 0.3, 1] as const },
-  }),
-};
+// Mid-page sections (problem stats / features / how-it-works) reuse
+// the canonical `fadeUpVariants` directly — same y / ease / stagger as
+// every other editorial surface, no bespoke tuning.
+const staggerIn = fadeUpVariants;
+
+// Tri-stage cloudy → break → sunny radial wash for the hero. Same
+// recipe as `WASH_BY_STAGE` in onboarding-flow.tsx and the wash deck
+// in decision-ceremony.tsx — the brand metaphor 曇り → 晴れ間 → 晴れ
+// reads as "the page itself is clearing up" the moment a couple
+// lands. Stack three layers and cross-fade by opacity (CSS gradients
+// don't interpolate), and fall through to the final sunny layer for
+// `prefers-reduced-motion`.
+const HERO_WASH = {
+  cloudy:
+    "radial-gradient(80% 60% at 50% 30%, color-mix(in oklab, var(--muted-foreground) 12%, transparent) 0%, transparent 70%)",
+  break:
+    "radial-gradient(80% 60% at 50% 28%, color-mix(in oklab, var(--gold-warm) 12%, transparent) 0%, color-mix(in oklab, var(--primary) 4%, transparent) 50%, transparent 80%)",
+  sunny:
+    "radial-gradient(80% 60% at 50% 26%, color-mix(in oklab, var(--gold-warm) 18%, transparent) 0%, color-mix(in oklab, var(--gold-light) 6%, transparent) 60%, transparent 80%)",
+} as const;
+type HeroSky = keyof typeof HERO_WASH;
 
 /**
  * Landing copy variants (Phase 2 prep — Phase 3 will wire to a real
@@ -166,10 +197,35 @@ export interface LandingPageProps {
 
 export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
   const copy = LANDING_COPY[variant] ?? LANDING_COPY.control;
+  const prefersReduced = useReducedMotion();
+  // Hero wash auto-progression: cloudy on first paint → break at
+  // ~0.8s → sunny at ~2.4s. The cadence is intentional — couples
+  // landing on Haretoki are anxious ("曇り"); the page should
+  // visibly clear up around them in the first 2.5 seconds, mirroring
+  // the brand promise. Reduced-motion users skip the transition and
+  // see the final sunny wash from the first paint.
+  // Seed the initial value off the *first* prefers-reduced read so a
+  // user with reduced-motion preferred sees the sunny wash from the
+  // very first paint without a flash of cloudy. We do NOT re-sync the
+  // state if the preference toggles mid-session (rare in practice and
+  // not worth a setState-in-effect to chase) — that flips the calmer
+  // initial-state seed into the lint rule's "cascading render" smell.
+  const [skyStage, setSkyStage] = useState<HeroSky>(
+    prefersReduced ? "sunny" : "cloudy",
+  );
+  useEffect(() => {
+    if (prefersReduced) return;
+    const t1 = window.setTimeout(() => setSkyStage("break"), 800);
+    const t2 = window.setTimeout(() => setSkyStage("sunny"), 2400);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [prefersReduced]);
   return (
     <div className="min-h-dvh bg-background" data-landing-variant={variant}>
       {/* ─── Hero ─── */}
-      <section className="hero-sunlight relative flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+      <section className="hero-sunlight relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6 text-center">
         {/* Background chapel image with warm overlay */}
         <div className="pointer-events-none absolute inset-0">
           <VenueImage
@@ -188,6 +244,28 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
                 "radial-gradient(ellipse 80% 60% at 50% 30%, oklch(0.97 0.01 80 / 0.9), transparent), radial-gradient(ellipse 60% 50% at 80% 70%, oklch(0.75 0.12 45 / 0.08), transparent)",
             }}
           />
+          {/* Tri-stage cloudy → break → sunny wash layered on top of
+              the static chapel overlay. Each layer is a radial
+              gradient at full opacity when its stage is active, faded
+              out otherwise; CSS opacity transitions cross-fade
+              between them. pointer-events-none so the wash never
+              intercepts taps targeted at the CTAs underneath. */}
+          {(["cloudy", "break", "sunny"] as const).map((stage) => (
+            <div
+              key={stage}
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-0",
+                prefersReduced
+                  ? null
+                  : "transition-opacity duration-1000 ease-out",
+              )}
+              style={{
+                background: HERO_WASH[stage],
+                opacity: skyStage === stage ? 1 : 0,
+              }}
+            />
+          ))}
         </div>
 
         <motion.div
@@ -319,7 +397,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
             className="mb-16 text-center"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -359,7 +437,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
             className="mb-20 text-center"
           >
             <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
@@ -405,7 +483,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
             className="mb-16 text-center"
           >
             <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.5rem)] font-light tracking-[0.06em]">
@@ -442,7 +520,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
               className="w-full md:flex-1"
             >
               <DemoSequence />
@@ -454,7 +532,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
             className="mt-16 flex justify-center"
           >
             <Link
@@ -481,7 +559,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
           className="mx-auto max-w-2xl text-center"
         >
           <div className="mb-8 inline-flex items-center gap-2.5 rounded-full bg-[var(--gold-subtle)] px-5 py-2 text-sm text-[var(--gold-warm)]">
@@ -515,7 +593,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: DURATION.enterDramatic, ease: EASE_OUT_SOFT }}
           className="mx-auto max-w-2xl text-center"
         >
           <div className="mb-8 inline-flex items-center gap-2.5 rounded-full bg-[var(--gold-subtle)] px-5 py-2 text-sm text-[var(--gold-warm)]">
