@@ -279,8 +279,12 @@ export function InstallPrompt() {
       <div
         role="region"
         aria-label="アプリをインストール"
-        className="fixed left-4 right-4 z-50 flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-modal)]"
-        style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 8px)" }}
+        className="fixed z-50 flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-modal)]"
+        style={{
+          bottom: "calc(56px + env(safe-area-inset-bottom) + 8px)",
+          left: "max(1rem, env(safe-area-inset-left))",
+          right: "max(1rem, env(safe-area-inset-right))",
+        }}
       >
         <Download
           className="h-5 w-5 shrink-0 text-[var(--gold-warm)]"
@@ -311,8 +315,12 @@ export function InstallPrompt() {
       <div
         role="region"
         aria-label="ホーム画面に追加する手順"
-        className="fixed left-4 right-4 z-50 flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-modal)]"
-        style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 8px)" }}
+        className="fixed z-50 flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-modal)]"
+        style={{
+          bottom: "calc(56px + env(safe-area-inset-bottom) + 8px)",
+          left: "max(1rem, env(safe-area-inset-left))",
+          right: "max(1rem, env(safe-area-inset-right))",
+        }}
       >
         <Share
           className="mt-0.5 h-5 w-5 shrink-0 text-[var(--gold-warm)]"

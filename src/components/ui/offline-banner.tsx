@@ -17,7 +17,7 @@ export function OfflineBanner() {
     <div
       role="alert"
       aria-live="assertive"
-      className="sticky top-0 z-40 bg-[var(--gold-warm)] px-4 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 text-center text-sm font-medium text-white"
+      className="sticky top-0 z-40 bg-[var(--gold-warm)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 text-center text-sm font-medium text-white"
     >
       <WifiOff className="mr-2 inline-block h-4 w-4" />
       インターネット接続がありません

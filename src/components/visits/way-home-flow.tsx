@@ -93,7 +93,7 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       {/* Sticky header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-6 pt-5 pb-3 border-b border-border/40">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-6 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-3 border-b border-border/40">
         <div className="flex items-center gap-3">
           {step !== "mood" && step !== "done" && (
             <button

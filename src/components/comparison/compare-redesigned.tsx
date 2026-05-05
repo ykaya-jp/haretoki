@@ -399,7 +399,7 @@ export function CompareRedesigned() {
   return (
     <div className="flex flex-col gap-4 pb-6">
       {/* Sticky filter bar: owner scope + selection counter + diff toggle */}
-      <div className="sticky top-0 z-20 space-y-3 bg-background/80 px-3 pb-2 pt-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-20 space-y-3 bg-background/80 px-3 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <div
             className="inline-flex gap-1 rounded-full bg-muted p-1"

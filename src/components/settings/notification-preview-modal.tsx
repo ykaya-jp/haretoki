@@ -113,7 +113,7 @@ export function NotificationPreviewModal({
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
       }}
-      className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-[env(safe-area-inset-bottom)] sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[env(safe-area-inset-bottom)] sm:items-center"
     >
       <button
         type="button"

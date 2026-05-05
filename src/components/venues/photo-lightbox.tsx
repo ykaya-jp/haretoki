@@ -109,7 +109,10 @@ export function PhotoLightbox({
         onClick={onClose}
         aria-label="閉じる"
         className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-all duration-150 hover:bg-background active:scale-95"
-        style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+        style={{
+          top: "calc(env(safe-area-inset-top) + 12px)",
+          right: "calc(env(safe-area-inset-right) + 12px)",
+        }}
       >
         <X className="h-5 w-5" strokeWidth={1.5} />
       </button>
@@ -121,6 +124,7 @@ export function PhotoLightbox({
           onClick={prev}
           aria-label="前の写真"
           className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-all duration-150 hover:bg-background active:scale-95"
+          style={{ left: "calc(env(safe-area-inset-left) + 12px)" }}
         >
           <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
         </button>
@@ -133,6 +137,7 @@ export function PhotoLightbox({
           onClick={next}
           aria-label="次の写真"
           className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-all duration-150 hover:bg-background active:scale-95"
+          style={{ right: "calc(env(safe-area-inset-right) + 12px)" }}
         >
           <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
         </button>
@@ -143,6 +148,8 @@ export function PhotoLightbox({
         key={photoKey}
         className="relative flex h-full w-full items-center justify-center px-14"
         style={{
+          paddingLeft: "max(3.5rem, env(safe-area-inset-left))",
+          paddingRight: "max(3.5rem, env(safe-area-inset-right))",
           animation: "lightbox-photo-enter 0.2s ease forwards",
         }}
       >
