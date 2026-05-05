@@ -3,6 +3,7 @@ import { getAIInsights } from "@/server/actions/insights";
 import { listCoachSessions, getCoachSession } from "@/server/actions/coach";
 import { getHomeData } from "@/server/actions/home";
 import { getAgreements } from "@/server/actions/agreements";
+import { getCoachProactiveSuggestions } from "@/server/actions/coach-suggestions";
 import { CoachClient } from "@/components/coach/coach-client";
 import {
   selectNightQuestion,
@@ -21,14 +22,21 @@ interface CoachPageProps {
 export default async function CoachPage({ searchParams }: CoachPageProps) {
   const { session: sessionId } = await searchParams;
 
-  const [insights, sessions, currentSession, homeData, agreements] =
-    await Promise.all([
-      getAIInsights(),
-      listCoachSessions(),
-      sessionId ? getCoachSession(sessionId) : Promise.resolve(null),
-      getHomeData(),
-      getAgreements(),
-    ]);
+  const [
+    insights,
+    sessions,
+    currentSession,
+    homeData,
+    agreements,
+    proactiveSuggestions,
+  ] = await Promise.all([
+    getAIInsights(),
+    listCoachSessions(),
+    sessionId ? getCoachSession(sessionId) : Promise.resolve(null),
+    getHomeData(),
+    getAgreements(),
+    getCoachProactiveSuggestions(),
+  ]);
 
   // R-5 今夜の一問: deterministic pick from stage + day-of-year
   const stage = stageFromCounts({
@@ -46,6 +54,7 @@ export default async function CoachPage({ searchParams }: CoachPageProps) {
       currentSessionId={sessionId}
       insights={insights}
       nightQuestion={nightQuestion}
+      proactiveSuggestions={proactiveSuggestions}
       agreements={agreements.map((a) => ({
         id: a.id,
         text: a.text,
