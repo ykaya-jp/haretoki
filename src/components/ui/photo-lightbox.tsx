@@ -35,7 +35,7 @@ export function PhotoLightbox({
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <DialogPrimitive.Popup
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 data-ending-style:opacity-0 data-starting-style:opacity-0"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] data-ending-style:opacity-0 data-starting-style:opacity-0"
         >
           <div className="relative flex max-h-full max-w-full flex-col items-center gap-3">
             {/* Close button */}

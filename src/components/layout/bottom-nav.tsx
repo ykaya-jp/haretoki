@@ -80,7 +80,7 @@ export function BottomNav({ badges }: BottomNavProps) {
     <nav
       role="navigation"
       aria-label="メインナビゲーション"
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55 pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/55 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
     >
       <div className="relative flex h-14 items-center justify-around">
         {activeIndex >= 0 && (

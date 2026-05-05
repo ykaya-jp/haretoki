@@ -117,7 +117,7 @@ export function DataManagement({ userEmail }: { userEmail: string }) {
           onKeyDown={(e) => {
             if (e.key === "Escape" && !isDeleting) setConfirmOpen(false);
           }}
-          className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-[env(safe-area-inset-bottom)] sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[env(safe-area-inset-bottom)] sm:items-center"
         >
           {/* Backdrop button — captures the dismiss tap as a real
               keyboard-accessible control rather than a non-interactive
