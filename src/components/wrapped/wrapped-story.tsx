@@ -328,6 +328,9 @@ function buildShareText(d: WrappedData): string {
   if (d.venuesAdded > 0) {
     parts.push(`これまで ${d.venuesAdded} の式場と出会い、`);
   }
+  if (d.topVibes.length > 0) {
+    parts.push(`惹かれた雰囲気は ${d.topVibes.join("・")}。`);
+  }
   if (d.visitsCompleted > 0) {
     parts.push(`${d.visitsCompleted} 件を実際に歩きました。`);
   }
