@@ -110,15 +110,15 @@ Resend webhook (3.7) + Vercel BotID (2.8) を `BOT_ID_ENABLED` / `RESEND_WEBHOOK
 | 5.6 | error.tsx / global-error 全 segment | ✅ | W16-7 で 7 segment 補完済 (PENDING.md Phase 1 W16) |
 | 5.7 | loading.tsx スケルトン | ✅ | `CLAUDE.md` 規約として配置済 (新ページ追加時の必須項目) |
 | 5.8 | i18n / 多言語化 | 🟡 | next-intl 撤去確認済 (P2 round 7)、 日本語のみで launch、 英語化は商用化第 2 段で要否判断 |
-| 5.9 | 404 ページ デザイン | ❌ | `_not-found` route はあるが、 brand-aligned デザイン化されていない可能性。 monkey-test で要確認 |
+| 5.9 | 404 ページ デザイン | ✅ | `src/app/not-found.tsx` が editorial 化済 (Haretoki eyebrow + 「そのページは、見つかりませんでした」 Shippori h1 + 2 CTA) |
 
 ## 6. ビジネス / サポート
 
 | # | 項目 | Status | 根拠 / 残作業 |
 |---|---|---|---|
-| 6.1 | サポート問い合わせ窓口 | ❌ | 現状なし。 商用化前に email or `/support` ページが必須 |
-| 6.2 | FAQ / ヘルプ | ❌ | 現状なし。 launch 時の問い合わせ削減のため must-have |
-| 6.3 | 不正利用 / 不適切コンテンツ通報窓口 | ❌ | UGC (式場名 + memo) があるため通報経路が必須 |
+| 6.1 | サポート問い合わせ窓口 | ✅ | `src/app/(app)/support/page.tsx` 200 行 実装済 (mypage の SettingsRow 経由でアクセス) |
+| 6.2 | FAQ / ヘルプ | ✅ | `src/app/(app)/help/page.tsx` 310 行 実装済 |
+| 6.3 | 不正利用 / 不適切コンテンツ通報窓口 | ✅ | terms.tsx Section 7 末尾に「不適切と感じられる内容 → /support 窓口」明記 (2026-05-05 cycle 2) |
 | 6.4 | 料金プラン / 課金 (もし有償化があれば) | ⏳ | 現状無料、 課金時は Stripe + 1.7 特商法 + 利用規約改訂 |
 | 6.5 | Stripe / 決済 integration (同上) | ⏳ | 同上 |
 | 6.6 | 利用ガイド / オンボーディング動線 | ✅ | onboarding 4 質問 → AI 推薦の動線が完成済 (Phase 1 + P2.A round 1/2 で精緻化) |

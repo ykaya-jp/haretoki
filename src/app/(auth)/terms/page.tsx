@@ -105,6 +105,12 @@ export default function TermsPage() {
         <p>
           運営者は、本規約に重大な違反があった場合、事前のご連絡なくアカウントを停止・削除することがあります。
         </p>
+        <p>
+          おふたりが本サービスを通じて目にされた式場の口コミ・写真・パートナーから共有された情報の中で、
+          不適切と感じられる内容や、他者の権利を侵害している恐れのある投稿をご覧になった場合は、
+          <Link href="/support" className="text-[var(--gold-warm)] underline">サポート窓口</Link>
+          にご連絡ください。運営者が確認のうえ、速やかに対応いたします。
+        </p>
 
         <h2 className="mt-8 font-[family-name:var(--font-display)] text-[18px] font-normal">
           8. 規約の変更
