@@ -120,7 +120,7 @@ interface OnboardingAnswer {
 const QUESTIONS = [
   {
     id: "style",
-    question: "お気に入りの雰囲気は？",
+    question: "好みの雰囲気は？",
     welcome: "ふたりの好みを聞かせてください",
     subtitle: "思い浮かぶものを、いくつでも",
     type: "pills" as const,
