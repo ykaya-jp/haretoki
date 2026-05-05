@@ -149,3 +149,4 @@
 - 解決: 直後に `tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} | #{pane_title}'` で再確認して誤送信を発見、訂正メッセージを正しい central と誤受信した worker の両方に送って recovery
 - ルール: **`tmux send-keys -t <pane>` の前に必ず `tmux list-panes -a` か `tmux capture-pane -t <pane> -p | tail -3` で対象 pane の title / 直近内容を確認**。ペイン番号は user 操作で変わる前提で動く。長時間並列運用するなら `select-pane -T "<role>"` で role 名タイトル化 + `pane-border-status top` で常時可視化しておくと再配置に気づきやすい
 - ルール: **誤送信に気づいたら即座に「ignore this, you're <role>, your responsibility is <task>」を訂正として送る**。worker が coordinator 行動を取って二重 merge / push 等の衝突を起こす前に
+- [2026-05-05] 中央管制塔の中間 doc を /tmp/haretoki-*.md に書いて累積 → ~/.claude/plans/ または docs/ ステージング配下に置く。/tmp は再起動で消えるし誰も clean しない
