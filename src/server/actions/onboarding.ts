@@ -24,10 +24,8 @@ import { MODEL } from "@/lib/models";
 // block silently so the prompt is unchanged for first-time users.
 const ONBOARDING_REC_PROMPT_VERSION = 4;
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
-import {
-  getPreferenceVector,
-  summarizePreferenceVector,
-} from "@/server/actions/preference-vector";
+import { getPreferenceVector } from "@/server/actions/preference-vector";
+import { summarizePreferenceVector } from "@/lib/preference-vector-format";
 import {
   AI_REC_VENUE_THRESHOLD,
   type ExploreAIRecommendationsResult,
