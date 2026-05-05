@@ -22,6 +22,18 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
 
+  // Next.js 16 reads the CSP from REQUEST headers and auto-stamps the
+  // nonce on framework-generated <script> / <style> tags during SSR.
+  // Without this the inline `self.__next_f.push(...)` bundles ship
+  // un-nonced and enforce-mode CSP would block React hydration (the
+  // 2026-05-03 prod-down). We always emit the request CSP so the
+  // framework sees it; the response header is the report-only or
+  // enforce variant set in applySecurityHeaders.
+  if (!isCspDisabled()) {
+    const requestCsp = buildCspHeader({ nonce, reportOnly: false });
+    requestHeaders.set("Content-Security-Policy", requestCsp);
+  }
+
   // Run Supabase auth middleware on top of those forwarded headers.
   const response = await updateSession(request, requestHeaders);
 

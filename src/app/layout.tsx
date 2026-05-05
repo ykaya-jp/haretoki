@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho } from "next/font/google";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -155,11 +156,17 @@ const JSON_LD = [
   },
 ];
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // CSP nonce stamped by middleware (src/middleware.ts → src/lib/csp.ts).
+  // Forward to any third-party `<script>` we mount inline so they survive
+  // strict-dynamic enforce mode. `null` is acceptable — Vercel components
+  // tolerate an absent nonce in the development server / when CSP is off.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans")}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
@@ -177,13 +184,21 @@ export default function RootLayout({
         {/* Vercel BotID — instruments the protected routes listed in
             BOTID_PROTECTED so server-side `checkBotId()` (`src/lib/botid.ts`)
             has signals to evaluate. No-op when the BotID feature isn't
-            provisioned in the Vercel project. */}
+            provisioned in the Vercel project.
+
+            NOTE: BotIdClient ships an un-nonced inline IIFE so it will be
+            blocked under strict CSP enforce mode (no `nonce` prop
+            supported as of v0.x). When enforce mode is on, server-side
+            checkBotId() falls back to header-only signals — bot detection
+            is degraded but not disabled, and the protected routes still
+            have auth + rate-limit. Re-evaluate once botid exposes nonce. */}
         <BotIdClient protect={[...BOTID_PROTECTED]} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          nonce={nonce}
         >
           <PostHogProvider>
             {/* W16-6 (performance-audit B-03 補完): MotionProvider is now
