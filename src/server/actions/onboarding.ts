@@ -18,8 +18,16 @@ import { MODEL } from "@/lib/models";
 // diversity addendum in Section D — recommendations now bias toward
 // "話す材料が散る" 3 件 (主軸 / 予算上振れ枠 / 予算下振れ + 雰囲気差)
 // because the L2/L3 surface lets both partners rate side-by-side.
-const ONBOARDING_REC_PROMPT_VERSION = 3;
+// 2026-05-05 (Layer B1): bumped 3 → 4 for behavioral preference vector
+// injection — Pinterest-style learning from VenueFavorite + Visit
+// frequency aggregations. Cold start (signalCount<2) skips the new
+// block silently so the prompt is unchanged for first-time users.
+const ONBOARDING_REC_PROMPT_VERSION = 4;
 import { ONBOARDING_RECOMMENDATION_PROMPT } from "@/lib/prompts/onboarding";
+import {
+  getPreferenceVector,
+  summarizePreferenceVector,
+} from "@/server/actions/preference-vector";
 import {
   AI_REC_VENUE_THRESHOLD,
   type ExploreAIRecommendationsResult,
@@ -160,6 +168,7 @@ export async function getExploreAIRecommendations(): Promise<ExploreAIRecommenda
     conditions,
     recommendations: result.recommendations,
     advice: result.advice ?? "",
+    behavioralLearningApplied: result.behavioralLearningApplied,
   };
 }
 
@@ -187,6 +196,7 @@ function normalizeConditions(raw: unknown): ProjectConditionsSummary {
 async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
   recommendations: VenueRecommendation[];
   advice: string;
+  behavioralLearningApplied: boolean;
 } | null> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
@@ -222,8 +232,16 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       ? `\n\n注意: 以下の式場は既に登録済みなので、それ以外をおすすめしてください: ${names.join("、")}`
       : "";
 
+    // Layer B1: behavioral preference (favorites + visits) added on top of
+    // declared onboarding conditions. summarizePreferenceVector returns null
+    // for cold-start couples (signalCount < 2) so the prompt is identical
+    // to v3 for those users — no NaN risk.
+    const vector = await getPreferenceVector();
+    const behavioralSummary = summarizePreferenceVector(vector);
+
     const userMessage =
-      ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions) + exclusionNote;
+      ONBOARDING_RECOMMENDATION_PROMPT.buildUserMessage(conditions, behavioralSummary) +
+      exclusionNote;
 
     // Round 22: switched from the inline computeInputHash + getCachedResponse
     // + Promise.race(withRetry(askClaude), 20s timer) + setCachedResponse
@@ -280,7 +298,7 @@ async function fetchClaudeRecommendations(existingNames?: string[]): Promise<{
       );
       return null;
     }
-    return result;
+    return { ...result, behavioralLearningApplied: behavioralSummary !== null };
   } catch (err) {
     console.error("[fetchClaudeRecommendations] Unexpected error:", err);
     return null;

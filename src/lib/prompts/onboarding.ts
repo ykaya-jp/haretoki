@@ -114,17 +114,35 @@ The couple gave 4 inputs (style[], guestCount, area[], budget). **Infer the impl
 - 入力条件をそのままオウム返し
 - 主観的な絶賛 (「絶対」「最高」)`,
 
-  buildUserMessage: (conditions: {
-    style?: string[];
-    guestCount?: number;
-    area?: string[];
-    budget?: { min: number; max: number };
-  }) =>
-    `以下の条件で結婚式場を3件おすすめしてください:
+  buildUserMessage: (
+    conditions: {
+      style?: string[];
+      guestCount?: number;
+      area?: string[];
+      budget?: { min: number; max: number };
+    },
+    /**
+     * Optional behavioral preference summary derived from
+     * `getPreferenceVector()` (favorites + visits frequency aggregation).
+     * When provided we append it as a second block so Claude can weight
+     * what the couple has *actually* engaged with, not only what they
+     * declared at onboarding. Skipped silently when null (cold start).
+     */
+    behavioralSummary?: string | null,
+  ) => {
+    const base = `以下の条件で結婚式場を3件おすすめしてください:
 - 希望スタイル: ${conditions.style?.join(", ") ?? "特になし"}
 - ゲスト人数: ${conditions.guestCount ?? "未定"}名
 - エリア: ${conditions.area?.join(", ") ?? "特になし"}
-- 予算: ${conditions.budget ? `${Math.round(conditions.budget.min / 10000)}〜${Math.round(conditions.budget.max / 10000)}万円` : "特になし"}`,
+- 予算: ${conditions.budget ? `${Math.round(conditions.budget.min / 10000)}〜${Math.round(conditions.budget.max / 10000)}万円` : "特になし"}`;
+    if (!behavioralSummary) return base;
+    return `${base}
+
+【おふたりがこれまでに見せた嗜好 (お気に入り・見学から推定)】
+${behavioralSummary}
+
+上記の宣言条件と、お二人がこれまで実際に保存・見学した式場のパターンの両方を考慮して、おすすめを選んでください。両者がぶつかる場合は嗜好を優先してください (declared な条件は古い可能性、嗜好は新しい行動の表れ)。`;
+  },
 
   model: MODEL.SONNET,
   maxTokens: 2048,

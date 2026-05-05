@@ -568,6 +568,17 @@ function ReadyState({
 
   return (
     <div className="space-y-3">
+      {/* Layer B1: behavioral-learning eyebrow — only shown when the
+          recommendation actually folded the couple's favorites + visits
+          into the prompt. Cold-start couples see the original layout
+          unchanged so they don't get a misleading "好みから学習" claim. */}
+      {data.behavioralLearningApplied && (
+        <p className="inline-flex items-center gap-1 rounded-full bg-[var(--gold-subtle)] px-2 py-0.5 text-[10.5px] tracking-[0.06em] text-[var(--gold-warm)]">
+          <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden="true" />
+          お二人のこれまでの好みから
+        </p>
+      )}
+
       {/* Rationale bar — what inputs the AI used */}
       <div className="flex flex-wrap gap-1.5">
         {conditionChips.map((chip) => (

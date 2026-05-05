@@ -52,6 +52,14 @@ export type ExploreAIRecommendationsResult =
       conditions: ProjectConditionsSummary;
       recommendations: VenueRecommendation[];
       advice: string;
+      /**
+       * True when the recommendation prompt included a behavioral
+       * preference summary derived from the couple's favorites + visits
+       * (Layer B1 / preference-vector). Cold-start couples (signalCount<2)
+       * get false here; the UI uses it to surface a "お二人の好みから"
+       * eyebrow so they understand the AI is actually learning from them.
+       */
+      behavioralLearningApplied: boolean;
     }
   | {
       status: "error";
