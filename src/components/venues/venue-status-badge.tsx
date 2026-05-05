@@ -27,13 +27,13 @@ const STATUS_CONFIG: Record<
     label: "検討中",
     className:
       "bg-[color-mix(in_oklab,#3b82f6_10%,var(--background))] text-[color-mix(in_oklab,#3b82f6_75%,var(--foreground))]",
-    hint: "見学済み。候補に入れて比較すると、最終決定に進めます。",
+    hint: "見学済み。候補に入れて並べると、最終決定に進めます。",
   },
   shortlisted: {
     label: "検討中",
     className:
       "bg-[color-mix(in_oklab,#3b82f6_10%,var(--background))] text-[color-mix(in_oklab,#3b82f6_75%,var(--foreground))]",
-    hint: "候補に入っています。比較して決めましょう。",
+    hint: "候補に入っています。並べて決めましょう。",
   },
   // Stage 3: 決定
   selected: {
