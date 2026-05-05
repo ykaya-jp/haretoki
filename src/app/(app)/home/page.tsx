@@ -178,7 +178,11 @@ export default async function HomePage() {
           discovery). */}
       {!progress.hasDecision && <PreferencePulseCard />}
 
-      {/* Journey note — editorial hairline + eyebrow + link. */}
+      {/* Journey note — editorial hairline + eyebrow + link.
+          When the couple has venues, surface the Wrapped link as a
+          peer entry: /journey is the chronological timeline, /wrapped
+          is the editorial story. They're discovery-twins, both worth
+          one tap from /home. */}
       <div className="border-l-2 border-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] pl-4 py-2">
         <p className="mb-1 text-[11px] font-medium tracking-[0.18em] uppercase text-muted-foreground">
           Journey
@@ -194,6 +198,16 @@ export default async function HomePage() {
         <p className="mt-0.5 text-[12px] text-muted-foreground">
           ふたりの歩みを、一筋の道に。
         </p>
+        {progress.totalVenues > 0 && (
+          <Link
+            href="/wrapped"
+            prefetch={true}
+            className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 text-[12.5px] text-[var(--gold-warm)] underline-offset-4 hover:underline"
+          >
+            ふたりの式場さがし、ふりかえる
+            <span aria-hidden="true" className="opacity-70">→</span>
+          </Link>
+        )}
       </div>
 
       {/* Upcoming visits nudge — lifted off the gold pill styling in
