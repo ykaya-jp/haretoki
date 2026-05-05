@@ -40,7 +40,7 @@ export default async function FeedbackPage() {
         </p>
         <h1 className="mt-2 inline-flex items-center gap-2 font-[family-name:var(--font-display)] text-h1 font-light tracking-[-0.01em]">
           <MessageSquareHeart
-            className="h-5 w-5 text-amber-600 dark:text-amber-400"
+            className="h-5 w-5 text-[var(--gold-warm)]"
             aria-hidden="true"
           />
           ご意見・ご要望

@@ -127,7 +127,7 @@ type ViewState =
   | { kind: "pre-ai"; venueCount: number; threshold: number } // 1..threshold-1
   | { kind: "loading" }
   | { kind: "ready"; data: Extract<ExploreAIRecommendationsResult, { status: "ready" }> }
-  | { kind: "error" }
+  | { kind: "error"; attempts: number }
   | { kind: "unavailable" };
 
 const THRESHOLD = 3;
@@ -188,7 +188,10 @@ export function AIRecommendations({
   // fetchFresh is a pure-async refetch — callers decide whether to flip
   // view→loading beforehand (mount effect already seeds it; retry buttons
   // call setView({kind:"loading"}) right before invoking this).
-  const fetchFresh = useCallback(async () => {
+  // Auto-retries once on transient error (Claude flake) before surfacing
+  // the error UI — mitigates wife's #1 "AIおすすめが取得失敗" recurrence
+  // by catching the most common cause (single-call timeout / parse fail).
+  const fetchFresh = useCallback(async (currentAttempts = 0) => {
     try {
       const result = await getExploreAIRecommendations();
       if (result.status === "ready") {
@@ -208,10 +211,20 @@ export function AIRecommendations({
       } else if (result.status === "unavailable") {
         setView({ kind: "unavailable" });
       } else {
-        setView({ kind: "error" });
+        const nextAttempts = currentAttempts + 1;
+        if (nextAttempts < 2) {
+          window.setTimeout(() => void fetchFresh(nextAttempts), 3000);
+        } else {
+          setView({ kind: "error", attempts: nextAttempts });
+        }
       }
     } catch {
-      setView({ kind: "error" });
+      const nextAttempts = currentAttempts + 1;
+      if (nextAttempts < 2) {
+        window.setTimeout(() => void fetchFresh(nextAttempts), 3000);
+      } else {
+        setView({ kind: "error", attempts: nextAttempts });
+      }
     }
   }, []);
 
@@ -379,6 +392,7 @@ export function AIRecommendations({
       {view.kind === "unavailable" && <UnavailableState />}
       {view.kind === "error" && (
         <ErrorState
+          attempts={view.attempts}
           onRetry={() => {
             setView({ kind: "loading" });
             void fetchFresh();
@@ -497,11 +511,25 @@ function UnavailableState() {
   );
 }
 
-function ErrorState({ onRetry }: { onRetry: () => void }) {
+function ErrorState({
+  onRetry,
+  attempts,
+}: {
+  onRetry: () => void;
+  attempts: number;
+}) {
+  // attempts is the number of consecutive failures we've already absorbed
+  // (auto-retried once, so the floor here is 2). After 2 fails we hint at
+  // the most common root cause — Claude API quota / Anthropic credit —
+  // so the couple knows tapping retry harder won't help, the operator has
+  // to refresh credit. Hint stays gentle, not alarmist.
+  const exhausted = attempts >= 2;
   return (
     <div className="space-y-3">
       <p className="text-sm leading-relaxed text-muted-foreground">
-        おすすめの取得に失敗しました。しばらくしてからお試しください。
+        {exhausted
+          ? "AI 推薦が一時的に利用できません。少し時間をおくか、候補を 1〜2 件追加してから再度お試しください。"
+          : "おすすめの取得に失敗しました。しばらくしてからお試しください。"}
       </p>
       <Button
         type="button"

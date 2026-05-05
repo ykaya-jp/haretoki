@@ -93,7 +93,7 @@ export async function CountdownCard() {
         </p>
         <h2 className="inline-flex items-center gap-2 font-[family-name:var(--font-display)] text-[20px] font-light leading-snug tracking-[-0.005em]">
           <Heart
-            className="h-4 w-4 text-rose-400 dark:text-rose-300"
+            className="h-4 w-4 text-[var(--gold-warm)]"
             aria-hidden="true"
           />
           ありがとうございました
@@ -196,7 +196,7 @@ function CountdownShell({
       aria-label="晴れの日カウントダウン"
       className={
         tone === "celebratory"
-          ? "space-y-3 rounded-3xl border border-amber-200/40 bg-gradient-to-br from-amber-50/60 via-card to-card p-6 shadow-[var(--shadow-card)] dark:border-amber-900/30 dark:from-amber-950/20"
+          ? "space-y-3 rounded-3xl border border-[color-mix(in_oklab,var(--gold-warm)_30%,transparent)] bg-gradient-to-br from-[color-mix(in_oklab,var(--gold-warm)_8%,var(--card))] via-card to-card p-6 shadow-[var(--shadow-card)]"
           : tone === "hushed"
             ? "space-y-3 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]"
             : "space-y-4 rounded-3xl bg-card p-6 shadow-[var(--shadow-card)]"
