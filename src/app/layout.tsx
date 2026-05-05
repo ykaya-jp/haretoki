@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Shippori_Mincho } from "next/font/google";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -156,17 +155,22 @@ const JSON_LD = [
   },
 ];
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // CSP nonce stamped by middleware (src/middleware.ts → src/lib/csp.ts).
-  // Forward to any third-party `<script>` we mount inline so they survive
-  // strict-dynamic enforce mode. `null` is acceptable — Vercel components
-  // tolerate an absent nonce in the development server / when CSP is off.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
-
+  // NOTE: We deliberately do NOT call `await headers()` here to read the
+  // CSP nonce. Cache Components mode (next.config.ts cacheComponents:true)
+  // treats the root layout as the boundary outside which "uncached data
+  // outside <Suspense>" raises a build-time prerender error for every
+  // child route. Next.js 16 instead auto-stamps the nonce onto its own
+  // framework scripts when middleware emits the CSP on the REQUEST
+  // header (handled in src/middleware.ts), so wiring nonce manually here
+  // is unnecessary for the bundle path. Third-party inline scripts
+  // (BotIdClient, ThemeProvider) keep running un-nonced under report-
+  // only mode; once the upstreams expose nonce props we can wire them
+  // via a Suspense'd inner shell without breaking the layout boundary.
   return (
     <html lang="ja" suppressHydrationWarning className={cn(notoSansJP.variable, notoSerifJP.variable, shipporiMincho.variable, "font-sans")}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
@@ -198,7 +202,6 @@ export default async function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          nonce={nonce}
         >
           <PostHogProvider>
             {/* W16-6 (performance-audit B-03 補完): MotionProvider is now
