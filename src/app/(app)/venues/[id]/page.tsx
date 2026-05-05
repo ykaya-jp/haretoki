@@ -444,6 +444,7 @@ async function EstimatesContent({ venueId }: { venueId: string }) {
 
       {estimates[0].items.length > 0 && (
         <EstimateXRay
+          venueId={venueId}
           items={estimates[0].items.map((item) => ({
             category: item.category,
             itemName: item.itemName,

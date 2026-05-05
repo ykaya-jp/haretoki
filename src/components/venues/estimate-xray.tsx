@@ -10,9 +10,16 @@ import {
   ClipboardList,
   Lightbulb,
   AlertTriangle,
+  Sparkles,
+  Info,
 } from "lucide-react";
+import {
+  generateEstimateWarnings,
+  type EstimateWarning,
+} from "@/server/actions/estimate-warnings";
 
 interface EstimateXRayProps {
+  venueId: string;
   items: Array<{
     category: string;
     itemName: string;
@@ -36,7 +43,18 @@ const CATEGORY_ICONS: Record<string, ComponentType<{ className?: string; strokeW
   other: ClipboardList,
 };
 
-export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateXRayProps) {
+/**
+ * Async Server Component — fetches AI warnings inline so the venue page
+ * stays a single Server-Component tree (no client boundary, no Suspense
+ * fan-out for this small subtree). On AI failure / Claude unavailable
+ * the action returns an empty array and the AI section silently hides.
+ */
+export async function EstimateXRay({
+  venueId,
+  items,
+  totalEstimate,
+  predictedFinal,
+}: EstimateXRayProps) {
   const riskyItems = items
     .filter(
       (item) =>
@@ -48,6 +66,16 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
 
   const finalAmount = predictedFinal ?? totalEstimate;
   const difference = finalAmount - totalEstimate;
+
+  // Best-effort fetch — never throw out of this component because the
+  // statistical X-Ray below should keep rendering even if Claude fails.
+  let aiWarnings: EstimateWarning[] = [];
+  try {
+    const result = await generateEstimateWarnings(venueId);
+    aiWarnings = result.warnings;
+  } catch {
+    aiWarnings = [];
+  }
 
   return (
     <div className="space-y-4 rounded-xl border-l-[3px] border-l-[var(--gold-warm)] bg-[var(--gold-subtle)] p-4">
@@ -101,7 +129,7 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
         )}
       </div>
 
-      {/* Risky items */}
+      {/* Risky items (statistical) */}
       {riskyItems.length > 0 && (
         <div className="space-y-3">
           <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -141,6 +169,73 @@ export function EstimateXRay({ items, totalEstimate, predictedFinal }: EstimateX
           })}
         </div>
       )}
+
+      {/* AI-generated personalised warnings.
+          Hidden entirely when Claude failed (silent skip per spec). When
+          Claude reviewed and found nothing, show a single reassurance
+          line instead of empty space. */}
+      {aiWarnings.length > 0 ? (
+        <div className="space-y-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Sparkles className="h-4 w-4 text-[var(--gold-warm)]" strokeWidth={1.6} />
+            AI が見つけた注意点
+          </p>
+          {aiWarnings.map((w, idx) => (
+            <AIWarningCard key={`${w.title}-${idx}`} warning={w} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AIWarningCard({ warning }: { warning: EstimateWarning }) {
+  const { severity, title, message, relatedItem } = warning;
+  // Token mapping — alert leans on text-destructive (existing token), warn
+  // on the gold-warm family already used for the statistical block, info
+  // on muted-foreground. No raw red-* / amber-* utility classes per
+  // CLAUDE.md design rules.
+  const tokens =
+    severity === "alert"
+      ? {
+          Icon: AlertTriangle,
+          border: "border-l-[3px] border-l-[color:color-mix(in_oklab,var(--destructive)_60%,transparent)]",
+          iconClass: "text-destructive",
+          titleClass: "text-tone-destructive",
+        }
+      : severity === "warn"
+        ? {
+            Icon: AlertTriangle,
+            border: "border-l-[3px] border-l-[var(--gold-warm)]",
+            iconClass: "text-[var(--gold-warm)]",
+            titleClass: "text-tone-gold",
+          }
+        : {
+            Icon: Info,
+            border: "border-l-[3px] border-l-[color:var(--muted-foreground)]",
+            iconClass: "text-muted-foreground",
+            titleClass: "text-foreground",
+          };
+  const { Icon, border, iconClass, titleClass } = tokens;
+
+  return (
+    <div className={`space-y-1.5 rounded-lg bg-card p-3 ${border}`}>
+      <div className="flex items-start gap-2">
+        <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${iconClass}`} strokeWidth={1.6} />
+        <div className="space-y-1 min-w-0 flex-1">
+          <p className={`text-sm font-medium leading-snug ${titleClass}`}>
+            {title}
+          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground whitespace-pre-line">
+            {message}
+          </p>
+          {relatedItem && (
+            <p className="text-[11px] text-muted-foreground/80">
+              関連項目: {relatedItem}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
