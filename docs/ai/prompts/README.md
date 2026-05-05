@@ -23,6 +23,7 @@ Claude API に渡す system prompt の **人間が読む正本**。
 | Fit Reason (1 行) | `src/lib/prompts/fit-reason.ts` | [`fit-reason.system.md`](fit-reason.system.md) | ✅ |
 | Daily Ritual | `src/lib/prompts/ritual.ts` | [`ritual.system.md`](ritual.system.md) | ✅ |
 | Vibe タグ自動サジェスト | `src/lib/prompts/vibe-suggest.ts` | [`vibe-suggest.system.md`](vibe-suggest.system.md) | ✅ |
+| Estimate Warnings (AI) | `src/lib/prompts/estimate-warnings.ts` | [`estimate-warnings.system.md`](estimate-warnings.system.md) | ✅ |
 
 > 全 10 prompt の md 化が完了 (Phase 2.A、2026-05-02)。**今後はこの md と ts を必ず同 PR で同期**する規約。
 >
