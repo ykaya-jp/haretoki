@@ -15,6 +15,7 @@ import { NextStepsCard } from "@/components/decision-todos/next-steps-card";
 import { CountdownCard } from "@/components/home/countdown-card";
 import { InvitationArrivalToast } from "@/components/home/invitation-arrival-toast";
 import { PartnerWelcomeModal } from "@/components/onboarding/partner-welcome-modal";
+import { PreferencePulseCard } from "@/components/home/preference-pulse-card";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { prisma } from "@/server/db";
 
@@ -170,6 +171,12 @@ export default async function HomePage() {
       />
 
       {carouselVenues.length > 0 && <RecentVenues venues={carouselVenues} />}
+
+      {/* Cycle 2 magic — visualises the preference vector so couples see
+          the AI is learning. Returns null on cold-start, and we hide it
+          for already-decided couples (their focus is countdown, not
+          discovery). */}
+      {!progress.hasDecision && <PreferencePulseCard />}
 
       {/* Journey note — editorial hairline + eyebrow + link. */}
       <div className="border-l-2 border-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] pl-4 py-2">
