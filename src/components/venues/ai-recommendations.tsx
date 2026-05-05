@@ -191,41 +191,50 @@ export function AIRecommendations({
   // Auto-retries once on transient error (Claude flake) before surfacing
   // the error UI — mitigates wife's #1 "AIおすすめが取得失敗" recurrence
   // by catching the most common cause (single-call timeout / parse fail).
-  const fetchFresh = useCallback(async (currentAttempts = 0) => {
-    try {
-      const result = await getExploreAIRecommendations();
-      if (result.status === "ready") {
-        writeCache({
-          result,
-          venueCountWhenCached: result.venueCount,
-          conditionsHash: hashConditions(result.conditions),
-          expiry: Date.now() + CACHE_TTL_MS,
-        });
-        setView({ kind: "ready", data: result });
-      } else if (result.status === "insufficient_data") {
-        setView({
-          kind: "pre-ai",
-          venueCount: result.venueCount,
-          threshold: result.threshold,
-        });
-      } else if (result.status === "unavailable") {
-        setView({ kind: "unavailable" });
-      } else {
+  // The retry is implemented as an inner runWithRetry so React Compiler
+  // doesn't reject the self-reference inside useCallback.
+  const fetchFresh = useCallback(async () => {
+    const runWithRetry = async (currentAttempts: number): Promise<void> => {
+      try {
+        const result = await getExploreAIRecommendations();
+        if (result.status === "ready") {
+          writeCache({
+            result,
+            venueCountWhenCached: result.venueCount,
+            conditionsHash: hashConditions(result.conditions),
+            expiry: Date.now() + CACHE_TTL_MS,
+          });
+          setView({ kind: "ready", data: result });
+          return;
+        }
+        if (result.status === "insufficient_data") {
+          setView({
+            kind: "pre-ai",
+            venueCount: result.venueCount,
+            threshold: result.threshold,
+          });
+          return;
+        }
+        if (result.status === "unavailable") {
+          setView({ kind: "unavailable" });
+          return;
+        }
         const nextAttempts = currentAttempts + 1;
         if (nextAttempts < 2) {
-          window.setTimeout(() => void fetchFresh(nextAttempts), 3000);
+          window.setTimeout(() => void runWithRetry(nextAttempts), 3000);
+        } else {
+          setView({ kind: "error", attempts: nextAttempts });
+        }
+      } catch {
+        const nextAttempts = currentAttempts + 1;
+        if (nextAttempts < 2) {
+          window.setTimeout(() => void runWithRetry(nextAttempts), 3000);
         } else {
           setView({ kind: "error", attempts: nextAttempts });
         }
       }
-    } catch {
-      const nextAttempts = currentAttempts + 1;
-      if (nextAttempts < 2) {
-        window.setTimeout(() => void fetchFresh(nextAttempts), 3000);
-      } else {
-        setView({ kind: "error", attempts: nextAttempts });
-      }
-    }
+    };
+    await runWithRetry(0);
   }, []);
 
   // On mount: hide / cache already applied in useState initializer. Only

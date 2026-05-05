@@ -19,6 +19,7 @@ import {
   Heart,
   BookOpen,
   MessageSquareHeart,
+  Sparkles,
 } from "lucide-react";
 import { getUnreadCount } from "@/server/actions/notifications";
 import { NotificationBadge } from "@/components/layout/notification-badge";
@@ -277,6 +278,13 @@ export default async function MyPage() {
             label="家族に伝える"
             meta="決まった式場をご家族とおすそわけ"
             href="/mypage/family-share"
+          />
+          <SettingsRow
+            icon={Sparkles}
+            tone="accent"
+            label="ふたりの式場さがし"
+            meta="ここまでの旅路をふりかえる"
+            href="/wrapped"
           />
           <SettingsRow
             icon={Settings}
