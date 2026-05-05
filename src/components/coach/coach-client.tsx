@@ -7,6 +7,7 @@ import { History, Plus, Search } from "lucide-react";
 import { ChatBar } from "@/components/coach/chat-bar";
 import { ChatHistory } from "@/components/coach/chat-history";
 import { CoachQuickStart } from "@/components/coach/coach-quick-start";
+import { ProactiveSuggestions } from "@/components/coach/proactive-suggestions";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NightQuestionCard } from "@/components/coach/night-question-card";
@@ -40,6 +41,7 @@ const SessionHistorySheet = dynamic(
 );
 import type { SessionListItem, SessionDetail } from "@/server/actions/coach";
 import type { AIInsight } from "@/server/actions/insights";
+import type { ProactiveSuggestion } from "@/server/actions/coach-suggestions";
 import type { NightQuestion } from "@/lib/night-questions";
 import type { AgreementStatus } from "@/generated/prisma/client";
 
@@ -51,6 +53,7 @@ interface CoachClientProps {
   currentSessionId: string | undefined;
   insights: AIInsight[];
   nightQuestion?: NightQuestion | null;
+  proactiveSuggestions?: ProactiveSuggestion[];
   agreements: AgreementItem[];
 }
 
@@ -62,6 +65,7 @@ export function CoachClient({
   currentSessionId,
   insights,
   nightQuestion,
+  proactiveSuggestions = [],
 }: CoachClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("chat");
@@ -167,6 +171,9 @@ export function CoachClient({
             ) : (
               <div className="space-y-6">
                 {nightQuestion && <NightQuestionCard question={nightQuestion} />}
+                {proactiveSuggestions.length > 0 && (
+                  <ProactiveSuggestions suggestions={proactiveSuggestions} />
+                )}
                 <CoachQuickStart />
               </div>
             )}
