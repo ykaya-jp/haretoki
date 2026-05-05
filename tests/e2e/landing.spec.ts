@@ -2,25 +2,21 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Landing Page", () => {
   test("renders hero section with brand identity", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "networkidle" });
 
-    // Haretoki logo text
-    const logos = page.locator("text=Haretoki");
-    const count = await logos.count();
-    expect(count).toBeGreaterThan(0);
-    let logoVisible = false;
-    for (let i = 0; i < count; i++) {
-      if (await logos.nth(i).isVisible()) { logoVisible = true; break; }
-    }
-    expect(logoVisible).toBe(true);
+    // Brand logo — page has multiple Haretoki references, one must be visible
+    await expect(page.locator("text=Haretoki").first()).toBeVisible({
+      timeout: 10000,
+    });
 
     // Main headline
-    await expect(
-      page.locator("text=その直感").first()
-    ).toBeVisible();
+    await expect(page.locator("text=その直感").first()).toBeVisible();
 
-    // CTAs
-    await expect(page.locator("text=無料ではじめる")).toBeVisible();
+    // CTAs — primary CTA mixes ChevronRight icon with text, getByRole avoids
+    // strict-mode null on framer-motion stagger races.
+    await expect(
+      page.getByRole("link", { name: /無料ではじめる/ }).first(),
+    ).toBeVisible();
     await expect(page.locator('a[href="/login"]').first()).toBeVisible();
   });
 
