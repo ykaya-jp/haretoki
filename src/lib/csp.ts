@@ -146,24 +146,34 @@ export function isCspDisabled(): boolean {
  * Returns true when CSP should be emitted in Report-Only mode.
  *
  * Default = **report-only** (safer rollout). Enforcement requires the
- * env var to be explicitly set to `"0"` or `"false"`. This is a
- * deliberate fail-open posture because Next.js script tags don't yet
- * receive the per-request nonce (root `app/layout.tsx` doesn't read
- * `headers().get("x-nonce")` and propagate it to `<Script nonce={...}>`).
- * Until that propagation is wired, enforce mode would block every
- * `_next/static/chunks/*.js` and brick the entire app — which is
- * exactly what happened in the 2026-05-03 prod-down incident (login /
- * signup rendered blank because the React hydration bundle was CSP-
- * blocked).
+ * env var to be explicitly set to `"0"` or `"false"`.
  *
- * Re-enable enforce mode by:
- *   1. Wiring nonce propagation in `src/app/layout.tsx`
- *      (read `headers().get("x-nonce")`, pass to root layout, and
- *      attach via `<Script nonce={nonce}>` for every Next.js bundle).
- *   2. Setting `CSP_REPORT_ONLY=0` in the relevant Vercel env.
+ * Why report-only is the realistic floor for now:
+ *   - Next.js 16 with `cacheComponents: true` (next.config.ts) prerenders
+ *     public routes (/, /login, /signup, /terms, /privacy) at build time
+ *     and Vercel serves them with `x-vercel-cache: HIT`. The cached HTML
+ *     was generated once with whatever nonce existed at build (or none),
+ *     so per-request nonce injection is architecturally impossible for
+ *     these routes — the shell HTML is frozen.
+ *   - Strict-dynamic enforce mode requires *every* inline framework
+ *     script (`self.__next_f.push`, $RT, $RX hydration helpers) to carry
+ *     a valid per-request nonce. Cached prerender + per-request nonce
+ *     are mutually exclusive.
+ *   - The 2026-05-03 prod-down incident was the proof: enforce mode
+ *     blocked all bundle scripts on cached /login and /signup.
  *
- * Until step 1 is shipped, leave this default-on so report-only is the
- * floor and the app stays visible.
+ * Realistic enforcement paths (all are large refactors, deferred):
+ *   1. Migrate to hash-based CSP (every script change requires
+ *      regenerating SHA256 hashes baked into the policy).
+ *   2. Disable cacheComponents and force dynamic on every route (kills
+ *      Vercel's prerender cache, ~3x cold start latency on landing).
+ *   3. Wait for Next.js to ship nonce-with-PPR support upstream.
+ *
+ * The middleware (src/middleware.ts) emits the CSP on REQUEST headers
+ * too, so dynamic routes' framework scripts CAN auto-nonce — that part
+ * is wired and works for non-prerendered routes (/home, /coach, etc.
+ * when authenticated). Report-only mode collects violations across the
+ * entire surface so we can plan the eventual migration with real data.
  */
 export function isCspReportOnly(): boolean {
   const v = process.env.CSP_REPORT_ONLY;
