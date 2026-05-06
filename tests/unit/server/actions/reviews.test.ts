@@ -12,6 +12,7 @@ import {
 const mockFindFirst = vi.fn();
 const mockUpdate = vi.fn();
 const mockFindMany = vi.fn();
+const mockCount = vi.fn();
 const mockVenueFindFirst = vi.fn();
 const mockVenueUpdate = vi.fn();
 const mockRevalidatePath = vi.fn();
@@ -22,6 +23,7 @@ vi.mock("@/server/db", () => ({
       findFirst: (...args: unknown[]) => mockFindFirst(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
       findMany: (...args: unknown[]) => mockFindMany(...args),
+      count: (...args: unknown[]) => mockCount(...args),
     },
     venue: {
       findFirst: (...args: unknown[]) => mockVenueFindFirst(...args),
@@ -228,14 +230,20 @@ describe("updateReviewEstimateIncrease (integration with mocked prisma)", () => 
 describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
   beforeEach(() => {
     mockFindFirst.mockReset();
+    mockCount.mockReset();
     mockVenueFindFirst.mockReset();
     mockVenueUpdate.mockReset();
     mockRevalidatePath.mockReset();
   });
 
-  it("returns {ok:true} synchronously when an aiSummary is already cached", async () => {
+  it("returns {ok:true} synchronously when an aiSummary is already cached AND individual reviews exist", async () => {
     mockVenueFindFirst.mockResolvedValueOnce({ id: "venue-1", name: "V" });
     mockFindFirst.mockResolvedValueOnce({ aiSummary: "already summarised" });
+    // New behavior: short-circuit only when individual review rows
+    // exist (sourceUrl with `#rev-` fragment). Legacy venues with a
+    // summary but no individuals fall through to the full pipeline
+    // so the parallel Haiku extraction can backfill them.
+    mockCount.mockResolvedValueOnce(5);
 
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
     const result = await analyzeVenueReviews(

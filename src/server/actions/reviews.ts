@@ -314,7 +314,27 @@ async function analyzeVenueReviewsInner(
     where: { venueId, sourceUrl },
   });
   if (existing?.aiSummary) {
-    return { ok: true }; // Already analyzed
+    // Summary cache hit. Before short-circuiting, also check whether
+    // individual review rows exist for this source URL — older venues
+    // imported before the parallel Haiku extraction landed have a
+    // summary row only ("ポジ1・ネガ0・その他0" forever). When the
+    // summary is cached but individuals are missing, fall through to
+    // the full pipeline; cachedAskClaude will hit the Sonnet cache so
+    // only the Haiku extraction actually pays a roundtrip.
+    const individualCount = await prisma.review.count({
+      where: {
+        venueId,
+        source,
+        sourceUrl: { startsWith: `${sourceUrl}#rev-` },
+      },
+    });
+    if (individualCount > 0) {
+      return { ok: true };
+    }
+    console.log(
+      "[analyzeVenueReviews] summary cached but no individuals — re-running extraction",
+      { venueId, sourceUrl, source },
+    );
   }
 
   try {
@@ -940,6 +960,16 @@ export async function batchAnalyzeVenueReviews(
   let attempted = 0;
 
   for (const r of reviews) {
+    // Individual review rows (saveExtractedReviews adds `#rev-{hash}`
+    // to dedup per-body) aren't analyze targets — they're outputs of
+    // a prior analyze pass, not pages to re-fetch. Re-running analyze
+    // on them would re-hit the parent URL N extra times (the fragment
+    // isn't sent on the wire). Skip them so the AI 要約再生成 button
+    // only re-summarises the source-page rows.
+    if (r.sourceUrl.includes("#rev-")) {
+      skipped++;
+      continue;
+    }
     if (r.aiSummary && !opts.force) {
       skipped++;
       continue;
