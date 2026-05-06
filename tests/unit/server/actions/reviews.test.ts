@@ -268,7 +268,7 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
     }
   });
 
-  it("returns {ok:false, reason:'timeout'} when the 110s budget elapses", async () => {
+  it("returns {ok:false, reason:'timeout'} when the 90s budget elapses", async () => {
     vi.useFakeTimers();
     try {
       // Never resolves — forces the Promise.race to take the timer branch.
@@ -280,9 +280,10 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
         "https://zexy.net/foo",
         "zexy",
       );
-      // Outer race grew 90s → 110s once analyzeVenueReviewsInner
-      // gained the multi-page crawl; advance past the new ceiling.
-      await vi.advanceTimersByTimeAsync(110_000);
+      // Outer race grew from 15s → 90s once the inner fetch + Sonnet
+      // summary + parallel Haiku extraction needed real headroom; advance
+      // past the new ceiling.
+      await vi.advanceTimersByTimeAsync(90_000);
       const result = await pending;
       expect(result.ok).toBe(false);
       if (!result.ok) {

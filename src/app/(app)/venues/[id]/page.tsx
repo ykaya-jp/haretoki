@@ -61,13 +61,14 @@ const VENUE_SECTIONS = [
   { id: "visit", label: "見学" },
 ] as const;
 
-// Bump function timeout for the URL-import server actions
-// (batchImportReviewUrls, analyzeVenueReviews,
-// extractIndividualReviewsFromSource) invoked from this page. The
-// per-card backfill button now does an 8-page multi-source crawl
-// (~80-150s wall time on a slow upstream like mwed). 300s is Vercel
-// Pro's hard ceiling.
-export const maxDuration = 300;
+// Bump function timeout for the URL-import server actions (`addVenueFromUrl`,
+// `batchImportReviewUrls`, `analyzeVenueReviews`) invoked from this page.
+// Default Vercel server-action timeout is the project plan default (60s
+// on Hobby, 300s on Pro); a single mwed.jp / zexy fetch can take 15s and
+// a batch of 5 URLs at concurrency 3 still spans ~30-40s including Claude
+// inference. 120s gives plenty of headroom while staying inside Pro's
+// 300s function ceiling.
+export const maxDuration = 120;
 
 export default async function VenueDetailPage({
   params,
