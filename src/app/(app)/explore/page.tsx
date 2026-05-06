@@ -20,13 +20,15 @@ import { listSavedSearches } from "@/server/actions/saved-searches";
 import type { VibeTag } from "@/lib/vibe-tags";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 
-// URL-paste server actions invoked from this page (addVenueFromUrl /
-// confirmVenueFromUrl) now run a multi-page review crawl (≤4 pages ×
-// fetch + Haiku + Sonnet summary on merged corpus ≈ 60-90s wall time).
-// Without an explicit maxDuration the flow times out at the platform
-// default and the user gets a generic 504. Mirrors the cap on the
-// venue detail page where the backfill button can take similarly long.
-export const maxDuration = 120;
+// URL-paste server actions invoked from this page chain together
+// addVenueFromUrl (parent-page fetch + Claude extraction, ~30-50s) +
+// confirmVenueFromUrl (photo upload + multi-page review crawl + Sonnet
+// summary on merged corpus, ~50-90s). Total envelope easily reaches
+// 100-130s — past the prior 120s cap, which left the function killed
+// mid-runReviewSummary and the user landing on /venues/<id> with an
+// empty "先輩カップルの声 はこれから" state. 300s is Vercel Pro's
+// hard ceiling for serverless functions.
+export const maxDuration = 300;
 
 type ExploreSearchParams = {
   q?: string;
