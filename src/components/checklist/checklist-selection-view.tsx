@@ -125,15 +125,15 @@ export function ChecklistSelectionView({ grouped, activeItemIds }: ChecklistSele
                             <button
                               role="switch"
                               aria-checked={isActive}
-                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                                isActive ? "bg-primary" : "bg-muted"
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] transition-colors duration-200 focus:outline-none ${
+                                isActive ? "bg-[var(--gold-warm)]" : "bg-muted"
                               }`}
                               onClick={() => handleToggle(item.id, !isActive)}
                               aria-label={item.question}
                             >
                               <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${
-                                  isActive ? "translate-x-5" : "translate-x-0"
+                                className={`pointer-events-none inline-block size-4 transform rounded-full bg-background shadow-[var(--shadow-card)] ring-0 transition duration-200 ease-in-out ${
+                                  isActive ? "translate-x-[26px]" : "translate-x-1"
                                 }`}
                               />
                             </button>
