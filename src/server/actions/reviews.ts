@@ -1119,3 +1119,209 @@ export async function updateReviewEstimateIncrease(
   revalidatePath(`/venues/${review.venueId}`);
   return { success: true };
 }
+
+/**
+ * Backfill individual review rows for an existing summary Review row.
+ *
+ * Use case: legacy venues imported before the parallel Haiku extraction
+ * landed have a single summary row and zero `#rev-` individuals. Re-
+ * submitting the same URL via the import sheets surfaces "既に取り込み
+ * 済の URL です" because the dedup sees the summary row. This action
+ * is the explicit user-triggered backfill path: re-fetch the source
+ * page, run only the Haiku extraction (no Sonnet — the summary is
+ * already saved), and upsert individuals via saveExtractedReviews.
+ *
+ * Triggered by the "個別レビューを取り込む" button on each summary
+ * card (review-section.tsx). Idempotent: bodies are upserted by hash
+ * so repeated clicks won't dup rows.
+ */
+export async function extractIndividualReviewsFromSource(
+  reviewId: string,
+): Promise<{
+  ok: true;
+  saved: number;
+  alreadyHad: number;
+} | { ok: false; error: string }> {
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  const review = await prisma.review.findFirst({
+    where: { id: reviewId, venue: { projectId } },
+    select: { id: true, venueId: true, source: true, sourceUrl: true },
+  });
+  if (!review) return { ok: false, error: "口コミが見つかりません" };
+
+  // Refuse to run on rows that ARE individuals — those carry `#rev-`
+  // fragments and re-fetching their parent URL is what the parent
+  // summary row's button is for.
+  if (review.sourceUrl.includes("#rev-")) {
+    return { ok: false, error: "このレビューは個別レビュー行のため再取り込みできません" };
+  }
+
+  // Per-user rate limit, single hit per click — matches the import sheets.
+  const rl = await checkRateLimit(`url_import:${user.id}`, RATE_LIMITS.URL_IMPORT);
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: `取り込みの頻度が高すぎます。${rl.retryAfterSec}秒後に再度お試しください。`,
+    };
+  }
+
+  if (!isClaudeAvailable()) {
+    return { ok: false, error: "AI機能を利用するにはAPIキーを設定してください" };
+  }
+
+  // Existing individuals — short-circuit if the user clicked twice in a
+  // row, but still report the count so the UI can toast "既に N 件取り
+  // 込み済みです" rather than silently doing nothing.
+  const alreadyHad = await prisma.review.count({
+    where: {
+      venueId: review.venueId,
+      source: review.source,
+      sourceUrl: { startsWith: `${review.sourceUrl}#rev-` },
+    },
+  });
+
+  // Re-fetch the source page (mirrors analyzeVenueReviewsInner — same
+  // Chrome UA + headers so zexy / wedding park don't 403). 25s budget
+  // matches the analyze inner timeout.
+  const guard = guardExternalUrl(review.sourceUrl);
+  if (!guard.ok) {
+    return { ok: false, error: "ソース URL を取得できません" };
+  }
+  const referer = `${guard.url.protocol}//${guard.url.hostname}/`;
+  let html: string;
+  try {
+    const response = await fetch(review.sourceUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        DNT: "1",
+        Referer: referer,
+      },
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: `${review.source} の応答エラー (HTTP ${response.status})`,
+      };
+    }
+    html = await response.text();
+  } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") {
+      return { ok: false, error: "ソースページの取得が時間切れになりました" };
+    }
+    return { ok: false, error: "ソースページを取得できませんでした" };
+  }
+
+  const textContent = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Resolve venue name for the prompt — needed only for the per-prompt
+  // header line.
+  const venue = await prisma.venue.findUnique({
+    where: { id: review.venueId },
+    select: { name: true },
+  });
+  const venueName = venue?.name ?? "";
+
+  const extractionResponse = await cachedAskClaude({
+    system: REVIEW_EXTRACTION_PROMPT.system,
+    userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
+      stripPII(textContent),
+      venueName,
+    ),
+    model: REVIEW_EXTRACTION_PROMPT.model,
+    promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
+    maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
+  }).catch((err) => {
+    console.warn("[extractIndividualReviewsFromSource] Haiku failed:", err);
+    return null;
+  });
+
+  if (!extractionResponse) {
+    return { ok: false, error: "AI 抽出に失敗しました。少し待ってから再試行してください" };
+  }
+
+  let validated: Array<{
+    title: string | null;
+    body: string;
+    rating: number | null;
+    author: string | null;
+    visitedAt: string | null;
+  }> = [];
+  try {
+    const stripped = stripJsonResponse(extractionResponse);
+    const parsed = JSON.parse(stripped) as { reviews?: unknown };
+    const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+    validated = rawReviews
+      .map((r) => {
+        if (!r || typeof r !== "object") return null;
+        const row = r as Record<string, unknown>;
+        const body = typeof row.body === "string" ? row.body.trim() : "";
+        if (body.length < 30 || body.length > 3000) return null;
+        const title =
+          typeof row.title === "string" && row.title.trim()
+            ? row.title.slice(0, 200)
+            : null;
+        const ratingNum = typeof row.rating === "number" ? row.rating : null;
+        const rating =
+          ratingNum != null && ratingNum >= 1 && ratingNum <= 5
+            ? Math.round(ratingNum)
+            : null;
+        const author =
+          typeof row.author === "string" && row.author.trim()
+            ? row.author.slice(0, 50)
+            : null;
+        const visitedAt =
+          typeof row.visitedAt === "string" && row.visitedAt.trim()
+            ? row.visitedAt.slice(0, 50)
+            : null;
+        return { title, body, rating, author, visitedAt };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .slice(0, 30);
+  } catch (err) {
+    console.warn(
+      "[extractIndividualReviewsFromSource] parse failed:",
+      err,
+    );
+    return { ok: false, error: "AI 応答の読み取りに失敗しました" };
+  }
+
+  console.log("[extractIndividualReviewsFromSource] result", {
+    reviewId,
+    sourceUrl: review.sourceUrl,
+    rawCount: validated.length,
+    pageTextLength: textContent.length,
+  });
+
+  if (validated.length === 0) {
+    return {
+      ok: false,
+      error: "ページから個別レビューを抽出できませんでした",
+    };
+  }
+
+  const saveResult = await saveExtractedReviews(
+    review.venueId,
+    validated,
+    review.sourceUrl,
+    review.source,
+  );
+
+  revalidateTag(`venue:${review.venueId}`, { expire: 0 });
+  revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidatePath(`/venues/${review.venueId}`);
+
+  return { ok: true, saved: saveResult.saved, alreadyHad };
+}

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import { analyzeVenueReviews, batchAnalyzeVenueReviews } from "@/server/actions/reviews";
+import {
+  analyzeVenueReviews,
+  batchAnalyzeVenueReviews,
+  extractIndividualReviewsFromSource,
+} from "@/server/actions/reviews";
 import { AIInsightCard } from "@/components/ai/insight-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -207,6 +211,38 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
     }
     return { summaryRows: summaries, individualRows: individuals };
   }, [reviews]);
+
+  // Track which source URLs already have individual review rows so the
+  // per-card "個別レビューを取り込む" button can hide itself once
+  // backfill has succeeded. Keyed by base sourceUrl (the summary row's
+  // url, no `#rev-` fragment).
+  const summarySourcesWithIndividuals = useMemo(() => {
+    const set = new Set<string>();
+    for (const ind of individualRows) {
+      const base = ind.sourceUrl.split("#")[0];
+      if (base) set.add(base);
+    }
+    return set;
+  }, [individualRows]);
+
+  const [backfillingId, setBackfillingId] = useState<string | null>(null);
+  const handleBackfill = (reviewId: string) => {
+    setBackfillingId(reviewId);
+    startTransition(async () => {
+      const result = await extractIndividualReviewsFromSource(reviewId);
+      setBackfillingId(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.saved === 0 && result.alreadyHad > 0) {
+        toast.info(`既に ${result.alreadyHad} 件取り込み済みでした`);
+      } else {
+        toast.success(`個別レビュー ${result.saved} 件を取り込みました`);
+      }
+      router.refresh();
+    });
+  };
 
   const filteredIndividuals = useMemo(() => {
     if (sentimentFilter === "all") return individualRows;
@@ -432,6 +468,10 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           !hasAggregate &&
           ei != null &&
           (ei.deltaYen != null || ei.deltaPct != null);
+        const hasIndividuals = summarySourcesWithIndividuals.has(
+          review.sourceUrl,
+        );
+        const isBackfillingThis = backfillingId === review.id;
         return (
         <div key={review.id} className="space-y-3">
           <AIInsightCard
@@ -460,6 +500,28 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
                 note: ei?.note,
               }}
             />
+            {/* Backfill CTA — only shown when this source URL has a
+                summary but no individual review rows yet (legacy venues
+                imported before the parallel Haiku extraction landed,
+                or sources where extraction was never attempted). Hides
+                automatically after a successful backfill. */}
+            {!hasIndividuals && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleBackfill(review.id)}
+                disabled={isPending}
+                className="gap-1 text-[12px]"
+                title="このソース URL から個別レビューを抽出してこの式場に追加します"
+              >
+                {isBackfillingThis ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                個別レビューを取り込む
+              </Button>
+            )}
           </div>
 
           {/* Category summary chips. The DB column is JSON (unknown
