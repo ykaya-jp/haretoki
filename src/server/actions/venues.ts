@@ -1725,8 +1725,19 @@ export async function confirmVenueFromUrl(
     failedReasons: photoFailedReasons,
     durationMs: Date.now() - createPhotoStartedAt,
   });
+  console.warn("[confirmVenueFromUrl] photo phase done", {
+    venueId: venue.id,
+    requested: uniquePhotoUrls.length,
+    uploaded: uploadedPhotoUrls.length,
+    durationMs: Date.now() - createPhotoStartedAt,
+  });
 
   const reviewSource = reviewSourceFromUrl(sourceUrl);
+  console.warn("[confirmVenueFromUrl] saving extracted reviews", {
+    venueId: venue.id,
+    reviewSource,
+    extractedReviewCount: parsed.data.reviews.length,
+  });
   if (reviewSource && parsed.data.reviews.length > 0) {
     try {
       await saveExtractedReviews(venue.id, parsed.data.reviews, sourceUrl, reviewSource);
@@ -1735,6 +1746,11 @@ export async function confirmVenueFromUrl(
     }
   }
 
+  console.warn("[confirmVenueFromUrl] calling runReviewSummary", {
+    venueId: venue.id,
+    sourceUrl,
+    reviewSource,
+  });
   const reviewSummaryStatus = await runReviewSummary(
     venue.id,
     sourceUrl,
