@@ -500,13 +500,13 @@ export async function analyzeVenueReviews(
   source: ReviewSource,
 ): Promise<AnalyzeVenueReviewsResult> {
   // Outer race acts as a soft cap so the user gets a timeout toast
-  // instead of an open spinner. Was 15s — too tight: the inner work
-  // is fetch (15s budget) + Claude SONNET inference for review summary
-  // (~10-30s on a full review HTML), so the race essentially always won
-  // before the legitimate work finished, surfacing as "時間切れに
-  // なりました" even on healthy paths. 90s gives the inner pipeline
-  // headroom while staying well inside the page-level 120s maxDuration.
-  const TIMEOUT_MS = 90_000;
+  // instead of an open spinner. Bumped 90s → 110s once analyzeVenueReviewsInner
+  // gained the multi-page crawl: extractAcrossPages can run for 40-50s
+  // on a 4-page mwed listing (fetch + Haiku per page even with
+  // concurrency 3) before Sonnet's 15-25s summary pass even starts.
+  // 110s stays inside the page-level 120s maxDuration with a small
+  // buffer for the surrounding bookkeeping.
+  const TIMEOUT_MS = 110_000;
   const sourceLabel = sourceJaName(source);
   try {
     return await Promise.race([
