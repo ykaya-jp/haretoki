@@ -470,13 +470,19 @@ test.describe("Accessibility — Keyboard Navigation", () => {
     );
     expect(emailActive).toBe(true);
 
-    // Tab to password
-    await page.keyboard.press("Tab");
-    const passwordActive = await page.evaluate(
-      () =>
-        document.activeElement ===
-        document.querySelector('input[type="password"]')
-    );
+    // Tab through form. After email there's a "パスワードをお忘れですか？"
+    // link before the password input. Walk forward until we land on the
+    // password field — the link being keyboard-reachable is itself part of
+    // the a11y contract, so we don't pin the exact tab count.
+    let passwordActive = false;
+    for (let i = 0; i < 4 && !passwordActive; i++) {
+      await page.keyboard.press("Tab");
+      passwordActive = await page.evaluate(
+        () =>
+          document.activeElement ===
+          document.querySelector('input[type="password"]')
+      );
+    }
     expect(passwordActive).toBe(true);
   });
 });
