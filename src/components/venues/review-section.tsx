@@ -181,7 +181,9 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
         setShowForm(false);
         router.refresh();
       } else if (result.reason === "timeout") {
-        toast.error("時間切れになりました。もう一度お試しください");
+        toast.error(
+          result.message ?? "時間切れになりました。もう一度お試しください",
+        );
       } else if (result.reason === "no-reviews") {
         toast.info("このページでは口コミが見つかりませんでした");
       } else {

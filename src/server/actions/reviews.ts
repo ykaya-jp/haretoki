@@ -222,13 +222,27 @@ export async function analyzeVenueReviews(
   sourceUrl: string,
   source: ReviewSource,
 ): Promise<AnalyzeVenueReviewsResult> {
+  // Outer race acts as a soft cap so the user gets a timeout toast
+  // instead of an open spinner. Was 15s — too tight: the inner work
+  // is fetch (15s budget) + Claude SONNET inference for review summary
+  // (~10-30s on a full review HTML), so the race essentially always won
+  // before the legitimate work finished, surfacing as "時間切れに
+  // なりました" even on healthy paths. 90s gives the inner pipeline
+  // headroom while staying well inside the page-level 120s maxDuration.
+  const TIMEOUT_MS = 90_000;
+  const sourceLabel = sourceJaName(source);
   try {
     return await Promise.race([
       analyzeVenueReviewsInner(venueId, sourceUrl, source),
       new Promise<AnalyzeVenueReviewsResult>((resolve) =>
         setTimeout(
-          () => resolve({ ok: false, reason: "timeout" }),
-          15_000,
+          () =>
+            resolve({
+              ok: false,
+              reason: "timeout",
+              message: `${sourceLabel}が時間内に応答しませんでした。少し待って再度お試しください`,
+            }),
+          TIMEOUT_MS,
         ),
       ),
     ]);
@@ -318,7 +332,10 @@ async function analyzeVenueReviewsInner(
         DNT: "1",
         Referer: referer,
       },
-      signal: AbortSignal.timeout(15000),
+      // 25s — bumped from 15s once the outer race in analyzeVenueReviews
+      // grew to 90s. mwed.jp in particular can take 12-20s to return a
+      // full page on cold cache; a 15s budget tripped over normal latency.
+      signal: AbortSignal.timeout(25_000),
     });
 
     if (!response.ok) {
@@ -539,9 +556,15 @@ async function analyzeVenueReviewsInner(
     return { ok: true };
   } catch (err) {
     // AbortSignal.timeout throws a TimeoutError when the 15s fetch budget
-    // expires. Surface that distinctly so the UI can show "timeout" copy.
+    // expires. Surface that distinctly so the UI can show "timeout" copy
+    // with the source name (the outer race adds the same shape on its own
+    // 90s cap; both paths now produce the same user-facing wording).
     if (err instanceof Error && err.name === "TimeoutError") {
-      return { ok: false, reason: "timeout" };
+      return {
+        ok: false,
+        reason: "timeout",
+        message: `${sourceJaName(source)}の応答が遅く、口コミページを取得できませんでした。少し待って再度お試しください`,
+      };
     }
     console.warn("[analyzeVenueReviewsInner] error:", err);
     return { ok: false, reason: "api-error", message: "口コミをうまくまとめられませんでした" };
