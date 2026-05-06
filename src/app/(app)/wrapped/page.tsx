@@ -38,7 +38,11 @@ export default async function WrappedPage() {
           </p>
         </header>
 
-        <div className="rounded-3xl border border-border/50 bg-card p-8 text-center">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-8 text-center">
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(to_right,transparent,color-mix(in_oklab,var(--gold-warm)_50%,transparent),transparent)]"
+          />
           <Sparkles
             className="mx-auto mb-4 h-8 w-8 text-[var(--gold-warm)]"
             strokeWidth={1.4}

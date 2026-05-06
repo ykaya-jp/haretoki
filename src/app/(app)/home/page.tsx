@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Calendar } from "lucide-react";
 import { getHomeData } from "@/server/actions/home";
 import { getAIInsights } from "@/server/actions/insights";
 import { getPendingInvitation } from "@/server/actions/invitations";
@@ -220,7 +221,7 @@ export default async function HomePage() {
           prefetch={true}
           className="flex min-h-[44px] items-center gap-2 py-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          <span aria-hidden>📅</span>
+          <Calendar aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
           <span>
             見学予定が{" "}
             <span className="tabular-nums font-medium text-foreground">
