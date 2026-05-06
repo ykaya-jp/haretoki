@@ -113,14 +113,17 @@ export default async function VenueDetailPage({
         photoUrls={venue.photoUrls}
       />
 
-      {/* Price + rating ribbon — the "decide in 2 seconds" fact panel
-          pattern borrowed from Zola / The Knot PDP. Renders only when
-          at least one of the two signals exists. */}
-      <VenueHeroRibbon
-        estimateTotal={latestEstimateTotal}
-        externalRatingValue={venue.externalRatingValue}
-        externalReviewCount={venue.externalReviewCount}
-      />
+      {/* L2-B1: Editorial overlap — Ribbon は写真の下端に -mt-8 で
+          かぶさり、雑誌の見開きのような非対称な視覚リズムを作る。
+          z-10 で写真より前面、relative で stacking context 確保。
+          ribbon が無いとき (no price + no rating) は overlap も不発生。 */}
+      <div className="relative z-10 -mt-8 px-2">
+        <VenueHeroRibbon
+          estimateTotal={latestEstimateTotal}
+          externalRatingValue={venue.externalRatingValue}
+          externalReviewCount={venue.externalReviewCount}
+        />
+      </div>
 
       {/* Venue Header — above the fold */}
       <VenueHeader
