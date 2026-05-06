@@ -80,11 +80,11 @@ export function ProactiveSuggestions({
   return (
     <section
       aria-label="今あなたに合いそうな相談"
-      className="space-y-4 rounded-3xl border border-[color-mix(in_oklab,var(--gold-warm)_22%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_55%,var(--card))] p-5"
+      className="space-y-4 rounded-2xl border border-[color-mix(in_oklab,var(--gold-warm)_22%,transparent)] bg-[color-mix(in_oklab,var(--gold-subtle)_55%,var(--card))] p-5"
     >
       <div className="flex items-center gap-2">
         <Sparkles
-          className="h-3.5 w-3.5 text-[var(--gold-warm)]"
+          className="h-4 w-4 text-[var(--gold-warm)]"
           strokeWidth={1.6}
           aria-hidden="true"
         />
