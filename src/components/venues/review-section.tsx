@@ -226,6 +226,16 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
   }, [individualRows]);
 
   const [backfillingId, setBackfillingId] = useState<string | null>(null);
+  const [isBackfillingAll, setIsBackfillingAll] = useState(false);
+
+  const sourcesNeedingBackfill = useMemo(
+    () =>
+      summaryRows.filter(
+        (r) => !summarySourcesWithIndividuals.has(r.sourceUrl),
+      ),
+    [summaryRows, summarySourcesWithIndividuals],
+  );
+
   const handleBackfill = (reviewId: string) => {
     setBackfillingId(reviewId);
     startTransition(async () => {
@@ -239,6 +249,37 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
         toast.info(`既に ${result.alreadyHad} 件取り込み済みでした`);
       } else {
         toast.success(`個別レビュー ${result.saved} 件を取り込みました`);
+      }
+      router.refresh();
+    });
+  };
+
+  const handleBackfillAll = () => {
+    if (sourcesNeedingBackfill.length === 0) return;
+    setIsBackfillingAll(true);
+    startTransition(async () => {
+      let totalSaved = 0;
+      let firstError: string | null = null;
+      // Sequential rather than Promise.all — each call hits the URL-import
+      // rate limit (5/min/user) and runs Haiku, so spreading them avoids
+      // a burst of concurrent fetches against one source domain.
+      for (const summary of sourcesNeedingBackfill) {
+        const result = await extractIndividualReviewsFromSource(summary.id);
+        if (result.ok) {
+          totalSaved += result.saved;
+        } else if (!firstError) {
+          firstError = result.error;
+        }
+      }
+      setIsBackfillingAll(false);
+      if (totalSaved > 0) {
+        toast.success(
+          `個別レビュー ${totalSaved} 件を取り込みました${firstError ? "（一部失敗あり）" : ""}`,
+        );
+      } else if (firstError) {
+        toast.error(firstError);
+      } else {
+        toast.info("取り込める個別レビューはありませんでした");
       }
       router.refresh();
     });
@@ -316,6 +357,24 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Primary action — adding a new source. Most users start here. */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowForm(!showForm)}
+            className="gap-1"
+            aria-label="ゼクシィ・ハナユメ・みんなのウェディング 等の口コミ URL を 1 件追加します"
+            title="新しいソース URL を 1 件追加 → AI が要約 + 個別レビューを自動抽出"
+          >
+            <Plus className="h-4 w-4" />
+            URL を追加
+          </Button>
+          {/* Bulk variant for power users — only really useful when
+              pasting 5-10 URLs at once. Stays compact. */}
+          <BatchReviewImportSheet venueId={venueId} />
+          {/* Re-summarize is a maintenance action, not a discovery
+              action — pushed to the right and styled ghost so it doesn't
+              compete with the primary "URL を追加". */}
           {reviews.length > 0 && (
             <Button
               size="sm"
@@ -323,30 +382,15 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
               onClick={handleRefreshAll}
               disabled={isRefreshing}
               className="gap-1 text-muted-foreground"
-              aria-label="既に保存されている口コミを AI に渡し、まとめだけを書き直します"
-              title="既に保存されている口コミを AI に渡し、まとめだけを書き直します（新しい口コミは取り込みません）"
+              aria-label="既存ソースの AI 要約だけを書き直します（新しい URL の取り込みではありません）"
+              title="既存ソースの AI 要約だけを書き直します（新しい URL の取り込みではありません）"
             >
               <RefreshCw
                 className={cn("h-4 w-4", isRefreshing && "animate-spin")}
               />
-              {isRefreshing ? "再生成中…" : "AI 要約を再生成"}
+              {isRefreshing ? "要約を再生成中…" : "要約を作り直す"}
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowForm(!showForm)}
-            className="gap-1"
-            aria-label="別のサイト（ゼクシィ・ハナユメ等）の口コミ URL をこの式場に追加します"
-            title="別のサイト（ゼクシィ・ハナユメ等）の口コミ URL をこの式場に追加します（既存のまとめは残ります）"
-          >
-            <Plus className="h-4 w-4" />
-            別サイトの口コミを追加
-          </Button>
-          {/* R1 — 複数 URL を一度に取り込む sheet trigger。単 URL form の
-              横にもう 1 つ secondary button を置くだけで wired (sheet 自体
-              は内部 state)。mwed 大量取り込みが主用途。 */}
-          <BatchReviewImportSheet venueId={venueId} />
         </div>
       </div>
 
@@ -460,6 +504,61 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           </div>
         )}
 
+      {/* Backfill prompt — when AI summaries exist but no individual
+          reviews have been extracted yet. This is the discoverability
+          fix for legacy venues: the banner makes the "raw reviews are
+          missing" state explicit and offers a single click to backfill
+          ALL sources at once. Self-hides as soon as any individuals
+          exist (sourcesNeedingBackfill drops to 0). */}
+      {summaryRows.length > 0 &&
+        sourcesNeedingBackfill.length > 0 &&
+        individualRows.length === 0 && (
+          <div
+            className="rounded-2xl border bg-card p-4"
+            style={{
+              borderLeftWidth: "3px",
+              borderLeftColor: "var(--gold-warm)",
+              borderColor:
+                "color-mix(in oklab, var(--gold-warm) 22%, transparent)",
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <MessageCircle
+                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--gold-warm)]"
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div>
+                  <p className="font-[family-name:var(--font-display)] text-[14px] font-light leading-snug text-foreground">
+                    先輩カップルの個別レビューはまだ取り込まれていません
+                  </p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                    AI 要約はこの上のカードに出ています。各ソースから
+                    1 件ずつのレビューを取り込むと、★評価・投稿者・
+                    本文 を ポジ / ネガ で絞り込んで読めるようになります。
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleBackfillAll}
+                  disabled={isPending || isBackfillingAll}
+                  className="gap-1"
+                >
+                  {isBackfillingAll ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {isBackfillingAll
+                    ? `取り込み中… (${sourcesNeedingBackfill.length} ソース)`
+                    : `${sourcesNeedingBackfill.length} ソースから取り込む`}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
       {summaryRows.map((review) => {
         const hasAggregate =
           venueEstimateAggregate && (venueEstimateAggregate.sampleCount ?? 0) > 0;
@@ -472,6 +571,13 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           review.sourceUrl,
         );
         const isBackfillingThis = backfillingId === review.id;
+        // Suppress the per-card "個別レビューを取り込む" button when the
+        // top-level banner is showing — that banner already offers a
+        // bulk backfill for the same sources, so a duplicate per-card
+        // button just adds noise. Per-card stays for the partial state
+        // (some sources have individuals, others don't).
+        const showPerCardBackfill =
+          !hasIndividuals && individualRows.length > 0;
         return (
         <div key={review.id} className="space-y-3">
           <AIInsightCard
@@ -505,7 +611,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
                 imported before the parallel Haiku extraction landed,
                 or sources where extraction was never attempted). Hides
                 automatically after a successful backfill. */}
-            {!hasIndividuals && (
+            {showPerCardBackfill && (
               <Button
                 size="sm"
                 variant="outline"
@@ -519,7 +625,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
                 ) : (
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-                個別レビューを取り込む
+                このソースから個別レビューを取り込む
               </Button>
             )}
           </div>
