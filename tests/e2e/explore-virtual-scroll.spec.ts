@@ -36,23 +36,18 @@ test.describe("Explore virtual scroll", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto("/explore");
+    await page.goto("/explore", { waitUntil: "networkidle" });
 
-    // Unauthenticated users are redirected to the login page (307 → /login).
-    // Authenticated users see the explore list or empty state.
-    // Verify the page has at least one of the expected landmark headings.
-    //
-    // Use getByRole to avoid strict-mode violations from duplicate text nodes
-    // (e.g. both the h2 and a button can contain "ログイン").
-    const loginHeading = page.getByRole("heading", { name: "ログイン" });
-    const emptyState = page.getByText("まだ候補はありません").first();
-    const filterZone = page.getByText("絞り込み").first();
-
-    const isLogin = await loginHeading.isVisible().catch(() => false);
-    const isEmpty = await emptyState.isVisible().catch(() => false);
-    const hasFilter = await filterZone.isVisible().catch(() => false);
-
-    expect(isLogin || isEmpty || hasFilter).toBe(true);
+    // Unauthenticated visitors land on /login; authenticated couples see the
+    // explore landmarks. Use a single .or() chain so toBeVisible() auto-waits
+    // up to the action timeout — fixes the parallel-run flake where the
+    // initial isVisible() snapshot raced framer-motion's stagger entry.
+    const anyLandmark = page
+      .getByRole("heading", { name: "ログイン" })
+      .or(page.getByText("まだ候補はありません").first())
+      .or(page.getByText("絞り込み").first())
+      .first();
+    await expect(anyLandmark).toBeVisible({ timeout: 10000 });
   });
 
   test("/explore with styles query param does not 500", async ({ page }) => {
