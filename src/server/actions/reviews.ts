@@ -112,7 +112,15 @@ function sourceJaName(source: ReviewSource): string {
  *     取り込む" button. The user has opted into a longer wait, so we
  *     can afford 8 pages = 200 reviews for the deep cut.
  */
-const MAX_REVIEW_PAGES_INITIAL = 4;
+// 2 pages = 50 reviews on initial URL paste. 4 pages × Haiku was
+// pushing the URL-submit → venue-page redirect past the
+// /explore page's 120s maxDuration in production (multi-page fetch
+// + Haiku per page + Sonnet on merged corpus = 80-110s wall time
+// after addVenueFromUrl already burned ~30-50s on its own crawl).
+// E2E preview was hanging the user on /explore for so long that the
+// summary card never even started rendering. Backfill button still
+// uses 8 pages = 200 reviews when the user explicitly opts in.
+const MAX_REVIEW_PAGES_INITIAL = 2;
 const MAX_REVIEW_PAGES_BACKFILL = 8;
 
 /**
