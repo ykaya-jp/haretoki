@@ -1434,8 +1434,10 @@ export async function confirmVenueFromUrl(
   sourceUrl: string,
   options: { forceNew?: boolean } = {},
 ) {
+  console.warn("[confirmVenueFromUrl] START", { sourceUrl, name: extracted?.name });
   const parsed = extractedVenueSchema.safeParse(extracted);
   if (!parsed.success) {
+    console.warn("[confirmVenueFromUrl] zod parse failed", parsed.error.issues.slice(0, 3));
     return { success: false as const, error: "データの形式が正しくありません" };
   }
 
@@ -1908,20 +1910,20 @@ async function runReviewSummary(
   // returns no-reviews and we map that to "skipped" below.
   _hintCountFromInitialExtraction: number,
 ): Promise<ReviewSummaryStatus> {
-  console.log("[runReviewSummary] START", {
+  console.warn("[runReviewSummary] START", {
     venueId,
     sourceUrl,
     reviewSource,
     hintCount: _hintCountFromInitialExtraction,
   });
   if (!reviewSource) {
-    console.log("[runReviewSummary] SKIP no source");
+    console.warn("[runReviewSummary] SKIP no source");
     return "skipped";
   }
   try {
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
     const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
-    console.log("[runReviewSummary] DONE", { result });
+    console.warn("[runReviewSummary] DONE", { result });
     if (result.ok) return "completed";
     if (result.reason === "timeout") return "timeout";
     if (result.reason === "no-reviews") return "skipped";
