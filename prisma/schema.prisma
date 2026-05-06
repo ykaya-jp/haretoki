@@ -157,6 +157,7 @@ model User {
   projectMembers           ProjectMember[]
   visitRatings             VisitRating[]
   visitNotes               VisitNote[]
+  venueMemos               VenueMemo[]
   favorites                VenueFavorite[]
   notificationPreference   NotificationPreference?
   notifications            Notification[]
@@ -368,6 +369,7 @@ model Venue {
   reviews          Review[]
   plans            VenuePlan[]
   checklistAnswers VenueChecklistAnswer[]
+  memos            VenueMemo[]
 
   @@index([projectId])
   @@index([projectId, status])
@@ -1255,4 +1257,25 @@ model ApiUsageCounter {
 
   @@unique([projectId, yearMonth])
   @@map("api_usage_counter")
+}
+
+/// Free-text memo scoped to a Venue (not a Visit) — for jotting down
+/// curiosities before scheduling a visit, or summary impressions after
+/// comparing several venues. Sibling concept to VisitNote which is bound
+/// to a specific visit row. Soft-delete to allow undo.
+model VenueMemo {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String    @map("venue_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, deletedAt])
+  @@index([userId])
+  @@map("venue_memos")
 }

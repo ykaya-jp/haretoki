@@ -501,7 +501,7 @@ export async function getFavoriteVenueIds(): Promise<string[]> {
   const { projectId } = await requireProjectMembership(user.id);
 
   const favorites = await prisma.venueFavorite.findMany({
-    where: { userId: user.id, venue: { projectId } },
+    where: { userId: user.id, venue: { projectId, deletedAt: null } },
     select: { venueId: true },
     orderBy: { createdAt: "desc" },
     take: COMPARE_MAX_VENUES,

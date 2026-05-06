@@ -46,6 +46,7 @@ import {
   type PhotoUploadResult,
 } from "@/lib/supabase/storage";
 import { saveExtractedReviews } from "@/server/actions/reviews";
+import { limitedAll } from "@/lib/limited-all";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 import {
   matchExistingVenue,
@@ -323,6 +324,10 @@ export async function deleteVenue(
       where: { venueId, deletedAt: null },
       data: { deletedAt: now },
     }),
+    prisma.venueMemo.updateMany({
+      where: { venueId, deletedAt: null },
+      data: { deletedAt: now },
+    }),
     prisma.venue.update({
       where: { id: venueId },
       data: { deletedAt: now },
@@ -388,6 +393,10 @@ export async function restoreVenue(
       data: { deletedAt: null },
     }),
     prisma.visit.updateMany({
+      where: { venueId, deletedAt: stamp },
+      data: { deletedAt: null },
+    }),
+    prisma.venueMemo.updateMany({
       where: { venueId, deletedAt: stamp },
       data: { deletedAt: null },
     }),
@@ -1904,29 +1913,8 @@ async function runReviewSummary(
   }
 }
 
-/**
- * Run async tasks with a bounded concurrency limit.
- * Inline implementation (p-limit isn't a dependency). Preserves input order in results.
- */
-async function limitedAll<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let cursor = 0;
-  const workerCount = Math.max(1, Math.min(limit, items.length));
-  const workers = Array(workerCount)
-    .fill(0)
-    .map(async () => {
-      while (cursor < items.length) {
-        const idx = cursor++;
-        results[idx] = await fn(items[idx], idx);
-      }
-    });
-  await Promise.all(workers);
-  return results;
-}
+// limitedAll moved to @/lib/limited-all so reviews.ts (batch URL import)
+// can share the same worker-pool implementation.
 
 /**
  * Bulk-import multiple venues from a list of URLs.

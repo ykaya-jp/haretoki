@@ -140,7 +140,15 @@ async function fetchFavorites(
 
   // Get favorites with venue data
   const favorites = await prisma.venueFavorite.findMany({
-    where: { userId: { in: userFilter }, venue: { projectId } },
+    where: {
+      userId: { in: userFilter },
+      // Venue uses soft-delete (deletedAt). VenueFavorite has onDelete:
+      // Cascade at the FK level, but cascade only fires on physical
+      // DELETE — soft-deleted Venues leave their favorites rows behind.
+      // Filter them out so the candidates page stops surfacing 式場
+      // that the user just removed from /explore.
+      venue: { projectId, deletedAt: null },
+    },
     include: {
       venue: {
         include: {

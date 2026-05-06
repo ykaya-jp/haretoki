@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
+import { limitedAll } from "@/lib/limited-all";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { isClaudeAvailable, computeInputHash, stripPII } from "@/lib/anthropic";
@@ -69,6 +70,28 @@ export interface BatchImportResult {
  * trailing commentary after the JSON block. Falls back to the raw
  * input if neither a fenced block nor a balanced {…} can be located.
  */
+/**
+ * Localised display name for a ReviewSource — used in user-facing
+ * error messages so timeouts read "みんなのウェディングが応答しません
+ * でした" instead of leaking the enum value or a generic "HTTP 503".
+ */
+function sourceJaName(source: ReviewSource): string {
+  switch (source) {
+    case "minna_no_wedding":
+      return "みんなのウェディング";
+    case "zexy":
+      return "ゼクシィ";
+    case "wedding_park":
+      return "Wedding Park";
+    case "hanayume":
+      return "ハナユメ";
+    case "mynavi":
+      return "マイナビ";
+    default:
+      return "口コミサイト";
+  }
+}
+
 function stripJsonResponse(raw: string): string {
   // Fenced block first — ```json { … } ``` or ``` { … } ```
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -634,16 +657,21 @@ export async function batchImportReviewUrls(
     existingBases.add(base);
   }
 
-  const perUrl: BatchImportPerUrl[] = [];
+  const perUrlByUrl = new Map<string, BatchImportPerUrl>();
+  const toProcess: string[] = [];
   let saved = 0;
   let skipped = 0;
   let failed = 0;
 
+  // Pre-pass: validation + dedup are cheap (CPU + 1 in-memory set), so
+  // run them sequentially and quickly carve out the URLs that need the
+  // expensive layer 4 (15s fetch + Claude inference). Early failures /
+  // dedups are recorded immediately and skip the parallel pool entirely.
   for (const url of validatedUrls) {
     // Layer 1: SSRF + scheme guard (same helper analyzeVenueReviewsInner uses).
     const guard = guardExternalUrl(url);
     if (!guard.ok) {
-      perUrl.push({
+      perUrlByUrl.set(url, {
         url,
         status: "failed",
         message:
@@ -666,7 +694,7 @@ export async function batchImportReviewUrls(
       (d) => hostname === d || hostname.endsWith("." + d),
     );
     if (!allowed) {
-      perUrl.push({
+      perUrlByUrl.set(url, {
         url,
         status: "failed",
         message:
@@ -679,9 +707,13 @@ export async function batchImportReviewUrls(
     // Layer 3: dedup. Prefix-match against existing Review.sourceUrl bases
     // (saveExtractedReviews appends `#rev-{hash}` per individual review,
     // so equality on the base URL means "we already imported this page").
+    // Pre-mark in existingBases so a duplicate URL later in the same
+    // input is dedup'd against this one even though we haven't run
+    // layer 4 yet (parallel layer-4 races couldn't otherwise dedup
+    // against each other).
     const baseUrl = url.split("#")[0];
     if (existingBases.has(baseUrl)) {
-      perUrl.push({
+      perUrlByUrl.set(url, {
         url,
         status: "skipped",
         message: "既に取り込み済の URL です",
@@ -689,27 +721,43 @@ export async function batchImportReviewUrls(
       skipped++;
       continue;
     }
+    existingBases.add(baseUrl);
+    toProcess.push(url);
+  }
 
-    // Layer 4: actual analyze. 15s per-URL timeout lives inside
-    // analyzeVenueReviews; we don't add another wrapping race here.
+  // Layer 4: actual analyze, parallelised. Sequential `for await` made
+  // 5 URLs cost ~125s (15s fetch × 5 + Claude × 5) which exceeded the
+  // Vercel function default 60s timeout and surfaced as a generic
+  // "タイムアウトエラー" on the user side. concurrency = 3 keeps the
+  // wall-time near a single URL (~25s) for a typical batch and stays
+  // well under the per-user `url_import` rate limit (1 hit per batch).
+  const BATCH_CONCURRENCY = 3;
+  const sourceLabel = sourceJaName(source);
+  const analyzed = await limitedAll(toProcess, BATCH_CONCURRENCY, async (url) => {
     const result = await analyzeVenueReviews(venueId, url, source);
     if (result.ok) {
-      perUrl.push({ url, status: "saved" });
-      saved++;
-      // Add to set so a duplicate URL appearing later in the same batch
-      // dedups against this just-saved row instead of being re-fetched.
-      existingBases.add(baseUrl);
-    } else {
-      const reasonLabel =
-        result.reason === "timeout"
-          ? "時間切れになりました (15 秒以内に応答なし)"
-          : result.reason === "no-reviews"
-            ? "口コミが見つかりませんでした"
-            : (result.message ?? "取り込みに失敗しました");
-      perUrl.push({ url, status: "failed", message: reasonLabel });
-      failed++;
+      return { url, status: "saved" as const };
     }
+    const reasonLabel =
+      result.reason === "timeout"
+        ? `${sourceLabel}が時間内に応答しませんでした。少し待って再度お試しください`
+        : result.reason === "no-reviews"
+          ? "口コミが見つかりませんでした"
+          : (result.message ?? "取り込みに失敗しました");
+    return { url, status: "failed" as const, message: reasonLabel };
+  });
+
+  for (const r of analyzed) {
+    perUrlByUrl.set(r.url, r);
+    if (r.status === "saved") saved++;
+    else failed++;
   }
+
+  // Preserve original input order in the response so the UI's per-URL
+  // status pills line up with the textarea row order.
+  const perUrl: BatchImportPerUrl[] = validatedUrls.map(
+    (u) => perUrlByUrl.get(u) ?? { url: u, status: "failed" as const, message: "不明なエラー" },
+  );
 
   // Single revalidation at the end (vs per-URL) — the inner action's
   // own revalidatePath calls already invalidated the cache between
