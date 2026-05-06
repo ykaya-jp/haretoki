@@ -83,7 +83,18 @@ function LoginPageInner() {
       });
 
       if (authError) {
-        setError("メールアドレスまたはパスワードが正しくありません");
+        // Email confirmation 未済は public 情報なので enumeration ではない
+        // → 再送 hint を見せて user 自己解決可。それ以外は generic + reset 動線。
+        const msg = (authError.message ?? "").toLowerCase();
+        if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
+          setError(
+            "メールの認証がまだ完了していません。受信箱から認証リンクを開いてからもう一度お試しください。",
+          );
+        } else {
+          setError(
+            "メールアドレスまたはパスワードが正しくありません。お忘れの場合は下のリンクから再設定してください。",
+          );
+        }
         return;
       }
 
@@ -206,7 +217,16 @@ function LoginPageInner() {
             </div>
 
             <div className="space-y-2.5">
-              <Label htmlFor="password">パスワード</Label>
+              <div className="flex items-baseline justify-between">
+                <Label htmlFor="password">パスワード</Label>
+                <Link
+                  href="/forgot-password"
+                  prefetch={false}
+                  className="text-fluid-xs text-[var(--gold-warm)] underline-offset-2 hover:underline"
+                >
+                  パスワードをお忘れですか？
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

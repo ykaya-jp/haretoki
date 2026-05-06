@@ -59,6 +59,9 @@ export async function middleware(request: NextRequest) {
     "/family",
     "/privacy",
     "/terms",
+    /** Password reset — auth-free, supabase recovery session 自前管理 */
+    "/forgot-password",
+    "/reset-password",
     /**
      * /admin/* も onboarding redirect から除外。requireAdmin が notFound()
      * で 404 を返すため、middleware が先に /onboarding に飛ばすと

@@ -14,6 +14,12 @@ const PUBLIC_PATHS = [
   "/family",
   "/privacy",
   "/terms",
+  /** Password reset flow — both pages must be reachable without an
+   *  authenticated session (forgot-password takes an email, reset-
+   *  password lands from the magic-link with a recovery session that
+   *  isn't yet a "logged in" cookie until updateUser commits). */
+  "/forgot-password",
+  "/reset-password",
 ] as const;
 
 function isPublicPath(pathname: string): boolean {
