@@ -695,60 +695,79 @@ async function analyzeVenueReviewsInner(
     // every other cached prompt in src/server/actions/* now follows.
     const strippedContent = stripPII(textContent);
 
-    // Multi-page crawl drives BOTH the summary and the individual-review
-    // extraction so Sonnet's summary reflects all 100-200 reviews across
-    // pages, not just the 25 on page 1. The crawl runs in parallel and
-    // returns a merged corpus we feed to the Sonnet prompt.
-    //
-    // Crawl runs first because Sonnet should see the full corpus. Wall
-    // time is dominated by the slowest page fetch + the slowest Haiku
-    // call (~20-30s), then Sonnet adds another 10-20s. Stays inside
-    // the 90s outer race in analyzeVenueReviews.
-    // Use the INITIAL page cap (4 = 100 reviews) on this auto-trigger
-    // path so the URL-paste → venue-page redirect stays inside the
-    // user's "I just hit submit" attention budget. The per-card
-    // backfill button uses MAX_REVIEW_PAGES_BACKFILL (8 = 200) for
-    // a deeper cut when the user explicitly opts in.
-    const crawl = await extractAcrossPages(
+    // Run Sonnet summary + Haiku extraction in PARALLEL on the single
+    // fetched page. We tried sequential extractAcrossPages → Sonnet
+    // and it pushed the action chain past Vercel's response window
+    // (vendors got "page rendered with no Review row" → empty state).
+    // Backfill via "+1ソースから取り込む" button still uses
+    // extractAcrossPages with the 8-page deep cut for users who opt
+    // in. Initial paste stays fast.
+    console.warn("[analyzeVenueReviews] starting parallel Sonnet + Haiku", {
+      venueId,
       sourceUrl,
       source,
-      venue.name,
-      MAX_REVIEW_PAGES_INITIAL,
-    );
-    const summaryCorpus = crawl.mergedCorpusForSummary || strippedContent;
+      pageTextLength: strippedContent.length,
+    });
     const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage(
-      [stripPII(summaryCorpus)],
+      [strippedContent],
       venue.name,
     );
 
     let claudeResponse: string | null = null;
+    let extractionResponse: string | null = null;
     try {
-      claudeResponse = await cachedAskClaude({
-        system: REVIEW_SUMMARY_PROMPT.system,
-        userMessage: reviewUserMessage,
-        model: MODEL.SONNET,
-        promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
-        // 75s budget for Sonnet on the merged corpus. Was the askClaude
-        // default of 45s, which truncated processing of 25K-char inputs
-        // and left no Review row created (= no summary card visible).
-        // Stays inside the analyzeVenueReviews 110s outer race.
-        timeoutMs: 75_000,
-      });
+      [claudeResponse, extractionResponse] = await Promise.all([
+        cachedAskClaude({
+          system: REVIEW_SUMMARY_PROMPT.system,
+          userMessage: reviewUserMessage,
+          model: MODEL.SONNET,
+          promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
+          timeoutMs: 60_000,
+        }),
+        cachedAskClaude({
+          system: REVIEW_EXTRACTION_PROMPT.system,
+          userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
+            strippedContent,
+            venue.name,
+          ),
+          model: REVIEW_EXTRACTION_PROMPT.model,
+          promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
+          maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
+          timeoutMs: 60_000,
+        }).catch((err) => {
+          console.warn("[analyzeVenueReviews] Haiku extraction failed (non-fatal):", err);
+          return null;
+        }),
+      ]);
     } catch (err) {
-      console.warn(
-        "[analyzeVenueReviews] Sonnet summary failed:",
-        {
-          venueId,
-          sourceUrl,
-          source,
-          summaryCorpusLength: summaryCorpus.length,
-          err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
-        },
-      );
+      console.warn("[analyzeVenueReviews] Sonnet summary failed:", {
+        venueId,
+        sourceUrl,
+        source,
+        err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      });
     }
-    // crawl.reviews replaces the prior single-page extractionResponse path —
-    // we already have validated rows ready for saveExtractedReviews.
-    const crawledIndividuals = crawl.reviews;
+
+    // Parse Haiku output for individuals (mirrors the prior single-page
+    // path, plus the new sentiment field per parseExtractedReviewRow).
+    let crawledIndividuals: ExtractedIndividualReview[] = [];
+    if (extractionResponse) {
+      try {
+        const stripped = stripJsonResponse(extractionResponse);
+        const parsed = JSON.parse(stripped) as { reviews?: unknown };
+        const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+        crawledIndividuals = rawReviews
+          .map(parseExtractedReviewRow)
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+          .slice(0, 25);
+      } catch (err) {
+        console.warn("[analyzeVenueReviews] Haiku parse failed:", err);
+      }
+    }
+    console.warn("[analyzeVenueReviews] parallel done", {
+      sonnetOk: claudeResponse !== null,
+      individualsExtracted: crawledIndividuals.length,
+    });
     if (claudeResponse === null) {
       // Sonnet failed — but we still have the multi-page crawl results.
       // Save the individuals so the user gets at least the raw reviews
@@ -858,25 +877,18 @@ async function analyzeVenueReviewsInner(
         sourceUrl,
         source,
       );
-      console.log("[analyzeVenueReviews] saveExtractedReviews result", {
+      console.warn("[analyzeVenueReviews] saveExtractedReviews result", {
         venueId,
         sourceUrl,
         crawled: crawledIndividuals.length,
-        pagesFetched: crawl.pagesFetched,
-        pagesAttempted: crawl.pagesAttempted,
         ...saveResult,
       });
     } else {
-      console.warn(
-        "[analyzeVenueReviews] multi-page crawl returned 0 individuals",
-        {
-          venueId,
-          sourceUrl,
-          source,
-          pagesFetched: crawl.pagesFetched,
-          pagesAttempted: crawl.pagesAttempted,
-        },
-      );
+      console.warn("[analyzeVenueReviews] zero individuals extracted", {
+        venueId,
+        sourceUrl,
+        source,
+      });
     }
 
     // Recompute aggregate venue-level estimate-increase stats from all reviews
