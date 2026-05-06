@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { sanitiseSupabaseEnv } from "@/lib/supabase/env";
 
 // Public paths that don't require authentication. Kept at module scope so
 // the allocation cost is paid once per process instead of per request.
@@ -62,9 +63,10 @@ export async function updateSession(
   // only gets instantiated here so we don't allocate it on public
   // routes either.
   let mutableResponse = supabaseResponse;
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = sanitiseSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
