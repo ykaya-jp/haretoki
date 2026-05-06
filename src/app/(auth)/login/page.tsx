@@ -77,14 +77,21 @@ function LoginPageInner() {
 
     try {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) {
-        // Email confirmation 未済は public 情報なので enumeration ではない
-        // → 再送 hint を見せて user 自己解決可。それ以外は generic + reset 動線。
+        // 一時的な debug aid — Edge / Chrome DevTools Console に actual
+        // Supabase error を流して原因切り分け。enumeration 露出はしない
+        // (network 越しに見える user-facing message は generic 維持)。
+        console.error("[login] supabase.auth.signInWithPassword failed:", {
+          name: authError.name,
+          message: authError.message,
+          status: (authError as { status?: number }).status,
+          code: (authError as { code?: string }).code,
+        });
         const msg = (authError.message ?? "").toLowerCase();
         if (msg.includes("email not confirmed") || msg.includes("not confirmed")) {
           setError(
@@ -98,9 +105,24 @@ function LoginPageInner() {
         return;
       }
 
+      // Same temporary instrumentation: confirm the session payload looks
+      // sane before navigating. If we get here but the session isn't
+      // populated, the cookie persistence layer (supabase-ssr) is the
+      // bottleneck — surfacing the case explicitly avoids the silent
+      // "redirected to /login again" loop.
+      if (!data.session) {
+        console.error("[login] auth succeeded but session missing:", data);
+        setError(
+          "サインインはできましたがセッションが残せませんでした。Cookie 設定をご確認ください。",
+        );
+        return;
+      }
+      console.log("[login] success, navigating to", nextHref, "user:", data.user?.id);
+
       router.push(nextHref);
       router.refresh();
-    } catch {
+    } catch (err) {
+      console.error("[login] unexpected exception:", err);
       setError("ログインがうまくいきませんでした。もう一度お試しください");
     } finally {
       setLoading(false);

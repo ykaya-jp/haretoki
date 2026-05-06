@@ -61,3 +61,4 @@ images/
 # debug scripts / screenshots (never commit)
 scripts/inspect-venue.ts
 tmp/
+.env*.local
