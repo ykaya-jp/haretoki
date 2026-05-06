@@ -61,7 +61,7 @@ export function HomePulse(props: HomePulseProps) {
                 <span className="font-[family-name:var(--font-display)] font-light tabular-nums text-[24px] text-foreground">
                   {m.value}
                 </span>
-                <span className="mt-0.5 text-[11.5px] font-medium tracking-[0.04em] text-muted-foreground">
+                <span className="mt-0.5 text-fluid-xs font-medium tracking-[0.04em] text-muted-foreground">
                   {m.label}
                 </span>
               </div>

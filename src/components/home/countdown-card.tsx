@@ -45,7 +45,7 @@ export async function CountdownCard() {
   if (state.state === "no-date") {
     return (
       <CountdownShell>
-        <p className="text-[10.5px] uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+        <p className="text-eyebrow text-[var(--gold-warm)]">
           Countdown
         </p>
         <h2 className="font-[family-name:var(--font-display)] text-[20px] font-light leading-snug tracking-[-0.005em]">
@@ -53,7 +53,7 @@ export async function CountdownCard() {
           <br />
           おふたりに数えていきます
         </h2>
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+        <p className="text-fluid-sm leading-relaxed text-muted-foreground">
           {decision.venue.name}での日が決まったら、ここに「あと N 日」と
           <br />
           直近の準備が並びます。
@@ -66,7 +66,7 @@ export async function CountdownCard() {
   if (state.state === "today") {
     return (
       <CountdownShell tone="celebratory">
-        <p className="text-[10.5px] uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+        <p className="text-eyebrow text-[var(--gold-warm)]">
           Today
         </p>
         <h2 className="inline-flex items-center gap-2 font-[family-name:var(--font-display)] text-[24px] font-light leading-tight tracking-[-0.01em]">
@@ -88,7 +88,7 @@ export async function CountdownCard() {
   if (state.state === "past") {
     return (
       <CountdownShell tone="hushed">
-        <p className="text-[10.5px] uppercase tracking-[0.3em] text-muted-foreground">
+        <p className="text-eyebrow text-muted-foreground">
           Memory
         </p>
         <h2 className="inline-flex items-center gap-2 font-[family-name:var(--font-display)] text-[20px] font-light leading-snug tracking-[-0.005em]">
@@ -98,7 +98,7 @@ export async function CountdownCard() {
           />
           ありがとうございました
         </h2>
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+        <p className="text-fluid-sm leading-relaxed text-muted-foreground">
           {decision.venue.name}での晴れの日から、
           <br />
           <span className="tabular-nums">{state.daysSince}</span>{" "}
@@ -121,7 +121,7 @@ export async function CountdownCard() {
   return (
     <CountdownShell>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[10.5px] uppercase tracking-[0.3em] text-[var(--gold-warm)]">
+        <p className="text-eyebrow text-[var(--gold-warm)]">
           Countdown
         </p>
         {decision.weddingDate ? (
@@ -151,7 +151,7 @@ export async function CountdownCard() {
           </span>
         </p>
         {dateLabel ? (
-          <p className="text-[11.5px] tabular-nums text-muted-foreground">
+          <p className="text-fluid-xs tabular-nums text-muted-foreground">
             {decision.venue.name} ／ {dateLabel}
           </p>
         ) : null}
@@ -168,7 +168,7 @@ export async function CountdownCard() {
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] border-border"
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="block text-eyebrow text-muted-foreground">
               Next
             </span>
             <span className="block truncate text-[14px] text-foreground">

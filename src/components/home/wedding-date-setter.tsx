@@ -64,7 +64,7 @@ export function WeddingDateSetter({ mode, initialDate }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-11 items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground"
+        className="inline-flex min-h-11 items-center gap-1 text-fluid-xs text-muted-foreground hover:text-foreground"
       >
         <Pencil className="h-3 w-3" aria-hidden="true" />
         変更
@@ -74,7 +74,7 @@ export function WeddingDateSetter({ mode, initialDate }: Props) {
 
   return (
     <div className="space-y-2.5">
-      <label className="block text-[11.5px] text-muted-foreground" htmlFor="wedding-date-input">
+      <label className="block text-fluid-xs text-muted-foreground" htmlFor="wedding-date-input">
         晴れの日
       </label>
       <input
@@ -113,7 +113,7 @@ export function WeddingDateSetter({ mode, initialDate }: Props) {
           type="button"
           onClick={() => commit(null)}
           disabled={isPending}
-          className="inline-flex min-h-11 items-center gap-1 self-start text-[11.5px] text-muted-foreground hover:text-foreground"
+          className="inline-flex min-h-11 items-center gap-1 self-start text-fluid-xs text-muted-foreground hover:text-foreground"
         >
           晴れの日を未設定にする
         </button>
