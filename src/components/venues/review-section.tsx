@@ -137,10 +137,30 @@ function StarRating({ value }: { value: number | null }) {
   );
 }
 
-/** Classify a review: negative = isNegative flag, positive = rating>=4, neutral = else */
+/** Classify a review for the ポジ/ネガ/その他 chip filter.
+ *  Order of precedence:
+ *    1. AI sentiment from extraction (categorySummary.individual.sentiment)
+ *    2. Server-flagged isNegative (Review.isNegative — set by extraction
+ *       fallback or by the summary row's strengths-vs-concerns count)
+ *    3. Rating-based heuristic: ≥4 → positive, ≤2 → negative, else neutral.
+ *  This means low-star reviews (1-2) are classified ネガ even if the
+ *  AI sentiment field is missing on legacy rows. */
 function classifyReview(review: Review): "positive" | "negative" | "neutral" {
+  const cs = review.categorySummary;
+  if (cs && typeof cs === "object") {
+    const ind = (cs as Record<string, unknown>).individual;
+    if (ind && typeof ind === "object") {
+      const sentimentRaw = (ind as Record<string, unknown>).sentiment;
+      if (sentimentRaw === "positive") return "positive";
+      if (sentimentRaw === "negative") return "negative";
+      if (sentimentRaw === "neutral") return "neutral";
+    }
+  }
   if (review.isNegative) return "negative";
-  if (review.rating !== null && review.rating >= 4) return "positive";
+  if (review.rating !== null) {
+    if (review.rating >= 4) return "positive";
+    if (review.rating <= 2) return "negative";
+  }
   return "neutral";
 }
 
@@ -686,6 +706,14 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
               </span>
             </h3>
           </div>
+          {/* Transparency about selection: explain that AI took the
+              newest 25 (cap from REVIEW_EXTRACTION_PROMPT) per source
+              and that the サイト全件 link below leads to the source page.
+              Without this the user can't tell why "20件" appears when
+              the source page lists more. */}
+          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+            各ソースから新着順に最大 25 件を AI が抜粋しています。全件は要約カード内の「口コミ元を読む」からご覧いただけます。
+          </p>
 
           {/* Sentiment filter chips */}
           <div

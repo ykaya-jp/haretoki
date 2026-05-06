@@ -96,6 +96,49 @@ function sourceJaName(source: ReviewSource): string {
   }
 }
 
+/**
+ * Validate + normalise one row from the Haiku extraction output.
+ *
+ * Single source of truth shared by both extraction call sites
+ * (analyzeVenueReviewsInner's parallel pass + the per-card backfill
+ * action). Returns null when the row fails minimum body / shape
+ * checks so the caller can `.filter()` it out.
+ */
+function parseExtractedReviewRow(
+  r: unknown,
+): ExtractedIndividualReview | null {
+  if (!r || typeof r !== "object") return null;
+  const row = r as Record<string, unknown>;
+  const body = typeof row.body === "string" ? row.body.trim() : "";
+  if (body.length < 30 || body.length > 3000) return null;
+  const title =
+    typeof row.title === "string" && row.title.trim()
+      ? row.title.slice(0, 200)
+      : null;
+  const ratingNum = typeof row.rating === "number" ? row.rating : null;
+  const rating =
+    ratingNum != null && ratingNum >= 1 && ratingNum <= 5
+      ? Math.round(ratingNum)
+      : null;
+  const author =
+    typeof row.author === "string" && row.author.trim()
+      ? row.author.slice(0, 50)
+      : null;
+  const visitedAt =
+    typeof row.visitedAt === "string" && row.visitedAt.trim()
+      ? row.visitedAt.slice(0, 50)
+      : null;
+  const sentimentRaw =
+    typeof row.sentiment === "string" ? row.sentiment.toLowerCase() : null;
+  const sentiment: ExtractedIndividualReview["sentiment"] =
+    sentimentRaw === "positive" ||
+    sentimentRaw === "negative" ||
+    sentimentRaw === "neutral"
+      ? sentimentRaw
+      : undefined;
+  return { title, body, rating, author, visitedAt, sentiment };
+}
+
 function stripJsonResponse(raw: string): string {
   // Fenced block first — ```json { … } ``` or ``` { … } ```
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -125,6 +168,11 @@ export interface ExtractedIndividualReview {
   rating: number | null;
   author: string | null;
   visitedAt: string | null;
+  /** AI-classified body sentiment — drives the ポジ/ネガ/その他 chip
+   *  filter on the venue detail page. Stored on Review.isNegative
+   *  (boolean) since that column already exists; absence here =
+   *  fall back to rating-based classification on the client. */
+  sentiment?: "positive" | "negative" | "neutral";
 }
 
 /**
@@ -157,6 +205,13 @@ export async function saveExtractedReviews(
     // so we reuse the user's source URL + a stable per-body discriminator.
     const rowSourceUrl = `${baseSourceUrl}#rev-${hash}`;
     try {
+      // Derive isNegative from AI sentiment when present, otherwise
+      // fall back to a rating-based heuristic so even pre-sentiment
+      // legacy rows surface in the ネガ filter when their stars are
+      // low (≤ 2).
+      const isNegative =
+        r.sentiment === "negative" ||
+        (r.sentiment === undefined && r.rating != null && r.rating <= 2);
       await prisma.review.upsert({
         where: {
           venueId_source_sourceUrl: {
@@ -168,11 +223,13 @@ export async function saveExtractedReviews(
         update: {
           aiSummary: r.body,
           rating: r.rating,
+          isNegative,
           categorySummary: {
             individual: {
               title: r.title,
               author: r.author,
               visitedAt: r.visitedAt,
+              sentiment: r.sentiment ?? null,
             },
           },
         },
@@ -182,11 +239,13 @@ export async function saveExtractedReviews(
           sourceUrl: rowSourceUrl,
           aiSummary: r.body,
           rating: r.rating,
+          isNegative,
           categorySummary: {
             individual: {
               title: r.title,
               author: r.author,
               visitedAt: r.visitedAt,
+              sentiment: r.sentiment ?? null,
             },
           },
         },
@@ -533,34 +592,9 @@ async function analyzeVenueReviewsInner(
         // Diagnostic — if rawReviews.length is 0 the page was JS-rendered or
         // the prompt missed its target; visible in Vercel runtime logs.
         const validated = rawReviews
-          .map((r) => {
-            if (!r || typeof r !== "object") return null;
-            const row = r as Record<string, unknown>;
-            const body = typeof row.body === "string" ? row.body.trim() : "";
-            // Body min lowered 50 → 30 to catch 1-2 sentence wedding park
-            // reviews that are still meaningful but get rejected at 50.
-            if (body.length < 30 || body.length > 3000) return null;
-            const title =
-              typeof row.title === "string" && row.title.trim()
-                ? row.title.slice(0, 200)
-                : null;
-            const ratingNum = typeof row.rating === "number" ? row.rating : null;
-            const rating =
-              ratingNum != null && ratingNum >= 1 && ratingNum <= 5
-                ? Math.round(ratingNum)
-                : null;
-            const author =
-              typeof row.author === "string" && row.author.trim()
-                ? row.author.slice(0, 50)
-                : null;
-            const visitedAt =
-              typeof row.visitedAt === "string" && row.visitedAt.trim()
-                ? row.visitedAt.slice(0, 50)
-                : null;
-            return { title, body, rating, author, visitedAt };
-          })
+          .map(parseExtractedReviewRow)
           .filter((r): r is NonNullable<typeof r> => r !== null)
-          .slice(0, 30);
+          .slice(0, 25);
         console.log("[analyzeVenueReviews] extraction result", {
           venueId,
           sourceUrl,
@@ -1276,32 +1310,9 @@ export async function extractIndividualReviewsFromSource(
     const parsed = JSON.parse(stripped) as { reviews?: unknown };
     const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
     validated = rawReviews
-      .map((r) => {
-        if (!r || typeof r !== "object") return null;
-        const row = r as Record<string, unknown>;
-        const body = typeof row.body === "string" ? row.body.trim() : "";
-        if (body.length < 30 || body.length > 3000) return null;
-        const title =
-          typeof row.title === "string" && row.title.trim()
-            ? row.title.slice(0, 200)
-            : null;
-        const ratingNum = typeof row.rating === "number" ? row.rating : null;
-        const rating =
-          ratingNum != null && ratingNum >= 1 && ratingNum <= 5
-            ? Math.round(ratingNum)
-            : null;
-        const author =
-          typeof row.author === "string" && row.author.trim()
-            ? row.author.slice(0, 50)
-            : null;
-        const visitedAt =
-          typeof row.visitedAt === "string" && row.visitedAt.trim()
-            ? row.visitedAt.slice(0, 50)
-            : null;
-        return { title, body, rating, author, visitedAt };
-      })
+      .map(parseExtractedReviewRow)
       .filter((r): r is NonNullable<typeof r> => r !== null)
-      .slice(0, 30);
+      .slice(0, 25);
   } catch (err) {
     console.warn(
       "[extractIndividualReviewsFromSource] parse failed:",
