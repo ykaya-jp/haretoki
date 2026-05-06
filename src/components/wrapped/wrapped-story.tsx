@@ -227,10 +227,10 @@ function buildPages(d: WrappedData): Page[] {
             {d.venuesAdded}
           </p>
           <p className="font-[family-name:var(--font-display)] text-[20px] font-light leading-snug">
-            の式場と出会いました
+            の式場を、おふたりは見てきました
           </p>
           <p className="text-[13px] leading-relaxed opacity-80">
-            そのうち {d.venuesEngaged} 件をお気に入りに、または見学に進めました。
+            そのうち {d.venuesEngaged} 件は、心に留まり、もう一度向き合った場所。
           </p>
         </div>
       ),
@@ -244,7 +244,7 @@ function buildPages(d: WrappedData): Page[] {
             body: (
               <div className="space-y-3">
                 <p className="font-[family-name:var(--font-display)] text-[20px] font-light leading-snug opacity-80">
-                  おふたりが惹かれた雰囲気は
+                  ふたりの心が揺れた、雰囲気
                 </p>
                 <ul className="space-y-1.5">
                   {d.topVibes.map((v, i) => (
@@ -276,11 +276,11 @@ function buildPages(d: WrappedData): Page[] {
                   {d.visitsCompleted}
                 </p>
                 <p className="font-[family-name:var(--font-display)] text-[20px] font-light leading-snug">
-                  の式場を、実際に歩きました
+                  の式場の床を、ふたりで歩きました
                 </p>
                 {d.notesWritten > 0 && (
                   <p className="text-[13px] leading-relaxed opacity-80">
-                    {d.notesWritten} 件のメモが、おふたりだけの記憶として残っています。
+                    残した {d.notesWritten} 件のメモが、ふたりだけの記憶になっています。
                   </p>
                 )}
               </div>
