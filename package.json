@@ -22,7 +22,7 @@
     "@prisma/client": "^7.7.0",
     "@sentry/nextjs": "^10.48.0",
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "^2.105.3",
     "@tanstack/react-virtual": "^3.13.24",
     "@types/web-push": "^3.6.4",
     "@upstash/redis": "^1.37.0",
