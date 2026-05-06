@@ -1908,10 +1908,20 @@ async function runReviewSummary(
   // returns no-reviews and we map that to "skipped" below.
   _hintCountFromInitialExtraction: number,
 ): Promise<ReviewSummaryStatus> {
-  if (!reviewSource) return "skipped";
+  console.log("[runReviewSummary] START", {
+    venueId,
+    sourceUrl,
+    reviewSource,
+    hintCount: _hintCountFromInitialExtraction,
+  });
+  if (!reviewSource) {
+    console.log("[runReviewSummary] SKIP no source");
+    return "skipped";
+  }
   try {
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
     const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
+    console.log("[runReviewSummary] DONE", { result });
     if (result.ok) return "completed";
     if (result.reason === "timeout") return "timeout";
     if (result.reason === "no-reviews") return "skipped";
