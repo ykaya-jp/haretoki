@@ -124,7 +124,7 @@ export function CoachQuickStart() {
               type="button"
               onClick={() => preFill(uc.prompt)}
               aria-label={`${uc.title}。チャット入力欄に質問文を入れます`}
-              className="group flex min-h-[100px] w-full flex-col gap-3 rounded-[20px] bg-[color-mix(in_oklab,var(--gold-subtle)_60%,var(--card))] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              className="group flex min-h-[100px] w-full flex-col gap-3 rounded-2xl bg-[color-mix(in_oklab,var(--gold-warm)_8%,var(--card))] p-5 text-left shadow-[var(--shadow-card)] transition-colors duration-200 hover:bg-[color-mix(in_oklab,var(--gold-warm)_18%,var(--card))] active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
               style={{
                 border: "1px solid color-mix(in oklab, var(--gold-warm) 22%, transparent)",
               }}
