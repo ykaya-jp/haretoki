@@ -73,7 +73,7 @@ async function fetchHomeData(
 
   const [venues, totalVenues, visitedVenues, estimateCount, favoriteCount, decision, memberCount, upcomingVisits, earliestVenue] = await Promise.all([
     prisma.venue.findMany({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
       include: {
         scores: {
           where: { source: "user_rating" },
@@ -83,15 +83,30 @@ async function fetchHomeData(
       orderBy: { updatedAt: "desc" },
       take: 5,
     }),
-    prisma.venue.count({ where: { projectId } }),
-    prisma.venue.count({ where: { projectId, status: { in: ["visited", "selected"] } } }),
-    prisma.estimate.count({ where: { projectId } }),
-    prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
+    prisma.venue.count({ where: { projectId, deletedAt: null } }),
+    prisma.venue.count({
+      where: {
+        projectId,
+        deletedAt: null,
+        status: { in: ["visited", "selected"] },
+      },
+    }),
+    prisma.estimate.count({
+      where: { projectId, venue: { deletedAt: null } },
+    }),
+    prisma.venueFavorite.count({
+      where: { userId, venue: { projectId, deletedAt: null } },
+    }),
     prisma.decision.findUnique({ where: { projectId } }),
     prisma.projectMember.count({ where: { projectId, acceptedAt: { not: null } } }),
-    prisma.visit.count({ where: { venue: { projectId }, status: "scheduled" } }),
+    prisma.visit.count({
+      where: {
+        venue: { projectId, deletedAt: null },
+        status: "scheduled",
+      },
+    }),
     prisma.venue.findFirst({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, createdAt: true },
     }),

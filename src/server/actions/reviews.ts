@@ -1158,14 +1158,12 @@ export async function extractIndividualReviewsFromSource(
     return { ok: false, error: "このレビューは個別レビュー行のため再取り込みできません" };
   }
 
-  // Per-user rate limit, single hit per click — matches the import sheets.
-  const rl = await checkRateLimit(`url_import:${user.id}`, RATE_LIMITS.URL_IMPORT);
-  if (!rl.allowed) {
-    return {
-      ok: false,
-      error: `取り込みの頻度が高すぎます。${rl.retryAfterSec}秒後に再度お試しください。`,
-    };
-  }
+  // Note: no rate limit on this action — it shares the URL_IMPORT
+  // bucket with analyze + batch import, and a user clicking the
+  // explicit "+1ソースから取り込む" button right after the venue page
+  // already auto-fired the analyze fall-through path was getting
+  // rate-limited spuriously. Cost guard remains the per-source button
+  // disabled state in the client + Haiku's own per-call budget.
 
   if (!isClaudeAvailable()) {
     return { ok: false, error: "AI機能を利用するにはAPIキーを設定してください" };
@@ -1306,9 +1304,16 @@ export async function extractIndividualReviewsFromSource(
   });
 
   if (validated.length === 0) {
+    // Diagnostic-rich error so the user can tell us which scenario hit
+    // (page text empty = JS-rendered source, AI returned 0 = prompt
+    // missed its target, etc).
+    const reason =
+      textContent.length < 500
+        ? "ページの本文がほぼ空でした (JavaScript で描画される構造かもしれません)"
+        : "AI が個別レビューを 1 件も検出できませんでした (URL がレビュー一覧ページか確認してください)";
     return {
       ok: false,
-      error: "ページから個別レビューを抽出できませんでした",
+      error: `${reason}。URL: ${review.sourceUrl}`,
     };
   }
 

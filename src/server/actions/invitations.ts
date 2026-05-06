@@ -149,8 +149,10 @@ async function isAutoCreatedEmptyProject(
   const [memberCount, venueCount, estimateCount, decisionCount] =
     await Promise.all([
       prisma.projectMember.count({ where: { projectId } }),
-      prisma.venue.count({ where: { projectId } }),
-      prisma.estimate.count({ where: { venue: { projectId } } }),
+      prisma.venue.count({ where: { projectId, deletedAt: null } }),
+      prisma.estimate.count({
+        where: { venue: { projectId, deletedAt: null } },
+      }),
       prisma.decision.count({ where: { projectId } }),
     ]);
 

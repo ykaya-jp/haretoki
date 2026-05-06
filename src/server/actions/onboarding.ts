@@ -111,7 +111,7 @@ export async function getExploreAIRecommendationsSeed(): Promise<{
       where: { id: projectId },
       select: { conditions: true },
     }),
-    prisma.venue.count({ where: { projectId } }),
+    prisma.venue.count({ where: { projectId, deletedAt: null } }),
   ]);
 
   const conditions = normalizeConditions(project?.conditions);

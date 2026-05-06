@@ -34,15 +34,17 @@ async function fetchAIInsights(projectId: string, userId: string): Promise<AIIns
   // Get project data
   const [venues, favorites, estimates, decision] = await Promise.all([
     prisma.venue.findMany({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
       include: {
         scores: { where: { source: "user_rating" } },
         visits: { select: { id: true, status: true, scheduledAt: true } },
       },
     }),
-    prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
+    prisma.venueFavorite.count({
+      where: { userId, venue: { projectId, deletedAt: null } },
+    }),
     prisma.estimate.findMany({
-      where: { projectId },
+      where: { projectId, venue: { deletedAt: null } },
       include: { items: true, venue: { select: { name: true } } },
     }),
     prisma.decision.findUnique({ where: { projectId } }),
