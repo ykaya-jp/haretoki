@@ -67,7 +67,7 @@ export function WrappedStory({ data }: { data: WrappedData }) {
           <span aria-hidden="true" className="opacity-30">·</span>
           <span>Wrapped</span>
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-[26px] font-light leading-[1.22] tracking-[-0.01em]">
+        <h1 className="font-[family-name:var(--font-display)] text-fluid-3xl font-light leading-[1.18] tracking-[-0.01em]">
           ふたりの式場さがし
         </h1>
       </header>
