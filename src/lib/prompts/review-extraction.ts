@@ -56,7 +56,13 @@ JSON only. No markdown fences, no preamble, no trailing text. Start with \`{\` a
     `式場名: ${venueName}\n\n以下は口コミページの本文です。個別の口コミを最大 30 件抽出してください。\n\n${pageText.slice(0, 60_000)}`,
 
   model: MODEL.HAIKU,
-  maxTokens: 8000,
+  // 25-30 reviews × ~400-600 char body (Japanese review prose) ≈ 12-18k
+  // tokens of output before JSON overhead. Was 8000 — Haiku silently
+  // truncated the JSON object mid-array, JSON.parse threw, and the
+  // (non-fatal) catch swallowed all reviews. Bump to 24000 so the
+  // model can finish the entire `reviews` array on a typical mwed /
+  // zexy / wedding-park page.
+  maxTokens: 24000,
 };
 
 export const REVIEW_EXTRACTION_PROMPT_VERSION = 1;

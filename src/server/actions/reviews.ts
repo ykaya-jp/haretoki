@@ -510,12 +510,16 @@ async function analyzeVenueReviewsInner(
         const stripped = stripJsonResponse(extractionResponse);
         const parsed = JSON.parse(stripped) as { reviews?: unknown };
         const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+        // Diagnostic — if rawReviews.length is 0 the page was JS-rendered or
+        // the prompt missed its target; visible in Vercel runtime logs.
         const validated = rawReviews
           .map((r) => {
             if (!r || typeof r !== "object") return null;
             const row = r as Record<string, unknown>;
             const body = typeof row.body === "string" ? row.body.trim() : "";
-            if (body.length < 10 || body.length > 3000) return null;
+            // Body min lowered 50 → 30 to catch 1-2 sentence wedding park
+            // reviews that are still meaningful but get rejected at 50.
+            if (body.length < 30 || body.length > 3000) return null;
             const title =
               typeof row.title === "string" && row.title.trim()
                 ? row.title.slice(0, 200)
@@ -537,15 +541,44 @@ async function analyzeVenueReviewsInner(
           })
           .filter((r): r is NonNullable<typeof r> => r !== null)
           .slice(0, 30);
+        console.log("[analyzeVenueReviews] extraction result", {
+          venueId,
+          sourceUrl,
+          source,
+          rawReviewsCount: rawReviews.length,
+          validatedCount: validated.length,
+          pageTextLength: textContent.length,
+          extractionResponseLength: extractionResponse.length,
+        });
         if (validated.length > 0) {
-          await saveExtractedReviews(venueId, validated, sourceUrl, source);
+          const saveResult = await saveExtractedReviews(
+            venueId,
+            validated,
+            sourceUrl,
+            source,
+          );
+          console.log("[analyzeVenueReviews] saveExtractedReviews result", {
+            venueId,
+            sourceUrl,
+            ...saveResult,
+          });
         }
       } catch (err) {
         console.warn(
           "[analyzeVenueReviews] individual review parse failed (non-fatal):",
-          err,
+          {
+            err: err instanceof Error ? err.message : err,
+            extractionResponseLength: extractionResponse.length,
+            extractionResponsePreview: extractionResponse.slice(0, 200),
+            extractionResponseTail: extractionResponse.slice(-200),
+          },
         );
       }
+    } else {
+      console.warn(
+        "[analyzeVenueReviews] extractionResponse was null (Haiku failed or rate-limited)",
+        { venueId, sourceUrl, source },
+      );
     }
 
     // Recompute aggregate venue-level estimate-increase stats from all reviews

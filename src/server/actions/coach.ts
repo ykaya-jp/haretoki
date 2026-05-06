@@ -455,3 +455,33 @@ async function getCoachHistoryCached(projectId: string, sessionId?: string) {
     createdAt: m.createdAt,
   }));
 }
+
+/**
+ * Mark the signed-in user's "コーチ" badge as seen.
+ *
+ * Bumps `ProjectMember.coachInsightsSeenAt` to now() so the bottom-nav
+ * badge query (src/app/(app)/layout.tsx) counts only AI analyses created
+ * AFTER this stamp going forward. Called from the coach page on every
+ * render — cheap upsert, idempotent on the same render, and the
+ * revalidateTag fires only when the stamp actually changes meaningfully
+ * (which it always does on a fresh page visit).
+ *
+ * Returns nothing — the user side effect is the navbar badge dropping
+ * to 0 on next render. Failure is silent: a missed seen-stamp just
+ * leaves the badge slightly stale, which the next visit clears.
+ */
+export async function markCoachInsightsSeen(): Promise<void> {
+  try {
+    const user = await requireUser();
+    const { projectId } = await requireProjectMembership(user.id);
+    await prisma.projectMember.update({
+      where: { projectId_userId: { projectId, userId: user.id } },
+      data: { coachInsightsSeenAt: new Date() },
+    });
+    // Bust the layout-level badge cache so the navbar re-renders with
+    // the new count (= 0). Same tag the rest of the layout uses.
+    revalidateTag(`project:${projectId}`, { expire: 0 });
+  } catch (err) {
+    console.warn("[markCoachInsightsSeen] failed (non-fatal):", err);
+  }
+}

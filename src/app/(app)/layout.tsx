@@ -29,14 +29,31 @@ const getBottomNavBadgeCounts = cache(
   async (projectId: string, userId: string) => {
     const [favoriteCount, insightCount] = await Promise.all([
       prisma.venueFavorite.count({
-        where: { userId, venue: { projectId } },
+        // Soft-deleted venues leave their favorites rows behind (FK
+        // cascade only fires on physical DELETE). Same fix as the read
+        // paths in favorites/matrix/journey/checklist/couple-view.
+        where: { userId, venue: { projectId, deletedAt: null } },
       }),
-      prisma.aiAnalysis.count({
-        where: {
-          projectId,
-          type: { in: ["comparison", "review_summary", "visit_prep"] },
-        },
-      }),
+      // Coach badge — count only insights produced AFTER the user's
+      // last visit to /coach. ProjectMember.coachInsightsSeenAt is
+      // bumped by markCoachInsightsSeen on the coach page so the badge
+      // resets to 0 on visit and grows again as new analyses land.
+      // Falls back to "all-time" when the column is null (= never
+      // visited /coach yet, so every existing insight is "new").
+      (async () => {
+        const member = await prisma.projectMember.findUnique({
+          where: { projectId_userId: { projectId, userId } },
+          select: { coachInsightsSeenAt: true },
+        });
+        const seenAt = member?.coachInsightsSeenAt ?? null;
+        return prisma.aiAnalysis.count({
+          where: {
+            projectId,
+            type: { in: ["comparison", "review_summary", "visit_prep"] },
+            ...(seenAt ? { createdAt: { gt: seenAt } } : {}),
+          },
+        });
+      })(),
     ]);
     return { favoriteCount, insightCount };
   },

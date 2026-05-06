@@ -239,6 +239,13 @@ model ProjectMember {
   /// unset → computeWeighted() treats every dimension as weight 3 (equal),
   /// keeping current non-weighted callers behavior intact for existing rows.
   weights    Json?       @map("weights")
+  /// Per-member "last time this user opened /coach" timestamp. The
+  /// bottom-nav コーチ badge counts AiAnalysis rows (comparison /
+  /// review_summary / visit_prep) created *after* this stamp, so the
+  /// badge resets to 0 when the user visits /coach and grows again as
+  /// new insights land. NULL = never visited /coach → badge counts
+  /// all existing insights (= "everything is new").
+  coachInsightsSeenAt DateTime? @map("coach_insights_seen_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)

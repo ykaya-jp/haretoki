@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { getAIInsights } from "@/server/actions/insights";
-import { listCoachSessions, getCoachSession } from "@/server/actions/coach";
+import {
+  listCoachSessions,
+  getCoachSession,
+  markCoachInsightsSeen,
+} from "@/server/actions/coach";
 import { getHomeData } from "@/server/actions/home";
 import { getAgreements } from "@/server/actions/agreements";
 import { getCoachProactiveSuggestions } from "@/server/actions/coach-suggestions";
@@ -36,6 +40,13 @@ export default async function CoachPage({ searchParams }: CoachPageProps) {
     getHomeData(),
     getAgreements(),
     getCoachProactiveSuggestions(),
+    // Reset the bottom-nav コーチ badge to 0. Bumps
+    // ProjectMember.coachInsightsSeenAt so the layout's badge query
+    // counts only AI analyses created AFTER this visit. Fire-and-
+    // forget semantics (failure is logged inside the action and
+    // doesn't block render). Awaited via Promise.all so the
+    // revalidateTag inside settles before the bottom nav re-reads.
+    markCoachInsightsSeen(),
   ]);
 
   // R-5 今夜の一問: deterministic pick from stage + day-of-year
