@@ -15,6 +15,7 @@ import { DisagreementSpotlightCard } from "./disagreement-spotlight-card";
 import { VisitNotesPreviewCard } from "./visit-notes-preview-card";
 import { PhotoComparisonGrid } from "./photo-comparison-grid";
 import { EstimateBreakdownCard } from "./estimate-breakdown-card";
+import { ChecklistCrossVenueCard } from "./checklist-cross-venue-card";
 
 /**
  * Responsive wrapper — picks between the desktop CSS-Grid board and the
@@ -83,6 +84,12 @@ export function ComparisonBoard({
         data={estimateBreakdown}
         matrixVenueIdsToNames={venueIdToName}
       />
+      {/* Checklist 横並び table — 挙式会場 / 披露宴会場 等の細かい
+          チェック項目 1 つ 1 つを venue 横並びで。Mobile snapper では
+          venue 単位で swipe しないと比較できなかったので、ここで
+          1 画面で並べて見られる縦長 table を提供。Self-hides if no
+          checklist items active. */}
+      <ChecklistCrossVenueCard matrix={matrix} />
       {/* CMP-5: AI analysis card — placed after the grid, before Decision section */}
       <MatrixInsightCard insight={matrixInsight} />
       {/* R3: cross-venue review insight — placed beneath the
