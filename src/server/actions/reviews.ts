@@ -101,12 +101,19 @@ function sourceJaName(source: ReviewSource): string {
  *
  * mwed has up to 33 pages × 25 reviews = ~800 reviews per venue. Going
  * for the full crawl would burn 33 Haiku calls (~$0.04) per venue per
- * import for diminishing returns — couples can't realistically read
- * 800 reviews. 8 pages × 25 = 200 reviews is the design target: comfortably
- * above the user-stated "100以上" floor while keeping wall time around
- * 25-35s and cost around $0.008 per source URL.
+ * import for diminishing returns.
+ *
+ * Two-tier strategy:
+ *   - INITIAL: triggered on URL paste from /explore. Must complete inside
+ *     the user's "I just hit submit" attention budget so the redirect
+ *     to the venue page feels fast. 4 pages = 100 reviews — meets the
+ *     user-stated "100以上" floor on first import.
+ *   - BACKFILL: triggered explicitly by the per-card "個別レビューを
+ *     取り込む" button. The user has opted into a longer wait, so we
+ *     can afford 8 pages = 200 reviews for the deep cut.
  */
-const MAX_REVIEW_PAGES_PER_SOURCE = 8;
+const MAX_REVIEW_PAGES_INITIAL = 4;
+const MAX_REVIEW_PAGES_BACKFILL = 8;
 
 /**
  * Build the list of paginated review-listing URLs to crawl for a given
@@ -117,7 +124,7 @@ const MAX_REVIEW_PAGES_PER_SOURCE = 8;
 function paginateReviewUrls(
   sourceUrl: string,
   source: ReviewSource,
-  max: number = MAX_REVIEW_PAGES_PER_SOURCE,
+  max: number,
 ): string[] {
   let url: URL;
   try {
@@ -219,7 +226,7 @@ async function extractAcrossPages(
   baseUrl: string,
   source: ReviewSource,
   venueName: string,
-  maxPages: number = MAX_REVIEW_PAGES_PER_SOURCE,
+  maxPages: number,
 ): Promise<{
   reviews: ExtractedIndividualReview[];
   pagesFetched: number;
@@ -688,10 +695,16 @@ async function analyzeVenueReviewsInner(
     // time is dominated by the slowest page fetch + the slowest Haiku
     // call (~20-30s), then Sonnet adds another 10-20s. Stays inside
     // the 90s outer race in analyzeVenueReviews.
+    // Use the INITIAL page cap (4 = 100 reviews) on this auto-trigger
+    // path so the URL-paste → venue-page redirect stays inside the
+    // user's "I just hit submit" attention budget. The per-card
+    // backfill button uses MAX_REVIEW_PAGES_BACKFILL (8 = 200) for
+    // a deeper cut when the user explicitly opts in.
     const crawl = await extractAcrossPages(
       sourceUrl,
       source,
       venue.name,
+      MAX_REVIEW_PAGES_INITIAL,
     );
     const summaryCorpus = crawl.mergedCorpusForSummary || strippedContent;
     const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage(
@@ -1433,14 +1446,13 @@ export async function extractIndividualReviewsFromSource(
   });
   const venueName = venue?.name ?? "";
 
-  // Multi-page crawl: paginate the source URL, fetch each page,
-  // run Haiku extraction per page, dedup by body hash. mwed has
-  // 33 pages × 25 reviews; we cap at 8 = 200 reviews to keep wall
-  // time + cost reasonable while exceeding the user-stated 100+ floor.
+  // Multi-page crawl with the BACKFILL cap (8 = 200 reviews). User
+  // explicitly tapped the button so the longer wall time is opted into.
   const crawl = await extractAcrossPages(
     review.sourceUrl,
     review.source,
     venueName,
+    MAX_REVIEW_PAGES_BACKFILL,
   );
 
   if (crawl.reviews.length === 0) {

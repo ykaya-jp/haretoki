@@ -20,6 +20,14 @@ import { listSavedSearches } from "@/server/actions/saved-searches";
 import type { VibeTag } from "@/lib/vibe-tags";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 
+// URL-paste server actions invoked from this page (addVenueFromUrl /
+// confirmVenueFromUrl) now run a multi-page review crawl (≤4 pages ×
+// fetch + Haiku + Sonnet summary on merged corpus ≈ 60-90s wall time).
+// Without an explicit maxDuration the flow times out at the platform
+// default and the user gets a generic 504. Mirrors the cap on the
+// venue detail page where the backfill button can take similarly long.
+export const maxDuration = 120;
+
 type ExploreSearchParams = {
   q?: string;
   styles?: string | string[];

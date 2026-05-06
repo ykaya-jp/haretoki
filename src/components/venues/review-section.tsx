@@ -740,7 +740,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
               系 reviews so the ネガ filter has substantive entries
               even when a venue's listing is praise-skewed. */}
           <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-            各ソースから最大 8 ページ・約 200 件まで AI がクロールし、否定意見のあるレビューを優先的に拾っています。要約カードはページ全体の声を統合しています。全件はカード内「口コミ元を読む」から。
+            URL 取込時は最大 4 ページ (約 100 件)、要約カードの「個別レビューを取り込む」ボタンを押すと最大 8 ページ (約 200 件) まで AI がクロールします。否定意見のあるレビューを優先的に拾い、要約はページ全体の声を統合しています。全件はカード内「口コミ元を読む」から。
           </p>
 
           {/* Sentiment filter chips */}
