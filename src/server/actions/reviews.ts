@@ -97,6 +97,213 @@ function sourceJaName(source: ReviewSource): string {
 }
 
 /**
+ * How many review-listing pages to crawl per source URL.
+ *
+ * mwed has up to 33 pages × 25 reviews = ~800 reviews per venue. Going
+ * for the full crawl would burn 33 Haiku calls (~$0.04) per venue per
+ * import for diminishing returns — couples can't realistically read
+ * 800 reviews. 8 pages × 25 = 200 reviews is the design target: comfortably
+ * above the user-stated "100以上" floor while keeping wall time around
+ * 25-35s and cost around $0.008 per source URL.
+ */
+const MAX_REVIEW_PAGES_PER_SOURCE = 8;
+
+/**
+ * Build the list of paginated review-listing URLs to crawl for a given
+ * source URL. Returns the original URL + up to (max - 1) page-2-onwards
+ * URLs in source-specific format. Returns just the original URL when
+ * the source has no known pagination scheme.
+ */
+function paginateReviewUrls(
+  sourceUrl: string,
+  source: ReviewSource,
+  max: number = MAX_REVIEW_PAGES_PER_SOURCE,
+): string[] {
+  let url: URL;
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    return [sourceUrl];
+  }
+  const pages = [sourceUrl];
+  if (max <= 1) return pages;
+  switch (source) {
+    case "minna_no_wedding": {
+      // mwed: /hall/{id}/rev/?page=N for N >= 2
+      for (let n = 2; n <= max; n++) {
+        const u = new URL(url.toString());
+        u.searchParams.set("page", String(n));
+        pages.push(u.toString());
+      }
+      break;
+    }
+    case "zexy": {
+      // zexy: /wedding/c_{id}/kuchikomi/?pn=N for N >= 2 (existing convention
+      // — see deriveRelatedUrls's reviewPages branch).
+      for (let n = 2; n <= max; n++) {
+        const u = new URL(url.toString());
+        u.searchParams.set("pn", String(n));
+        pages.push(u.toString());
+      }
+      break;
+    }
+    case "wedding_park": {
+      // weddingpark.net: /[name]/review/?page=N
+      for (let n = 2; n <= max; n++) {
+        const u = new URL(url.toString());
+        u.searchParams.set("page", String(n));
+        pages.push(u.toString());
+      }
+      break;
+    }
+    // hanayume / mynavi: pagination patterns unverified — single page only
+    // for now (still benefits from the new sentiment selection rules).
+    default:
+      return [sourceUrl];
+  }
+  return pages;
+}
+
+/**
+ * Fetch one review-listing page and return its stripped text content.
+ * Returns null on any error — caller treats that page as "missed" but
+ * keeps going with the remaining pages.
+ */
+async function fetchReviewPageText(url: string): Promise<string | null> {
+  try {
+    const guard = guardExternalUrl(url);
+    if (!guard.ok) return null;
+    const referer = `${guard.url.protocol}//${guard.url.hostname}/`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        DNT: "1",
+        Referer: referer,
+      },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!response.ok) {
+      console.warn("[fetchReviewPageText] non-2xx", { url, status: response.status });
+      return null;
+    }
+    const html = await response.text();
+    return html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (err) {
+    console.warn("[fetchReviewPageText] fetch failed", { url, err: err instanceof Error ? err.message : err });
+    return null;
+  }
+}
+
+/**
+ * Run Haiku extraction across all paginated review pages of a source URL
+ * and return de-duplicated individual reviews.
+ *
+ * - Pages fetched in parallel (concurrency 3) so wall time stays close
+ *   to a single page even at maxPages = 8.
+ * - Haiku extraction also runs in parallel per page (own concurrency).
+ * - Individual results are merged and deduped by body content hash.
+ *
+ * Returns the merged list + the number of pages successfully processed.
+ */
+async function extractAcrossPages(
+  baseUrl: string,
+  source: ReviewSource,
+  venueName: string,
+  maxPages: number = MAX_REVIEW_PAGES_PER_SOURCE,
+): Promise<{
+  reviews: ExtractedIndividualReview[];
+  pagesFetched: number;
+  pagesAttempted: number;
+  mergedCorpusForSummary: string;
+}> {
+  const urls = paginateReviewUrls(baseUrl, source, maxPages);
+  const pageTexts = await limitedAll(urls, 3, fetchReviewPageText);
+  const okPages = pageTexts.filter((t): t is string => t != null && t.length > 200);
+
+  // Sonnet summary corpus: concatenate all successful pages, capped at
+  // 50K chars (≈ 35K tokens) so the summary reflects every fetched
+  // review, not just page 1. The summary call lives elsewhere; we
+  // return the corpus so the caller can hand it off.
+  const mergedCorpusForSummary = okPages.join("\n\n").slice(0, 50_000);
+
+  // Haiku extraction per page, concurrency 3. Each page is constrained
+  // to 25 reviews by REVIEW_EXTRACTION_PROMPT so output fits comfortably
+  // in the 8000-token budget.
+  const perPageReviews = await limitedAll(okPages, 3, async (pageText) => {
+    if (!pageText) return [] as ExtractedIndividualReview[];
+    let raw: string | null = null;
+    try {
+      raw = await cachedAskClaude({
+        system: REVIEW_EXTRACTION_PROMPT.system,
+        userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
+          stripPII(pageText),
+          venueName,
+        ),
+        model: REVIEW_EXTRACTION_PROMPT.model,
+        promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
+        maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
+      });
+    } catch (err) {
+      console.warn("[extractAcrossPages] Haiku per-page failed:", {
+        err: err instanceof Error ? err.message : err,
+      });
+      return [];
+    }
+    if (!raw) return [];
+    try {
+      const stripped = stripJsonResponse(raw);
+      const parsed = JSON.parse(stripped) as { reviews?: unknown };
+      const rawArr = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+      return rawArr
+        .map(parseExtractedReviewRow)
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+    } catch (err) {
+      console.warn("[extractAcrossPages] parse failed:", err);
+      return [];
+    }
+  });
+
+  // Merge + dedup by body hash. Preserve insertion order so newer pages
+  // (lower index) win on ties.
+  const seen = new Set<string>();
+  const merged: ExtractedIndividualReview[] = [];
+  for (const list of perPageReviews) {
+    for (const r of list) {
+      const hash = computeInputHash(r.body).slice(0, 8);
+      if (seen.has(hash)) continue;
+      seen.add(hash);
+      merged.push(r);
+    }
+  }
+
+  console.log("[extractAcrossPages] result", {
+    baseUrl,
+    source,
+    pagesAttempted: urls.length,
+    pagesFetched: okPages.length,
+    rawTotalRows: perPageReviews.flat().length,
+    mergedUniqueRows: merged.length,
+  });
+
+  return {
+    reviews: merged,
+    pagesFetched: okPages.length,
+    pagesAttempted: urls.length,
+    mergedCorpusForSummary,
+  };
+}
+
+/**
  * Validate + normalise one row from the Haiku extraction output.
  *
  * Single source of truth shared by both extraction call sites
@@ -471,40 +678,65 @@ async function analyzeVenueReviewsInner(
     // prompt revision invalidates stale rows automatically — same contract
     // every other cached prompt in src/server/actions/* now follows.
     const strippedContent = stripPII(textContent);
-    const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name);
 
-    // Run summary (Sonnet, synthesis) and individual-review extraction
-    // (Haiku, mechanical lift) in parallel — wall time stays at the
-    // slower of the two instead of summing. The extraction populates
-    // individual Review rows so the venue detail page can show 20-30
-    // raw voices in addition to the AI summary card. Extraction
-    // failure is non-fatal: the summary still saves and the user sees
-    // the existing single-card UX.
-    const [claudeResponse, extractionResponse] = await Promise.all([
-      cachedAskClaude({
+    // Multi-page crawl drives BOTH the summary and the individual-review
+    // extraction so Sonnet's summary reflects all 100-200 reviews across
+    // pages, not just the 25 on page 1. The crawl runs in parallel and
+    // returns a merged corpus we feed to the Sonnet prompt.
+    //
+    // Crawl runs first because Sonnet should see the full corpus. Wall
+    // time is dominated by the slowest page fetch + the slowest Haiku
+    // call (~20-30s), then Sonnet adds another 10-20s. Stays inside
+    // the 90s outer race in analyzeVenueReviews.
+    const crawl = await extractAcrossPages(
+      sourceUrl,
+      source,
+      venue.name,
+    );
+    const summaryCorpus = crawl.mergedCorpusForSummary || strippedContent;
+    const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage(
+      [stripPII(summaryCorpus)],
+      venue.name,
+    );
+
+    let claudeResponse: string | null = null;
+    try {
+      claudeResponse = await cachedAskClaude({
         system: REVIEW_SUMMARY_PROMPT.system,
         userMessage: reviewUserMessage,
         model: MODEL.SONNET,
         promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
-      }),
-      cachedAskClaude({
-        system: REVIEW_EXTRACTION_PROMPT.system,
-        userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
-          strippedContent,
-          venue.name,
-        ),
-        model: REVIEW_EXTRACTION_PROMPT.model,
-        promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
-        maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
-      }).catch((err) => {
-        console.warn(
-          "[analyzeVenueReviews] individual extraction failed (non-fatal):",
-          err,
-        );
-        return null;
-      }),
-    ]);
+      });
+    } catch (err) {
+      console.warn(
+        "[analyzeVenueReviews] Sonnet summary failed:",
+        err,
+      );
+    }
+    // crawl.reviews replaces the prior single-page extractionResponse path —
+    // we already have validated rows ready for saveExtractedReviews.
+    const crawledIndividuals = crawl.reviews;
     if (claudeResponse === null) {
+      // Sonnet failed — but we still have the multi-page crawl results.
+      // Save the individuals so the user gets at least the raw reviews
+      // even when the synthesis pass dropped. Without this, a Sonnet
+      // hiccup loses 8 pages of fresh extraction work.
+      if (crawledIndividuals.length > 0) {
+        await saveExtractedReviews(
+          venueId,
+          crawledIndividuals,
+          sourceUrl,
+          source,
+        ).catch((err) =>
+          console.warn(
+            "[analyzeVenueReviews] saveExtractedReviews after Sonnet failure:",
+            err,
+          ),
+        );
+        revalidateTag(`venue:${venueId}`, { expire: 0 });
+        revalidateTag(`project:${projectId}`, { expire: 0 });
+        revalidatePath(`/venues/${venueId}`);
+      }
       return {
         ok: false,
         reason: "api-error",
@@ -581,57 +813,36 @@ async function analyzeVenueReviewsInner(
       });
     }
 
-    // Persist individual reviews extracted in parallel above. Best-
-    // effort: malformed JSON or per-row upsert errors are logged inside
-    // saveExtractedReviews itself and shouldn't block the summary save.
-    if (extractionResponse) {
-      try {
-        const stripped = stripJsonResponse(extractionResponse);
-        const parsed = JSON.parse(stripped) as { reviews?: unknown };
-        const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
-        // Diagnostic — if rawReviews.length is 0 the page was JS-rendered or
-        // the prompt missed its target; visible in Vercel runtime logs.
-        const validated = rawReviews
-          .map(parseExtractedReviewRow)
-          .filter((r): r is NonNullable<typeof r> => r !== null)
-          .slice(0, 25);
-        console.log("[analyzeVenueReviews] extraction result", {
+    // Persist individuals from the multi-page crawl. extractAcrossPages
+    // already ran Haiku per page, deduped by body hash, and applied
+    // parseExtractedReviewRow validation. Best-effort: per-row upsert
+    // errors are logged inside saveExtractedReviews and don't block the
+    // summary save.
+    if (crawledIndividuals.length > 0) {
+      const saveResult = await saveExtractedReviews(
+        venueId,
+        crawledIndividuals,
+        sourceUrl,
+        source,
+      );
+      console.log("[analyzeVenueReviews] saveExtractedReviews result", {
+        venueId,
+        sourceUrl,
+        crawled: crawledIndividuals.length,
+        pagesFetched: crawl.pagesFetched,
+        pagesAttempted: crawl.pagesAttempted,
+        ...saveResult,
+      });
+    } else {
+      console.warn(
+        "[analyzeVenueReviews] multi-page crawl returned 0 individuals",
+        {
           venueId,
           sourceUrl,
           source,
-          rawReviewsCount: rawReviews.length,
-          validatedCount: validated.length,
-          pageTextLength: textContent.length,
-          extractionResponseLength: extractionResponse.length,
-        });
-        if (validated.length > 0) {
-          const saveResult = await saveExtractedReviews(
-            venueId,
-            validated,
-            sourceUrl,
-            source,
-          );
-          console.log("[analyzeVenueReviews] saveExtractedReviews result", {
-            venueId,
-            sourceUrl,
-            ...saveResult,
-          });
-        }
-      } catch (err) {
-        console.warn(
-          "[analyzeVenueReviews] individual review parse failed (non-fatal):",
-          {
-            err: err instanceof Error ? err.message : err,
-            extractionResponseLength: extractionResponse.length,
-            extractionResponsePreview: extractionResponse.slice(0, 200),
-            extractionResponseTail: extractionResponse.slice(-200),
-          },
-        );
-      }
-    } else {
-      console.warn(
-        "[analyzeVenueReviews] extractionResponse was null (Haiku failed or rate-limited)",
-        { venueId, sourceUrl, source },
+          pagesFetched: crawl.pagesFetched,
+          pagesAttempted: crawl.pagesAttempted,
+        },
       );
     }
 
@@ -1214,50 +1425,6 @@ export async function extractIndividualReviewsFromSource(
     },
   });
 
-  // Re-fetch the source page (mirrors analyzeVenueReviewsInner — same
-  // Chrome UA + headers so zexy / wedding park don't 403). 25s budget
-  // matches the analyze inner timeout.
-  const guard = guardExternalUrl(review.sourceUrl);
-  if (!guard.ok) {
-    return { ok: false, error: "ソース URL を取得できません" };
-  }
-  const referer = `${guard.url.protocol}//${guard.url.hostname}/`;
-  let html: string;
-  try {
-    const response = await fetch(review.sourceUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
-        "Cache-Control": "no-cache",
-        DNT: "1",
-        Referer: referer,
-      },
-      signal: AbortSignal.timeout(25_000),
-    });
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: `${review.source} の応答エラー (HTTP ${response.status})`,
-      };
-    }
-    html = await response.text();
-  } catch (err) {
-    if (err instanceof Error && err.name === "TimeoutError") {
-      return { ok: false, error: "ソースページの取得が時間切れになりました" };
-    }
-    return { ok: false, error: "ソースページを取得できませんでした" };
-  }
-
-  const textContent = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
   // Resolve venue name for the prompt — needed only for the per-prompt
   // header line.
   const venue = await prisma.venue.findUnique({
@@ -1266,75 +1433,20 @@ export async function extractIndividualReviewsFromSource(
   });
   const venueName = venue?.name ?? "";
 
-  let extractionResponse: string | null = null;
-  let extractionError: string | null = null;
-  try {
-    extractionResponse = await cachedAskClaude({
-      system: REVIEW_EXTRACTION_PROMPT.system,
-      userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
-        stripPII(textContent),
-        venueName,
-      ),
-      model: REVIEW_EXTRACTION_PROMPT.model,
-      promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
-      maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
-    });
-  } catch (err) {
-    extractionError =
-      err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-    console.warn("[extractIndividualReviewsFromSource] Haiku failed:", {
-      reviewId,
-      sourceUrl: review.sourceUrl,
-      error: extractionError,
-    });
-  }
+  // Multi-page crawl: paginate the source URL, fetch each page,
+  // run Haiku extraction per page, dedup by body hash. mwed has
+  // 33 pages × 25 reviews; we cap at 8 = 200 reviews to keep wall
+  // time + cost reasonable while exceeding the user-stated 100+ floor.
+  const crawl = await extractAcrossPages(
+    review.sourceUrl,
+    review.source,
+    venueName,
+  );
 
-  if (!extractionResponse) {
-    return {
-      ok: false,
-      error: extractionError
-        ? `AI 抽出に失敗しました: ${extractionError}`
-        : "AI 抽出に失敗しました。少し待ってから再試行してください",
-    };
-  }
-
-  let validated: Array<{
-    title: string | null;
-    body: string;
-    rating: number | null;
-    author: string | null;
-    visitedAt: string | null;
-  }> = [];
-  try {
-    const stripped = stripJsonResponse(extractionResponse);
-    const parsed = JSON.parse(stripped) as { reviews?: unknown };
-    const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
-    validated = rawReviews
-      .map(parseExtractedReviewRow)
-      .filter((r): r is NonNullable<typeof r> => r !== null)
-      .slice(0, 25);
-  } catch (err) {
-    console.warn(
-      "[extractIndividualReviewsFromSource] parse failed:",
-      err,
-    );
-    return { ok: false, error: "AI 応答の読み取りに失敗しました" };
-  }
-
-  console.log("[extractIndividualReviewsFromSource] result", {
-    reviewId,
-    sourceUrl: review.sourceUrl,
-    rawCount: validated.length,
-    pageTextLength: textContent.length,
-  });
-
-  if (validated.length === 0) {
-    // Diagnostic-rich error so the user can tell us which scenario hit
-    // (page text empty = JS-rendered source, AI returned 0 = prompt
-    // missed its target, etc).
+  if (crawl.reviews.length === 0) {
     const reason =
-      textContent.length < 500
-        ? "ページの本文がほぼ空でした (JavaScript で描画される構造かもしれません)"
+      crawl.pagesFetched === 0
+        ? "どのページも取得できませんでした (サイト側のレートリミットや一時障害かもしれません)"
         : "AI が個別レビューを 1 件も検出できませんでした (URL がレビュー一覧ページか確認してください)";
     return {
       ok: false,
@@ -1344,7 +1456,7 @@ export async function extractIndividualReviewsFromSource(
 
   const saveResult = await saveExtractedReviews(
     review.venueId,
-    validated,
+    crawl.reviews,
     review.sourceUrl,
     review.source,
   );

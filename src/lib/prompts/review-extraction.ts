@@ -39,6 +39,12 @@ export const REVIEW_EXTRACTION_PROMPT = {
 ## Rules
 
 - Return UP TO 25 distinct reviews. Quality over quantity — skip entries with body < 50 chars after stripping markup.
+- **Selection priority — diversity over star bias**:
+  Wedding-venue review sites are heavily skewed toward 4-5 star praise. Couples need to read the criticisms, not 25 variations of "最高でした". When the page has more than 25 substantive reviews:
+  1. **Include EVERY review whose body contains substantive criticism, regret, warning, "残念", "微妙", "もう少し…", or any concrete drawback** — even if the star rating is 4-5. These are the most decision-relevant entries.
+  2. **Include EVERY review with rating ≤ 3** when present.
+  3. Then fill remaining slots with the most concrete / specific positive reviews (favor entries that mention specific dish names, staff actions, schedule moments — not generic 「最高でした」 entries).
+  4. Reject pure-superlative reviews with no concrete observation (likely PR / monitor campaigns).
 - **sentiment** classifies the review's BODY text, NOT just the star rating:
   - "positive" — overall praise; "良かった/最高/満足/おすすめ" 系の評価が中心
   - "negative" — body contains substantive complaint / regret / warning even if the star rating is high (e.g. "雰囲気は素敵だったが対応が雑で残念" → negative)
@@ -73,4 +79,8 @@ JSON only. No markdown fences, no preamble, no trailing text. Start with \`{\` a
   maxTokens: 8000,
 };
 
-export const REVIEW_EXTRACTION_PROMPT_VERSION = 1;
+// Bump on every prompt-semantic change so cachedAskClaude treats the
+// new contract as a different cache key (existing cached "all-positive
+// 20 reviews" outputs from prior versions don't get served against the
+// new "prioritise negatives + 25 cap + sentiment field" prompt).
+export const REVIEW_EXTRACTION_PROMPT_VERSION = 2;
