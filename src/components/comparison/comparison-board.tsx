@@ -6,6 +6,7 @@ import type { MatrixInsight } from "@/server/actions/matrix-insight";
 import type { MatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import type { VenueDisagreement } from "@/server/actions/disagreement-spotlight";
 import type { VenueVisitNotePreview } from "@/server/actions/visit-notes-preview";
+import type { EstimateBreakdownComparison } from "@/server/actions/estimate-breakdown-comparison";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 import { MatrixInsightCard } from "./matrix-insight-card";
@@ -13,6 +14,7 @@ import { MatrixReviewInsightCard } from "./matrix-review-insight-card";
 import { DisagreementSpotlightCard } from "./disagreement-spotlight-card";
 import { VisitNotesPreviewCard } from "./visit-notes-preview-card";
 import { PhotoComparisonGrid } from "./photo-comparison-grid";
+import { EstimateBreakdownCard } from "./estimate-breakdown-card";
 
 /**
  * Responsive wrapper — picks between the desktop CSS-Grid board and the
@@ -29,6 +31,7 @@ export function ComparisonBoard({
   matrixReviewInsight = null,
   disagreements = [],
   visitNotePreviews = [],
+  estimateBreakdown = { venueIds: [], groups: [], grandTotalByVenueId: {} },
 }: {
   matrix: ComparisonMatrix;
   /** W18-1: couple's averaged dimension weights (owner+partner mean from
@@ -50,6 +53,10 @@ export function ComparisonBoard({
   /** Cross-venue VisitNote excerpts — most recent note per venue.
    *  Empty before any visits → card self-hides. */
   visitNotePreviews?: VenueVisitNotePreview[];
+  /** Item-level estimate breakdown so couples can compare 「ドレス代
+   *  Aは40万、Bは65万」 at a glance. Self-hides when no venue has
+   *  any estimate items. */
+  estimateBreakdown?: EstimateBreakdownComparison;
 }) {
   // Map venueId → name so VisitNotesPreviewCard can label rows without
   // re-querying. The matrix is the single source of truth for venue names.
@@ -69,6 +76,13 @@ export function ComparisonBoard({
           jumping between venue detail pages. Self-hides when no venue
           has photos. Cycle 強化 (写真 lens). */}
       <PhotoComparisonGrid venues={matrix.venues} />
+      {/* Cost breakdown — 項目ごとの横並びで「どこが高い・安い」を即把握。
+          Mobile では table 横スクロール、項目ラベル列が sticky。Self-
+          hides when no venue has any estimate items. */}
+      <EstimateBreakdownCard
+        data={estimateBreakdown}
+        matrixVenueIdsToNames={venueIdToName}
+      />
       {/* CMP-5: AI analysis card — placed after the grid, before Decision section */}
       <MatrixInsightCard insight={matrixInsight} />
       {/* R3: cross-venue review insight — placed beneath the

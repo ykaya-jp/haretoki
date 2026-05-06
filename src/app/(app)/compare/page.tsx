@@ -9,6 +9,7 @@ import { getMatrixInsight } from "@/server/actions/matrix-insight";
 import { getMatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import { getMatrixDisagreements } from "@/server/actions/disagreement-spotlight";
 import { getMatrixVisitNotes } from "@/server/actions/visit-notes-preview";
+import { getEstimateBreakdownComparison } from "@/server/actions/estimate-breakdown-comparison";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -111,6 +112,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
     matrixReviewInsight,
     disagreements,
     visitNotePreviews,
+    estimateBreakdown,
   ] = await Promise.all([
     getComparisonMatrix(ids),
     getCoupleWeights().catch(() => null),
@@ -118,6 +120,11 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
     getMatrixReviewInsight(ids).catch(() => null),
     getMatrixDisagreements(ids).catch(() => []),
     getMatrixVisitNotes(ids).catch(() => []),
+    getEstimateBreakdownComparison(ids).catch(() => ({
+      venueIds: [],
+      groups: [],
+      grandTotalByVenueId: {},
+    })),
   ]);
   const insufficient = matrix.venues.length === 1;
 
@@ -153,6 +160,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
             matrixReviewInsight={matrixReviewInsight}
             disagreements={disagreements}
             visitNotePreviews={visitNotePreviews}
+            estimateBreakdown={estimateBreakdown}
           />
       )}
     </div>
