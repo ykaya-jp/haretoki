@@ -237,11 +237,12 @@ async function extractAcrossPages(
   const pageTexts = await limitedAll(urls, 3, fetchReviewPageText);
   const okPages = pageTexts.filter((t): t is string => t != null && t.length > 200);
 
-  // Sonnet summary corpus: concatenate all successful pages, capped at
-  // 50K chars (≈ 35K tokens) so the summary reflects every fetched
-  // review, not just page 1. The summary call lives elsewhere; we
-  // return the corpus so the caller can hand it off.
-  const mergedCorpusForSummary = okPages.join("\n\n").slice(0, 50_000);
+  // Sonnet summary corpus: concatenate all successful pages so the
+  // summary reflects every fetched review, not just page 1. Capped at
+  // 25K chars (≈ 15K tokens) — the prior 50K cap pushed Sonnet's
+  // processing time past the 45s askClaude default and the summary
+  // never saved. 25K is still 2-3x richer than a single page.
+  const mergedCorpusForSummary = okPages.join("\n\n").slice(0, 25_000);
 
   // Haiku extraction per page, concurrency 3. Each page is constrained
   // to 25 reviews by REVIEW_EXTRACTION_PROMPT so output fits comfortably
@@ -719,11 +720,22 @@ async function analyzeVenueReviewsInner(
         userMessage: reviewUserMessage,
         model: MODEL.SONNET,
         promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
+        // 75s budget for Sonnet on the merged corpus. Was the askClaude
+        // default of 45s, which truncated processing of 25K-char inputs
+        // and left no Review row created (= no summary card visible).
+        // Stays inside the analyzeVenueReviews 110s outer race.
+        timeoutMs: 75_000,
       });
     } catch (err) {
       console.warn(
         "[analyzeVenueReviews] Sonnet summary failed:",
-        err,
+        {
+          venueId,
+          sourceUrl,
+          source,
+          summaryCorpusLength: summaryCorpus.length,
+          err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        },
       );
     }
     // crawl.reviews replaces the prior single-page extractionResponse path —
