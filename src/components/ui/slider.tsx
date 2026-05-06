@@ -51,8 +51,10 @@ function Slider<V extends number | readonly number[] = readonly number[]>({
           <SliderPrimitive.Thumb
             key={i}
             data-slot="slider-thumb"
-            className="block size-5 shrink-0 rounded-full border-2 border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:outline-none focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50"
-          />
+            className="flex size-5 shrink-0 items-center justify-center rounded-full border-[0.5px] border-ring bg-background shadow-[0_1px_3px_rgba(42,35,32,0.12)] ring-primary/20 transition-[color,box-shadow] hover:ring-4 focus-visible:outline-none focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50"
+          >
+            <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+          </SliderPrimitive.Thumb>
         ))}
       </SliderPrimitive.Control>
     </SliderPrimitive.Root>
