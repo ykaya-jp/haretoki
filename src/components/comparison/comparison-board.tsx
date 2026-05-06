@@ -5,11 +5,13 @@ import type { DimensionWeights } from "@/lib/weighted-score";
 import type { MatrixInsight } from "@/server/actions/matrix-insight";
 import type { MatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import type { VenueDisagreement } from "@/server/actions/disagreement-spotlight";
+import type { VenueVisitNotePreview } from "@/server/actions/visit-notes-preview";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 import { MatrixInsightCard } from "./matrix-insight-card";
 import { MatrixReviewInsightCard } from "./matrix-review-insight-card";
 import { DisagreementSpotlightCard } from "./disagreement-spotlight-card";
+import { VisitNotesPreviewCard } from "./visit-notes-preview-card";
 
 /**
  * Responsive wrapper — picks between the desktop CSS-Grid board and the
@@ -25,6 +27,7 @@ export function ComparisonBoard({
   matrixInsight = null,
   matrixReviewInsight = null,
   disagreements = [],
+  visitNotePreviews = [],
 }: {
   matrix: ComparisonMatrix;
   /** W18-1: couple's averaged dimension weights (owner+partner mean from
@@ -43,7 +46,16 @@ export function ComparisonBoard({
    *  venue where owner / partner deltas exceed 1.0. Empty on solo
    *  projects. Card self-hides when array is empty. */
   disagreements?: VenueDisagreement[];
+  /** Cross-venue VisitNote excerpts — most recent note per venue.
+   *  Empty before any visits → card self-hides. */
+  visitNotePreviews?: VenueVisitNotePreview[];
 }) {
+  // Map venueId → name so VisitNotesPreviewCard can label rows without
+  // re-querying. The matrix is the single source of truth for venue names.
+  const venueIdToName: Record<string, string> = Object.fromEntries(
+    matrix.venues.map((v) => [v.id, v.name]),
+  );
+
   return (
     <div className="space-y-4">
       <div className="md:hidden">
@@ -58,9 +70,15 @@ export function ComparisonBoard({
           quantitative card so couples read 定量 → 定性 in order.
           Self-hides when there are no reviews to aggregate. */}
       <MatrixReviewInsightCard insight={matrixReviewInsight} />
-      {/* Partner disagreement spotlight — third lens after 定量/定性,
-          this one focused on partner agreement. Self-hides on solo
-          projects or when no dimension exceeds the 1.0 delta floor. */}
+      {/* Lived-experience lens — visit notes side by side. Self-hides
+          before any visits. Pairs with the 3 lenses above so couples
+          read 定量 → 定性 → 体験 → 合意 as a 4-step decision narrative. */}
+      <VisitNotesPreviewCard
+        previews={visitNotePreviews}
+        matrixVenueIdsToNames={venueIdToName}
+      />
+      {/* Partner disagreement spotlight — focused on agreement. Self-hides
+          on solo projects or when no dimension exceeds the 1.0 delta floor. */}
       <DisagreementSpotlightCard disagreements={disagreements} />
     </div>
   );
