@@ -1896,10 +1896,19 @@ async function runReviewSummary(
   venueId: string,
   sourceUrl: string,
   reviewSource: ReviewSource | null,
-  extractedReviewCount: number,
+  // Hint only — no longer used to short-circuit. The prior
+  // `extractedReviewCount === 0 → skipped` early return blocked the
+  // multi-page crawl from ever firing on URLs whose initial single-
+  // page extraction missed reviews (e.g. mwed /hall/{id}/rev/ where
+  // deriveMwed normalises to /hall/{id}/ which has fewer embedded
+  // reviews than the dedicated review page). analyzeVenueReviewsInner
+  // now does its own pagination + Haiku per page, so it'll genuinely
+  // find reviews on the source URL even when the parent extraction
+  // returned zero. If the source really is reviewless, analyze
+  // returns no-reviews and we map that to "skipped" below.
+  _hintCountFromInitialExtraction: number,
 ): Promise<ReviewSummaryStatus> {
   if (!reviewSource) return "skipped";
-  if (extractedReviewCount === 0) return "skipped";
   try {
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
     const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
