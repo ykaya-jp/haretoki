@@ -12,6 +12,7 @@ import { MatrixInsightCard } from "./matrix-insight-card";
 import { MatrixReviewInsightCard } from "./matrix-review-insight-card";
 import { DisagreementSpotlightCard } from "./disagreement-spotlight-card";
 import { VisitNotesPreviewCard } from "./visit-notes-preview-card";
+import { PhotoComparisonGrid } from "./photo-comparison-grid";
 
 /**
  * Responsive wrapper — picks between the desktop CSS-Grid board and the
@@ -64,6 +65,10 @@ export function ComparisonBoard({
       <div className="hidden md:block">
         <ComparisonGrid matrix={matrix} weights={weights} />
       </div>
+      {/* Photo cross-venue grid — visual atmosphere comparison without
+          jumping between venue detail pages. Self-hides when no venue
+          has photos. Cycle 強化 (写真 lens). */}
+      <PhotoComparisonGrid venues={matrix.venues} />
       {/* CMP-5: AI analysis card — placed after the grid, before Decision section */}
       <MatrixInsightCard insight={matrixInsight} />
       {/* R3: cross-venue review insight — placed beneath the
