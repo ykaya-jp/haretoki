@@ -1440,6 +1440,7 @@ export async function confirmVenueFromUrl(
     console.warn("[confirmVenueFromUrl] zod parse failed", parsed.error.issues.slice(0, 3));
     return { success: false as const, error: "データの形式が正しくありません" };
   }
+  console.warn("[confirmVenueFromUrl] zod parse OK");
 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
@@ -1462,6 +1463,8 @@ export async function confirmVenueFromUrl(
     longitude: parsed.data.longitude ?? null,
     normalizedName: candidateNormalizedName,
   };
+
+  console.warn("[confirmVenueFromUrl] auth + setup OK", { userId: user.id, projectId });
 
   // Cross-site dedupe: look for an already-tracked venue in the same project.
   // Scoped query narrows to likely candidates only (same normalized name OR
@@ -1505,6 +1508,7 @@ export async function confirmVenueFromUrl(
 
     match = matchExistingVenue(candidate, candidates);
   }
+  console.warn("[confirmVenueFromUrl] dedupe done", { matched: match != null });
 
   if (match) {
     // ─── MERGE branch ────────────────────────────────────────────────
@@ -1624,6 +1628,7 @@ export async function confirmVenueFromUrl(
   }
 
   // ─── CREATE branch ─────────────────────────────────────────────────
+  console.warn("[confirmVenueFromUrl] CREATE branch — about to create venue");
   const venue = await prisma.venue.create({
     data: {
       projectId,
