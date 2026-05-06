@@ -137,7 +137,7 @@ export function HomeCover({
             {timeOfDayLabel && (
               <>
                 <span aria-hidden="true" className="opacity-50">·</span>
-                <span className="normal-case tracking-normal text-[12.5px]">
+                <span className="normal-case tracking-normal text-fluid-sm">
                   {timeOfDayLabel}
                 </span>
               </>
@@ -149,7 +149,7 @@ export function HomeCover({
           <div className="flex flex-col items-center gap-1">
             <SkyChip mood={weather} size={64} />
             <span
-              className="text-[10.5px] tracking-[0.12em] text-white/85 uppercase"
+              className="text-eyebrow text-white/85"
               aria-label={`ふたりの今日の空 ${weatherLabel(weather)}`}
             >
               {weatherLabel(weather)}
@@ -158,7 +158,7 @@ export function HomeCover({
         </div>
 
         <div className="absolute bottom-5 left-5 right-5">
-          <p className="text-[13.5px] text-white/80">
+          <p className="text-fluid-sm text-white/80">
             {greeting}、<span className="text-white">{userName}</span>さん
           </p>
           <h1
