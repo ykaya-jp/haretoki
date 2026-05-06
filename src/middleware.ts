@@ -22,6 +22,12 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
 
+  // Expose pathname so the (app) layout can render the bottom-nav
+  // コーチ badge as 0 when the user is already on /coach (avoids the
+  // race where layout reads the count concurrently with the page-level
+  // markCoachInsightsSeen and shows the stale 6).
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
   // Next.js 16 reads the CSP from REQUEST headers and auto-stamps the
   // nonce on framework-generated <script> / <style> tags during SSR.
   // Without this the inline `self.__next_f.push(...)` bundles ship

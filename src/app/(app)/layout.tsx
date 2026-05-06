@@ -1,4 +1,5 @@
 import { cache, Suspense } from "react";
+import { headers } from "next/headers";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/sonner";
@@ -66,18 +67,32 @@ const getBottomNavBadgeCounts = cache(
 async function NavWithRealtime({
   projectPromise,
   userId,
+  pathname,
 }: {
   projectPromise: Promise<Project>;
   userId: string;
+  pathname: string;
 }) {
   const project = await projectPromise;
   const { favoriteCount, insightCount } = await getBottomNavBadgeCounts(
     project.id,
     userId,
   );
+  // When the user is already on /coach, force the badge to 0. The page
+  // itself bumps coachInsightsSeenAt on render, but that update races
+  // with this layout's badge query (Server Components render in
+  // parallel) so the user would still see the pre-visit count until
+  // the next navigation. Treating "you're on it" as "you've seen it"
+  // matches the user's mental model: opening the tab clears the dot.
+  const onCoach = pathname.startsWith("/coach");
   return (
     <RealtimeProvider projectId={project.id} viewerUserId={userId}>
-      <BottomNav badges={{ candidates: favoriteCount, coach: insightCount }} />
+      <BottomNav
+        badges={{
+          candidates: favoriteCount,
+          coach: onCoach ? 0 : insightCount,
+        }}
+      />
     </RealtimeProvider>
   );
 }
@@ -93,6 +108,7 @@ export default async function AppLayout({
   // non-awaited promise so children can stream before it resolves.
   const user = await requireUser();
   const projectPromise = getOrCreateProject();
+  const pathname = (await headers()).get("x-pathname") ?? "";
 
   // W16-6: MotionProvider scoped to (app) — see comment in src/app/layout.tsx.
   // Authenticated UI relies heavily on framer-motion (drag, layout, AnimatePresence),
@@ -127,7 +143,11 @@ export default async function AppLayout({
         {/* Stream nav: shell (BottomNav without counts) flushes first while
             getOrCreateProject + badge DB round-trips resolve in the background. */}
         <Suspense fallback={<BottomNav />}>
-          <NavWithRealtime projectPromise={projectPromise} userId={user.id} />
+          <NavWithRealtime
+            projectPromise={projectPromise}
+            userId={user.id}
+            pathname={pathname}
+          />
         </Suspense>
         <Toaster position="bottom-center" />
       </div>
