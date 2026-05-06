@@ -120,10 +120,10 @@ export function ProactiveSuggestions({
                     />
                   </span>
                   <span className="min-w-0 flex-1 space-y-1">
-                    <span className="block truncate font-[family-name:var(--font-display)] text-[14.5px] font-light text-foreground">
+                    <span className="block truncate font-[family-name:var(--font-display)] text-fluid-base font-light text-foreground">
                       {s.title}
                     </span>
-                    <span className="block truncate text-[12px] leading-relaxed text-muted-foreground">
+                    <span className="block truncate text-fluid-xs leading-relaxed text-muted-foreground">
                       {s.subtitle}
                     </span>
                   </span>
@@ -132,7 +132,7 @@ export function ProactiveSuggestions({
                   type="button"
                   onClick={() => sendNow(s)}
                   disabled={isPending}
-                  className="inline-flex min-h-9 shrink-0 items-center gap-1 self-center rounded-full border border-border bg-background px-3 text-[11.5px] font-medium text-foreground/80 transition-all active:scale-95 disabled:opacity-60"
+                  className="inline-flex min-h-9 shrink-0 items-center gap-1 self-center rounded-full border border-border bg-background px-3 text-fluid-xs font-medium text-foreground/80 transition-all active:scale-95 disabled:opacity-60"
                   aria-label={`${s.title} を AI コーチに送信`}
                 >
                   {loading ? (

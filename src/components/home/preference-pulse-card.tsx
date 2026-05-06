@@ -33,7 +33,7 @@ export async function PreferencePulseCard() {
           />
           ふたりの色
         </p>
-        <span className="tabular-nums text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="tabular-nums text-eyebrow text-muted-foreground">
           {v.signalCount} venues
         </span>
       </div>
@@ -48,7 +48,7 @@ export async function PreferencePulseCard() {
             {v.topVibes.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_22%,transparent)] bg-card/80 px-2.5 py-0.5 text-[11.5px] text-foreground/85"
+                className="inline-flex items-center rounded-full border border-[color-mix(in_oklab,var(--gold-warm)_22%,transparent)] bg-card/80 px-2.5 py-0.5 text-fluid-xs text-foreground/85"
               >
                 {tag}
               </span>
@@ -69,7 +69,7 @@ export async function PreferencePulseCard() {
       <Link
         href="/explore"
         prefetch={true}
-        className="mt-4 inline-flex min-h-11 items-center gap-1 text-[12.5px] text-[var(--gold-warm)] underline-offset-4 hover:underline"
+        className="mt-4 inline-flex min-h-11 items-center gap-1 text-fluid-sm text-[var(--gold-warm)] underline-offset-2 hover:underline"
       >
         ふたりっぽい式場をさがす →
       </Link>
