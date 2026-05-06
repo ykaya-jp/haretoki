@@ -33,8 +33,8 @@ async function fetchJourneyMilestones(
         where: { id: projectId },
         select: { createdAt: true },
       }),
-      prisma.venueFavorite.count({ where: { userId, venue: { projectId } } }),
-      prisma.visit.count({ where: { venue: { projectId }, status: "completed" } }),
+      prisma.venueFavorite.count({ where: { userId, venue: { projectId, deletedAt: null } } }),
+      prisma.visit.count({ where: { venue: { projectId, deletedAt: null }, status: "completed" } }),
       prisma.estimate.count({ where: { projectId } }),
       prisma.decision.findUnique({
         where: { projectId },
@@ -42,12 +42,12 @@ async function fetchJourneyMilestones(
       }),
       // earliest timestamps for each milestone
       prisma.venueFavorite.findFirst({
-        where: { userId, venue: { projectId } },
+        where: { userId, venue: { projectId, deletedAt: null } },
         orderBy: { createdAt: "asc" },
         select: { createdAt: true },
       }),
       prisma.visit.findFirst({
-        where: { venue: { projectId }, status: "completed" },
+        where: { venue: { projectId, deletedAt: null }, status: "completed" },
         orderBy: { completedAt: "asc" },
         select: { completedAt: true },
       }),

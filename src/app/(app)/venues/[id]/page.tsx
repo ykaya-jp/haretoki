@@ -27,6 +27,8 @@ import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
 import { PartnerCanRateHint } from "@/components/ratings/partner-can-rate-hint";
 import { VisitSection } from "@/components/visits/visit-section";
+import { VenueMemoSection } from "@/components/venues/venue-memo-section";
+import { getVenueMemos } from "@/server/actions/venue-memos";
 import { EstimateXRay } from "@/components/venues/estimate-xray";
 import { EstimateWaterfallChart } from "@/components/venues/estimate-waterfall-chart";
 import { EstimateTimeline } from "@/components/estimates/estimate-timeline";
@@ -55,8 +57,18 @@ const VENUE_SECTIONS = [
   { id: "review", label: "口コミ" },
   { id: "plan", label: "プラン" },
   { id: "estimate", label: "見積" },
+  { id: "memo", label: "メモ" },
   { id: "visit", label: "見学" },
 ] as const;
+
+// Bump function timeout for the URL-import server actions (`addVenueFromUrl`,
+// `batchImportReviewUrls`, `analyzeVenueReviews`) invoked from this page.
+// Default Vercel server-action timeout is the project plan default (60s
+// on Hobby, 300s on Pro); a single mwed.jp / zexy fetch can take 15s and
+// a batch of 5 URLs at concurrency 3 still spans ~30-40s including Claude
+// inference. 120s gives plenty of headroom while staying inside Pro's
+// 300s function ceiling.
+export const maxDuration = 120;
 
 export default async function VenueDetailPage({
   params,
@@ -288,6 +300,25 @@ export default async function VenueDetailPage({
             venue.serviceFeeRate != null ? Number(venue.serviceFeeRate) : null
           }
         />
+      </section>
+
+      {/* ===== Memo section ===== — Venue-scoped free-text. Sits above
+          the visit section so couples can jot pre-visit thoughts and
+          post-comparison summaries without scheduling a visit row first. */}
+      <section
+        id="memo"
+        role="tabpanel"
+        aria-labelledby="tab-memo"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        className="space-y-4 focus-visible:outline-none"
+      >
+        <Suspense fallback={<MemosSkeleton />}>
+          <MemosContent
+            venueId={venue.id}
+            projectId={venue.projectId}
+          />
+        </Suspense>
       </section>
 
       {/* ===== Visit section ===== (last — scheduling happens after the
@@ -698,6 +729,39 @@ function VisitsSkeleton() {
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">
       <Skeleton className="h-5 w-28" />
       <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
+
+async function MemosContent({
+  venueId,
+  projectId,
+}: {
+  venueId: string;
+  projectId: string;
+}) {
+  const user = await requireUser();
+  const memos = await getVenueMemos(venueId);
+  const allMembers = await prisma.projectMember.findMany({
+    where: { projectId },
+    select: { userId: true },
+  });
+  const partnerUserId = allMembers.find((m) => m.userId !== user.id)?.userId ?? undefined;
+  return (
+    <VenueMemoSection
+      venueId={venueId}
+      memos={memos}
+      currentUserId={user.id}
+      partnerUserId={partnerUserId}
+    />
+  );
+}
+
+function MemosSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-24 w-full rounded-2xl" />
     </div>
   );
 }

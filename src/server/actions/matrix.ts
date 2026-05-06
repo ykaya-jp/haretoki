@@ -40,7 +40,9 @@ export async function getMatrixData(): Promise<MatrixData> {
   const favorites = await prisma.venueFavorite.findMany({
     where: {
       userId: user.id,
-      venue: { projectId },
+      // Match favorites.ts: skip soft-deleted venues so the comparison
+      // board doesn't surface 式場 the user just removed.
+      venue: { projectId, deletedAt: null },
     },
     include: {
       venue: {
