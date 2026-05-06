@@ -27,7 +27,7 @@ export function TimeEcho({ firstVenue }: TimeEchoProps) {
       <Link
         href={`/venues/${firstVenue.id}`}
         prefetch={true}
-        className="text-foreground underline-offset-4 hover:underline"
+        className="text-[var(--gold-warm)] underline-offset-2 hover:underline"
       >
         {firstVenue.name}
       </Link>

@@ -294,7 +294,7 @@ export default function SignupPage() {
             <Link
               href="/terms"
               prefetch={false}
-              className="text-foreground underline underline-offset-4"
+              className="text-[var(--gold-warm)] underline underline-offset-2"
             >
               利用規約
             </Link>
@@ -302,7 +302,7 @@ export default function SignupPage() {
             <Link
               href="/privacy"
               prefetch={false}
-              className="text-foreground underline underline-offset-4"
+              className="text-[var(--gold-warm)] underline underline-offset-2"
             >
               プライバシーポリシー
             </Link>
@@ -311,7 +311,7 @@ export default function SignupPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             すでに場所をお持ちの方は{" "}
-            <Link href="/login" prefetch={true} className="font-medium text-primary underline underline-offset-4">
+            <Link href="/login" prefetch={true} className="font-medium text-[var(--gold-warm)] underline underline-offset-2">
               ログインして戻る
             </Link>
           </p>

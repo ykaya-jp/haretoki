@@ -135,7 +135,7 @@ export function PermissionSheet({
         className="rounded-t-3xl pb-[env(safe-area-inset-bottom)]"
       >
         <SheetHeader>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/30">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--gold-subtle)] text-[var(--gold-warm)]">
             <Bell className="h-5 w-5" aria-hidden="true" />
           </div>
           <SheetTitle className="text-center font-serif text-xl font-light tracking-tight">
@@ -152,15 +152,15 @@ export function PermissionSheet({
 
         <ul className="my-6 space-y-2 px-2 text-sm text-foreground">
           <li className="flex gap-3">
-            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--gold-warm)]" />
             <span>前日朝に下見準備のメモ</span>
           </li>
           <li className="flex gap-3">
-            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--gold-warm)]" />
             <span>当日 1 時間前に注目ポイント</span>
           </li>
           <li className="flex gap-3">
-            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+            <span aria-hidden="true" className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--gold-warm)]" />
             <span>見学後にメモを残すお誘い</span>
           </li>
         </ul>

@@ -274,7 +274,7 @@ function LoginPageInner() {
 
           <p className="text-center text-sm text-muted-foreground">
             はじめての方は{" "}
-            <Link href="/signup" prefetch={true} className="font-medium text-primary underline underline-offset-4">
+            <Link href="/signup" prefetch={true} className="font-medium text-[var(--gold-warm)] underline underline-offset-2">
               ふたりの場所をつくる
             </Link>
           </p>

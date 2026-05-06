@@ -18,7 +18,7 @@ export function AddVenueFAB({ onClick }: AddVenueFABProps) {
         type="button"
         onClick={onClick}
         aria-label="式場を追加"
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--gold-warm)] shadow-[0_4px_16px_rgba(184,138,76,0.35)] transition-transform duration-150 active:scale-[0.95]"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--gold-warm)] shadow-[var(--shadow-card)] transition-transform duration-150 active:scale-[0.95]"
       >
         <Plus className="h-6 w-6 text-white" strokeWidth={2} aria-hidden="true" />
       </button>

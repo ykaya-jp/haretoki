@@ -538,7 +538,7 @@ export function LandingPage({ variant = "control" }: LandingPageProps = {}) {
             <Link
               href="/demo"
               prefetch={true}
-              className="group inline-flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--gold-warm)]/30 bg-card px-8 py-3 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-[var(--gold-warm)]/60 hover:shadow-md active:scale-95"
+              className="group inline-flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--gold-warm)]/30 bg-card px-8 py-3 text-sm text-foreground shadow-[var(--shadow-card)] transition-colors duration-200 hover:border-[var(--gold-warm)]/60 hover:bg-[color-mix(in_oklab,var(--gold-warm)_8%,var(--card))] active:scale-95"
             >
               実際に触ってみる
               <ChevronRight className="h-4 w-4 text-[var(--gold-warm)] transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true" />
