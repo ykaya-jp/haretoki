@@ -60,8 +60,8 @@ export function VenueHeader({
         className="h-px bg-gradient-to-r from-[color-mix(in_oklab,var(--gold-warm)_40%,transparent)] via-[color-mix(in_oklab,var(--gold-warm)_20%,transparent)] to-transparent"
       />
 
-      {/* h1 — venue name in Noto Serif JP extralight 24-32px */}
-      <h1 className="font-[family-name:var(--font-display)] text-[clamp(24px,6vw,32px)] font-light leading-[1.25] tracking-[-0.01em]">
+      {/* h1 — venue name in Shippori Mincho 28-44px (modernize L2-A2) */}
+      <h1 className="font-[family-name:var(--font-display)] text-fluid-3xl font-light leading-[1.18] tracking-[-0.01em]">
         {name}
       </h1>
 
