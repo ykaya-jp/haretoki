@@ -6,7 +6,7 @@ import type { MatrixInsight } from "@/server/actions/matrix-insight";
 import type { MatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import type { VenueDisagreement } from "@/server/actions/disagreement-spotlight";
 import type { VenueVisitNotePreview } from "@/server/actions/visit-notes-preview";
-import type { EstimateBreakdownComparison } from "@/server/actions/estimate-breakdown-comparison";
+import type { EstimateBreakdownComparison } from "@/lib/estimate-breakdown-types";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 import { MatrixInsightCard } from "./matrix-insight-card";

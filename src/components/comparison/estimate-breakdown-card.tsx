@@ -2,7 +2,7 @@ import { JapaneseYen, Trophy } from "lucide-react";
 import type {
   EstimateBreakdownComparison,
   EstimateGroup,
-} from "@/server/actions/estimate-breakdown-comparison";
+} from "@/lib/estimate-breakdown-types";
 
 const formatMan = (yen: number) =>
   yen >= 10000
