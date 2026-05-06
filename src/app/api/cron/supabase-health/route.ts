@@ -64,8 +64,21 @@ async function handleCron(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // sanitiseSupabaseEnv strips the trailing-\n footgun and trims
+  // whitespace, matching how every other Supabase access path in this
+  // codebase reads the env. Direct process.env access is now reserved
+  // for presence probes only.
+  const { sanitiseSupabaseEnv } = await import("@/lib/supabase/env");
+  let supabaseUrl: string;
+  let anonKey: string;
+  try {
+    const env = sanitiseSupabaseEnv();
+    supabaseUrl = env.url;
+    anonKey = env.anonKey;
+  } catch {
+    supabaseUrl = "";
+    anonKey = "";
+  }
   if (!supabaseUrl || !anonKey) {
     // Operator misconfig — alert at p2 so on-call notices, but return
     // 200 so Vercel cron history shows green (a missing env var isn't

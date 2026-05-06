@@ -30,6 +30,13 @@ export interface SupabaseEnv {
   anonKey: string;
 }
 
+function cleanUrl(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\\[nrt]+$/g, "")
+    .replace(/[\\/]+$/g, "");
+}
+
 export function sanitiseSupabaseEnv(): SupabaseEnv {
   const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -41,12 +48,22 @@ export function sanitiseSupabaseEnv(): SupabaseEnv {
     throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined");
   }
 
-  const url = rawUrl
-    .trim()
-    .replace(/\\[nrt]+$/g, "")
-    .replace(/[\\/]+$/g, "");
+  return { url: cleanUrl(rawUrl), anonKey: rawKey.trim() };
+}
 
-  const anonKey = rawKey.trim();
+/**
+ * Optional admin (service-role) variant. Returns null when the service
+ * role key isn't configured so callers can degrade gracefully — the
+ * same null-when-missing contract the legacy createAdminClient had.
+ */
+export interface SupabaseAdminEnv {
+  url: string;
+  serviceKey: string;
+}
 
-  return { url, anonKey };
+export function sanitiseSupabaseAdminEnv(): SupabaseAdminEnv | null {
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!rawUrl || !rawKey) return null;
+  return { url: cleanUrl(rawUrl), serviceKey: rawKey.trim() };
 }
