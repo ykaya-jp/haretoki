@@ -31,6 +31,8 @@ import {
 } from "./comparison-field-registry";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
 import { VenueRemoveButton } from "./venue-remove-button";
+import { VenueProsCons } from "./venue-pros-cons";
+import { scoresToMap } from "@/lib/venue-pros-cons";
 import {
   buildFocusedSearchString,
   indexOfFocusedVenue,
@@ -305,6 +307,12 @@ function VenueCardView({
           {venue.location && (
             <p className="mt-1 text-[12px] text-muted-foreground">{venue.location}</p>
           )}
+          {/* Pros/Cons quick-scan — derived from 6-dimension scores
+              (≥4.0 → pros, ≤2.5 → cons). Renders nothing on mid-range
+              data so empty-state venues stay clean. Zero AI cost. */}
+          <div className="mt-3">
+            <VenueProsCons scoresByDimension={scoresToMap(venue.scores)} />
+          </div>
         </div>
       </Link>
 

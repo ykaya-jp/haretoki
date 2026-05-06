@@ -8,6 +8,8 @@ import {
   type DimensionWeights,
 } from "@/lib/weighted-score";
 import { VenueRemoveButton } from "./venue-remove-button";
+import { VenueProsCons } from "./venue-pros-cons";
+import { scoresToMap } from "@/lib/venue-pros-cons";
 
 /**
  * Sticky venue header that sits on top of each column.
@@ -118,6 +120,12 @@ export function ComparisonHeaderColumn({ venue, weights = null }: ComparisonHead
           )}
         </div>
       </Link>
+      {/* Pros/Cons quick-scan — derived from 6-dimension scores
+          (≥4.0 → ✓ pros, ≤2.5 → △ cons). Renders nothing on mid-range
+          data so empty-state venue columns stay clean. Zero AI cost. */}
+      <div className="w-full">
+        <VenueProsCons scoresByDimension={scoresToMap(venue.scores)} />
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
 import { getCoupleWeights } from "@/server/actions/weights";
 import { getMatrixInsight } from "@/server/actions/matrix-insight";
 import { getMatrixReviewInsight } from "@/server/actions/matrix-review-insight";
+import { getMatrixDisagreements } from "@/server/actions/disagreement-spotlight";
 import { COMPARE_MAX_VENUES } from "@/lib/comparison-types";
 import { ComparisonBoard } from "@/components/comparison/comparison-board";
 import Link from "next/link";
@@ -102,13 +103,19 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
   // page's blocking wait is bounded by the slowest of the four.
   // `.catch(null)` keeps the page rendering when reviews are absent,
   // Claude is unavailable, or the call times out.
-  const [matrix, coupleWeights, matrixInsight, matrixReviewInsight] =
-    await Promise.all([
-      getComparisonMatrix(ids),
-      getCoupleWeights().catch(() => null),
-      getMatrixInsight().catch(() => null),
-      getMatrixReviewInsight(ids).catch(() => null),
-    ]);
+  const [
+    matrix,
+    coupleWeights,
+    matrixInsight,
+    matrixReviewInsight,
+    disagreements,
+  ] = await Promise.all([
+    getComparisonMatrix(ids),
+    getCoupleWeights().catch(() => null),
+    getMatrixInsight().catch(() => null),
+    getMatrixReviewInsight(ids).catch(() => null),
+    getMatrixDisagreements(ids).catch(() => []),
+  ]);
   const insufficient = matrix.venues.length === 1;
 
   return (
@@ -141,6 +148,7 @@ async function CompareMatrix({ venueIds }: { venueIds: string[] }) {
             weights={coupleWeights?.couple ?? null}
             matrixInsight={matrixInsight}
             matrixReviewInsight={matrixReviewInsight}
+            disagreements={disagreements}
           />
       )}
     </div>

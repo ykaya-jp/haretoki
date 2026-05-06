@@ -4,10 +4,12 @@ import type { ComparisonMatrix } from "@/lib/comparison-types";
 import type { DimensionWeights } from "@/lib/weighted-score";
 import type { MatrixInsight } from "@/server/actions/matrix-insight";
 import type { MatrixReviewInsight } from "@/server/actions/matrix-review-insight";
+import type { VenueDisagreement } from "@/server/actions/disagreement-spotlight";
 import { ComparisonGrid } from "./comparison-grid";
 import { ComparisonMobileSnapper } from "./comparison-mobile-snapper";
 import { MatrixInsightCard } from "./matrix-insight-card";
 import { MatrixReviewInsightCard } from "./matrix-review-insight-card";
+import { DisagreementSpotlightCard } from "./disagreement-spotlight-card";
 
 /**
  * Responsive wrapper — picks between the desktop CSS-Grid board and the
@@ -22,6 +24,7 @@ export function ComparisonBoard({
   weights = null,
   matrixInsight = null,
   matrixReviewInsight = null,
+  disagreements = [],
 }: {
   matrix: ComparisonMatrix;
   /** W18-1: couple's averaged dimension weights (owner+partner mean from
@@ -36,6 +39,10 @@ export function ComparisonBoard({
    *  selection — card is hidden. Sibling to `matrixInsight` so the
    *  two cards stack as a 定量 / 定性 pair. */
   matrixReviewInsight?: MatrixReviewInsight | null;
+  /** Partner-rating disagreement spotlight — top-K dimensions per
+   *  venue where owner / partner deltas exceed 1.0. Empty on solo
+   *  projects. Card self-hides when array is empty. */
+  disagreements?: VenueDisagreement[];
 }) {
   return (
     <div className="space-y-4">
@@ -51,6 +58,10 @@ export function ComparisonBoard({
           quantitative card so couples read 定量 → 定性 in order.
           Self-hides when there are no reviews to aggregate. */}
       <MatrixReviewInsightCard insight={matrixReviewInsight} />
+      {/* Partner disagreement spotlight — third lens after 定量/定性,
+          this one focused on partner agreement. Self-hides on solo
+          projects or when no dimension exceeds the 1.0 delta floor. */}
+      <DisagreementSpotlightCard disagreements={disagreements} />
     </div>
   );
 }
