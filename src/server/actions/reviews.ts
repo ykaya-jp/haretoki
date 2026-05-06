@@ -1232,22 +1232,36 @@ export async function extractIndividualReviewsFromSource(
   });
   const venueName = venue?.name ?? "";
 
-  const extractionResponse = await cachedAskClaude({
-    system: REVIEW_EXTRACTION_PROMPT.system,
-    userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
-      stripPII(textContent),
-      venueName,
-    ),
-    model: REVIEW_EXTRACTION_PROMPT.model,
-    promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
-    maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
-  }).catch((err) => {
-    console.warn("[extractIndividualReviewsFromSource] Haiku failed:", err);
-    return null;
-  });
+  let extractionResponse: string | null = null;
+  let extractionError: string | null = null;
+  try {
+    extractionResponse = await cachedAskClaude({
+      system: REVIEW_EXTRACTION_PROMPT.system,
+      userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
+        stripPII(textContent),
+        venueName,
+      ),
+      model: REVIEW_EXTRACTION_PROMPT.model,
+      promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
+      maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
+    });
+  } catch (err) {
+    extractionError =
+      err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.warn("[extractIndividualReviewsFromSource] Haiku failed:", {
+      reviewId,
+      sourceUrl: review.sourceUrl,
+      error: extractionError,
+    });
+  }
 
   if (!extractionResponse) {
-    return { ok: false, error: "AI 抽出に失敗しました。少し待ってから再試行してください" };
+    return {
+      ok: false,
+      error: extractionError
+        ? `AI 抽出に失敗しました: ${extractionError}`
+        : "AI 抽出に失敗しました。少し待ってから再試行してください",
+    };
   }
 
   let validated: Array<{

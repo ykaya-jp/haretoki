@@ -37,7 +37,7 @@ export const REVIEW_EXTRACTION_PROMPT = {
 
 ## Rules
 
-- Return UP TO 30 distinct reviews. Quality over quantity — skip entries with body < 50 chars after stripping markup.
+- Return UP TO 20 distinct reviews. Quality over quantity — skip entries with body < 50 chars after stripping markup.
 - Each review's body is the actual reviewer's voice — NOT the venue's marketing blurb, NOT category headers, NOT navigation.
 - Strip site chrome / pagination / "もっと見る" / staff replies / ads.
 - Skip reviews that are just star ratings with no text.
@@ -56,13 +56,13 @@ JSON only. No markdown fences, no preamble, no trailing text. Start with \`{\` a
     `式場名: ${venueName}\n\n以下は口コミページの本文です。個別の口コミを最大 30 件抽出してください。\n\n${pageText.slice(0, 60_000)}`,
 
   model: MODEL.HAIKU,
-  // 25-30 reviews × ~400-600 char body (Japanese review prose) ≈ 12-18k
-  // tokens of output before JSON overhead. Was 8000 — Haiku silently
-  // truncated the JSON object mid-array, JSON.parse threw, and the
-  // (non-fatal) catch swallowed all reviews. Bump to 24000 so the
-  // model can finish the entire `reviews` array on a typical mwed /
-  // zexy / wedding-park page.
-  maxTokens: 24000,
+  // claude-haiku-4-5's default max_output_tokens cap is 8192 — passing
+  // 24000 was returning a 400 from the Anthropic API and surfaced as
+  // "AI 抽出に失敗しました" to the user. Stay at 8000 (safely under
+  // the cap). 20 reviews × ~300-char Japanese body ≈ 7-8k output
+  // tokens including JSON wrapper; we cap the in-prompt review count
+  // at 20 (down from 30) to fit deterministically.
+  maxTokens: 8000,
 };
 
 export const REVIEW_EXTRACTION_PROMPT_VERSION = 1;
