@@ -260,7 +260,7 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
     }
   });
 
-  it("returns {ok:false, reason:'timeout'} when the 15s budget elapses", async () => {
+  it("returns {ok:false, reason:'timeout'} when the 90s budget elapses", async () => {
     vi.useFakeTimers();
     try {
       // Never resolves — forces the Promise.race to take the timer branch.
@@ -272,11 +272,17 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
         "https://zexy.net/foo",
         "zexy",
       );
-      await vi.advanceTimersByTimeAsync(15_000);
+      // Outer race grew from 15s → 90s once the inner fetch + Sonnet
+      // summary + parallel Haiku extraction needed real headroom; advance
+      // past the new ceiling.
+      await vi.advanceTimersByTimeAsync(90_000);
       const result = await pending;
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.reason).toBe("timeout");
+        // Source-named message lets the user see which site is slow
+        // ("ゼクシィが時間内に応答しませんでした…").
+        expect(result.message).toContain("ゼクシィ");
       }
     } finally {
       vi.useRealTimers();

@@ -9,6 +9,10 @@ import { isClaudeAvailable, computeInputHash, stripPII } from "@/lib/anthropic";
 import { cachedAskClaude } from "@/lib/ai-cache";
 import { MODEL } from "@/lib/models";
 import { REVIEW_SUMMARY_PROMPT } from "@/lib/prompts/review-summary";
+import {
+  REVIEW_EXTRACTION_PROMPT,
+  REVIEW_EXTRACTION_PROMPT_VERSION,
+} from "@/lib/prompts/review-extraction";
 
 // Round 15 (2026-05-02) — bump when REVIEW_SUMMARY_PROMPT semantics change
 // so cached summaries from a prior prompt revision aren't served against
@@ -389,12 +393,38 @@ async function analyzeVenueReviewsInner(
     // every other cached prompt in src/server/actions/* now follows.
     const strippedContent = stripPII(textContent);
     const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage([strippedContent], venue.name);
-    const claudeResponse = await cachedAskClaude({
-      system: REVIEW_SUMMARY_PROMPT.system,
-      userMessage: reviewUserMessage,
-      model: MODEL.SONNET,
-      promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
-    });
+
+    // Run summary (Sonnet, synthesis) and individual-review extraction
+    // (Haiku, mechanical lift) in parallel — wall time stays at the
+    // slower of the two instead of summing. The extraction populates
+    // individual Review rows so the venue detail page can show 20-30
+    // raw voices in addition to the AI summary card. Extraction
+    // failure is non-fatal: the summary still saves and the user sees
+    // the existing single-card UX.
+    const [claudeResponse, extractionResponse] = await Promise.all([
+      cachedAskClaude({
+        system: REVIEW_SUMMARY_PROMPT.system,
+        userMessage: reviewUserMessage,
+        model: MODEL.SONNET,
+        promptVersion: REVIEW_SUMMARY_PROMPT_VERSION,
+      }),
+      cachedAskClaude({
+        system: REVIEW_EXTRACTION_PROMPT.system,
+        userMessage: REVIEW_EXTRACTION_PROMPT.buildUserMessage(
+          strippedContent,
+          venue.name,
+        ),
+        model: REVIEW_EXTRACTION_PROMPT.model,
+        promptVersion: REVIEW_EXTRACTION_PROMPT_VERSION,
+        maxTokens: REVIEW_EXTRACTION_PROMPT.maxTokens,
+      }).catch((err) => {
+        console.warn(
+          "[analyzeVenueReviews] individual extraction failed (non-fatal):",
+          err,
+        );
+        return null;
+      }),
+    ]);
     if (claudeResponse === null) {
       return {
         ok: false,
@@ -470,6 +500,52 @@ async function analyzeVenueReviewsInner(
           ...reviewData,
         },
       });
+    }
+
+    // Persist individual reviews extracted in parallel above. Best-
+    // effort: malformed JSON or per-row upsert errors are logged inside
+    // saveExtractedReviews itself and shouldn't block the summary save.
+    if (extractionResponse) {
+      try {
+        const stripped = stripJsonResponse(extractionResponse);
+        const parsed = JSON.parse(stripped) as { reviews?: unknown };
+        const rawReviews = Array.isArray(parsed.reviews) ? parsed.reviews : [];
+        const validated = rawReviews
+          .map((r) => {
+            if (!r || typeof r !== "object") return null;
+            const row = r as Record<string, unknown>;
+            const body = typeof row.body === "string" ? row.body.trim() : "";
+            if (body.length < 10 || body.length > 3000) return null;
+            const title =
+              typeof row.title === "string" && row.title.trim()
+                ? row.title.slice(0, 200)
+                : null;
+            const ratingNum = typeof row.rating === "number" ? row.rating : null;
+            const rating =
+              ratingNum != null && ratingNum >= 1 && ratingNum <= 5
+                ? Math.round(ratingNum)
+                : null;
+            const author =
+              typeof row.author === "string" && row.author.trim()
+                ? row.author.slice(0, 50)
+                : null;
+            const visitedAt =
+              typeof row.visitedAt === "string" && row.visitedAt.trim()
+                ? row.visitedAt.slice(0, 50)
+                : null;
+            return { title, body, rating, author, visitedAt };
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null)
+          .slice(0, 30);
+        if (validated.length > 0) {
+          await saveExtractedReviews(venueId, validated, sourceUrl, source);
+        }
+      } catch (err) {
+        console.warn(
+          "[analyzeVenueReviews] individual review parse failed (non-fatal):",
+          err,
+        );
+      }
     }
 
     // Recompute aggregate venue-level estimate-increase stats from all reviews

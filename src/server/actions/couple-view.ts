@@ -41,7 +41,10 @@ async function fetchOverview(
   const hasPartner = !!partner;
 
   const favorites = await prisma.venueFavorite.findMany({
-    where: { venue: { projectId } },
+    // Match favorites.ts / matrix.ts: skip soft-deleted venues so the
+    // 「ふたりの温度」section on /candidates and /explore doesn't keep
+    // surfacing 式場 the user just removed.
+    where: { venue: { projectId, deletedAt: null } },
     include: {
       venue: {
         select: {

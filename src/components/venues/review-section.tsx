@@ -29,9 +29,34 @@ interface Review {
   aiSummary: string | null;
   sentiment: Record<string, number> | null;
   rating: number | null;
-  categorySummary: Record<string, string> | null;
+  /** JSON column. Summary rows store flat `{ service, cuisine, ... }`;
+   *  individual rows (saveExtractedReviews) store `{ individual: { title,
+   *  author, visitedAt } }`. The shape is checked at render time so the
+   *  type stays loose. */
+  categorySummary: Record<string, unknown> | null;
   isNegative: boolean;
   estimateIncrease?: EstimateIncrease | null;
+}
+
+interface IndividualMeta {
+  title: string | null;
+  author: string | null;
+  visitedAt: string | null;
+}
+
+/** Returns the individual-review meta block when the row was created by
+ *  `saveExtractedReviews`; null for AI summary rows and legacy rows. */
+function getIndividualMeta(review: Review): IndividualMeta | null {
+  const cs = review.categorySummary;
+  if (!cs || typeof cs !== "object") return null;
+  const ind = (cs as Record<string, unknown>).individual;
+  if (!ind || typeof ind !== "object") return null;
+  const obj = ind as Record<string, unknown>;
+  return {
+    title: typeof obj.title === "string" ? obj.title : null,
+    author: typeof obj.author === "string" ? obj.author : null,
+    visitedAt: typeof obj.visitedAt === "string" ? obj.visitedAt : null,
+  };
 }
 
 interface VenueEstimateAggregate {
@@ -76,12 +101,37 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 type SortMode = "latest" | "highest" | "concerns";
+type SentimentFilter = "all" | "positive" | "negative" | "neutral";
 
 const SORT_CHIPS: { value: SortMode; label: string }[] = [
   { value: "latest", label: "最新" },
   { value: "highest", label: "評価高い" },
   { value: "concerns", label: "気になる点から" },
 ];
+
+const SENTIMENT_CHIPS: { value: SentimentFilter; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "positive", label: "ポジ" },
+  { value: "negative", label: "ネガ" },
+  { value: "neutral", label: "その他" },
+];
+
+/** Render N stars (filled + empty). 0/null → null so the row stays compact. */
+function StarRating({ value }: { value: number | null }) {
+  if (value == null || value <= 0) return null;
+  const filled = Math.max(0, Math.min(5, Math.round(value)));
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 tabular-nums text-[12px] text-[var(--gold-warm)]"
+      aria-label={`評価 ${filled}/5`}
+    >
+      <span aria-hidden="true">{"★".repeat(filled)}</span>
+      <span aria-hidden="true" className="text-muted-foreground/30">
+        {"★".repeat(5 - filled)}
+      </span>
+    </span>
+  );
+}
 
 /** Classify a review: negative = isNegative flag, positive = rating>=4, neutral = else */
 function classifyReview(review: Review): "positive" | "negative" | "neutral" {
@@ -132,27 +182,53 @@ function ReviewRatioBar({ reviews }: { reviews: Review[] }) {
 export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: ReviewSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("latest");
+  const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>("all");
   const [url, setUrl] = useState("");
   const [source, setSource] = useState<ReviewSource>("zexy");
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, startRefreshing] = useTransition();
   const router = useRouter();
 
-  const sortedReviews = useMemo(() => {
-    const filtered = reviews.filter(r => r.aiSummary);
+  // Partition rows: AI-generated summary cards (one per source URL) vs
+  // individual review bodies extracted by `saveExtractedReviews`. The
+  // discriminator is `categorySummary.individual` — see getIndividualMeta
+  // for the shape check. Summary rows render as the existing AIInsightCard
+  // at the top; individuals render as a compact list below.
+  const { summaryRows, individualRows } = useMemo(() => {
+    const summaries: Review[] = [];
+    const individuals: Review[] = [];
+    for (const r of reviews) {
+      if (!r.aiSummary) continue;
+      if (getIndividualMeta(r) != null) {
+        individuals.push(r);
+      } else {
+        summaries.push(r);
+      }
+    }
+    return { summaryRows: summaries, individualRows: individuals };
+  }, [reviews]);
+
+  const filteredIndividuals = useMemo(() => {
+    if (sentimentFilter === "all") return individualRows;
+    return individualRows.filter((r) => classifyReview(r) === sentimentFilter);
+  }, [individualRows, sentimentFilter]);
+
+  const sortedIndividuals = useMemo(() => {
     if (sortMode === "concerns") {
-      return [...filtered].sort((a, b) => {
+      return [...filteredIndividuals].sort((a, b) => {
         if (a.isNegative && !b.isNegative) return -1;
         if (!a.isNegative && b.isNegative) return 1;
         return 0;
       });
     }
     if (sortMode === "highest") {
-      return [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      return [...filteredIndividuals].sort(
+        (a, b) => (b.rating ?? 0) - (a.rating ?? 0),
+      );
     }
     // "latest" — keep original order (server returns newest first)
-    return filtered;
-  }, [reviews, sortMode]);
+    return filteredIndividuals;
+  }, [filteredIndividuals, sortMode]);
 
   const handleRefreshAll = () => {
     startRefreshing(async () => {
@@ -239,7 +315,12 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       </div>
 
       {/* Ratio bar — compact overview of positive/neutral/negative mix */}
-      <ReviewRatioBar reviews={reviews} />
+      {/* Ratio bar reflects individual review rows (raw voices) when
+          present — falls back to summary-row classification for legacy
+          venues where extraction hasn't run yet. */}
+      <ReviewRatioBar
+        reviews={individualRows.length > 0 ? individualRows : reviews}
+      />
 
       {/* Sort chips — shown only when there are reviews */}
       {reviews.length > 0 && (
@@ -343,7 +424,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
           </div>
         )}
 
-      {sortedReviews.map((review) => {
+      {summaryRows.map((review) => {
         const hasAggregate =
           venueEstimateAggregate && (venueEstimateAggregate.sampleCount ?? 0) > 0;
         const ei = review.estimateIncrease;
@@ -422,6 +503,105 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
         </div>
         );
       })}
+
+      {/* Individual review list — populated by the parallel Haiku
+          extraction in analyzeVenueReviewsInner. Self-hides when zero
+          individuals (only summary cards exist). Sentiment filter is
+          additive to the global sort chips above. */}
+      {individualRows.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-[family-name:var(--font-display)] text-[15px] font-light">
+              先輩カップルの声
+              <span className="ml-2 tabular-nums text-[12px] text-muted-foreground">
+                {sortedIndividuals.length} / {individualRows.length} 件
+              </span>
+            </h3>
+          </div>
+
+          {/* Sentiment filter chips */}
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label="口コミの感情フィルタ"
+          >
+            {SENTIMENT_CHIPS.map((chip) => {
+              const count =
+                chip.value === "all"
+                  ? individualRows.length
+                  : individualRows.filter(
+                      (r) => classifyReview(r) === chip.value,
+                    ).length;
+              return (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => setSentimentFilter(chip.value)}
+                  aria-pressed={sentimentFilter === chip.value}
+                  disabled={chip.value !== "all" && count === 0}
+                  className={cn(
+                    "h-8 rounded-full border px-3 text-[12px] tabular-nums transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40",
+                    sentimentFilter === chip.value
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border bg-card text-muted-foreground",
+                  )}
+                >
+                  {chip.label} {count}
+                </button>
+              );
+            })}
+          </div>
+
+          {sortedIndividuals.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/60 bg-background px-4 py-6 text-center text-[12px] text-muted-foreground">
+              このフィルタに一致する口コミはありません。
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {sortedIndividuals.map((review) => {
+                const meta = getIndividualMeta(review);
+                if (!meta) return null;
+                const sentiment = classifyReview(review);
+                return (
+                  <li
+                    key={review.id}
+                    className="rounded-2xl border border-border bg-card p-4"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-baseline gap-2">
+                        <StarRating value={review.rating} />
+                        {meta.author && (
+                          <span className="font-[family-name:var(--font-display)] text-[12px] font-light text-foreground">
+                            {meta.author}
+                          </span>
+                        )}
+                      </div>
+                      {meta.visitedAt && (
+                        <time className="tabular-nums text-[11px] text-muted-foreground">
+                          {meta.visitedAt}
+                        </time>
+                      )}
+                    </div>
+                    {meta.title && (
+                      <p className="mt-1.5 font-[family-name:var(--font-display)] text-[13px] font-light leading-snug text-foreground">
+                        {meta.title}
+                      </p>
+                    )}
+                    <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">
+                      {review.aiSummary}
+                    </p>
+                    {sentiment === "negative" && (
+                      <span className="mt-2 inline-flex rounded-full bg-destructive/12 px-2 py-0.5 text-[10.5px] font-medium text-destructive">
+                        気になる点あり
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </section>
   );
 }
