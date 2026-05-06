@@ -78,13 +78,14 @@ describe("deriveRelatedUrls", () => {
     expect(r.reviews).toBe("https://wedding.mynavi.jp/hall/abc789/review/");
   });
 
-  it("derives mwed sub-pages from /hall/{id}/ path", () => {
+  it("derives mwed detail-only from /hall/{id}/ path (no sub-pages)", () => {
+    // 2026-05-07: mwed retired /photo/ and /plan/ sub-paths (verified via
+    // Vercel runtime logs: 404 on /hall/10428/{photo,plan}/). detail-only.
     const r = deriveRelatedUrls("https://www.mwed.jp/hall/10242/");
     expect(r.domain).toBe("minna_no_wedding");
     expect(r.detail).toBe("https://www.mwed.jp/hall/10242/");
-    expect(r.photos).toBe("https://www.mwed.jp/hall/10242/photo/");
-    expect(r.plans).toBe("https://www.mwed.jp/hall/10242/plan/");
-    // Reviews 404 on mwed live, must not be requested.
+    expect(r.photos).toBeUndefined();
+    expect(r.plans).toBeUndefined();
     expect(r.reviews).toBeUndefined();
   });
 

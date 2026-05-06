@@ -20,15 +20,18 @@ import { listSavedSearches } from "@/server/actions/saved-searches";
 import type { VibeTag } from "@/lib/vibe-tags";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 
-// URL-paste server actions invoked from this page chain together
-// addVenueFromUrl (parent-page fetch + Claude extraction, ~30-50s) +
-// confirmVenueFromUrl (photo upload + multi-page review crawl + Sonnet
-// summary on merged corpus, ~50-90s). Total envelope easily reaches
-// 100-130s — past the prior 120s cap, which left the function killed
-// mid-runReviewSummary and the user landing on /venues/<id> with an
-// empty "先輩カップルの声 はこれから" state. 300s is Vercel Pro's
-// hard ceiling for serverless functions.
-export const maxDuration = 300;
+// NOTE: previous bumps to maxDuration = 120 / 300 here triggered
+// "Invariant: invalid postponed state" 500s on /explore POSTs in the
+// preview build (visible in Vercel runtime logs as repeated 🚫 lines
+// around 01:21 JST during E2E). The error is Next.js 16 PPR /
+// cacheComponents bailing when a Page-level maxDuration export
+// interacts with a cached component tree containing server actions.
+// Removing the export restored normal POST handling.
+//
+// Server actions invoked from this page rely on their default function
+// timeout (project plan default = 300s on Vercel Pro). The multi-page
+// crawl on initial URL paste is sized to fit comfortably (2 pages =
+// ~30-40s including Sonnet, well under the implicit cap).
 
 type ExploreSearchParams = {
   q?: string;
