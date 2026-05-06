@@ -129,11 +129,13 @@ test("mwed URL → individual reviews surface end-to-end", async ({ page }) => {
   await urlInput.waitFor({ state: "visible", timeout: 10000 });
   await urlInput.fill(MWED_REV_URL);
 
-  // Submit button — exact label varies; cover the common forms.
+  // Submit button — the URL form's primary CTA is "URL から取り込む"
+  // (singular paste) or "まとめて取り込む (N)" (multiple). Use the
+  // exact label so we don't accidentally pick up another button
+  // earlier in the sheet (the prior loose `:has-text("取り込む")`
+  // matched secondary buttons).
   const submit = page
-    .locator(
-      'button:has-text("取り込む"), button:has-text("追加"), button:has-text("解析"), button[type="submit"]',
-    )
+    .locator('button:has-text("URL から取り込む"), button:has-text("まとめて取り込む")')
     .first();
   await submit.click();
 

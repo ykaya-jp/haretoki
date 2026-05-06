@@ -112,15 +112,15 @@ function sourceJaName(source: ReviewSource): string {
  *     取り込む" button. The user has opted into a longer wait, so we
  *     can afford 8 pages = 200 reviews for the deep cut.
  */
-// 2 pages = 50 reviews on initial URL paste. 4 pages × Haiku was
-// pushing the URL-submit → venue-page redirect past the
-// /explore page's 120s maxDuration in production (multi-page fetch
-// + Haiku per page + Sonnet on merged corpus = 80-110s wall time
-// after addVenueFromUrl already burned ~30-50s on its own crawl).
-// E2E preview was hanging the user on /explore for so long that the
-// summary card never even started rendering. Backfill button still
-// uses 8 pages = 200 reviews when the user explicitly opts in.
-const MAX_REVIEW_PAGES_INITIAL = 2;
+// Two-tier: initial URL paste runs a single-page extraction (matches
+// the pre-multi-page baseline the user already verified working).
+// Backfill button does the deep 8-page crawl when explicitly invoked.
+// We tried 4-page → 2-page on initial; both still pushed the action
+// chain past Vercel's response window in preview. 1 page proves the
+// pipeline is sound; we can re-introduce multi-page after the basic
+// flow is back to green and we've moved heavy work off the critical
+// path (e.g. via Next.js after()).
+const MAX_REVIEW_PAGES_INITIAL = 1;
 const MAX_REVIEW_PAGES_BACKFILL = 8;
 
 /**
