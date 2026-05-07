@@ -131,39 +131,22 @@ test("mwed URL → individual reviews surface end-to-end (after() architecture)"
     .first();
   await submit.click();
 
-  // Step 2 — wait for navigation to the venue detail page. With the
-  // after() defer this should be FAST (~10-30s instead of the prior
-  // 60-130s). 90s is generous headroom.
-  await page.waitForURL(/\/venues\//, { timeout: 90_000 });
+  // Step 2 — wait for navigation to the venue detail page. Inline
+  // await on runReviewSummary means /explore POST takes ~60-120s
+  // (multi-page crawl + Sonnet on merged corpus + addVenueFromUrl).
+  // Generous timeout.
+  await page.waitForURL(/\/venues\//, { timeout: 180_000 });
+  await page.waitForLoadState("domcontentloaded", { timeout: 15_000 }).catch(() => {});
 
-  // Step 3 — venue page initially renders with NO reviews (the
-  // background job is still running). Verify the page loaded by
-  // confirming we're on a venue detail page (h1 etc visible). Then
-  // poll for the summary card with periodic reload — the after()
-  // background will eventually call revalidatePath, but the active
-  // tab needs a fetch to pick up the change.
-  await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+  // Summary card must be present on first venue page render — Review
+  // row was created synchronously inside confirmVenueFromUrl.
+  await expect(
+    page.getByText("みんなのウェディング のまとめ").first(),
+  ).toBeVisible({ timeout: 30_000 });
 
-  const summaryLocator = page.getByText("みんなのウェディング のまとめ").first();
-  let summaryFound = false;
-  for (let attempt = 0; attempt < 8; attempt++) {
-    if (
-      await summaryLocator
-        .isVisible({ timeout: 15_000 })
-        .catch(() => false)
-    ) {
-      summaryFound = true;
-      break;
-    }
-    // Background still working — reload to pick up revalidatePath
-    // outputs from the after() job that may have just completed.
-    await page.reload({ timeout: 30_000 });
-    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
-  }
-  expect(summaryFound, "summary card never appeared after 8 reloads (~120s)").toBe(true);
-
-  // Look for individual review markers — a "先輩カップルの声 N / N 件"
-  // header surfaces when individuals exist.
+  // Individual review header should also be there when extraction
+  // worked. If only the summary saved, this would be missing — that's
+  // a separate bug worth catching.
   await expect(
     page.locator('h3:has-text("先輩カップルの声")').first(),
   ).toBeVisible({ timeout: 30_000 });

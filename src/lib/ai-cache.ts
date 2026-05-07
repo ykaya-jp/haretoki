@@ -116,7 +116,18 @@ export async function cachedAskClaude(opts: {
   let response: string;
   try {
     response = opts.retry === false ? await callClaude() : await withRetry(callClaude);
-  } catch {
+  } catch (err) {
+    // Surface the actual reason so we can tell rate-limit from
+    // network from auth from prompt-too-long. Was silently returning
+    // null which made it impossible to debug "Claude returned null"
+    // states downstream (e.g. addVenueFromUrl falling to JSON-LD
+    // fallback for unclear reasons in prod).
+    console.warn("[cachedAskClaude] failed", {
+      model,
+      promptVersion: opts.promptVersion,
+      maxTokens: opts.maxTokens ?? null,
+      err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+    });
     return null;
   }
 
