@@ -103,82 +103,70 @@ async function login(page: Page) {
   await page.waitForURL(/\/home/, { timeout: 15000 }).catch(() => {});
 }
 
-test("mwed URL → individual reviews surface end-to-end", async ({ page }) => {
-  // Multi-page crawl on initial import = 4 mwed pages × (fetch + Haiku)
-  // ≈ 30-50s, plus Sonnet summary on the merged corpus ≈ 15-25s, plus
-  // login + onboarding ≈ 20-30s. 240s headroom keeps the test resilient
-  // to one-off Anthropic latency spikes without masking real regressions.
-  test.setTimeout(240_000);
+test("mwed URL → individual reviews surface end-to-end (after() architecture)", async ({ page }) => {
+  // With the after() defer pattern: URL submit returns instantly,
+  // venue page renders without reviews, then 60-90s later the
+  // background job completes and revalidates. Test timeout has to
+  // cover login (~20-30s) + URL submit response (~10-15s) + bg job
+  // (~90-120s) + reload+assert (~10s) = ≤ 180s total.
+  test.setTimeout(300_000);
   await login(page);
 
   // Step 1 — go to /explore and open the URL-import flow.
   await page.goto("/explore");
   await expect(page).toHaveURL(/\/explore/);
 
-  // The "+" FAB — fixed gold button bottom-right with aria-label "式場を追加".
   const addButton = page.locator('button[aria-label="式場を追加"]').first();
   await addButton.waitFor({ state: "visible", timeout: 15000 });
   await addButton.click();
 
-  // The URL-import sheet opens. URL input is a TEXTAREA with the
-  // placeholder "式場の URL を貼ってください" (the form supports
-  // multi-line URL paste, hence textarea not input).
   const urlInput = page
     .locator('textarea[placeholder*="式場の URL"]')
     .first();
   await urlInput.waitFor({ state: "visible", timeout: 10000 });
   await urlInput.fill(MWED_REV_URL);
 
-  // Submit button — the URL form's primary CTA is "URL から取り込む"
-  // (singular paste) or "まとめて取り込む (N)" (multiple). Use the
-  // exact label so we don't accidentally pick up another button
-  // earlier in the sheet (the prior loose `:has-text("取り込む")`
-  // matched secondary buttons).
   const submit = page
     .locator('button:has-text("URL から取り込む"), button:has-text("まとめて取り込む")')
     .first();
   await submit.click();
 
-  // Step 2 — wait for navigation to the venue detail page (success
-  // path). Up to 150s because URL import now = fetch + multi-page
-  // crawl (4 pages × fetch+Haiku) + Sonnet summary on the merged
-  // corpus. The page-level maxDuration on /venues/[id] gives the
-  // server up to 120s; the wait here adds margin for redirect.
-  await page.waitForURL(/\/venues\//, { timeout: 150_000 });
+  // Step 2 — wait for navigation to the venue detail page. With the
+  // after() defer this should be FAST (~10-30s instead of the prior
+  // 60-130s). 90s is generous headroom.
+  await page.waitForURL(/\/venues\//, { timeout: 90_000 });
 
-  // Step 3 — on venue detail. Scroll to the reviews section and look
-  // for either individual review cards OR the backfill banner.
-  await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+  // Step 3 — venue page initially renders with NO reviews (the
+  // background job is still running). Verify the page loaded by
+  // confirming we're on a venue detail page (h1 etc visible). Then
+  // poll for the summary card with periodic reload — the after()
+  // background will eventually call revalidatePath, but the active
+  // tab needs a fetch to pick up the change.
+  await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
 
-  // Expect the AI summary card to be present.
-  await expect(
-    page.getByText("みんなのウェディング のまとめ").first(),
-  ).toBeVisible({ timeout: 30_000 });
+  const summaryLocator = page.getByText("みんなのウェディング のまとめ").first();
+  let summaryFound = false;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (
+      await summaryLocator
+        .isVisible({ timeout: 15_000 })
+        .catch(() => false)
+    ) {
+      summaryFound = true;
+      break;
+    }
+    // Background still working — reload to pick up revalidatePath
+    // outputs from the after() job that may have just completed.
+    await page.reload({ timeout: 30_000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => {});
+  }
+  expect(summaryFound, "summary card never appeared after 8 reloads (~120s)").toBe(true);
 
   // Look for individual review markers — a "先輩カップルの声 N / N 件"
   // header surfaces when individuals exist.
-  const individualHeader = page.locator(
-    'h3:has-text("先輩カップルの声"), :has-text("/ ") :has-text("件")',
-  );
-
-  const hasIndividuals = await individualHeader
-    .first()
-    .isVisible({ timeout: 5000 })
-    .catch(() => false);
-
-  if (!hasIndividuals) {
-    // Backfill banner should be present — click it and re-check.
-    const backfillButton = page
-      .locator('button:has-text("ソースから取り込む"), button:has-text("個別レビューを取り込む")')
-      .first();
-    await expect(backfillButton).toBeVisible({ timeout: 10_000 });
-    await backfillButton.click();
-
-    // Wait for individual reviews to land.
-    await expect(
-      page.locator('h3:has-text("先輩カップルの声")').first(),
-    ).toBeVisible({ timeout: 90_000 });
-  }
+  await expect(
+    page.locator('h3:has-text("先輩カップルの声")').first(),
+  ).toBeVisible({ timeout: 30_000 });
 
   // Assert at least 5 individual review cards (mwed has 25; we accept
   // anything above 5 as evidence the pipeline is working end-to-end).

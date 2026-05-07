@@ -1453,16 +1453,23 @@ export async function confirmVenueFromUrl(
   sourceUrl: string,
   options: { forceNew?: boolean } = {},
 ) {
-  console.warn("[confirmVenueFromUrl] START", { sourceUrl, name: extracted?.name });
+  const _t0 = performance.now();
+  const _log = (label: string, extra: Record<string, unknown> = {}) => {
+    const elapsed = Math.round(performance.now() - _t0);
+    console.warn(`[confirmVenueFromUrl] ${label} (+${elapsed}ms)`, extra);
+  };
+  _log("START", { sourceUrl, name: extracted?.name });
   const parsed = extractedVenueSchema.safeParse(extracted);
   if (!parsed.success) {
-    console.warn("[confirmVenueFromUrl] zod parse failed", parsed.error.issues.slice(0, 3));
+    _log("zod parse failed", { issues: parsed.error.issues.slice(0, 3) });
     return { success: false as const, error: "データの形式が正しくありません" };
   }
-  console.warn("[confirmVenueFromUrl] zod parse OK");
+  _log("zod parse OK");
 
   const user = await requireUser();
+  _log("requireUser done", { userId: user.id });
   const { projectId } = await requireProjectMembership(user.id);
+  _log("requireProjectMembership done", { projectId });
 
   const uniquePhotoUrls = Array.from(new Set(parsed.data.photoUrls)).slice(0, 15);
   let origin: string | undefined;
@@ -1483,7 +1490,7 @@ export async function confirmVenueFromUrl(
     normalizedName: candidateNormalizedName,
   };
 
-  console.warn("[confirmVenueFromUrl] auth + setup OK", { userId: user.id, projectId });
+  _log("auth + setup OK");
 
   // Cross-site dedupe: look for an already-tracked venue in the same project.
   // Scoped query narrows to likely candidates only (same normalized name OR
@@ -1527,7 +1534,7 @@ export async function confirmVenueFromUrl(
 
     match = matchExistingVenue(candidate, candidates);
   }
-  console.warn("[confirmVenueFromUrl] dedupe done", { matched: match != null });
+  _log("dedupe done", { matched: match != null });
 
   if (match) {
     // ─── MERGE branch ────────────────────────────────────────────────
@@ -1667,7 +1674,7 @@ export async function confirmVenueFromUrl(
   }
 
   // ─── CREATE branch ─────────────────────────────────────────────────
-  console.warn("[confirmVenueFromUrl] CREATE branch — about to create venue");
+  _log("CREATE branch — about to create venue");
   const venue = await prisma.venue.create({
     data: {
       projectId,
@@ -1769,15 +1776,15 @@ export async function confirmVenueFromUrl(
     failedReasons: photoFailedReasons,
     durationMs: Date.now() - createPhotoStartedAt,
   });
-  console.warn("[confirmVenueFromUrl] photo phase done", {
+  _log("photo phase done", {
     venueId: venue.id,
     requested: uniquePhotoUrls.length,
     uploaded: uploadedPhotoUrls.length,
-    durationMs: Date.now() - createPhotoStartedAt,
+    photoPhaseMs: Date.now() - createPhotoStartedAt,
   });
 
   const reviewSource = reviewSourceFromUrl(sourceUrl);
-  console.warn("[confirmVenueFromUrl] saving extracted reviews", {
+  _log("saving extracted reviews", {
     venueId: venue.id,
     reviewSource,
     extractedReviewCount: parsed.data.reviews.length,
@@ -1790,7 +1797,7 @@ export async function confirmVenueFromUrl(
     }
   }
 
-  console.warn("[confirmVenueFromUrl] calling runReviewSummary", {
+  _log("calling runReviewSummary (deferred)", {
     venueId: venue.id,
     sourceUrl,
     reviewSource,
