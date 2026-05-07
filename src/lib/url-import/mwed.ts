@@ -26,9 +26,11 @@ export function deriveMwed(url: URL): {
   const venueId = match[1];
   const origin = `${url.protocol}//${url.hostname}`;
   const base = `${origin}/hall/${venueId}`;
+  // 2026-05-07: mwed retired /photo/ and /plan/ sub-paths (verified via
+  // runtime logs: both return 404 on /hall/10428/). detail page already
+  // embeds enough info; reviews come via the dedicated /rev/ pagination
+  // in extractAcrossPages, not this helper.
   return {
     detail: `${base}/`,
-    photos: `${base}/photo/`,
-    plans: `${base}/plan/`,
   };
 }

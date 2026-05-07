@@ -104,12 +104,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   negative_points: "気になる点",
 };
 
-type SortMode = "latest" | "highest" | "concerns";
+type SortMode = "latest" | "highest" | "lowest" | "concerns";
 type SentimentFilter = "all" | "positive" | "negative" | "neutral";
+type RatingFilter = "all" | "5" | "4" | "3" | "2" | "1";
 
 const SORT_CHIPS: { value: SortMode; label: string }[] = [
   { value: "latest", label: "最新" },
   { value: "highest", label: "評価高い" },
+  { value: "lowest", label: "評価低い" },
   { value: "concerns", label: "気になる点から" },
 ];
 
@@ -118,6 +120,15 @@ const SENTIMENT_CHIPS: { value: SentimentFilter; label: string }[] = [
   { value: "positive", label: "ポジ" },
   { value: "negative", label: "ネガ" },
   { value: "neutral", label: "その他" },
+];
+
+const RATING_CHIPS: { value: RatingFilter; label: string }[] = [
+  { value: "all", label: "★" },
+  { value: "5", label: "5" },
+  { value: "4", label: "4" },
+  { value: "3", label: "3" },
+  { value: "2", label: "2" },
+  { value: "1", label: "1" },
 ];
 
 /** Render N stars (filled + empty). 0/null → null so the row stays compact. */
@@ -207,6 +218,7 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
   const [showForm, setShowForm] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>("all");
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [url, setUrl] = useState("");
   const [source, setSource] = useState<ReviewSource>("zexy");
   const [isPending, startTransition] = useTransition();
@@ -306,9 +318,16 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
   };
 
   const filteredIndividuals = useMemo(() => {
-    if (sentimentFilter === "all") return individualRows;
-    return individualRows.filter((r) => classifyReview(r) === sentimentFilter);
-  }, [individualRows, sentimentFilter]);
+    let rows = individualRows;
+    if (sentimentFilter !== "all") {
+      rows = rows.filter((r) => classifyReview(r) === sentimentFilter);
+    }
+    if (ratingFilter !== "all") {
+      const targetRating = Number(ratingFilter);
+      rows = rows.filter((r) => r.rating === targetRating);
+    }
+    return rows;
+  }, [individualRows, sentimentFilter, ratingFilter]);
 
   const sortedIndividuals = useMemo(() => {
     if (sortMode === "concerns") {
@@ -322,6 +341,16 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       return [...filteredIndividuals].sort(
         (a, b) => (b.rating ?? 0) - (a.rating ?? 0),
       );
+    }
+    if (sortMode === "lowest") {
+      // Lowest stars first; null ratings sink to the bottom so the
+      // user sees actually-rated reviews at the top of "評価低い".
+      return [...filteredIndividuals].sort((a, b) => {
+        if (a.rating == null && b.rating == null) return 0;
+        if (a.rating == null) return 1;
+        if (b.rating == null) return -1;
+        return a.rating - b.rating;
+      });
     }
     // "latest" — keep original order (server returns newest first)
     return filteredIndividuals;
@@ -706,13 +735,12 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
               </span>
             </h3>
           </div>
-          {/* Transparency about selection: explain that AI took the
-              newest 25 (cap from REVIEW_EXTRACTION_PROMPT) per source
-              and that the サイト全件 link below leads to the source page.
-              Without this the user can't tell why "20件" appears when
-              the source page lists more. */}
+          {/* Transparency about selection. Multi-page crawl pulls up
+              to 8 pages × 25 reviews per source, prioritising 気になる
+              系 reviews so the ネガ filter has substantive entries
+              even when a venue's listing is praise-skewed. */}
           <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-            各ソースから新着順に最大 25 件を AI が抜粋しています。全件は要約カード内の「口コミ元を読む」からご覧いただけます。
+            URL 取込時は約 50 件、要約カードの「個別レビューを取り込む」ボタンを押すと最大約 200 件まで AI がクロールします。否定意見のあるレビューを優先的に拾い、要約はクロール範囲の声を統合しています。全件はカード内「口コミ元を読む」から。
           </p>
 
           {/* Sentiment filter chips */}
@@ -743,6 +771,49 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
                   )}
                 >
                   {chip.label} {count}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Rating filter chips — independent of sentiment. Lets a
+              user say "show me only the 1-2 star ones across all
+              sources" with one click. */}
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="group"
+            aria-label="星評価フィルタ"
+          >
+            {RATING_CHIPS.map((chip) => {
+              const count =
+                chip.value === "all"
+                  ? individualRows.length
+                  : individualRows.filter(
+                      (r) => r.rating === Number(chip.value),
+                    ).length;
+              return (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => setRatingFilter(chip.value)}
+                  aria-pressed={ratingFilter === chip.value}
+                  disabled={chip.value !== "all" && count === 0}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-0.5 rounded-full border px-2.5 text-[11.5px] tabular-nums transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40",
+                    ratingFilter === chip.value
+                      ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
+                      : "border-border bg-card text-muted-foreground",
+                  )}
+                >
+                  {chip.value === "all" ? (
+                    <span>すべての★</span>
+                  ) : (
+                    <>
+                      <span aria-hidden="true">★</span>
+                      <span>{chip.label}</span>
+                    </>
+                  )}
+                  <span className="ml-0.5 opacity-70">{count}</span>
                 </button>
               );
             })}

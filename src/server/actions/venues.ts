@@ -1434,10 +1434,13 @@ export async function confirmVenueFromUrl(
   sourceUrl: string,
   options: { forceNew?: boolean } = {},
 ) {
+  console.warn("[confirmVenueFromUrl] START", { sourceUrl, name: extracted?.name });
   const parsed = extractedVenueSchema.safeParse(extracted);
   if (!parsed.success) {
+    console.warn("[confirmVenueFromUrl] zod parse failed", parsed.error.issues.slice(0, 3));
     return { success: false as const, error: "データの形式が正しくありません" };
   }
+  console.warn("[confirmVenueFromUrl] zod parse OK");
 
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
@@ -1460,6 +1463,8 @@ export async function confirmVenueFromUrl(
     longitude: parsed.data.longitude ?? null,
     normalizedName: candidateNormalizedName,
   };
+
+  console.warn("[confirmVenueFromUrl] auth + setup OK", { userId: user.id, projectId });
 
   // Cross-site dedupe: look for an already-tracked venue in the same project.
   // Scoped query narrows to likely candidates only (same normalized name OR
@@ -1503,6 +1508,7 @@ export async function confirmVenueFromUrl(
 
     match = matchExistingVenue(candidate, candidates);
   }
+  console.warn("[confirmVenueFromUrl] dedupe done", { matched: match != null });
 
   if (match) {
     // ─── MERGE branch ────────────────────────────────────────────────
@@ -1622,6 +1628,7 @@ export async function confirmVenueFromUrl(
   }
 
   // ─── CREATE branch ─────────────────────────────────────────────────
+  console.warn("[confirmVenueFromUrl] CREATE branch — about to create venue");
   const venue = await prisma.venue.create({
     data: {
       projectId,
@@ -1723,8 +1730,19 @@ export async function confirmVenueFromUrl(
     failedReasons: photoFailedReasons,
     durationMs: Date.now() - createPhotoStartedAt,
   });
+  console.warn("[confirmVenueFromUrl] photo phase done", {
+    venueId: venue.id,
+    requested: uniquePhotoUrls.length,
+    uploaded: uploadedPhotoUrls.length,
+    durationMs: Date.now() - createPhotoStartedAt,
+  });
 
   const reviewSource = reviewSourceFromUrl(sourceUrl);
+  console.warn("[confirmVenueFromUrl] saving extracted reviews", {
+    venueId: venue.id,
+    reviewSource,
+    extractedReviewCount: parsed.data.reviews.length,
+  });
   if (reviewSource && parsed.data.reviews.length > 0) {
     try {
       await saveExtractedReviews(venue.id, parsed.data.reviews, sourceUrl, reviewSource);
@@ -1733,6 +1751,11 @@ export async function confirmVenueFromUrl(
     }
   }
 
+  console.warn("[confirmVenueFromUrl] calling runReviewSummary", {
+    venueId: venue.id,
+    sourceUrl,
+    reviewSource,
+  });
   const reviewSummaryStatus = await runReviewSummary(
     venue.id,
     sourceUrl,
@@ -1896,13 +1919,32 @@ async function runReviewSummary(
   venueId: string,
   sourceUrl: string,
   reviewSource: ReviewSource | null,
-  extractedReviewCount: number,
+  // Hint only — no longer used to short-circuit. The prior
+  // `extractedReviewCount === 0 → skipped` early return blocked the
+  // multi-page crawl from ever firing on URLs whose initial single-
+  // page extraction missed reviews (e.g. mwed /hall/{id}/rev/ where
+  // deriveMwed normalises to /hall/{id}/ which has fewer embedded
+  // reviews than the dedicated review page). analyzeVenueReviewsInner
+  // now does its own pagination + Haiku per page, so it'll genuinely
+  // find reviews on the source URL even when the parent extraction
+  // returned zero. If the source really is reviewless, analyze
+  // returns no-reviews and we map that to "skipped" below.
+  _hintCountFromInitialExtraction: number,
 ): Promise<ReviewSummaryStatus> {
-  if (!reviewSource) return "skipped";
-  if (extractedReviewCount === 0) return "skipped";
+  console.warn("[runReviewSummary] START", {
+    venueId,
+    sourceUrl,
+    reviewSource,
+    hintCount: _hintCountFromInitialExtraction,
+  });
+  if (!reviewSource) {
+    console.warn("[runReviewSummary] SKIP no source");
+    return "skipped";
+  }
   try {
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
     const result = await analyzeVenueReviews(venueId, sourceUrl, reviewSource);
+    console.warn("[runReviewSummary] DONE", { result });
     if (result.ok) return "completed";
     if (result.reason === "timeout") return "timeout";
     if (result.reason === "no-reviews") return "skipped";

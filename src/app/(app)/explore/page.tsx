@@ -20,6 +20,19 @@ import { listSavedSearches } from "@/server/actions/saved-searches";
 import type { VibeTag } from "@/lib/vibe-tags";
 import { VIBE_TAGS } from "@/lib/vibe-tags";
 
+// NOTE: previous bumps to maxDuration = 120 / 300 here triggered
+// "Invariant: invalid postponed state" 500s on /explore POSTs in the
+// preview build (visible in Vercel runtime logs as repeated 🚫 lines
+// around 01:21 JST during E2E). The error is Next.js 16 PPR /
+// cacheComponents bailing when a Page-level maxDuration export
+// interacts with a cached component tree containing server actions.
+// Removing the export restored normal POST handling.
+//
+// Server actions invoked from this page rely on their default function
+// timeout (project plan default = 300s on Vercel Pro). The multi-page
+// crawl on initial URL paste is sized to fit comfortably (2 pages =
+// ~30-40s including Sonnet, well under the implicit cap).
+
 type ExploreSearchParams = {
   q?: string;
   styles?: string | string[];

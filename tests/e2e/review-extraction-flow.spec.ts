@@ -104,7 +104,11 @@ async function login(page: Page) {
 }
 
 test("mwed URL → individual reviews surface end-to-end", async ({ page }) => {
-  test.setTimeout(180_000);
+  // Multi-page crawl on initial import = 4 mwed pages × (fetch + Haiku)
+  // ≈ 30-50s, plus Sonnet summary on the merged corpus ≈ 15-25s, plus
+  // login + onboarding ≈ 20-30s. 240s headroom keeps the test resilient
+  // to one-off Anthropic latency spikes without masking real regressions.
+  test.setTimeout(240_000);
   await login(page);
 
   // Step 1 — go to /explore and open the URL-import flow.
@@ -125,18 +129,22 @@ test("mwed URL → individual reviews surface end-to-end", async ({ page }) => {
   await urlInput.waitFor({ state: "visible", timeout: 10000 });
   await urlInput.fill(MWED_REV_URL);
 
-  // Submit button — exact label varies; cover the common forms.
+  // Submit button — the URL form's primary CTA is "URL から取り込む"
+  // (singular paste) or "まとめて取り込む (N)" (multiple). Use the
+  // exact label so we don't accidentally pick up another button
+  // earlier in the sheet (the prior loose `:has-text("取り込む")`
+  // matched secondary buttons).
   const submit = page
-    .locator(
-      'button:has-text("取り込む"), button:has-text("追加"), button:has-text("解析"), button[type="submit"]',
-    )
+    .locator('button:has-text("URL から取り込む"), button:has-text("まとめて取り込む")')
     .first();
   await submit.click();
 
   // Step 2 — wait for navigation to the venue detail page (success
-  // path) or for the venue card to appear (fallback). Up to 90s
-  // because URL import = fetch + Sonnet summary + Haiku extraction.
-  await page.waitForURL(/\/venues\//, { timeout: 90_000 });
+  // path). Up to 150s because URL import now = fetch + multi-page
+  // crawl (4 pages × fetch+Haiku) + Sonnet summary on the merged
+  // corpus. The page-level maxDuration on /venues/[id] gives the
+  // server up to 120s; the wait here adds margin for redirect.
+  await page.waitForURL(/\/venues\//, { timeout: 150_000 });
 
   // Step 3 — on venue detail. Scroll to the reviews section and look
   // for either individual review cards OR the backfill banner.
