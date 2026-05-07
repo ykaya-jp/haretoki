@@ -112,15 +112,11 @@ function sourceJaName(source: ReviewSource): string {
  *     取り込む" button. The user has opted into a longer wait, so we
  *     can afford 8 pages = 200 reviews for the deep cut.
  */
-// Two-tier: initial URL paste runs a single-page extraction (matches
-// the pre-multi-page baseline the user already verified working).
-// Backfill button does the deep 8-page crawl when explicitly invoked.
-// We tried 4-page → 2-page on initial; both still pushed the action
-// chain past Vercel's response window in preview. 1 page proves the
-// pipeline is sound; we can re-introduce multi-page after the basic
-// flow is back to green and we've moved heavy work off the critical
-// path (e.g. via Next.js after()).
-const MAX_REVIEW_PAGES_INITIAL = 1;
+// User spec: initial URL paste must yield 100+ reviews (4 mwed pages
+// × 25 = 100). Backfill button extends to 8 pages (~200) on explicit
+// opt-in. Wall time on initial paste is ~60-80s including Sonnet on
+// the merged corpus; needs the page-level maxDuration to accommodate.
+const MAX_REVIEW_PAGES_INITIAL = 4;
 const MAX_REVIEW_PAGES_BACKFILL = 8;
 
 /**
