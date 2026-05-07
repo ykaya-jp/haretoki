@@ -236,13 +236,17 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
     mockRevalidatePath.mockReset();
   });
 
-  it("returns {ok:true} synchronously when an aiSummary is already cached AND individual reviews exist", async () => {
+  it("does NOT short-circuit when summary + individuals exist (always re-runs to refresh)", async () => {
+    // PRIOR design: returned {ok:true} immediately when both summary
+    // and individual review rows existed.
+    // CURRENT design: re-runs analyze unconditionally so the user can
+    // refresh extraction (new prompt version, more pages, updated
+    // sentiment). The test asserts the function did NOT take the
+    // short-circuit (would have returned {ok:true} without venue
+    // lookup); instead it proceeds and lands on api-error because
+    // we didn't mock the downstream Anthropic call.
     mockVenueFindFirst.mockResolvedValueOnce({ id: "venue-1", name: "V" });
     mockFindFirst.mockResolvedValueOnce({ aiSummary: "already summarised" });
-    // New behavior: short-circuit only when individual review rows
-    // exist (sourceUrl with `#rev-` fragment). Legacy venues with a
-    // summary but no individuals fall through to the full pipeline
-    // so the parallel Haiku extraction can backfill them.
     mockCount.mockResolvedValueOnce(5);
 
     const { analyzeVenueReviews } = await import("@/server/actions/reviews");
@@ -251,7 +255,9 @@ describe("analyzeVenueReviews (Result shape + timeout guard)", () => {
       "https://zexy.net/foo",
       "zexy",
     );
-    expect(result).toEqual({ ok: true });
+    // Did NOT short-circuit (would have been {ok:true}). Proceeded to
+    // the full pipeline and ended in api-error (no mock for fetch).
+    expect(result.ok).toBe(false);
   });
 
   it("returns {ok:false, reason:'api-error'} when venue is not found", async () => {

@@ -673,18 +673,14 @@ async function analyzeVenueReviewsInner(
     // summary is cached but individuals are missing, fall through to
     // the full pipeline; cachedAskClaude will hit the Sonnet cache so
     // only the Haiku extraction actually pays a roundtrip.
-    const individualCount = await prisma.review.count({
-      where: {
-        venueId,
-        source,
-        sourceUrl: { startsWith: `${sourceUrl}#rev-` },
-      },
-    });
-    if (individualCount > 0) {
-      return { ok: true };
-    }
-    console.log(
-      "[analyzeVenueReviews] summary cached but no individuals — re-running extraction",
+    // PRIOR DESIGN: short-circuited when both summary + individuals
+    // existed. PROBLEM: user wants to re-import to pick up new prompt
+    // version's improvements (e.g. v2→v3 sentiment + balance fields)
+    // and bigger crawl pass. Saving body-hash duplicates is cheap
+    // (Prisma upsert no-ops), so we always re-run. Sonnet cache
+    // (cachedAskClaude) keeps re-run cost low when prompt unchanged.
+    console.warn(
+      "[analyzeVenueReviews] summary cached — re-running anyway to refresh individuals + scores",
       { venueId, sourceUrl, source },
     );
   }
@@ -1154,20 +1150,14 @@ export async function batchImportReviewUrls(
     };
   }
 
-  // Pull all existing review sourceUrls for this venue+source up-front so
-  // dedup is O(1) per input URL instead of N round-trips. The set holds
-  // the **base** URL (no fragment) — Review rows from saveExtractedReviews
-  // carry `#rev-{hash}` suffixes per individual review, but we strip them
-  // for the prefix-match check.
-  const existingRows = await prisma.review.findMany({
-    where: { venueId, source },
-    select: { sourceUrl: true },
-  });
-  const existingBases = new Set<string>();
-  for (const row of existingRows) {
-    const base = row.sourceUrl.split("#")[0];
-    existingBases.add(base);
-  }
+  // Intra-batch dedup only — re-importing an URL that's already in the
+  // DB is a valid request (user wants fresh extraction with new prompt
+  // version / more pages / updated sentiment data). saveExtractedReviews
+  // upserts by body hash so re-runs are cheap and metadata updates land
+  // in place. Previously we blocked DB-existing URLs, which the user
+  // (correctly) flagged as broken: pasting the URL again should produce
+  // results, not "既に取り込み済" with no action.
+  const seenInBatch = new Set<string>();
 
   const perUrlByUrl = new Map<string, BatchImportPerUrl>();
   const toProcess: string[] = [];
@@ -1216,24 +1206,20 @@ export async function batchImportReviewUrls(
       continue;
     }
 
-    // Layer 3: dedup. Prefix-match against existing Review.sourceUrl bases
-    // (saveExtractedReviews appends `#rev-{hash}` per individual review,
-    // so equality on the base URL means "we already imported this page").
-    // Pre-mark in existingBases so a duplicate URL later in the same
-    // input is dedup'd against this one even though we haven't run
-    // layer 4 yet (parallel layer-4 races couldn't otherwise dedup
-    // against each other).
+    // Intra-batch dedup only: if the user pasted the SAME URL twice
+    // in this batch, dedup the second occurrence so we don't run two
+    // parallel extractions against the same source.
     const baseUrl = url.split("#")[0];
-    if (existingBases.has(baseUrl)) {
+    if (seenInBatch.has(baseUrl)) {
       perUrlByUrl.set(url, {
         url,
         status: "skipped",
-        message: "既に取り込み済の URL です",
+        message: "同じ URL がバッチ内で重複しています",
       });
       skipped++;
       continue;
     }
-    existingBases.add(baseUrl);
+    seenInBatch.add(baseUrl);
     toProcess.push(url);
   }
 

@@ -180,14 +180,14 @@ describe("batchImportReviewUrls — auth + rate-limit gates", () => {
   });
 });
 
-describe("batchImportReviewUrls — dedup (analyze-free path)", () => {
-  it("skips URLs whose base already exists in the venue's Reviews", async () => {
-    // Pre-populate the dedup set with all input URLs so the analyze
-    // call NEVER fires (= the test stays inside the unit boundary).
+describe("batchImportReviewUrls — re-import is allowed (DB dedup removed)", () => {
+  it("re-imports URLs whose base already exists in the venue's Reviews", async () => {
+    // PRIOR design: skipped DB-existing URLs.
+    // CURRENT design: re-imports them so the user can refresh extraction
+    // (new prompt version, more pages, updated sentiment data).
+    // saveExtractedReviews upserts by body hash so re-runs are cheap.
     mockReviewFindMany.mockResolvedValueOnce([
       { sourceUrl: "https://www.mwed.jp/hall/1/" },
-      // Existing row may carry a #rev-{hash} fragment (from
-      // saveExtractedReviews); the dedup stripper must ignore it.
       { sourceUrl: "https://www.mwed.jp/hall/2/#rev-abc12345" },
       { sourceUrl: "https://www.mwed.jp/hall/3/" },
     ]);
@@ -196,19 +196,20 @@ describe("batchImportReviewUrls — dedup (analyze-free path)", () => {
     const result = await batchImportReviewUrls(
       "venue-1",
       [
-        "https://www.mwed.jp/hall/1/", // skipped (exact match)
-        "https://www.mwed.jp/hall/2/", // skipped (base of existing #rev-...)
-        "https://www.mwed.jp/hall/3/", // skipped (exact)
+        "https://www.mwed.jp/hall/1/", // re-imported
+        "https://www.mwed.jp/hall/2/", // re-imported
+        "https://www.mwed.jp/hall/3/", // re-imported
       ],
       "minna_no_wedding",
     );
 
     expect("error" in result).toBe(false);
     if (!("error" in result)) {
-      expect(result.summary).toEqual({ saved: 0, skipped: 3, failed: 0 });
+      // All 3 URLs are processed via the analyze path. Without an
+      // analyzer mock returning success, they end up in `failed`,
+      // but importantly NONE land in `skipped`.
       expect(result.perUrl).toHaveLength(3);
-      expect(result.perUrl.every((r) => r.status === "skipped")).toBe(true);
-      expect(result.perUrl[0].message).toMatch(/取り込み済/);
+      expect(result.perUrl.every((r) => r.status !== "skipped")).toBe(true);
     }
   });
 
@@ -255,8 +256,9 @@ describe("batchImportReviewUrls — domain allowlist + loop continuation", () =>
 
     expect("error" in result).toBe(false);
     if (!("error" in result)) {
-      expect(result.summary).toEqual({ saved: 0, skipped: 1, failed: 2 });
-      expect(result.perUrl[0].status).toBe("skipped");
+      // First URL is now re-imported (no DB-dedup skip). Without an
+      // analyzer mock, it lands in failed alongside the two non-allowlisted ones.
+      expect(result.perUrl[0].status).not.toBe("skipped");
       expect(result.perUrl[1].status).toBe("failed");
       expect(result.perUrl[1].message).toMatch(/対応していない/);
       expect(result.perUrl[2].status).toBe("failed");
@@ -272,7 +274,7 @@ describe("batchImportReviewUrls — domain allowlist + loop continuation", () =>
     const result = await batchImportReviewUrls(
       "venue-1",
       [
-        "https://www.mwed.jp/hall/1/", // skipped
+        "https://www.mwed.jp/hall/1/", // re-imported (no DB-dedup skip)
         "http://www.mwed.jp/hall/2/", // failed (scheme = http, not https)
       ],
       "minna_no_wedding",
@@ -280,7 +282,7 @@ describe("batchImportReviewUrls — domain allowlist + loop continuation", () =>
 
     expect("error" in result).toBe(false);
     if (!("error" in result)) {
-      expect(result.summary).toEqual({ saved: 0, skipped: 1, failed: 1 });
+      expect(result.perUrl[0].status).not.toBe("skipped");
       expect(result.perUrl[1].status).toBe("failed");
       expect(result.perUrl[1].message).toMatch(/HTTPS/);
     }

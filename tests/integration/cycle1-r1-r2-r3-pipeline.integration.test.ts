@@ -144,7 +144,10 @@ describe("R1 → R2 → R3 review pipeline integration", () => {
     if (!("error" in result)) {
       expect(result.summary.saved + result.summary.skipped + result.summary.failed)
         .toBe(2);
-      expect(result.summary).toEqual({ saved: 0, skipped: 2, failed: 0 });
+      // CURRENT contract: DB-existing URLs are no longer auto-skipped
+      // (re-import is allowed). Without an analyzer mock the URLs
+      // land in `failed`, but importantly NOT in `skipped`.
+      expect(result.summary.skipped).toBe(0);
       // Per-URL entries carry the message fields R2's downstream UI
       // needs (status + message).
       for (const entry of result.perUrl) {
@@ -158,6 +161,9 @@ describe("R1 → R2 → R3 review pipeline integration", () => {
     // R2 must scale O(1) queries no matter how many venues — the
     // /compare board passes 2-10 venue ids and we cannot fan out.
     const venueIds = ["v1", "v2", "v3", "v4", "v5"];
+    // Reset findMany default to ensure NO leftover mockOnce queue
+    // from the prior test in the file confuses the consumer here.
+    mockReviewFindMany.mockReset();
     mockReviewFindMany.mockResolvedValueOnce(
       venueIds.map((id, i) => ({
         venueId: id,

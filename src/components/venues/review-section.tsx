@@ -277,8 +277,14 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
         toast.error(result.error);
         return;
       }
-      if (result.saved === 0 && result.alreadyHad > 0) {
-        toast.info(`既に ${result.alreadyHad} 件取り込み済みでした`);
+      // saved counts ALL upsert ops (including no-op overwrites of
+      // existing body hashes). When the prior count exceeded zero,
+      // call out the diff so the user sees the refresh worked even
+      // when no genuinely-new bodies were found this run.
+      if (result.alreadyHad > 0 && result.saved <= result.alreadyHad) {
+        toast.success(
+          `${result.saved} 件を取り込み (前回 ${result.alreadyHad} 件、今回 sentiment / 評価を最新化)`,
+        );
       } else {
         toast.success(`個別レビュー ${result.saved} 件を取り込みました`);
       }
