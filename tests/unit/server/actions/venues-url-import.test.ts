@@ -210,12 +210,8 @@ describe("confirmVenueFromUrl", () => {
       expect(result.photoRequestedCount).toBe(2);
       expect(result.photoUploadedCount).toBe(2);
       expect(result.individualReviewCount).toBe(2);
-      // Review summarisation now defers to Next.js after() in production
-      // and to fire-and-forget in tests. The synchronous response always
-      // says "scheduled" — actual completion arrives via revalidatePath
-      // when the background job finishes. Side-effects are verified via
-      // the analyzer mock invocation count below.
-      expect(result.reviewSummaryStatus).toBe("scheduled");
+      // Inline await: real status returns to caller. Happy path = "completed".
+      expect(result.reviewSummaryStatus).toBe("completed");
     }
     // analyzeVenueReviews should have been invoked exactly once (no more
     // fire-and-forget) with the venue id + source url.
@@ -282,9 +278,7 @@ describe("confirmVenueFromUrl", () => {
         "size-limit": 0,
         network: 0,
       });
-      // Phase C: with after() defer, the synchronous response always
-      // returns "scheduled" — even when the background job will skip.
-      expect(result.reviewSummaryStatus).toBe("scheduled");
+      expect(result.reviewSummaryStatus).toBe("skipped");
     }
     expect(mockAnalyzeVenueReviews).not.toHaveBeenCalled();
   });
@@ -335,10 +329,7 @@ describe("confirmVenueFromUrl", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      // After deferOrInline, the synchronous response is always
-      // "scheduled". The actual timeout outcome surfaces later via
-      // revalidatePath when the background job completes.
-      expect(result.reviewSummaryStatus).toBe("scheduled");
+      expect(result.reviewSummaryStatus).toBe("timeout");
       expect(result.individualReviewCount).toBe(1);
     }
     // Reviews were saved before the summary step so the UI can still

@@ -1627,32 +1627,12 @@ export async function confirmVenueFromUrl(
       }
     }
 
-    // Same after() defer as the CREATE branch — heavy crawl runs
-    // post-response so the user's redirect is fast.
-    const mergedVenueIdForBg = existing.id;
-    const mergedReviewCountForBg = parsed.data.reviews.length;
-    await deferOrInline(async () => {
-      try {
-        const status = await runReviewSummary(
-          mergedVenueIdForBg,
-          sourceUrl,
-          reviewSource,
-          mergedReviewCountForBg,
-        );
-        revalidateTag(`project:${projectId}`, { expire: 0 });
-        revalidateTag(`venue:${mergedVenueIdForBg}`, { expire: 0 });
-        revalidatePath(`/venues/${mergedVenueIdForBg}`);
-        console.warn("[confirmVenueFromUrl merge] background runReviewSummary done", {
-          venueId: mergedVenueIdForBg,
-          status,
-        });
-      } catch (err) {
-        console.warn("[confirmVenueFromUrl merge] background runReviewSummary failed", {
-          venueId: mergedVenueIdForBg,
-          err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
-        });
-      }
-    });
+    const reviewSummaryStatus = await runReviewSummary(
+      existing.id,
+      sourceUrl,
+      reviewSource,
+      parsed.data.reviews.length,
+    );
 
     revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath("/explore");
@@ -1669,7 +1649,7 @@ export async function confirmVenueFromUrl(
       photoRequestedCount: uniquePhotoUrls.length,
       photoFailedReasons,
       individualReviewCount: parsed.data.reviews.length,
-      reviewSummaryStatus: "scheduled" as const,
+      reviewSummaryStatus,
     };
   }
 
@@ -1797,48 +1777,28 @@ export async function confirmVenueFromUrl(
     }
   }
 
-  _log("calling runReviewSummary (deferred)", {
+  _log("calling runReviewSummary (inline)", {
     venueId: venue.id,
     sourceUrl,
     reviewSource,
   });
-  // Defer the heavy multi-page crawl + Sonnet summary to Next.js
-  // after() so the URL-submit response returns fast. Without this the
-  // /explore POST chain (addVenueFromUrl + photo upload + 4-page mwed
-  // crawl + Sonnet on 25K-char merged corpus) reaches 100-130s and
-  // gets killed before runReviewSummary completes — surfacing as the
-  // venue page rendering with no Review row at all.
-  //
-  // The venue is already created + auto-favorited by this point. The
-  // background work calls revalidatePath when it finishes so the venue
-  // page refreshes with the summary card + individual reviews on the
-  // user's next interaction (or via realtime if subscribed).
-  const venueIdForBg = venue.id;
-  const reviewCountForBg = parsed.data.reviews.length;
-  await deferOrInline(async () => {
-    try {
-      const status = await runReviewSummary(
-        venueIdForBg,
-        sourceUrl,
-        reviewSource,
-        reviewCountForBg,
-      );
-      revalidateTag(`project:${projectId}`, { expire: 0 });
-      revalidateTag(`venue:${venueIdForBg}`, { expire: 0 });
-      revalidatePath(`/venues/${venueIdForBg}`);
-      console.warn("[confirmVenueFromUrl] background runReviewSummary done", {
-        venueId: venueIdForBg,
-        status,
-      });
-    } catch (err) {
-      console.warn("[confirmVenueFromUrl] background runReviewSummary failed", {
-        venueId: venueIdForBg,
-        err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
-      });
-    }
-  });
+  // Inline await — after() defer was attempted but the post-response
+  // callback never appeared in Vercel runtime logs (suspect: PPR /
+  // postponed-state error path interferes with the request-context
+  // handoff to waitUntil). Inline keeps the URL-submit response
+  // honest: the user waits the full 60-90s for Sonnet + multi-page
+  // crawl, but the Review row WILL exist by the time they land on
+  // the venue page. Slow but correct beats "fast + no reviews".
+  const reviewSummaryStatus = await runReviewSummary(
+    venue.id,
+    sourceUrl,
+    reviewSource,
+    parsed.data.reviews.length,
+  );
+  _log("runReviewSummary done", { status: reviewSummaryStatus });
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
+  revalidateTag(`venue:${venue.id}`, { expire: 0 });
   revalidatePath("/explore");
   revalidatePath("/home");
   revalidatePath(`/venues/${venue.id}`);
@@ -1852,9 +1812,7 @@ export async function confirmVenueFromUrl(
     photoRequestedCount: uniquePhotoUrls.length,
     photoFailedReasons,
     individualReviewCount: parsed.data.reviews.length,
-    // Background — actual status arrives later via revalidatePath. The
-    // initial response promises "scheduled".
-    reviewSummaryStatus: "scheduled" as const,
+    reviewSummaryStatus,
   };
 }
 
