@@ -288,31 +288,105 @@ async function extractAcrossPages(
   // Merge + dedup by body hash. Preserve insertion order so newer pages
   // (lower index) win on ties.
   const seen = new Set<string>();
-  const merged: ExtractedIndividualReview[] = [];
+  const mergedAll: ExtractedIndividualReview[] = [];
   for (const list of perPageReviews) {
     for (const r of list) {
       const hash = computeInputHash(r.body).slice(0, 8);
       if (seen.has(hash)) continue;
       seen.add(hash);
-      merged.push(r);
+      mergedAll.push(r);
     }
   }
 
-  console.log("[extractAcrossPages] result", {
+  // Post-merge sentiment balance — even if Haiku follows the per-page
+  // balance prompt imperfectly, enforce a final pos/neg ratio so the
+  // saved corpus is decision-useful and not 100 superlatives.
+  //
+  // Target: keep ALL substantive negative + neutral; downsample
+  // positives so they don't drown the negatives. Floor of 60 total
+  // when source material allows (≈ 4 pages × 15 quality reviews).
+  const balanced = balanceMergedReviews(mergedAll);
+
+  console.warn("[extractAcrossPages] result", {
     baseUrl,
     source,
     pagesAttempted: urls.length,
     pagesFetched: okPages.length,
     rawTotalRows: perPageReviews.flat().length,
-    mergedUniqueRows: merged.length,
+    mergedUniqueRows: mergedAll.length,
+    afterBalance: balanced.length,
+    balanceMix: countSentimentMix(balanced),
   });
 
   return {
-    reviews: merged,
+    reviews: balanced,
     pagesFetched: okPages.length,
     pagesAttempted: urls.length,
     mergedCorpusForSummary,
   };
+}
+
+/**
+ * Apply final sentiment balance to a merged multi-page extraction.
+ *
+ * Wedding-venue review sites are praise-skewed; without explicit balance
+ * the user reads 100 「最高でした」 entries and 0 substantive negatives.
+ * Rule: keep ALL non-positive (negative + neutral + low-rated), then
+ * downsample positives so positives ≤ 3 × non-positives — but never
+ * drop the total below `keepAll` so very-positive venues still surface
+ * lots of voices.
+ */
+function balanceMergedReviews(
+  reviews: ExtractedIndividualReview[],
+): ExtractedIndividualReview[] {
+  if (reviews.length <= 25) return reviews; // single-page → no rebalance needed
+  const isNegative = (r: ExtractedIndividualReview) =>
+    r.sentiment === "negative" || (r.rating != null && r.rating <= 2);
+  const isNeutral = (r: ExtractedIndividualReview) =>
+    !isNegative(r) && (r.sentiment === "neutral" || r.rating === 3);
+  const positives: ExtractedIndividualReview[] = [];
+  const nonPositives: ExtractedIndividualReview[] = [];
+  for (const r of reviews) {
+    if (isNegative(r) || isNeutral(r)) {
+      nonPositives.push(r);
+    } else {
+      positives.push(r);
+    }
+  }
+  // Allow up to 3 positives per non-positive for visible balance, but
+  // never below 30 total positives so a positive-only venue still has
+  // a satisfying read.
+  const positiveCap = Math.max(30, nonPositives.length * 3);
+  const trimmedPositives = positives.slice(0, positiveCap);
+  // Interleave non-positives early in the output so the chip-filter
+  // initial scroll surfaces ネガ within the first viewport instead of
+  // forcing the user to scroll past 30 positives to find one.
+  const out: ExtractedIndividualReview[] = [];
+  const np = [...nonPositives];
+  const pos = [...trimmedPositives];
+  while (np.length || pos.length) {
+    if (np.length) out.push(np.shift()!);
+    for (let i = 0; i < 2 && pos.length; i++) {
+      out.push(pos.shift()!);
+    }
+  }
+  return out;
+}
+
+function countSentimentMix(reviews: ExtractedIndividualReview[]): {
+  positive: number;
+  negative: number;
+  neutral: number;
+  unknown: number;
+} {
+  const mix = { positive: 0, negative: 0, neutral: 0, unknown: 0 };
+  for (const r of reviews) {
+    if (r.sentiment === "positive") mix.positive++;
+    else if (r.sentiment === "negative") mix.negative++;
+    else if (r.sentiment === "neutral") mix.neutral++;
+    else mix.unknown++;
+  }
+  return mix;
 }
 
 /**

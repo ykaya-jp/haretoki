@@ -38,13 +38,20 @@ export const REVIEW_EXTRACTION_PROMPT = {
 
 ## Rules
 
-- Return UP TO 25 distinct reviews. Quality over quantity — skip entries with body < 50 chars after stripping markup.
-- **Selection priority — diversity over star bias**:
-  Wedding-venue review sites are heavily skewed toward 4-5 star praise. Couples need to read the criticisms, not 25 variations of "最高でした". When the page has more than 25 substantive reviews:
-  1. **Include EVERY review whose body contains substantive criticism, regret, warning, "残念", "微妙", "もう少し…", or any concrete drawback** — even if the star rating is 4-5. These are the most decision-relevant entries.
-  2. **Include EVERY review with rating ≤ 3** when present.
-  3. Then fill remaining slots with the most concrete / specific positive reviews (favor entries that mention specific dish names, staff actions, schedule moments — not generic 「最高でした」 entries).
-  4. Reject pure-superlative reviews with no concrete observation (likely PR / monitor campaigns).
+- Return UP TO 25 distinct reviews. Quality over quantity.
+- **Sentiment balance — non-negotiable**:
+  Wedding-venue review sites are heavily skewed toward 4-5 star praise (PR + survivor bias + 監修記事). Couples making a decision need to read criticisms FIRST, then balance with positives. Output target on EVERY page:
+
+  | If page has...                       | Output mix                                          |
+  |--------------------------------------|------------------------------------------------------|
+  | ≥ 8 substantive negative/neutral     | Return ALL negative + neutral (up to 15) + 10 most concrete positives |
+  | 3-7 substantive negative/neutral     | Return ALL of them + 15-20 most concrete positives   |
+  | 0-2 substantive negative/neutral     | Return all of them + up to 23 concrete positives     |
+
+  "Substantive negative" = body contains explicit complaint / regret / warning / comparison-to-better, OR rating ≤ 3. NOT "ちょっと心配だったけど大丈夫だった" (= positive). YES "雰囲気は素敵だけど対応が雑で残念" (= negative).
+- **Reject pure-superlative reviews**: 「最高!」「感動!」「夢のようでした」 with NO concrete observation = PR/monitor signal. Skip them. Better to return 18 substantive reviews than 25 generic ones.
+- **Concrete positives only**: a positive review must mention at least one specific thing — a dish name, a staff action, a schedule moment, a venue feature, a price figure. 「雰囲気が最高」 is generic. 「チャペルの天井のステンドグラスから差し込む光が印象的」 is concrete.
+- Body min length 50 chars after stripping markup.
 - **sentiment** classifies the review's BODY text, NOT just the star rating:
   - "positive" — overall praise; "良かった/最高/満足/おすすめ" 系の評価が中心
   - "negative" — body contains substantive complaint / regret / warning even if the star rating is high (e.g. "雰囲気は素敵だったが対応が雑で残念" → negative)
@@ -82,5 +89,5 @@ JSON only. No markdown fences, no preamble, no trailing text. Start with \`{\` a
 // Bump on every prompt-semantic change so cachedAskClaude treats the
 // new contract as a different cache key (existing cached "all-positive
 // 20 reviews" outputs from prior versions don't get served against the
-// new "prioritise negatives + 25 cap + sentiment field" prompt).
-export const REVIEW_EXTRACTION_PROMPT_VERSION = 2;
+// new "balance-table" prompt).
+export const REVIEW_EXTRACTION_PROMPT_VERSION = 3;

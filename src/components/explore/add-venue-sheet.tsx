@@ -63,7 +63,7 @@ const STAGE_CAPTIONS: Record<ImportStage, string> = {
 };
 
 /** Mirror of server-side ReviewSummaryStatus. Kept inline to avoid a client bundle pull of server types. */
-type ReviewSummaryStatus = "completed" | "timeout" | "skipped" | "failed";
+type ReviewSummaryStatus = "completed" | "timeout" | "skipped" | "failed" | "scheduled";
 
 /** Per-URL processing state for skeleton fill animation */
 interface UrlProcessState {
@@ -153,6 +153,12 @@ function buildReviewSummaryToastLine(
   reviewCount: number | undefined,
 ): string | null {
   if (!status || status === "skipped") return null;
+  if (status === "scheduled") {
+    // Heavy crawl + Sonnet runs post-response via Next.js after().
+    // The venue page rerenders with the summary card + 100+ reviews
+    // when revalidatePath fires from the background job (~30-90s).
+    return "🔄 口コミとまとめを取り込み中…完了したら式場ページに表示されます";
+  }
   if (status === "completed") {
     const n = reviewCount ?? 0;
     if (n === 0) return "口コミのまとめを残しました";

@@ -210,11 +210,12 @@ describe("confirmVenueFromUrl", () => {
       expect(result.photoRequestedCount).toBe(2);
       expect(result.photoUploadedCount).toBe(2);
       expect(result.individualReviewCount).toBe(2);
-      // Review summarization is now awaited inside confirmVenueFromUrl —
-      // with a happy-path analyzer mock that returns {ok:true}, the
-      // caller should receive reviewSummaryStatus === "completed" so the
-      // sheet can render the full success toast.
-      expect(result.reviewSummaryStatus).toBe("completed");
+      // Review summarisation now defers to Next.js after() in production
+      // and to fire-and-forget in tests. The synchronous response always
+      // says "scheduled" — actual completion arrives via revalidatePath
+      // when the background job finishes. Side-effects are verified via
+      // the analyzer mock invocation count below.
+      expect(result.reviewSummaryStatus).toBe("scheduled");
     }
     // analyzeVenueReviews should have been invoked exactly once (no more
     // fire-and-forget) with the venue id + source url.
@@ -281,8 +282,9 @@ describe("confirmVenueFromUrl", () => {
         "size-limit": 0,
         network: 0,
       });
-      // Phase C: no reviews extracted → summarization is skipped entirely.
-      expect(result.reviewSummaryStatus).toBe("skipped");
+      // Phase C: with after() defer, the synchronous response always
+      // returns "scheduled" — even when the background job will skip.
+      expect(result.reviewSummaryStatus).toBe("scheduled");
     }
     expect(mockAnalyzeVenueReviews).not.toHaveBeenCalled();
   });
@@ -333,7 +335,10 @@ describe("confirmVenueFromUrl", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.reviewSummaryStatus).toBe("timeout");
+      // After deferOrInline, the synchronous response is always
+      // "scheduled". The actual timeout outcome surfaces later via
+      // revalidatePath when the background job completes.
+      expect(result.reviewSummaryStatus).toBe("scheduled");
       expect(result.individualReviewCount).toBe(1);
     }
     // Reviews were saved before the summary step so the UI can still

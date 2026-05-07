@@ -1,5 +1,24 @@
 "use server";
 
+import { after } from "next/server";
+/**
+ * Guarded `after()` — falls back to inline execution when the function
+ * runs outside a request scope (vitest unit tests). In production /
+ * preview the deferred path is used and the URL-submit response stays
+ * fast.
+ */
+async function deferOrInline(fn: () => Promise<void>): Promise<void> {
+  try {
+    after(fn);
+  } catch {
+    // Outside request scope (unit test) — await inline so the test
+    // can observe side-effects after `await confirmVenueFromUrl(...)`
+    // returns. In vitest this preserves the deterministic mock
+    // assertion contract while production goes through the after()
+    // post-response path.
+    await fn();
+  }
+}
 import { prisma } from "@/server/db";
 import { revalidatePath, revalidateTag, cacheTag } from "next/cache";
 import { requireUser, requireProjectMembership } from "@/server/auth";
@@ -1601,12 +1620,32 @@ export async function confirmVenueFromUrl(
       }
     }
 
-    const reviewSummaryStatus = await runReviewSummary(
-      existing.id,
-      sourceUrl,
-      reviewSource,
-      parsed.data.reviews.length,
-    );
+    // Same after() defer as the CREATE branch — heavy crawl runs
+    // post-response so the user's redirect is fast.
+    const mergedVenueIdForBg = existing.id;
+    const mergedReviewCountForBg = parsed.data.reviews.length;
+    await deferOrInline(async () => {
+      try {
+        const status = await runReviewSummary(
+          mergedVenueIdForBg,
+          sourceUrl,
+          reviewSource,
+          mergedReviewCountForBg,
+        );
+        revalidateTag(`project:${projectId}`, { expire: 0 });
+        revalidateTag(`venue:${mergedVenueIdForBg}`, { expire: 0 });
+        revalidatePath(`/venues/${mergedVenueIdForBg}`);
+        console.warn("[confirmVenueFromUrl merge] background runReviewSummary done", {
+          venueId: mergedVenueIdForBg,
+          status,
+        });
+      } catch (err) {
+        console.warn("[confirmVenueFromUrl merge] background runReviewSummary failed", {
+          venueId: mergedVenueIdForBg,
+          err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        });
+      }
+    });
 
     revalidateTag(`project:${projectId}`, { expire: 0 });
     revalidatePath("/explore");
@@ -1623,7 +1662,7 @@ export async function confirmVenueFromUrl(
       photoRequestedCount: uniquePhotoUrls.length,
       photoFailedReasons,
       individualReviewCount: parsed.data.reviews.length,
-      reviewSummaryStatus,
+      reviewSummaryStatus: "scheduled" as const,
     };
   }
 
@@ -1756,12 +1795,41 @@ export async function confirmVenueFromUrl(
     sourceUrl,
     reviewSource,
   });
-  const reviewSummaryStatus = await runReviewSummary(
-    venue.id,
-    sourceUrl,
-    reviewSource,
-    parsed.data.reviews.length,
-  );
+  // Defer the heavy multi-page crawl + Sonnet summary to Next.js
+  // after() so the URL-submit response returns fast. Without this the
+  // /explore POST chain (addVenueFromUrl + photo upload + 4-page mwed
+  // crawl + Sonnet on 25K-char merged corpus) reaches 100-130s and
+  // gets killed before runReviewSummary completes — surfacing as the
+  // venue page rendering with no Review row at all.
+  //
+  // The venue is already created + auto-favorited by this point. The
+  // background work calls revalidatePath when it finishes so the venue
+  // page refreshes with the summary card + individual reviews on the
+  // user's next interaction (or via realtime if subscribed).
+  const venueIdForBg = venue.id;
+  const reviewCountForBg = parsed.data.reviews.length;
+  await deferOrInline(async () => {
+    try {
+      const status = await runReviewSummary(
+        venueIdForBg,
+        sourceUrl,
+        reviewSource,
+        reviewCountForBg,
+      );
+      revalidateTag(`project:${projectId}`, { expire: 0 });
+      revalidateTag(`venue:${venueIdForBg}`, { expire: 0 });
+      revalidatePath(`/venues/${venueIdForBg}`);
+      console.warn("[confirmVenueFromUrl] background runReviewSummary done", {
+        venueId: venueIdForBg,
+        status,
+      });
+    } catch (err) {
+      console.warn("[confirmVenueFromUrl] background runReviewSummary failed", {
+        venueId: venueIdForBg,
+        err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      });
+    }
+  });
 
   revalidateTag(`project:${projectId}`, { expire: 0 });
   revalidatePath("/explore");
@@ -1777,7 +1845,9 @@ export async function confirmVenueFromUrl(
     photoRequestedCount: uniquePhotoUrls.length,
     photoFailedReasons,
     individualReviewCount: parsed.data.reviews.length,
-    reviewSummaryStatus,
+    // Background — actual status arrives later via revalidatePath. The
+    // initial response promises "scheduled".
+    reviewSummaryStatus: "scheduled" as const,
   };
 }
 
@@ -1903,7 +1973,8 @@ export type ReviewSummaryStatus =
   | "completed"   // Claude successfully returned a summary
   | "timeout"    // 15s budget elapsed; reviews saved, summary TBD
   | "skipped"    // no source / no extracted reviews → nothing to summarise
-  | "failed";    // API error; reviews saved, summary not produced
+  | "failed"     // API error; reviews saved, summary not produced
+  | "scheduled"; // deferred to after() — page revalidates when bg work completes
 
 /**
  * Run AI review summarisation **synchronously** (bounded by analyze's
