@@ -26,7 +26,11 @@ const MAX_NEW_PER_CALL = 10;
 // pre-existing AiAnalysis rows automatically. Without a version tag, the
 // hash collision (same venue + same updatedAt + same conditions) would
 // silently serve pre-revision one-liners for the row's effective TTL.
-const FIT_REASON_PROMPT_VERSION = 1;
+// v2: prompt now requires a concrete feature mention (vibeTag, chef
+// name, cost figure, capacity number) and explicitly bans
+// "バランスのいい式場" generic copy. Bump invalidates cached v1
+// outputs so users see the differentiated one-liners.
+const FIT_REASON_PROMPT_VERSION = 2;
 
 /**
  * Resolve "fit reason" one-liners for the given venues. Cached per
@@ -69,6 +73,14 @@ async function fetchFitReasons(
       capacityMin: true,
       capacityMax: true,
       ceremonyStyles: true,
+      // vibeTags drive the "this venue's distinctive angle" hint —
+      // without them every venue with the same name/location/capacity
+      // shape ends up with "バランスのいい式場" generic copy because
+      // Claude has nothing to differentiate on.
+      vibeTags: true,
+      costMin: true,
+      costMax: true,
+      chefCredentials: true,
       updatedAt: true,
     },
   });
@@ -135,6 +147,19 @@ async function fetchFitReasons(
   const batch = toGenerate.slice(0, MAX_NEW_PER_CALL);
   await Promise.all(
     batch.map(async (v) => {
+      // Compose a "features" list from the rich fields so Claude has
+      // distinctive material to mention rather than defaulting to
+      // generic "バランスのいい式場" copy. vibeTags carry the
+      // editorial-mood differentiation, chefCredentials anchors
+      // cuisine, cost range gives a concrete anchor.
+      const features: string[] = [];
+      if (v.vibeTags && v.vibeTags.length > 0) features.push(...v.vibeTags);
+      if (v.chefCredentials) features.push(`料理長: ${v.chefCredentials}`);
+      if (v.costMin || v.costMax) {
+        features.push(
+          `総額目安: ${v.costMin ? Math.round(v.costMin / 10000) + "万" : "?"}〜${v.costMax ? Math.round(v.costMax / 10000) + "万" : "?"}`,
+        );
+      }
       const summary: FitReasonVenueSummary = {
         name: v.name,
         location: v.location,
@@ -142,7 +167,7 @@ async function fetchFitReasons(
         capacityMax: v.capacityMax,
         ceremonyStyles: v.ceremonyStyles,
         accessInfo: v.accessInfo,
-        features: null,
+        features: features.length > 0 ? features : null,
       };
       // Always reuse the precomputed hash. The fallback path is dead code
       // (hashByVenue is populated for every venue above) but kept so a

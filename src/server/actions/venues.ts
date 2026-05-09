@@ -1495,16 +1495,24 @@ export async function confirmVenueFromUrl(
   // Cross-site dedupe: look for an already-tracked venue in the same project.
   // Scoped query narrows to likely candidates only (same normalized name OR
   // near-by geo) to keep payload small even for large projects.
+  // 2026-05-09: Added `deletedAt: null` to BOTH filters. Without it, a
+  // venue the user soft-deleted ("手放す") still matched and triggered
+  // the MERGE branch with "この式場は既に候補にあります" — leaving the
+  // user unable to re-add the same venue after handing it off. The
+  // restore flow lives behind a separate UI (the toast undo +
+  // restoreVenue action), so dedupe should only consider live venues.
   let match: { venue: ExistingVenueSummary; tier: string } | null = null;
   if (!options.forceNew) {
     const nameMatchFilter = {
       projectId,
+      deletedAt: null,
       normalizedName: candidateNormalizedName,
     };
     const geoFilter =
       candidate.latitude !== null && candidate.longitude !== null
         ? {
             projectId,
+            deletedAt: null,
             latitude: {
               gte: candidate.latitude - 0.002,
               lte: candidate.latitude + 0.002,

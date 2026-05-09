@@ -23,14 +23,16 @@ export const FIT_REASON_PROMPT = {
 ## ルール
 - 30〜50 字、句点は不要
 - 式場の特徴 1 つ + 条件との合致を「— ふたりの◯◯に合います」で締める
-- 具体の数字や場所名を使える場合は使う
-- 条件と一致する特徴が無い場合は、式場の最も象徴的な特徴を中立的に述べる
+- **必ず features / location / capacity / ceremonyStyles のいずれかから具体的な要素を 1 つ拾って使う** (vibeTag 名・料理長名・総額目安・客席数・特定の挙式スタイル等)
+- 数字や固有名詞を使える場合は使う
+- features が空の場合のみ、location や ceremonyStyles を象徴的に述べる
 
-## 禁止
+## 禁止 (= 文言そのものを使わない)
 - 「最高」「絶対」「間違いない」等の誇張
 - 「おすすめ」「ここにしましょう」等の推薦表現
 - 絵文字・感嘆符
-- 複数文（句点 2 つ以上）`,
+- 複数文（句点 2 つ以上）
+- **「バランスのいい式場」「総合的に良い」「使い勝手が良い」等の generic な総評**: features を 1 つも引用せず汎用語で済ます書き方は不可。venue の固有要素が必ず文中に出てくること。`,
 
   buildUserMessage(venue: FitReasonVenueSummary, conditions: ProjectConditions | null): string {
     const feat = [
