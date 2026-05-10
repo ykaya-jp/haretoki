@@ -1,0 +1,118 @@
+task_id: haretoki-auto-deep-backfill
+goal: |
+  venue 詳細ページの初回マウント時、個別レビューが未取込の review-summary
+  source があるなら、自動で `extractIndividualReviewsFromSource` を発火
+  (= 「+1ソースから取り込む」ボタンを自動で押す)。tab 離脱しても次回
+  venue 詳細表示時に再発火する idempotent 設計。
+
+context:
+  branch: develop
+  prior_commit: 92a9dda
+  related_files:
+    - src/components/venues/review-section.tsx (handleBackfillAll, sourcesNeedingBackfill 既存)
+    - src/server/actions/reviews.ts (extractIndividualReviewsFromSource L1511 — 8-page deep crawl, idempotent)
+  user_feedback: |
+    "個別の口コミの取得件数があまりに少ない、ポジが１件だけ？
+     さらなる操作が必要なんだっけ、そこがわかりにくい
+     勝手に口コミをたくさん撮ってきてくれればいいのに" (2026-05-10)
+
+deliverables:
+  - path: src/components/venues/review-section.tsx
+    purpose: useEffect で初回マウント時に sourcesNeedingBackfill ≥1 なら handleBackfillAll を auto-trigger
+  - path: tests/unit/components/venues/review-section-auto-backfill.test.tsx
+    purpose: 自動発火 + 重複発火防止 + 既に個別 review があるときは発火しない を検証
+  - path: src/server/actions/reviews.ts
+    purpose: 既存の extractIndividualReviewsFromSource は変更しない (再利用のみ)。コメント更新のみ可
+
+baseline:
+  - metric: zexy c_7770074798 初回追加時の個別 review 件数
+    value: "1 (現状: ポジ 1・ネガ 0・その他 0)"
+  - metric: 個別 review 表示までのユーザー操作回数
+    value: "2 (URL 追加 + 「+1ソースから取り込む」ボタン押下)"
+
+out_of_scope:
+  - server-side で deep crawl を初回 paste に inline 化 (Option B)
+  - DB-backed job queue + cron worker (Option C)
+  - 進捗バー / streaming UI (現状の toast でカバー)
+  - 「+1ソースから取り込む」ボタンの撤去 (救済路として残す)
+  - PWA push notification
+
+risks:
+  - "自動発火が 1 venue マウントで複数回発生し API コストが増える → useRef で「このマウントで既に trigger 済み」フラグを保持、再発火禁止"
+  - "extractAcrossPages が rate limit / fetch 失敗で 0 件を返したとき、自動再 trigger でループ → trigger は 1 マウントにつき 1 回。失敗してもその場で止まる (toast でユーザーに通知)"
+  - "別 venue 詳細に遷移 → 戻る で auto-trigger が連発 → useEffect 依存配列に venueId を含めるのは前提、trigger 済み venue ID を useRef で保持。sessionStorage は out_of_scope (まず simple な useRef ベースで様子見)"
+  - "tab 離脱後に backfill が走り切らずに途中で止まる → 次回詳細表示で再発火、idempotent なので害なし、むしろ仕様通りの自己回復"
+
+acceptance_criteria:
+  - id: AC-1
+    description: TypeScript 型チェック pass
+    type: test_pass
+    severity: required
+    command: "npx tsc --noEmit"
+    expected_exit_code: 0
+    timeout_seconds: 120
+
+  - id: AC-2
+    description: ESLint が 新たな error を出さない (warnings は既存のもののみ許容)
+    type: test_pass
+    severity: required
+    command: "npm run lint"
+    expected_exit_code: 0
+    timeout_seconds: 120
+
+  - id: AC-3
+    description: 全 unit test pass (新規 auto-backfill テスト含む)
+    type: test_pass
+    severity: required
+    command: "npx vitest run"
+    expected_exit_code: 0
+    timeout_seconds: 180
+
+  - id: AC-4
+    description: 新規テスト review-section-auto-backfill.test.tsx が存在
+    type: output_exists
+    severity: required
+    path: tests/unit/components/venues/review-section-auto-backfill.test.tsx
+
+  - id: AC-5
+    description: 自動 backfill の useEffect が review-section.tsx に存在
+    type: test_pass
+    severity: required
+    command: "grep -E 'auto.*[Bb]ackfill|autoBackfillTriggered' src/components/venues/review-section.tsx"
+    expected_exit_code: 0
+    timeout_seconds: 5
+
+  - id: AC-6
+    description: 既存「+1ソースから取り込む」ボタンが残っていること (救済 + 明示的 backfill 路)
+    type: test_pass
+    severity: required
+    command: "grep -E '個別レビューを取り込む|sourcesNeedingBackfill' src/components/venues/review-section.tsx"
+    expected_exit_code: 0
+    timeout_seconds: 5
+
+  - id: AC-7
+    description: コードレビュー (independent reviewer agent 判定)
+    type: manual_review
+    severity: required
+    rubric: |
+      - useEffect の依存配列が venueId を含み、別 venue 遷移で正しく再 trigger される
+      - useRef ベースの「trigger 済みフラグ」が venue 単位で正しくリセットされる
+      - sourcesNeedingBackfill === 0 のときは絶対に発火しない (= 既に個別 review あるなら何もしない)
+      - 自動 backfill 中は既存の isBackfillingAll state を流用し、UI が「進行中」を見せる
+      - 自動 backfill 失敗時は toast.error または toast.info で通知、サイレント失敗禁止
+      - 「+1ソースから取り込む」ボタンは disabled にしない (進行中のみ disable)
+      - 自動 backfill が走った旨を toast.info で控えめに通知 (「個別レビューを自動で取り込み中…」)
+
+  - id: AC-8
+    description: |
+      動的スモーク (CLAUDE.md 「動的スモーク必須ルール」) — prod URL で
+      新規 venue を URL 追加し、追加完了後に詳細ページで操作 0 で個別
+      レビュー件数が 25 件以上に増えること
+    type: manual_review
+    severity: required
+    rubric: |
+      - https://haretoki.vercel.app に新規 venue (zexy 別 ID 推奨) を「+ URL から追加」で追加
+      - 追加完了後、venue 詳細ページに自動遷移
+      - ユーザー側で何もボタンを押さず、3-90 秒以内に個別レビュー件数が 25 件以上になる
+      - 「+1ソースから取り込む」ボタンも残っている (= 救済路として表示されている)
+      - 同じ venue に再アクセスしても auto-backfill が再度走らない (個別 review が既にあれば skip)

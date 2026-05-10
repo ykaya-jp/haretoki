@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect, useRef } from "react";
 import {
   analyzeVenueReviews,
   batchAnalyzeVenueReviews,
@@ -322,6 +322,47 @@ export function ReviewSection({ venueId, reviews, venueEstimateAggregate }: Revi
       router.refresh();
     });
   };
+
+  // Auto-trigger the deep backfill on mount when the venue still has
+  // summary rows lacking individual review bodies. Saves the user from
+  // hunting for the "+ 1ソースから取り込む" button — the previous UX
+  // (1-page paste then opt-in deep crawl) hid the multi-page extract
+  // behind a manual click and dropped venues at "ポジ 1・ネガ 0" until
+  // the user noticed the button (user feedback 2026-05-10).
+  //
+  // Idempotency:
+  //   - useRef guards re-firing within the same venueId mount so a
+  //     re-render mid-crawl doesn't spawn a second pass
+  //   - sourcesNeedingBackfill is derived from the current Review rows;
+  //     once individuals land, the array shrinks to [] and the effect
+  //     becomes a no-op for return visits
+  //   - extractIndividualReviewsFromSource itself is idempotent (body-
+  //     hash upsert), so even an accidental double-fire wouldn't dup
+  //     rows — this guard exists to avoid wasting Haiku tokens, not to
+  //     protect data integrity
+  // We intentionally read handleBackfillAll through a ref so the effect
+  // doesn't depend on its identity (which changes every render). The
+  // ref is updated inside an effect (not during render) to satisfy
+  // react-hooks/refs.
+  const autoBackfillTriggeredFor = useRef<string | null>(null);
+  const handleBackfillAllRef = useRef(handleBackfillAll);
+  useEffect(() => {
+    handleBackfillAllRef.current = handleBackfillAll;
+  });
+  useEffect(() => {
+    if (autoBackfillTriggeredFor.current === venueId) return;
+    if (isBackfillingAll || backfillingId !== null) return;
+    if (sourcesNeedingBackfill.length === 0) return;
+
+    autoBackfillTriggeredFor.current = venueId;
+    toast.info("個別の口コミを自動で取り込んでいます…");
+    handleBackfillAllRef.current();
+  }, [
+    venueId,
+    sourcesNeedingBackfill.length,
+    isBackfillingAll,
+    backfillingId,
+  ]);
 
   const filteredIndividuals = useMemo(() => {
     let rows = individualRows;

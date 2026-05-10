@@ -1,0 +1,121 @@
+{
+  "schema_version": "1",
+  "task_id": "haretoki-auto-deep-backfill",
+  "criteria_path": ".criteria/haretoki-auto-deep-backfill.yaml",
+  "overall": "pass",
+  "summary": {
+    "required_pass": 6,
+    "required_fail": 0,
+    "recommended_pass": 0,
+    "recommended_fail": 0,
+    "deferred": 2,
+    "errors": 0
+  },
+  "per_criterion": [
+    {
+      "id": "AC-1",
+      "type": "test_pass",
+      "severity": "required",
+      "description": "TypeScript 型チェック pass",
+      "status": "pass",
+      "evidence": "exit 0 (expected 0)",
+      "detail": {
+        "command": "npx tsc --noEmit",
+        "exit_code": 0,
+        "stdout_tail": "",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "id": "AC-2",
+      "type": "test_pass",
+      "severity": "required",
+      "description": "ESLint が 新たな error を出さない (warnings は既存のもののみ許容)",
+      "status": "pass",
+      "evidence": "exit 0 (expected 0)",
+      "detail": {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "stdout_tail": "\n> haretoki@0.1.0 lint\n> eslint\n\n\n/home/yusuke_kaya/projects/haretoki/src/components/coach/session-history-sheet.tsx\n  376:23  warning  Compilation Skipped: Use of incompatible library\n\nThis API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.\n\n/home/yusuke_kaya/projects/haretoki/src/components/coach/session-history-sheet.tsx:376:23\n  374 |   }, [groups]);\n  375 |\n> 376 |   const virtualizer = useVirtualizer({\n      |                       ^^^^^^^^^^^^^^ TanStack Virtual's `useVirtualizer()` API returns functions that cannot be memoized safely\n  377 |     count: flatRows.length,\n  378 |     getScrollElement: () => scrollRef.current,\n  379 |     estimateSize: (index) =>  react-hooks/incompatible-library\n\n/home/yusuke_kaya/projects/haretoki/src/components/comparison/photo-comparison-grid.tsx\n  6:18  warning  'ChevronLeft' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars\n\n/home/yusuke_kaya/projects/haretoki/src/server/actions/reviews.ts\n  132:7  warning  'MAX_REVIEW_PAGES_INITIAL' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars\n\n/home/yusuke_kaya/projects/haretoki/src/server/actions/venues.ts\n  10:16  warning  'deferOrInline' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars\n\n✖ 4 problems (0 errors, 4 warnings)\n\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "id": "AC-3",
+      "type": "test_pass",
+      "severity": "required",
+      "description": "全 unit test pass (新規 auto-backfill テスト含む)",
+      "status": "pass",
+      "evidence": "exit 0 (expected 0)",
+      "detail": {
+        "command": "npx vitest run",
+        "exit_code": 0,
+        "stdout_tail": "\n RUN  v4.1.4 /home/yusuke_kaya/projects/haretoki\n\n\n Test Files  127 passed (127)\n      Tests  1299 passed (1299)\n   Start at  23:12:30\n   Duration  35.04s (transform 8.51s, setup 16.99s, import 20.61s, tests 19.96s, environment 203.97s)\n\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "id": "AC-4",
+      "type": "output_exists",
+      "severity": "required",
+      "description": "新規テスト review-section-auto-backfill.test.tsx が存在",
+      "status": "pass",
+      "evidence": "path /home/yusuke_kaya/projects/haretoki/tests/unit/components/venues/review-section-auto-backfill.test.tsx exists=True",
+      "detail": {
+        "path": "/home/yusuke_kaya/projects/haretoki/tests/unit/components/venues/review-section-auto-backfill.test.tsx",
+        "size_bytes": 5960
+      }
+    },
+    {
+      "id": "AC-5",
+      "type": "test_pass",
+      "severity": "required",
+      "description": "自動 backfill の useEffect が review-section.tsx に存在",
+      "status": "pass",
+      "evidence": "exit 0 (expected 0)",
+      "detail": {
+        "command": "grep -E 'auto.*[Bb]ackfill|autoBackfillTriggered' src/components/venues/review-section.tsx",
+        "exit_code": 0,
+        "stdout_tail": "  const autoBackfillTriggeredFor = useRef<string | null>(null);\n    if (autoBackfillTriggeredFor.current === venueId) return;\n    autoBackfillTriggeredFor.current = venueId;\n                automatically after a successful backfill. */}\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "id": "AC-6",
+      "type": "test_pass",
+      "severity": "required",
+      "description": "既存「+1ソースから取り込む」ボタンが残っていること (救済 + 明示的 backfill 路)",
+      "status": "pass",
+      "evidence": "exit 0 (expected 0)",
+      "detail": {
+        "command": "grep -E '個別レビューを取り込む|sourcesNeedingBackfill' src/components/venues/review-section.tsx",
+        "exit_code": 0,
+        "stdout_tail": "  // per-card \"個別レビューを取り込む\" button can hide itself once\n  const sourcesNeedingBackfill = useMemo(\n    if (sourcesNeedingBackfill.length === 0) return;\n      for (const summary of sourcesNeedingBackfill) {\n  //   - sourcesNeedingBackfill is derived from the current Review rows;\n    if (sourcesNeedingBackfill.length === 0) return;\n    sourcesNeedingBackfill.length,\n          exist (sourcesNeedingBackfill drops to 0). */}\n        sourcesNeedingBackfill.length > 0 &&\n                    ? `取り込み中… (${sourcesNeedingBackfill.length} ソース)`\n                    : `${sourcesNeedingBackfill.length} ソースから取り込む`}\n        // Suppress the per-card \"個別レビューを取り込む\" button when the\n                このソースから個別レビューを取り込む\n            URL 取込時は約 50 件、要約カードの「個別レビューを取り込む」ボタンを押すと最大約 200 件まで AI がクロールします。否定意見のあるレビューを優先的に拾い、要約はクロール範囲の声を統合しています。全件はカード内「口コミ元を読む」から。\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "id": "AC-7",
+      "type": "manual_review",
+      "severity": "required",
+      "description": "コードレビュー (independent reviewer agent 判定)",
+      "status": "deferred",
+      "evidence": "deferred to reviewer agent",
+      "detail": {
+        "rubric": "- useEffect の依存配列が venueId を含み、別 venue 遷移で正しく再 trigger される\n- useRef ベースの「trigger 済みフラグ」が venue 単位で正しくリセットされる\n- sourcesNeedingBackfill === 0 のときは絶対に発火しない (= 既に個別 review あるなら何もしない)\n- 自動 backfill 中は既存の isBackfillingAll state を流用し、UI が「進行中」を見せる\n- 自動 backfill 失敗時は toast.error または toast.info で通知、サイレント失敗禁止\n- 「+1ソースから取り込む」ボタンは disabled にしない (進行中のみ disable)\n- 自動 backfill が走った旨を toast.info で控えめに通知 (「個別レビューを自動で取り込み中…」)\n"
+      }
+    },
+    {
+      "id": "AC-8",
+      "type": "manual_review",
+      "severity": "required",
+      "description": "動的スモーク (CLAUDE.md 「動的スモーク必須ルール」) — prod URL で\n新規 venue を URL 追加し、追加完了後に詳細ページで操作 0 で個別\nレビュー件数が 25 件以上に増えること\n",
+      "status": "deferred",
+      "evidence": "deferred to reviewer agent",
+      "detail": {
+        "rubric": "- https://haretoki.vercel.app に新規 venue (zexy 別 ID 推奨) を「+ URL から追加」で追加\n- 追加完了後、venue 詳細ページに自動遷移\n- ユーザー側で何もボタンを押さず、3-90 秒以内に個別レビュー件数が 25 件以上になる\n- 「+1ソースから取り込む」ボタンも残っている (= 救済路として表示されている)\n- 同じ venue に再アクセスしても auto-backfill が再度走らない (個別 review が既にあれば skip)\n"
+      }
+    }
+  ],
+  "error": null
+}
