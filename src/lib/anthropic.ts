@@ -193,10 +193,15 @@ export function sanitizeForPrompt(text: string, maxLen: number = 120): string {
 }
 
 // --- Retry with exponential backoff ---
+// baseDelay 1500ms (was 1000ms): when Sonnet hits 429/529 under burst
+// load (e.g. user adds several venues back-to-back), 1s × 2^attempt
+// gave bursts of 1s/2s/4s = 7s of total backoff. 1.5s × 2^attempt
+// yields 1.5s/3s/6s = 10.5s, which fits inside the 60s upstream budget
+// while giving Anthropic's rate limiter more breathing room.
 export async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  baseDelay: number = 1000,
+  baseDelay: number = 1500,
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {

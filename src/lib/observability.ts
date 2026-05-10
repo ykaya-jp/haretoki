@@ -30,6 +30,14 @@
 export type LogEventName =
   /** Per Claude round-trip, emitted from `recordUsage()`. */
   | "ai_call"
+  /**
+   * Failed Claude round-trip — emitted from `cachedAskClaude` catch.
+   * `category` field discriminates timeout / rate_limit / auth /
+   * bad_request / server_error / unknown so dashboards can isolate
+   * upstream-timeout vs throttle vs config issues without parsing
+   * free-form err strings.
+   */
+  | "ai_call_failed"
   /** Daily Anthropic budget summary, from `evaluateBudgetAlert()`. */
   | "ai_cost_summary"
   /** Generic AiCache lookup outcome, from `getCachedResponse()`. */

@@ -17,7 +17,20 @@ import {
 // Round 15 (2026-05-02) — bump when REVIEW_SUMMARY_PROMPT semantics change
 // so cached summaries from a prior prompt revision aren't served against
 // the new contract. cachedAskClaude folds this into the cache key.
-const REVIEW_SUMMARY_PROMPT_VERSION = 1;
+//
+// v2 (2026-05-10): tightened single-page Sonnet input cap 50K → 30K to
+// keep upstream processing inside the 60s timeout. Mirrors the existing
+// 25K cap on extractAcrossPages — the prior 50K kept timing out Sonnet
+// and surfacing as "AI 分析を取得できませんでした" on dense zexy listings
+// (e.g. c_7770074798) where Haiku extraction succeeded but Sonnet
+// summary did not.
+const REVIEW_SUMMARY_PROMPT_VERSION = 2;
+
+// Single-page Sonnet input cap. Stays under the 60s timeoutMs we pass
+// to cachedAskClaude for the summary leg. Haiku extraction keeps the
+// full strippedContent — extraction precision benefits from raw bulk,
+// summary synthesis does not.
+const SONNET_SINGLE_PAGE_INPUT_CAP = 30_000;
 import { guardExternalUrl } from "@/lib/url-guard";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import type { ReviewSource } from "@/generated/prisma/client";
@@ -768,14 +781,21 @@ async function analyzeVenueReviewsInner(
     // Backfill via "+1ソースから取り込む" button still uses
     // extractAcrossPages with the 8-page deep cut for users who opt
     // in. Initial paste stays fast.
+    // Sonnet gets a tightened slice of the page; Haiku keeps the full
+    // text. See SONNET_SINGLE_PAGE_INPUT_CAP rationale above.
+    const sonnetInput =
+      strippedContent.length > SONNET_SINGLE_PAGE_INPUT_CAP
+        ? strippedContent.slice(0, SONNET_SINGLE_PAGE_INPUT_CAP)
+        : strippedContent;
     console.warn("[analyzeVenueReviews] starting parallel Sonnet + Haiku", {
       venueId,
       sourceUrl,
       source,
       pageTextLength: strippedContent.length,
+      sonnetInputLength: sonnetInput.length,
     });
     const reviewUserMessage = REVIEW_SUMMARY_PROMPT.buildUserMessage(
-      [strippedContent],
+      [sonnetInput],
       venue.name,
     );
 
@@ -855,10 +875,17 @@ async function analyzeVenueReviewsInner(
         revalidateTag(`project:${projectId}`, { expire: 0 });
         revalidatePath(`/venues/${venueId}`);
       }
+      // Differentiate "we have raw individuals so the user can still see
+      // something" from "the entire summary path collapsed". The toast
+      // hint nudges the user toward retry rather than a vague "failed".
+      const partialMessage =
+        crawledIndividuals.length > 0
+          ? "AI 要約に時間がかかりました。個別の口コミは取り込めています。少し待って再度「AIにまとめてもらう」を押してください"
+          : "AI 要約に時間がかかっています。少し待って再度お試しください";
       return {
         ok: false,
         reason: "api-error",
-        message: "AI 分析を取得できませんでした",
+        message: partialMessage,
       };
     }
 

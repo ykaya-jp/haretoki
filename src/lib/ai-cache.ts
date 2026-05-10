@@ -122,11 +122,39 @@ export async function cachedAskClaude(opts: {
     // null which made it impossible to debug "Claude returned null"
     // states downstream (e.g. addVenueFromUrl falling to JSON-LD
     // fallback for unclear reasons in prod).
+    //
+    // Classify the failure so dashboards can distinguish "Sonnet
+    // timed out on a long input" from "rate-limited" from "auth"
+    // from "everything else". The category lands in both the
+    // structured logEvent and the human-readable console.warn so
+    // either ingest path (Sentry / Vercel Functions tail) can be
+    // queried without parsing free-form err strings.
+    const failureCategory: "timeout" | "rate_limit" | "auth" | "bad_request" | "server_error" | "unknown" = (() => {
+      if (err instanceof Error) {
+        if (err.name === "AbortError" || err.message.includes("aborted")) return "timeout";
+        if (err.message.includes("rate_limit") || err.message.includes("429")) return "rate_limit";
+        if (err.message.includes("401") || err.message.includes("403") || err.message.includes("authentication")) return "auth";
+        if (err.message.includes("400") || err.message.includes("invalid_request")) return "bad_request";
+        if (err.message.includes("503") || err.message.includes("529") || err.message.includes("overloaded") || err.message.includes("500")) return "server_error";
+      }
+      return "unknown";
+    })();
+    const errLabel = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.warn("[cachedAskClaude] failed", {
       model,
       promptVersion: opts.promptVersion,
       maxTokens: opts.maxTokens ?? null,
-      err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      timeoutMs: opts.timeoutMs ?? null,
+      category: failureCategory,
+      err: errLabel,
+    });
+    logEvent({
+      event: "ai_call_failed",
+      fields: {
+        model,
+        promptVersion: String(opts.promptVersion),
+        category: failureCategory,
+      },
     });
     return null;
   }
