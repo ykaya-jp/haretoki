@@ -5,6 +5,7 @@ import { listActiveItems } from "@/server/actions/checklist";
 import { ChecklistSelectionView } from "@/components/checklist/checklist-selection-view";
 import { ChecklistStarterCTA } from "@/components/checklist/starter-cta";
 import { ReflectionHint } from "@/components/checklist/reflection-hint";
+import { CustomItemAddForm } from "@/components/checklist/custom-item-add-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TIER1_DIMENSIONS, DIMENSION_LABELS } from "@/lib/constants";
 import { getChecklistItemsForDimension } from "@/lib/dimension-checklist-map";
@@ -137,6 +138,11 @@ export default async function ChecklistPage() {
       <div id="categories" className="scroll-mt-4">
         <ChecklistSelectionView grouped={grouped} activeItemIds={activeItemIds} />
       </div>
+
+      {/* v3 plan H4 — couples can add custom questions on top of the
+          static CHECKLIST_PRESETS library. Sits below the grouped
+          preset selection so the existing flow is unchanged. */}
+      <CustomItemAddForm />
 
       <div className="pt-6 text-center">
         <Link

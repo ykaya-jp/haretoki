@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { deleteVenue, restoreVenue } from "@/server/actions/venues";
@@ -39,6 +39,42 @@ export function VenueRemoveButton({
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  /**
+   * v3 plan H3 — bfcache "deleted venue revival" fix.
+   *
+   * Without this, deleting a venue from /compare?venueIds=A,B,C left
+   * the URL pointing at A,B,C even though row B was now soft-deleted.
+   * If the user navigated elsewhere and pressed Back, the browser
+   * back-forward cache restored the old DOM with the deleted venue
+   * column still painted, and the next interaction would 404 on the
+   * missing data. router.refresh alone doesn't help — bfcache bypasses
+   * the network entirely.
+   *
+   * Fix: router.replace the current URL with the venue id removed from
+   * `venueIds=`. No new history entry (= Back doesn't return to the
+   * stale list). No-op when not on /compare so deletion from venue
+   * detail / shortlist screens keeps its existing behaviour.
+   */
+  function pruneVenueFromCompareUrl() {
+    if (pathname !== "/compare") return;
+    const raw = searchParams.get("venueIds");
+    if (!raw) return;
+    const remaining = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && s !== venueId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (remaining.length === 0) {
+      params.delete("venueIds");
+    } else {
+      params.set("venueIds", remaining.join(","));
+    }
+    const query = params.toString();
+    router.replace(query.length > 0 ? `/compare?${query}` : "/compare");
+  }
 
   function openDialog(e: React.MouseEvent) {
     // The button sits inside a <Link>; without these, every tap also
@@ -79,6 +115,10 @@ export function VenueRemoveButton({
         },
         duration: 8000,
       });
+      // v3 plan H3 — prune ?venueIds= before refresh so Back doesn't
+      // bring the venue's column back via bfcache. See pruneVenueFromCompareUrl
+      // docstring.
+      pruneVenueFromCompareUrl();
       router.refresh();
     });
   }
