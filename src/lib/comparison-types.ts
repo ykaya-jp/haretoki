@@ -77,12 +77,31 @@ export interface ComparisonVenue {
    * yet" in the UI.
    */
   reviewSummary?: ReviewAggregate;
+
+  /**
+   * PR #5: child checklist answer scores for this venue. Keyed by the
+   * `ProjectChecklist.itemId` (= preset id or CustomChecklistItem cuid).
+   * Empty when the couple hasn't graded any children. The comparison
+   * field registry's "あなたの評価" rows fold this into per-dimension
+   * means via `aggregateChildScoresToDimensions` and prefer the
+   * resulting score over the legacy `user_rating` stored value when
+   * any child has been rated.
+   *
+   * Optional so callers (legacy fixtures, tests) that don't pre-load
+   * children still type-check — accessor treats `undefined` as "no
+   * children", same as an empty record.
+   */
+  childScores?: Record<string, number | null>;
 }
 
 export interface ComparisonAnswer {
   status: string | null;
   memo: string | null;
   numberValue: number | null;
+  /** PR #5: 0.5–5.0 user grade for this child item on this venue, or
+   *  null when the user hasn't graded it. Aggregated into the parent
+   *  dimension mean by `aggregateChildScoresToDimensions`. */
+  numericScore: number | null;
   photoUrls: string[];
 }
 
