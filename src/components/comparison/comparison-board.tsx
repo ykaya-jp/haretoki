@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComparisonMatrix } from "@/lib/comparison-types";
-import type { DimensionWeights } from "@/lib/weighted-score";
+import type { DimensionWeights } from "@/lib/scoring";
 import type { MatrixInsight } from "@/server/actions/matrix-insight";
 import type { MatrixReviewInsight } from "@/server/actions/matrix-review-insight";
 import type { VenueDisagreement } from "@/server/actions/disagreement-spotlight";

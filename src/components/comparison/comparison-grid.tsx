@@ -13,7 +13,7 @@ import {
   type FieldGroup,
 } from "./comparison-field-registry";
 import { CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/checklist-presets";
-import type { DimensionWeights } from "@/lib/weighted-score";
+import type { DimensionWeights } from "@/lib/scoring";
 
 /**
  * Desktop/tablet CSS Grid layout (≥ 768px).

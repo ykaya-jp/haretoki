@@ -18,7 +18,7 @@ import {
   WEIGHT_MAX,
   WEIGHT_DEFAULT,
   type Weights,
-} from "@/lib/weighted-score";
+} from "@/lib/scoring";
 
 /**
  * W12-1 weights settings form.

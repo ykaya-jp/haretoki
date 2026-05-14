@@ -42,7 +42,7 @@ import {
   RATE_LIMITS,
 } from "@/lib/rate-limit";
 import { buildVenueWhere, type VenueFilters } from "@/server/actions/venue-filters";
-import { computeCompositeScore } from "@/lib/venue-score";
+import { computeCompositeScore } from "@/lib/scoring";
 import {
   extractMetadata,
   hasUsefulMetadata,
