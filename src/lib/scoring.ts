@@ -26,16 +26,23 @@ import { TIER1_DIMENSIONS, type Tier1Dimension } from "@/lib/constants";
 
 // ─── (1) per-source weights & composite ──────────────────────────────────
 
-/** Source weights for composite score calculation. user_rating is highest priority. */
-export const SCORE_SOURCE_WEIGHTS: Record<string, number> = {
-  user_rating: 1.0,
-  checklist_derived: 0.6,
-  zexy: 0.5,
-  wedding_park: 0.5,
-  hanayume: 0.4,
-  mynavi: 0.3,
-  ai_analysis: 0.4,
-};
+/**
+ * Source weights for composite score calculation. user_rating is highest
+ * priority. Frozen so a stray runtime write (test pollution, plugin code)
+ * can't silently shift every venue's ranking — the legacy implementation
+ * kept this constant private to its module, so the public re-export keeps
+ * the same effective immutability.
+ */
+export const SCORE_SOURCE_WEIGHTS: Readonly<Record<string, number>> =
+  Object.freeze({
+    user_rating: 1.0,
+    checklist_derived: 0.6,
+    zexy: 0.5,
+    wedding_park: 0.5,
+    hanayume: 0.4,
+    mynavi: 0.3,
+    ai_analysis: 0.4,
+  });
 
 interface ScoreEntry {
   source: string;

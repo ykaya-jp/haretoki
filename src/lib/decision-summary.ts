@@ -21,7 +21,7 @@
  */
 
 import { DIMENSION_LABELS, TIER1_DIMENSIONS } from "./constants";
-import { SCORE_SOURCE_WEIGHTS } from "./venue-score";
+import { SCORE_SOURCE_WEIGHTS } from "./scoring";
 
 /** Minimum dimension score gap (0-5 scale) to mention. */
 export const STRENGTH_THRESHOLD = 0.4;
