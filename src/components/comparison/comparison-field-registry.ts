@@ -23,6 +23,7 @@ import {
   type Tier1Dimension,
 } from "@/lib/constants";
 import { computeCompositeScore } from "@/lib/scoring";
+import { aggregateChildScoresToDimensions } from "@/lib/checklist-rating-aggregator";
 
 /** Which "bucket" this row belongs to — used to group rows under subheadings. */
 export type FieldGroup =
@@ -136,6 +137,23 @@ const accessComposite = (v: ComparisonVenue) => computeCompositeScore(v.scores);
 const accessUserScoreForDim =
   (dim: Tier1Dimension) =>
   (v: ComparisonVenue): number | null => {
+    // PR #5: prefer the v3 plan C3 model (= mean of rated children) when
+    // the couple has graded any checklist child items for this venue.
+    // Falls back to the legacy `user_rating`-source stored score so
+    // existing data continues to display unchanged for couples who
+    // haven't started scoring children yet.
+    const children = v.childScores;
+    if (children && Object.keys(children).length > 0) {
+      const answers = Object.entries(children).map(([itemId, score]) => ({
+        itemId,
+        numericScore: score,
+      }));
+      const agg = aggregateChildScoresToDimensions(answers);
+      const dimAgg = agg[dim];
+      if (dimAgg && dimAgg.score !== null) return dimAgg.score;
+      // Fall through to legacy lookup when this dimension specifically
+      // has no rated children, even if other dimensions do.
+    }
     const match = v.scores.find(
       (s) => s.dimension === dim && s.source === "user_rating",
     );

@@ -470,15 +470,38 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
   });
 
   const answers: Record<string, Record<string, ComparisonAnswer>> = {};
+  // PR #5: per-venue child score map. Populated alongside `answers` so
+  // the v3 plan C3 aggregator (mean of rated children → parent dim) can
+  // read it directly off ComparisonVenue without a second query.
+  const childScoresByVenue = new Map<string, Record<string, number | null>>();
   for (const ans of answerRows) {
     const itemId = ans.projectChecklist.itemId;
+    const numericScore =
+      ans.numericScore !== null && ans.numericScore !== undefined
+        ? Number(ans.numericScore)
+        : null;
     if (!answers[itemId]) answers[itemId] = {};
     answers[itemId][ans.venueId] = {
       status: ans.status,
       memo: ans.memo,
       numberValue: ans.numberValue ? Number(ans.numberValue) : null,
+      numericScore,
       photoUrls: ans.photoUrls,
     };
+    if (numericScore !== null) {
+      const existing = childScoresByVenue.get(ans.venueId) ?? {};
+      existing[itemId] = numericScore;
+      childScoresByVenue.set(ans.venueId, existing);
+    }
+  }
+
+  // Attach childScores to each venue so accessUserScoreForDim can
+  // call aggregateChildScoresToDimensions without an extra round-trip.
+  for (const venue of orderedVenues) {
+    const map = childScoresByVenue.get(venue.id);
+    if (map && Object.keys(map).length > 0) {
+      venue.childScores = map;
+    }
   }
 
   return {
