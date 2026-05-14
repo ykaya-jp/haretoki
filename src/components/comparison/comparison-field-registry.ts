@@ -16,12 +16,18 @@
  */
 
 import type { ComparisonVenue } from "@/lib/comparison-types";
-import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
+import {
+  CEREMONY_STYLE_LABELS,
+  DIMENSION_LABELS,
+  TIER1_DIMENSIONS,
+  type Tier1Dimension,
+} from "@/lib/constants";
 import { computeCompositeScore } from "@/lib/scoring";
 
 /** Which "bucket" this row belongs to — used to group rows under subheadings. */
 export type FieldGroup =
   | "signal" // 外部評価 + 総合スコア
+  | "yourRating" // ★ あなたの評価 — Tier1 8 dim ごとの user_rating (PR #4)
   | "cost" // 費用
   | "capacity" // キャパ
   | "style" // 挙式スタイル
@@ -32,6 +38,7 @@ export type FieldGroup =
 
 export const FIELD_GROUP_LABELS: Record<FieldGroup, string> = {
   signal: "評価",
+  yourRating: "あなたの評価",
   cost: "費用",
   capacity: "キャパシティ",
   style: "挙式スタイル",
@@ -110,6 +117,32 @@ const accessRating = (v: ComparisonVenue) =>
     : null;
 
 const accessComposite = (v: ComparisonVenue) => computeCompositeScore(v.scores);
+
+/**
+ * Per-dimension `user_rating` lookup — feeds the "あなたの評価" section
+ * added in PR #4. Returns the latest stored user_rating score for the
+ * given Tier-1 dimension on this venue, or null if the couple hasn't
+ * rated it yet. We deliberately key on `source === "user_rating"` so
+ * the row reflects only what the couple themselves have entered — not
+ * the AI / external aggregator sources that the composite folds in.
+ *
+ * Note: in the v3 plan §C3 endgame, this value will be computed as the
+ * mean of child checklist `numericScore` values once PR #5 wires the
+ * aggregator into the read path. For now (= PR #4) it surfaces the
+ * legacy VisitRating-derived stored score, so existing user data shows
+ * up unchanged. The display is identical, only the source pipeline
+ * differs — callers don't need to change.
+ */
+const accessUserScoreForDim =
+  (dim: Tier1Dimension) =>
+  (v: ComparisonVenue): number | null => {
+    const match = v.scores.find(
+      (s) => s.dimension === dim && s.source === "user_rating",
+    );
+    if (!match) return null;
+    const n = Number(match.score);
+    return Number.isFinite(n) ? n : null;
+  };
 
 const accessCost = (v: ComparisonVenue) =>
   v.costMin !== null || v.costMax !== null ? { min: v.costMin, max: v.costMax } : null;
@@ -209,6 +242,22 @@ export const COMPARE_FIELDS: CompareField[] = [
     hasValue: hasRatingPair,
     highlight: { kind: "best", goal: "max" },
   },
+
+  // 1b. あなたの評価 — Tier1 8 軸ごとに `user_rating` を 1 行ずつ。
+  //     PR #4 minimum viable: 表示のみ (= 既存 RatingSection で残された
+  //     スコアがそのまま 比較画面でも見える)。 input は PR #5 で drawer
+  //     経由 追加予定。 「白紙 suppression」 (= visibleFields filter)
+  //     により、 全 venue で null の dim 行は自動で隠れるので 6 件比較に
+  //     未使用 dim が居座る心配なし。
+  ...TIER1_DIMENSIONS.map<CompareField>((dim) => ({
+    id: `your-rating-${dim}`,
+    group: "yourRating" as const,
+    label: DIMENSION_LABELS[dim] ?? dim,
+    render: "composite-rating" as const,
+    accessor: accessUserScoreForDim(dim),
+    hasValue: (v: unknown) => v !== null && v !== undefined,
+    highlight: { kind: "best", goal: "max" } as const,
+  })),
 
   // 2. 費用
   {
