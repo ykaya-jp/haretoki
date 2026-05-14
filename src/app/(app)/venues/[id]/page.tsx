@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getVenueHeader,
@@ -177,14 +178,41 @@ export default async function VenueDetailPage({
           className="h-px bg-gradient-to-r from-transparent via-[color-mix(in_oklab,var(--gold-warm)_35%,transparent)] to-transparent"
         />
 
-        {/* Rating Section — needs synchronous userRatings, partner fetch streams */}
-        <Suspense fallback={<RatingSkeleton />}>
-          <RatingWithPartner
+        {/* Rating Section — render the rating bars immediately with the
+            synchronously-loaded userRatings (already in `venue.scores`
+            above) so the section can never be invisible. The partner
+            comparison + viewer-aware hint stream in separately via the
+            inner Suspense; if their fetch fails or times out, the bars
+            stay visible by themselves.
+
+            Phase 0 fix (PR #3): the previous code wrapped both the bars
+            AND the partner fetch in one Suspense, so any hang in
+            getCoupleRatings made the entire rating UI disappear behind
+            a skeleton — which is what the user reported as "evaluation
+            screen vanished". Splitting them guarantees the input UI is
+            always reachable. */}
+        <RatingSection
+          venueId={venue.id}
+          initialRatings={userRatings}
+        />
+        <Suspense fallback={null}>
+          <RatingPartnerOverlay
             venueId={venue.id}
             userRatings={userRatings}
             viewerIsPartner={!isOwner}
           />
         </Suspense>
+
+        {/* Focused-mode link — sends couples to the dedicated
+            /venues/[id]/impression page for distraction-free scoring
+            (added in PR #3 of the comparison rebuild). */}
+        <Link
+          href={`/venues/${venue.id}/impression`}
+          prefetch
+          className="block rounded-xl border border-dashed border-[var(--gold-warm)]/60 bg-card/40 p-3 text-center text-xs italic text-[var(--gold-warm)] active:bg-[var(--gold-warm)]/10 active:scale-[0.99] transition-transform"
+        >
+          印象を残す — 集中モードでひらく →
+        </Link>
 
         {/* Fact Sheet — external rating ★, address, phone, map.
             Each sub-field is null-safe; section hides itself when no data. */}
@@ -363,22 +391,32 @@ export default async function VenueDetailPage({
 // Async child Server Components — each one is a Suspense boundary.
 // ---------------------------------------------------------------------------
 
-async function RatingWithPartner({
+/**
+ * Partner-aware overlay that streams in alongside the (already-rendered)
+ * RatingSection. Splits the previous monolithic RatingWithPartner so
+ * the rating bars themselves are never gated on the partner fetch —
+ * fixes the Phase 0 "evaluation screen vanished" bug where any hang in
+ * getCoupleRatings hid the input entirely.
+ *
+ * What this still does:
+ *   - Surfaces the partner-can-rate hint to partner viewers with no
+ *     own ratings yet.
+ *   - Renders the cross-rater comparison summary when partner data
+ *     exists.
+ *
+ * What it no longer does:
+ *   - Render the RatingSection itself. That now lives in the parent
+ *     server component and is synchronous against `userRatings`.
+ */
+async function RatingPartnerOverlay({
   venueId,
   userRatings,
   viewerIsPartner,
 }: {
   venueId: string;
   userRatings: Record<string, number>;
-  /** Wave 1.4 — true when the current viewer is the partner-role
-   *  member. Combined with `userRatings` emptiness below to gate the
-   *  partner-can-rate upgrade hint. Owners never see the hint. */
   viewerIsPartner: boolean;
 }) {
-  // Round 23 (Phase 3 wave 1.1): viewer-aware couple ratings — `other`
-  // is whoever the viewer ISN'T (regardless of role), so partner viewing
-  // their own page sees their rating in the "あなた" row + the owner's
-  // rating in the "パートナー" row, instead of seeing themselves twice.
   const coupleRatingsData = await getCoupleRatings(venueId).catch(() => null);
 
   const partnerRatings: Record<string, number> = {};
@@ -390,21 +428,12 @@ async function RatingWithPartner({
     }
   }
   const hasPartner = Object.keys(partnerRatings).length > 0;
-  // Wave 1.4 gate — partner-role + zero own ratings on this venue.
-  // Both conditions are required; an owner never sees the hint, and a
-  // partner who has already started rating doesn't either (they've
-  // already discovered the new capability the hint is meant to surface).
   const showCanRateHint =
     viewerIsPartner && Object.keys(userRatings).length === 0;
 
   return (
     <>
       {showCanRateHint && <PartnerCanRateHint />}
-      <RatingSection
-        venueId={venueId}
-        initialRatings={userRatings}
-        partnerRatings={hasPartner ? partnerRatings : undefined}
-      />
       {hasPartner && (
         <PartnerComparisonSummary
           venueId={venueId}
@@ -678,21 +707,9 @@ async function VisitsContent({
 // each Suspense boundary resolves.
 // ---------------------------------------------------------------------------
 
-function RatingSkeleton() {
-  return (
-    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-      <Skeleton className="h-5 w-32" />
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-6 flex-1" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// RatingSkeleton removed in PR #3: RatingSection now renders synchronously,
+// no Suspense fallback needed for the input UI. The partner overlay's
+// Suspense uses `null` as fallback (= invisible while streaming).
 
 function EstimatesSkeleton() {
   return (
