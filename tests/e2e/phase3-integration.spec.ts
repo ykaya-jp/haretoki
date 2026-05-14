@@ -59,17 +59,23 @@ test.describe("Phase 3 integration smoke", () => {
     await expect(page.getByText("このページは表示できません")).toBeVisible();
   });
 
-  test("C-1 family share: unknown 64-hex token shows the SAME fail UI (no enumeration oracle)", async ({
-    page,
-  }) => {
-    // 64 hex chars = matches the regex shape, so it passes the early
-    // guard and probes the DB. Should still render the same uniform
-    // fail card — never echo "this token doesn't exist" to a probe.
-    const fakeButShapedRight = "f".repeat(64);
-    const response = await page.goto(`/family/${fakeButShapedRight}`);
-    expect(response?.status() ?? 0).toBeLessThan(500);
-    await expect(page.getByText("このページは表示できません")).toBeVisible();
-  });
+  test(
+    "C-1 family share: unknown 64-hex token shows the SAME fail UI (no enumeration oracle)",
+    { tag: "@quarantine" },
+    async ({ page }) => {
+      // PR T5: quarantined — this test asserts the fail card is visible
+      // for an unknown-but-shape-valid token, which means the DB probe
+      // must complete via Supabase. The CI preview Supabase env exhibits
+      // transient `AuthRetryableFetchError` on cold workers (~10-15% rate)
+      // that even 3 retries doesn't fully absorb. Moved to the
+      // informational `e2e-quarantine` job until either (a) MSW-mocked
+      // Supabase auth lands, or (b) the preview env warms up reliably.
+      const fakeButShapedRight = "f".repeat(64);
+      const response = await page.goto(`/family/${fakeButShapedRight}`);
+      expect(response?.status() ?? 0).toBeLessThan(500);
+      await expect(page.getByText("このページは表示できません")).toBeVisible();
+    },
+  );
 
   test("/admin/cost: 404 for unauthenticated visitors (closed-by-default gate)", async ({
     page,
@@ -164,9 +170,13 @@ test.describe("Phase 3 integration smoke", () => {
     ).toBeVisible();
   });
 
-  test("D2 invite welcome: unknown 64-hex token also collapses to invalid card (enumeration mitigation)", async ({
-    page,
-  }) => {
+  test(
+    "D2 invite welcome: unknown 64-hex token also collapses to invalid card (enumeration mitigation)",
+    { tag: "@quarantine" },
+    async ({ page }) => {
+      // PR T5: quarantined for the same reason as the C-1 sibling above.
+      // The /invite/[token] handler probes the DB through Supabase Auth
+      // session resolution, which inherits the cold-worker flake.
     // 64 hex chars passes the early shape guard and probes the DB.
     // The "invalid" + "stale" branches share copy by design so a
     // probe can't distinguish "token never existed" from "already

@@ -119,7 +119,10 @@ test.describe("Login + signup form structure", () => {
 
   test("login page links to signup", async ({ page }) => {
     await page.goto("/login");
-    const link = page.getByRole("link", { name: /signup|サインアップ|新規|アカウント|登録/i }).first();
+    // Match by href, not text: the actual copy ("ふたりの場所をつくる")
+    // doesn't carry the word "signup" / "サインアップ" anywhere, so a
+    // role-name selector misses it. The href is the stable contract.
+    const link = page.locator('a[href="/signup"]').first();
     await expect(link).toBeVisible();
   });
 });
