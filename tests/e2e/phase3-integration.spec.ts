@@ -30,6 +30,16 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Phase 3 integration smoke", () => {
+  // PR T1.3: every test in this describe goes through page.goto on a
+  // route that resolves a Supabase fetch (family token verification +
+  // admin auth gate). The Supabase preview env in CI exhibits transient
+  // `AuthRetryableFetchError` on cold workers; the previous run logged
+  // a steady ~10-15% per-test failure rate that was indistinguishable
+  // from a real regression. Bumping retries to 3 (with the playwright
+  // config's default retries unchanged) lets a single flaky cold-start
+  // get a clean re-run before it pollutes the green/red signal.
+  test.describe.configure({ retries: 3 });
+
   test.beforeEach(async ({ page }) => {
     // Mobile viewport — matches the production target. A regression
     // that breaks 375px is the one we need to catch first.

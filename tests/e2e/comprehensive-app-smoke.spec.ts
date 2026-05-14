@@ -201,6 +201,13 @@ test.describe("Comprehensive authenticated app smoke", () => {
 
 test.describe("Bottom nav: 5-tab traversal", () => {
   test.use({ viewport: { width: 390, height: 844 } });
+  // PR T1.2: this describe block exercises 5 consecutive navigations
+  // against `npm run dev`, which JIT-compiles each route on first
+  // visit. The total compile time per tab on a cold Vercel preview
+  // worker can spike to 8-12s; 5 tabs = 40-60s wall time. Bump the
+  // describe-level timeout to 3x default + retry 2 to absorb the
+  // worst-case JIT spike without polluting unrelated specs.
+  test.describe.configure({ retries: 2, timeout: 180_000 });
 
   const TABS = [
     { label: "ホーム", href: "/home" },
@@ -225,10 +232,23 @@ test.describe("Bottom nav: 5-tab traversal", () => {
       // next dev の `<nextjs-portal>` overlay が pointer event を奪うことが
       // あるため force click で迂回（prod build では overlay 自体が出ない）。
       await link.click({ force: true });
+      // PR T1.2: bumped waitForURL from 15s to 30s — JIT compile of an
+      // un-cached route can exceed 15s on a cold Vercel preview worker.
+      // 30s mirrors the 30s ceiling Playwright uses for navigation by
+      // default; longer than that and we want to know about it instead
+      // of swallowing it.
       await page.waitForURL(new RegExp(`${tab.href}(\\?.*)?$`), {
-        timeout: 15000,
+        timeout: 30_000,
       });
-      await expect(page.locator("h1").first()).toBeVisible({ timeout: 10000 });
+      // Wait for the dev server to settle after the route swap before
+      // probing h1 — a still-compiling page returns a loading shell
+      // first, then resolves to the real h1 after hydration.
+      await page
+        .waitForLoadState("networkidle", { timeout: 15_000 })
+        .catch(() => {
+          /* networkidle can flake on dev server with HMR — best-effort */
+        });
+      await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
     }
   });
 

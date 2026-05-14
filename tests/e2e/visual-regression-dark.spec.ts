@@ -129,6 +129,22 @@ async function waitForStable(page: import("@playwright/test").Page) {
 test.describe("Visual regression — public routes", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
+  // Mobile-only gate (PR T1.1): the 24 baseline PNGs in this spec's
+  // snapshot dir are all tagged `-Mobile-Chrome-linux.png`. The
+  // Desktop Chrome project has no committed baselines and would fail
+  // every run with "snapshot doesn't exist". Generating a parallel
+  // 24-PNG Desktop baseline set would double maintenance burden on a
+  // mobile-first product, so we skip Desktop here. Desktop visual
+  // regression is handled by manual QA + the comprehensive smoke
+  // spec, both of which catch the "did the layout collapse?" class
+  // of bug without per-pixel comparison.
+  test.beforeEach(({}, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "Mobile Chrome",
+      "Visual regression baselines are Mobile-only.",
+    );
+  });
+
   for (const route of PUBLIC_ROUTES) {
     for (const theme of THEMES) {
       test(`${route.name} — ${theme.name}`, async ({ page }) => {
@@ -150,6 +166,15 @@ test.describe("Visual regression — public routes", () => {
 
 test.describe("Visual regression — auth-gated routes", () => {
   test.use({ viewport: { width: 390, height: 844 } });
+
+  // Mobile-only gate (PR T1.1): same rationale as the public-routes
+  // describe block above — baselines are Mobile-only.
+  test.beforeEach(({}, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "Mobile Chrome",
+      "Visual regression baselines are Mobile-only.",
+    );
+  });
 
   for (const route of AUTH_ROUTES) {
     for (const theme of THEMES) {
