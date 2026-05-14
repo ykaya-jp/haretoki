@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/server/db";
-import { aggregateScoresByDimension } from "@/lib/weighted-score";
+import { aggregateScoresByDimension } from "@/lib/scoring";
 import { DIMENSION_LABELS, TIER1_DIMENSIONS } from "@/lib/constants";
 import {
   OG_BRAND_EYEBROW,

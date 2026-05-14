@@ -1,5 +1,5 @@
 import { Sparkles, MessageCircle } from "lucide-react";
-import { alignmentBucket } from "@/lib/weighted-score";
+import { alignmentBucket } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 
 /**

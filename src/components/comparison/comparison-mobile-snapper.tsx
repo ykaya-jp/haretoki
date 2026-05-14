@@ -13,11 +13,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { computeCompositeScore } from "@/lib/venue-score";
 import {
+  computeCompositeScore,
   computeWeightedComposite,
   type DimensionWeights,
-} from "@/lib/weighted-score";
+} from "@/lib/scoring";
 import type {
   ComparisonMatrix,
   ComparisonVenue,

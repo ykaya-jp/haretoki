@@ -17,7 +17,7 @@
 
 import type { ComparisonVenue } from "@/lib/comparison-types";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
-import { computeCompositeScore } from "@/lib/venue-score";
+import { computeCompositeScore } from "@/lib/scoring";
 
 /** Which "bucket" this row belongs to — used to group rows under subheadings. */
 export type FieldGroup =

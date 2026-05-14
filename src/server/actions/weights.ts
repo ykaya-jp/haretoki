@@ -14,7 +14,7 @@ import {
   WEIGHT_MIN,
   WEIGHT_MAX,
   type Weights,
-} from "@/lib/weighted-score";
+} from "@/lib/scoring";
 
 /**
  * W12-1: per-member dimension weights API.

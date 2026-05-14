@@ -17,7 +17,7 @@ import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
 import { buildDecisionSummary, type SummaryVenueInput } from "@/lib/decision-summary";
-import type { DimensionWeights } from "@/lib/weighted-score";
+import type { DimensionWeights } from "@/lib/scoring";
 import { WeightModeToggle, type WeightMode } from "@/components/candidates/weight-mode-toggle";
 import { AlignmentBadge } from "@/components/candidates/alignment-badge";
 

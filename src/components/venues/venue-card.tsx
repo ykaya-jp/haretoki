@@ -3,11 +3,11 @@ import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
 import { VenueStatusBadge } from "@/components/venues/venue-status-badge";
-import { computeCompositeScore } from "@/lib/venue-score";
 import {
+  computeCompositeScore,
   computeWeightedComposite,
   type DimensionWeights,
-} from "@/lib/weighted-score";
+} from "@/lib/scoring";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
 import type { VenueStatus } from "@/generated/prisma/client";
 

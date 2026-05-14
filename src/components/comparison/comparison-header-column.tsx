@@ -2,11 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import type { ComparisonVenue } from "@/lib/comparison-types";
-import { computeCompositeScore } from "@/lib/venue-score";
 import {
+  computeCompositeScore,
   computeWeightedComposite,
   type DimensionWeights,
-} from "@/lib/weighted-score";
+} from "@/lib/scoring";
 import { VenueRemoveButton } from "./venue-remove-button";
 import { VenueProsCons } from "./venue-pros-cons";
 import { scoresToMap } from "@/lib/venue-pros-cons";
