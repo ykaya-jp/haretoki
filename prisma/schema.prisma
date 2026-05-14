@@ -187,21 +187,22 @@ model Project {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  members           ProjectMember[]
-  venues            Venue[]
-  estimates         Estimate[]
-  analyses          AiAnalysis[]
-  decisions         Decision[]
-  partnerReactions  PartnerReaction[]
-  coachMessages     CoachMessage[]
-  coachSessions     CoachSession[]
-  checklists        ProjectChecklist[]
-  rituals           DailyRitual[]
-  invitations       ProjectInvitation[]
-  agreements        CoupleAgreement[]
-  savedSearches     SavedSearch[]
-  decisionTodos     DecisionTodo[]
-  familyInvitations FamilyInvitation[]
+  members              ProjectMember[]
+  venues               Venue[]
+  estimates            Estimate[]
+  analyses             AiAnalysis[]
+  decisions            Decision[]
+  partnerReactions     PartnerReaction[]
+  coachMessages        CoachMessage[]
+  coachSessions        CoachSession[]
+  checklists           ProjectChecklist[]
+  rituals              DailyRitual[]
+  invitations          ProjectInvitation[]
+  agreements           CoupleAgreement[]
+  savedSearches        SavedSearch[]
+  decisionTodos        DecisionTodo[]
+  familyInvitations    FamilyInvitation[]
+  customChecklistItems CustomChecklistItem[]
 
   @@map("projects")
 }
@@ -228,24 +229,24 @@ model DailyRitual {
 }
 
 model ProjectMember {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId  String      @map("project_id") @db.Uuid
-  userId     String      @map("user_id") @db.Uuid
-  role       ProjectRole
-  invitedAt  DateTime    @default(now()) @map("invited_at")
-  acceptedAt DateTime?   @map("accepted_at")
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId           String      @map("project_id") @db.Uuid
+  userId              String      @map("user_id") @db.Uuid
+  role                ProjectRole
+  invitedAt           DateTime    @default(now()) @map("invited_at")
+  acceptedAt          DateTime?   @map("accepted_at")
   /// W12-1: per-member dimension weights (1-5 integer scale, 3=neutral default).
   /// Stored as Json keyed by Tier1Dimension (see src/lib/constants.ts). NULL =
   /// unset → computeWeighted() treats every dimension as weight 3 (equal),
   /// keeping current non-weighted callers behavior intact for existing rows.
-  weights    Json?       @map("weights")
+  weights             Json?       @map("weights")
   /// Per-member "last time this user opened /coach" timestamp. The
   /// bottom-nav コーチ badge counts AiAnalysis rows (comparison /
   /// review_summary / visit_prep) created *after* this stamp, so the
   /// badge resets to 0 when the user visits /coach and grows again as
   /// new insights land. NULL = never visited /coach → badge counts
   /// all existing insights (= "everything is new").
-  coachInsightsSeenAt DateTime? @map("coach_insights_seen_at")
+  coachInsightsSeenAt DateTime?   @map("coach_insights_seen_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1065,6 +1066,13 @@ model VenueChecklistAnswer {
   status             String?
   memo               String?
   numberValue        Decimal? @map("number_value") @db.Decimal(12, 2)
+  /// User's 0.5–5.0 score for this checklist item on this venue. Null means
+  /// the user hasn't graded this question yet — the aggregator (see
+  /// src/lib/checklist-rating-aggregator.ts) treats null as missing rather
+  /// than as a zero, so an unscored question doesn't drag the parent
+  /// dimension average down. The CHECK constraint in the migration enforces
+  /// the 0.5-step grid (0.5, 1.0, ..., 5.0).
+  numericScore       Decimal? @map("numeric_score") @db.Decimal(2, 1)
   photoUrls          String[] @default([]) @map("photo_urls")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -1075,6 +1083,32 @@ model VenueChecklistAnswer {
   @@index([projectChecklistId])
   @@index([venueId])
   @@map("venue_checklist_answers")
+}
+
+/// Project-scoped custom checklist questions. Co-exists with the static
+/// `CHECKLIST_PRESETS` library in src/lib/checklist-presets.ts — preset items
+/// live in code (stable across projects), custom items live in the DB
+/// (couple-specific, e.g. "親族控室の畳数 は何畳？"). A `ProjectChecklist.itemId`
+/// can reference either a preset id (`chapel.interior.decor-style`) or a
+/// CustomChecklistItem.id; lookup tries the preset map first, then this
+/// table. Soft delete via `deletedAt` so existing VenueChecklistAnswer rows
+/// don't become orphaned when a couple removes a custom question — they're
+/// hidden in UI but the historical answer is recoverable.
+model CustomChecklistItem {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id") @db.Uuid
+  category    String
+  subcategory String?
+  question    String
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, category, deletedAt])
+  @@map("custom_checklist_items")
 }
 
 model Notification {
