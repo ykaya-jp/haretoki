@@ -886,22 +886,37 @@ export function CompareRedesigned() {
  * against the opponent is >= 1.0 (W11-1 Feature A "明確に優勢").
  */
 /**
- * 子項目行 — 親 dim 行の下に、 該当 dim 配下の checklistItems を 1 行ずつ
- * 描く。 ラベル列 (= sticky left) に項目名、 各 venue 列に 0.5–5 の評価バー
- * (numericScore) を表示する。 numericScore null 時は dash で目立たない。
+ * 子項目スタンザ — editorial 2-row 構成。
  *
- * 「差がある項目だけ」 フィルタが ON の時は hasDifference === true の子だけ
- * を表示。 親行の hasMeaningfulDiff (= dim score の差) とは独立に、 子の
- * 差で判定する (= 親平均は ほぼ同じでも 子で 4.5 vs 2.0 みたいな差がある
- * ケースを拾える)。
+ * 親 dim 行 (120px label cell + venue score cells) の grid 上で
+ * `col-span-full` の outer block として配置され、 内部で 2 行に分かれる:
+ *
+ *   Row 1 (label band):
+ *     - position: sticky; left: 0; max-width: calc(100vw - 2rem)
+ *       → モバイル横スクロール時もラベルが viewport 左端に貼り付く
+ *     - font: Shippori Mincho (var(--font-display)) — editorial caption 美
+ *     - leading-snug + py-2 で 1-2 行の自然な組版
+ *     - 左端 2px gold hairline = 親への所属マーク (= editorial "stem rule")
+ *
+ *   Row 2 (score band):
+ *     - 親と同じ --cmp-grid template で venue 列下に score を整列
+ *     - col 1 (label 領域相当) は空セル — 「label は上の band にある」 を
+ *       視覚的に伝える
+ *     - score 描画 (bar + tabular-nums) は親 dim と同じ言語、 ただし
+ *       サイズを 1 段絞って sub-row 感を出す
+ *
+ * 「差がある項目だけ」 ON 時は hasDifference === true の子だけ描画。
+ * PR #53 で親側に「子に diff があれば親行を残す」 ロジックを入れたので、
+ * このスタンザは確実にレンダリングされる。
  *
  * 設計判断:
- *   - 子項目入力 (slider) は /venues/[id]/impression で行う。 ここは
- *     display only に徹し、 1 タップでスコア編集の道を作らない。 編集と
- *     比較は別文脈 — 比較画面で編集を許すと操作競合 (= 同時編集) が起こり
- *     得るため。
- *   - winner highlight は親 dim と違って付けない。 子の数 (10+ 件) に
- *     対し winner tint が乗ると視覚ノイズが過剰になる。
+ *   - 旧 1-row × 120px 内 truncate は brand 不適合だった (editorial 雑誌で
+ *     captioned figure を 1 行に押し込む慣習はない)。 stanza 化は haretoki
+ *     の「曇り→晴れ間→晴れの日 = 余白が美徳」 ブランドに直接対応。
+ *   - 親 dim 行の grid と venue 列軸を共有するため、 子 score 列は親 score
+ *     と venue 列下で完全に縦整列する (= 比較表として読みやすい)。
+ *   - 子の編集導線は /venues/[id]/impression に集約。 比較画面は display
+ *     only。
  */
 function ChildItemRows({
   items,
@@ -927,53 +942,65 @@ function ChildItemRows({
       {filtered.map((item) => (
         <div
           key={item.itemId}
-          className="col-span-full grid items-center gap-0 border-t border-border/30 bg-card/40"
-          style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+          className="col-span-full border-t border-border/30 bg-card/40"
         >
+          {/* Row 1: editorial caption band — sticky-left, mincho serif,
+              max-width clamped so the text stays inside the visible
+              viewport while horizontal-scrolling the score columns. */}
           <div
-            className="sticky left-0 z-10 bg-card/95 px-3 py-1.5 pl-6 text-[11px] leading-snug text-muted-foreground"
-            style={{ width: LABEL_COL_PX }}
+            className="sticky left-0 z-10 max-w-[calc(100vw-2rem)] border-l-2 border-[var(--gold-warm)]/45 bg-card/95 px-4 pt-2 pb-1 text-[11px] font-light leading-snug text-foreground/80 font-[family-name:var(--font-display)] sm:max-w-md"
           >
-            <span className="block truncate" title={item.question}>
-              └ {item.question}
-            </span>
+            {item.question}
           </div>
-          {venueIds.map((vid) => {
-            const score = item.answers[vid]?.numericScore ?? null;
-            const status = item.answers[vid]?.status ?? null;
-            return (
-              <div
-                key={vid}
-                className="flex flex-col items-center gap-0.5 px-2 py-1.5"
-              >
-                {score !== null ? (
-                  <>
-                    <div
-                      className="relative h-1 w-12 overflow-hidden rounded-full bg-muted"
-                      aria-label={`${score} / 5`}
-                    >
+          {/* Row 2: score band aligned with venue columns. col 1 is an
+              intentional empty cell — the label sits in its own band
+              above, so the score row only fills col 2+. */}
+          <div
+            className="grid items-center gap-0 pb-2"
+            style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+          >
+            <div
+              className="sticky left-0 z-10 bg-card/40"
+              style={{ width: LABEL_COL_PX }}
+              aria-hidden
+            />
+            {venueIds.map((vid) => {
+              const score = item.answers[vid]?.numericScore ?? null;
+              const status = item.answers[vid]?.status ?? null;
+              return (
+                <div
+                  key={vid}
+                  className="flex flex-col items-center gap-0.5 px-2"
+                >
+                  {score !== null ? (
+                    <>
                       <div
-                        className="absolute inset-y-0 left-0 rounded-full bg-[var(--gold-warm)]"
-                        style={{
-                          width: `${Math.max(0, Math.min(100, (score / 5) * 100))}%`,
-                        }}
-                        aria-hidden
-                      />
-                    </div>
-                    <span className="tabular-nums text-[10.5px] font-medium text-[var(--gold-warm)]">
-                      {score.toFixed(1)}
-                    </span>
-                  </>
-                ) : status === "yes" ? (
-                  <span className="text-[10px] text-[var(--gold-warm)]">○</span>
-                ) : status === "no" ? (
-                  <span className="text-[10px] text-destructive/70">×</span>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground/40">—</span>
-                )}
-              </div>
-            );
-          })}
+                        className="relative h-1 w-12 overflow-hidden rounded-full bg-muted"
+                        aria-label={`${score} / 5`}
+                      >
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full bg-[var(--gold-warm)]"
+                          style={{
+                            width: `${Math.max(0, Math.min(100, (score / 5) * 100))}%`,
+                          }}
+                          aria-hidden
+                        />
+                      </div>
+                      <span className="tabular-nums text-[10.5px] font-medium text-[var(--gold-warm)]">
+                        {score.toFixed(1)}
+                      </span>
+                    </>
+                  ) : status === "yes" ? (
+                    <span className="text-[10px] text-[var(--gold-warm)]">○</span>
+                  ) : status === "no" ? (
+                    <span className="text-[10px] text-destructive/70">×</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/40">—</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       ))}
     </>
