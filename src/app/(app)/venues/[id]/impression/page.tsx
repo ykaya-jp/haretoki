@@ -8,6 +8,26 @@ import { getCoupleRatings } from "@/server/actions/ratings";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { RatingSection } from "@/components/venues/rating-section";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
+import {
+  ChildRatingPanel,
+  type ChildRatingItem,
+} from "@/components/venues/child-rating-panel";
+import { prisma } from "@/server/db";
+import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
+import {
+  ITEM_TO_DIMENSION,
+  getDimensionForPreset,
+} from "@/lib/dimension-checklist-map";
+import type { Tier1Dimension } from "@/lib/constants";
+
+const CATEGORY_TO_DIMENSION: Record<string, Tier1Dimension> = {
+  chapel: "ceremony_space",
+  banquet: "banquet_space",
+  cuisine_drink: "cuisine",
+  dress_item: "attire_items",
+  staff_estimate: "hospitality",
+  facility: "logistics",
+};
 
 /**
  * Focused-mode rating page — v3 plan §1.1 C画面 + Phase 0 fix.
@@ -42,7 +62,7 @@ export default async function VenueImpressionPage({
   const { id } = await params;
 
   const user = await requireUser();
-  await requireProjectMembership(user.id);
+  const { projectId } = await requireProjectMembership(user.id);
   const venue = await getVenueHeader(id);
   if (!venue) notFound();
 
@@ -53,6 +73,73 @@ export default async function VenueImpressionPage({
     if (score.source === "user_rating") {
       userRatings[score.dimension] = Number(score.score);
     }
+  }
+
+  // Load active checklist items (preset + custom) and any pre-existing
+  // numericScore on this venue. Parallel-fetched because they're
+  // independent. The output drives the new ChildRatingPanel below the
+  // parent 8-dim RatingSection.
+  const [activeChecklists, customItems, existingAnswers] = await Promise.all([
+    prisma.projectChecklist.findMany({
+      where: { projectId },
+      select: { id: true, itemId: true },
+    }),
+    prisma.customChecklistItem.findMany({
+      where: { projectId, deletedAt: null },
+      select: { id: true, question: true, category: true },
+    }),
+    prisma.venueChecklistAnswer.findMany({
+      where: { venueId: id, projectChecklist: { projectId } },
+      select: {
+        projectChecklistId: true,
+        numericScore: true,
+        projectChecklist: { select: { itemId: true } },
+      },
+    }),
+  ]);
+
+  const presetById = new Map(CHECKLIST_PRESETS.map((p) => [p.id, p]));
+  const scoreByItemId = new Map<string, number | null>(
+    existingAnswers.map((a) => [
+      a.projectChecklist.itemId,
+      a.numericScore !== null ? Number(a.numericScore) : null,
+    ]),
+  );
+  const customDimLookup: Record<string, Tier1Dimension> = {};
+  const customById = new Map<string, { label: string; dim: Tier1Dimension }>();
+  for (const c of customItems) {
+    const dim = CATEGORY_TO_DIMENSION[c.category] ?? "overall";
+    customDimLookup[c.id] = dim;
+    customById.set(c.id, { label: c.question, dim });
+  }
+
+  const childItems: ChildRatingItem[] = [];
+  for (const row of activeChecklists) {
+    const preset = presetById.get(row.itemId);
+    if (preset) {
+      childItems.push({
+        itemId: row.itemId,
+        dimension: getDimensionForPreset(row.itemId),
+        label: preset.question,
+        subcategory: preset.subcategory ?? null,
+        initialScore: scoreByItemId.get(row.itemId) ?? null,
+      });
+      continue;
+    }
+    const custom = customById.get(row.itemId);
+    if (custom) {
+      childItems.push({
+        itemId: row.itemId,
+        dimension: custom.dim,
+        label: custom.label,
+        subcategory: null,
+        initialScore: scoreByItemId.get(row.itemId) ?? null,
+      });
+    }
+    // Unknown itemId (= preset removed from CHECKLIST_PRESETS but still
+    // active in this project) silently skipped. ITEM_TO_DIMENSION
+    // referenced here for symmetry with aggregator.
+    void ITEM_TO_DIMENSION;
   }
 
   return (
@@ -118,6 +205,18 @@ export default async function VenueImpressionPage({
           userRatings={userRatings}
         />
       </Suspense>
+
+      {/* PR #51: child item rating panel — addresses "子項目自体の評価が
+          できる画面がない" feedback. Renders below the 8-dim parent
+          RatingSection so users can both quick-rate (top) and detail-rate
+          (bottom) on the same focused-mode page. */}
+      <section className="mt-10 px-1">
+        <ChildRatingPanel
+          venueId={venue.id}
+          items={childItems}
+          customLookup={customDimLookup}
+        />
+      </section>
 
       <footer className="mt-12 px-2 text-center">
         <p className="text-[11px] italic text-muted-foreground/80">
