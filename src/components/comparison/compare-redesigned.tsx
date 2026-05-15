@@ -373,10 +373,37 @@ export function CompareRedesigned() {
         .map(({ row }) => row)
     : rows;
 
+  // 「差がある項目だけ」 と 「細かく見る」 の併用ロジック:
+  //
+  // diffOnly のみ ON: 親 dim の hasMeaningfulDiff のみで判定 (従来通り)
+  //
+  // diffOnly + showChildren 両 ON: 親平均が ほぼ同じでも、 配下の子に
+  // hasDifference が 1 件以上あれば親行を残す。 そうしないと「料理 4.0
+  // / 4.0 / 4.0 だけど "味" 4.5 vs 2.0 の差がある」 ようなケースが
+  // 親レベルで間引かれて子も完全に消える (= 「差を探したい」 主旨に逆らう)。
+  // 子側の filter (ChildItemRows 内) で hasDifference の子だけ残るので、
+  // 親 + diff 子の対だけが表示される結果になる。
   const visibleRows = diffOnly
-    ? sortedRows.filter((r) => r.hasMeaningfulDiff)
+    ? sortedRows.filter((r) => {
+        if (r.hasMeaningfulDiff) return true;
+        if (showChildren && r.dim.checklistItems.some((c) => c.hasDifference))
+          return true;
+        return false;
+      })
     : sortedRows;
-  const diffCount = rows.filter((r) => r.hasMeaningfulDiff).length;
+
+  // diffCount は chip 上に出る「差のある項目 N」 表示の根拠。 細かく見る
+  // ON 時は子の diff も足して、 トグル前後で「差は何件あるのか」 の数字
+  // が一致するようにする。
+  const diffCount = rows.reduce(
+    (acc, r) =>
+      acc +
+      (r.hasMeaningfulDiff ? 1 : 0) +
+      (showChildren
+        ? r.dim.checklistItems.filter((c) => c.hasDifference).length
+        : 0),
+    0,
+  );
 
   // Top-2 "話し合いましょう" chip eligibility — only meaningful while
   // the partner-diff sort is on, partner data has loaded for at least
