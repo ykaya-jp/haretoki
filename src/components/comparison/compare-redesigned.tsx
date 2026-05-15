@@ -105,6 +105,12 @@ export function CompareRedesigned() {
     () => new Set(initialVenueIds),
   );
   const [diffOnly, setDiffOnly] = useState(false);
+  // 「細かく見る」 トグル — 親 8 次元行の下に、 該当次元配下の子項目
+  // (= /checklist で active 化したもの) を サブ行として展開する。 PR #51 の
+  // ChildRatingPanel で入れた score がこのトグルで見比べられる。 OFF 既定:
+  // 8 行 + N 子行 (大抵 40+) はモバイルで縦に長すぎるため、 開きたいとき
+  // だけ開く形にする。
+  const [showChildren, setShowChildren] = useState(false);
   // W11-1 Feature B: "意見差を上に" toggle. When on, dimension rows are
   // re-ordered by the couple's |owner − partner| magnitude so the
   // most-split rows surface first and the top 1-2 get a "話し合いましょう"
@@ -567,6 +573,19 @@ export function CompareRedesigned() {
                 <ChevronsUpDown className="h-3 w-3" strokeWidth={2} />
                 差がある項目だけ
               </button>
+              <button
+                type="button"
+                onClick={() => setShowChildren((v) => !v)}
+                aria-pressed={showChildren}
+                className={cn(
+                  "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] transition-colors active:scale-[0.98]",
+                  showChildren
+                    ? "border-[var(--gold-warm)] bg-[var(--gold-warm)] text-white"
+                    : "border-border text-muted-foreground",
+                )}
+              >
+                細かく見る
+              </button>
               {/* W11-1 Feature B toggle. `active:scale-[0.98]` matches
                   the house tap-feedback rule. We intentionally surface
                   this even before partner data loads — the press is
@@ -758,6 +777,20 @@ export function CompareRedesigned() {
                         rightName={selectedVenues[1]?.name ?? ""}
                       />
                     )}
+                    {/* PR #51 follow-up: child item rows under each parent
+                        dim — the "細かく見る" toggle reveals checklist
+                        items (= /checklist で active 化したもの) as
+                        sub-rows so couples can see how each venue scored
+                        each individual item, not just the parent mean.
+                        Inheriting diffOnly so the global filter still
+                        works. */}
+                    {showChildren && (
+                      <ChildItemRows
+                        items={row.dim.checklistItems}
+                        venueIds={venueIds}
+                        diffOnly={diffOnly}
+                      />
+                    )}
                   </div>
                 );
               })
@@ -825,6 +858,101 @@ export function CompareRedesigned() {
  * `strong` lifts the gold fill to a slightly deeper tint when the gap
  * against the opponent is >= 1.0 (W11-1 Feature A "明確に優勢").
  */
+/**
+ * 子項目行 — 親 dim 行の下に、 該当 dim 配下の checklistItems を 1 行ずつ
+ * 描く。 ラベル列 (= sticky left) に項目名、 各 venue 列に 0.5–5 の評価バー
+ * (numericScore) を表示する。 numericScore null 時は dash で目立たない。
+ *
+ * 「差がある項目だけ」 フィルタが ON の時は hasDifference === true の子だけ
+ * を表示。 親行の hasMeaningfulDiff (= dim score の差) とは独立に、 子の
+ * 差で判定する (= 親平均は ほぼ同じでも 子で 4.5 vs 2.0 みたいな差がある
+ * ケースを拾える)。
+ *
+ * 設計判断:
+ *   - 子項目入力 (slider) は /venues/[id]/impression で行う。 ここは
+ *     display only に徹し、 1 タップでスコア編集の道を作らない。 編集と
+ *     比較は別文脈 — 比較画面で編集を許すと操作競合 (= 同時編集) が起こり
+ *     得るため。
+ *   - winner highlight は親 dim と違って付けない。 子の数 (10+ 件) に
+ *     対し winner tint が乗ると視覚ノイズが過剰になる。
+ */
+function ChildItemRows({
+  items,
+  venueIds,
+  diffOnly,
+}: {
+  items: Array<{
+    itemId: string;
+    question: string;
+    answers: Record<
+      string,
+      { status: string | null; memo: string | null; numericScore: number | null }
+    >;
+    hasDifference: boolean;
+  }>;
+  venueIds: string[];
+  diffOnly: boolean;
+}) {
+  const filtered = diffOnly ? items.filter((i) => i.hasDifference) : items;
+  if (filtered.length === 0) return null;
+  return (
+    <>
+      {filtered.map((item) => (
+        <div
+          key={item.itemId}
+          className="col-span-full grid items-center gap-0 border-t border-border/30 bg-card/40"
+          style={{ gridTemplateColumns: "var(--cmp-grid)" }}
+        >
+          <div
+            className="sticky left-0 z-10 bg-card/95 px-3 py-1.5 pl-6 text-[11px] leading-snug text-muted-foreground"
+            style={{ width: LABEL_COL_PX }}
+          >
+            <span className="block truncate" title={item.question}>
+              └ {item.question}
+            </span>
+          </div>
+          {venueIds.map((vid) => {
+            const score = item.answers[vid]?.numericScore ?? null;
+            const status = item.answers[vid]?.status ?? null;
+            return (
+              <div
+                key={vid}
+                className="flex flex-col items-center gap-0.5 px-2 py-1.5"
+              >
+                {score !== null ? (
+                  <>
+                    <div
+                      className="relative h-1 w-12 overflow-hidden rounded-full bg-muted"
+                      aria-label={`${score} / 5`}
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-[var(--gold-warm)]"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, (score / 5) * 100))}%`,
+                        }}
+                        aria-hidden
+                      />
+                    </div>
+                    <span className="tabular-nums text-[10.5px] font-medium text-[var(--gold-warm)]">
+                      {score.toFixed(1)}
+                    </span>
+                  </>
+                ) : status === "yes" ? (
+                  <span className="text-[10px] text-[var(--gold-warm)]">○</span>
+                ) : status === "no" ? (
+                  <span className="text-[10px] text-destructive/70">×</span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground/40">—</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </>
+  );
+}
+
 function DimensionCell({
   score,
   isWinner,

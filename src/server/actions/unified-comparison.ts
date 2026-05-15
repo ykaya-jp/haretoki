@@ -19,6 +19,11 @@ export interface ComparisonVenue {
 export interface ChecklistItemAnswer {
   status: string | null;
   memo: string | null;
+  /** PR #5 (0.5–5) child grade — surfaced under each parent dim in the
+   *  /candidates compare view so couples can see how each side scored
+   *  each child item, not just the parent dimension mean. Null until
+   *  they tap a chip on /venues/[id]/impression. */
+  numericScore: number | null;
 }
 
 export interface ChecklistItemComparison {
@@ -191,6 +196,7 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
       venueId: true,
       status: true,
       memo: true,
+      numericScore: true,
       projectChecklist: { select: { itemId: true } },
     },
   });
@@ -207,6 +213,10 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     venueAnswerMap.set(row.venueId, {
       status: row.status ?? null,
       memo: row.memo ?? null,
+      numericScore:
+        row.numericScore !== null && row.numericScore !== undefined
+          ? Number(row.numericScore)
+          : null,
     });
   }
 
@@ -221,13 +231,25 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
     const statuses: string[] = [];
 
     for (const venueId of venueIds) {
-      const ans = byVenue?.get(venueId) ?? { status: null, memo: null };
+      const ans = byVenue?.get(venueId) ?? {
+        status: null,
+        memo: null,
+        numericScore: null,
+      };
       answers[venueId] = ans;
       if (ans.status !== null) statuses.push(ans.status);
     }
 
-    const uniqueStatuses = new Set(statuses);
-    const hasDifference = statuses.length >= 2 && uniqueStatuses.size > 1;
+    // hasDifference now considers BOTH status and numericScore so a
+    // child item where every venue says "yes" but one is rated 4.5 and
+    // another 2.0 correctly surfaces when the "差がある項目だけ" filter
+    // is on. Combine the two signals into a tuple per venue.
+    const tuples = venueIds.map((vid) => {
+      const a = answers[vid];
+      return `${a?.status ?? "—"}|${a?.numericScore ?? "—"}`;
+    });
+    const nonEmpty = tuples.filter((t) => t !== "—|—");
+    const hasDifference = nonEmpty.length >= 2 && new Set(nonEmpty).size > 1;
 
     return { itemId, question, type, answers, hasDifference };
   }
