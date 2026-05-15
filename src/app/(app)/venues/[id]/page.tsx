@@ -203,15 +203,23 @@ export default async function VenueDetailPage({
           />
         </Suspense>
 
-        {/* Focused-mode link — sends couples to the dedicated
+        {/* Focused-mode CTA — sends couples to the dedicated
             /venues/[id]/impression page for distraction-free scoring
-            (added in PR #3 of the comparison rebuild). */}
+            (added in PR #3 of the comparison rebuild). The original
+            dashed-italic styling read as a caption rather than a
+            tappable affordance and the 12px text + p-3 padding gave a
+            ~40px hit target — both below the 44px minimum. Promoted to
+            an explicit gold-accented button so the impression-mode
+            entry is unmistakable from the rest of the dense PDP. */}
         <Link
           href={`/venues/${venue.id}/impression`}
           prefetch
-          className="block rounded-xl border border-dashed border-[var(--gold-warm)]/60 bg-card/40 p-3 text-center text-xs italic text-[var(--gold-warm)] active:bg-[var(--gold-warm)]/10 active:scale-[0.99] transition-transform"
+          className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--gold-warm)]/60 bg-[var(--gold-subtle)] px-4 py-2.5 text-sm font-medium text-[var(--gold-warm)] shadow-[0_1px_2px_rgba(42,35,32,0.06)] active:bg-[color-mix(in_oklab,var(--gold-warm)_18%,var(--background))] active:scale-[0.98] transition-transform"
         >
-          印象を残す — 集中モードでひらく →
+          <span>印象を残す</span>
+          <span aria-hidden className="text-xs opacity-70">·</span>
+          <span className="text-xs opacity-80">集中モードでひらく</span>
+          <span aria-hidden className="text-xs">→</span>
         </Link>
 
         {/* Fact Sheet — external rating ★, address, phone, map.

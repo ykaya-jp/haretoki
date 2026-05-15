@@ -40,7 +40,7 @@ describe("getHomeStage — Lexicon §5.4 pinning", () => {
     expect(r.ctaHref).toBe("/venues/v1#visit");
   });
 
-  it("post-visit prompts the 印象記録", () => {
+  it("post-visit prompts the 印象記録 directly into focus mode", () => {
     const r = getHomeStage({
       ...EMPTY,
       totalVenues: 1,
@@ -50,6 +50,22 @@ describe("getHomeStage — Lexicon §5.4 pinning", () => {
     expect(r.key).toBe("visiting");
     expect(r.headline).toBe("見学の印象を、忘れないうちに残しましょう");
     expect(r.ctaLabel).toBe("印象を残す");
+    // Pin the destination: the CTA promises a recording surface, so it
+    // must land on /impression rather than the dense PDP. Regressing
+    // back to `/venues/${id}` would force the couple to hunt for the
+    // focus-mode entry a second time (the original bug report).
+    expect(r.ctaHref).toBe("/venues/v1/impression");
+  });
+
+  it("post-visit with multiple venues falls back to /candidates", () => {
+    const r = getHomeStage({
+      ...EMPTY,
+      totalVenues: 3,
+      visitedVenues: 2,
+      firstVenueId: "v1",
+    });
+    expect(r.key).toBe("visiting");
+    expect(r.ctaHref).toBe("/candidates");
   });
 
   it("exactly 2 favorites with both ids → duel route with a/b params", () => {

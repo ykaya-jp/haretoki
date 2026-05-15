@@ -80,7 +80,14 @@ export function getHomeStage(p: HomeStageInput): HomeStageContent {
       headline: "見学の印象を、忘れないうちに残しましょう",
       sub: "気になったこと、写真と一緒に",
       ctaLabel: "印象を残す",
-      ctaHref: singleVenue ? `/venues/${p.firstVenueId}` : "/candidates",
+      // Route directly to focus-mode (/impression) when a single venue
+      // is in play — the CTA label promises "let's record impressions",
+      // so dropping the user on the dense PDP forces them to hunt for
+      // the focus-mode link a second time. /impression IS the recording
+      // surface; everything else is misdirection.
+      ctaHref: singleVenue
+        ? `/venues/${p.firstVenueId}/impression`
+        : "/candidates",
       fallbackWeather: "break",
     };
   }
