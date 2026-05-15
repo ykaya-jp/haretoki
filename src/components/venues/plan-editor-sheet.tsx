@@ -41,8 +41,14 @@ export interface PlanEditorInitialPlan {
 interface PlanEditorSheetProps {
   venueId: string;
   initialPlan?: PlanEditorInitialPlan;
-  /** Render-prop trigger. Defaults to a small "プランを編集" / "+ 新しいプランを追加" button. */
-  trigger?: React.ReactNode;
+  /**
+   * Render-prop trigger. Must be a single JSX element (typically a
+   * `<button>`) — base-ui's `Dialog.Trigger` composes it directly via
+   * its `render` prop, so passing a string / fragment / array would
+   * break the trigger contract. Defaults to a small "プランを編集" /
+   * "+ 新しいプランを追加" button when omitted.
+   */
+  trigger?: React.ReactElement;
 }
 
 
@@ -223,9 +229,19 @@ export function PlanEditorSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={trigger ? undefined : defaultTrigger}>
-        {trigger}
-      </SheetTrigger>
+      {/*
+        base-ui の `SheetTrigger` は `render` 未指定時に自前で `<button>` を
+        吐く。さらに children として `<button>` を渡すと button が button を
+        包む不正な DOM になり、hydration error
+        (`<button> cannot be a descendant of <button>`) で React の event
+        delegation が壊れる。すると同一ページ内の他の Link (= 印象を残す ·
+        集中モードでひらく の `<Link>`) の onClick 内 `router.push` も連鎖して
+        失敗し、preventDefault 済みの `<a>` も動かず "ボタンが反応しない"
+        という症状になる。
+        正しい使い方は `render` prop に caller の trigger element を渡すこと
+        (base-ui の compose 規約)。children は受け取らない。
+      */}
+      <SheetTrigger render={trigger ?? defaultTrigger} />
       <SheetContent
         side="bottom"
         // Cap at 520px on desktop (same as AddVenueSheet) so the form
