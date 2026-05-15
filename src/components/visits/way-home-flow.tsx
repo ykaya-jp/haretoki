@@ -11,6 +11,7 @@ type Step = "mood" | "good" | "concern" | "done";
 
 interface WayHomeFlowProps {
   visitId: string;
+  venueId: string;
   venueName: string;
 }
 
@@ -39,7 +40,7 @@ const CONCERN_TAGS = [
   "駐車場",
 ];
 
-export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
+export function WayHomeFlow({ visitId, venueId, venueName }: WayHomeFlowProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("mood");
   const [mood, setMood] = useState<number>(0);
@@ -75,7 +76,12 @@ export function WayHomeFlow({ visitId, venueName }: WayHomeFlowProps) {
       if (result.ok) {
         toast.success("印象を残しました");
         setStep("done");
-        setTimeout(() => router.push(`/venues/${visitId}`), 900);
+        // Bug guard: previously navigated to `/venues/${visitId}` —
+        // visitId is the Visit primary key, not the Venue id, so the
+        // redirect 404'd silently after a successful way-home submit.
+        // The page receives venueId explicitly via the route loader so
+        // we always have the right id at hand.
+        setTimeout(() => router.push(`/venues/${venueId}`), 900);
       } else {
         toast.error(result.error);
       }

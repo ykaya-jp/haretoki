@@ -20,9 +20,15 @@ export default async function WayHomePage({ params }: PageProps) {
 
   const visit = await prisma.visit.findFirst({
     where: { id: visitId, venue: { projectId } },
-    include: { venue: { select: { name: true } } },
+    include: { venue: { select: { id: true, name: true } } },
   });
   if (!visit) notFound();
 
-  return <WayHomeFlow visitId={visit.id} venueName={visit.venue.name} />;
+  return (
+    <WayHomeFlow
+      visitId={visit.id}
+      venueId={visit.venue.id}
+      venueName={visit.venue.name}
+    />
+  );
 }
