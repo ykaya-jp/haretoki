@@ -105,15 +105,54 @@ function NumberCell({ value }: { value: number | null }) {
   );
 }
 
+/**
+ * 0.5–5 評価バー — 親次元と同じ視覚言語 (gold fill + tabular score) で
+ * 子項目の `numericScore` を 1 行に表示する。
+ *
+ * 親次元の `accessUserScoreForDim` が子の平均を集計する一方、ここでは
+ * 子の生スコアそのものを比較する。両者を併存させることで、ユーザは
+ * 「平均だけ見て妥協する」 vs 「子項目ごとに違いを掘る」 を自由に切り替え
+ * られる。
+ */
+function RatingScoreCell({ score }: { score: number | null }) {
+  if (score === null) return <Dash />;
+  const fillPct = Math.max(0, Math.min(100, (score / 5) * 100));
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <div
+        className="relative h-1.5 w-16 overflow-hidden rounded-full bg-muted"
+        aria-label={`${score} / 5`}
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-[var(--gold-warm)]"
+          style={{ width: `${fillPct}%` }}
+          aria-hidden
+        />
+      </div>
+      <span className="tabular-nums text-[12px] font-medium text-[var(--gold-warm)]">
+        {score.toFixed(1)}
+      </span>
+    </div>
+  );
+}
+
 function hasDiff(
   itemId: string,
   venueIds: string[],
   answers: ComparisonMatrix["answers"],
 ): boolean {
-  const statuses = venueIds.map((vid) => answers[itemId]?.[vid]?.status ?? null);
-  const nonNull = statuses.filter((s) => s !== null);
-  if (nonNull.length < 2) return false;
-  return new Set(nonNull).size > 1;
+  // diff judgement now considers BOTH status and numericScore — a child
+  // item where every venue says "yes" but one is rated 4.5 and another
+  // 2.0 should clearly surface as "差がある項目だけ" filtered in. Using
+  // a tuple per venue keeps the diff predicate honest across both
+  // answer types.
+  const tuples = venueIds.map((vid) => {
+    const a = answers[itemId]?.[vid];
+    return JSON.stringify([a?.status ?? null, a?.numericScore ?? null]);
+  });
+  const nonEmpty = tuples.filter((t) => t !== JSON.stringify([null, null]));
+  if (nonEmpty.length < 2) return false;
+  return new Set(nonEmpty).size > 1;
 }
 
 export function ChecklistAnswerRow({ item, venues, answers, rowIndex }: Props) {
@@ -155,10 +194,18 @@ export function ChecklistAnswerRow({ item, venues, answers, rowIndex }: Props) {
               diff && "bg-[color-mix(in_oklab,var(--gold-warm)_6%,var(--background))]",
             )}
           >
-            {item.type === "yesno" && <YesNoCell status={ans?.status ?? null} />}
-            {item.type === "memo" && <MemoCell memo={ans?.memo ?? null} />}
-            {item.type === "photo" && <PhotoCell photoUrls={ans?.photoUrls ?? []} />}
-            {item.type === "number" && <NumberCell value={ans?.numberValue ?? null} />}
+            <div className="flex w-full flex-col gap-1.5">
+              {/* numericScore (= 0.5–5 評価) を常に最初に表示。
+                  PR #5 で配線された numericScore は item.type と独立
+                  (= yesno でも memo でも 0.5–5 評価できる) ので、type 別
+                  セルの「上」に評価バーを置く。スコア未入力時は Dash で
+                  従来通り目立たない。 */}
+              <RatingScoreCell score={ans?.numericScore ?? null} />
+              {item.type === "yesno" && <YesNoCell status={ans?.status ?? null} />}
+              {item.type === "memo" && <MemoCell memo={ans?.memo ?? null} />}
+              {item.type === "photo" && <PhotoCell photoUrls={ans?.photoUrls ?? []} />}
+              {item.type === "number" && <NumberCell value={ans?.numberValue ?? null} />}
+            </div>
           </div>
         );
       })}
