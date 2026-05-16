@@ -31,8 +31,11 @@ function checklistTag(projectId: string) {
   return `checklist:${projectId}`;
 }
 
-function answerTag(venueId: string) {
-  return `checklist-answers:${venueId}`;
+function answerTag(venueId: string, userId: string) {
+  // user-namespaced so one spouse saving doesn't bust the partner's
+  // cached read of the same venue. Per-user isolation after the
+  // VenueChecklistAnswer authorship migration.
+  return `checklist-answers:${venueId}:${userId}`;
 }
 
 // ── List active item ids for the current project ───────────────────────────────
@@ -154,7 +157,7 @@ async function fetchAnswersForVenue(
   userId: string,
 ): Promise<AnswerMap> {
   "use cache";
-  cacheTag(answerTag(venueId));
+  cacheTag(answerTag(venueId, userId));
   cacheTag(checklistTag(projectId));
 
   // Verify venue belongs to project
@@ -240,7 +243,7 @@ export async function saveAnswer(
     },
   });
 
-  revalidateTag(answerTag(venueId), { expire: 0 });
+  revalidateTag(answerTag(venueId, user.id), { expire: 0 });
   revalidateTag(checklistTag(projectId), { expire: 0 });
   revalidatePath(`/venues/${venueId}/checklist`);
   revalidatePath("/compare");
