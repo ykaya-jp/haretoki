@@ -9,6 +9,7 @@ import {
   computeCompositeScore,
   computeWeightedComposite,
   WEIGHT_DEFAULT,
+  computeCoupleVenueScore,
 } from "@/lib/scoring";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
 
@@ -90,5 +91,107 @@ describe("getScoreCoverage (H1 transparency helper — new in PR #1)", () => {
     expect(cov.covered).toBe(2);
     expect(cov.dimensions).toContain("legacy_dim_x");
     expect(cov.dimensions).toContain("cuisine");
+  });
+});
+
+describe("computeCoupleVenueScore — Release β consensus card primitive", () => {
+  it("returns overall = null when neither side has rated anything", () => {
+    const r = computeCoupleVenueScore({});
+    expect(r.overall).toBeNull();
+    expect(r.agreedDimensions).toEqual([]);
+    expect(r.discussDimensions).toEqual([]);
+    // alignment defaults to 50 (cosine of two zero vectors → mid)
+    expect(r.alignment).toBe(50);
+  });
+
+  it("averages dimensions where both sides rated; carries single value where only one did", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 4, hospitality: 3 },
+      partnerRatings: { cuisine: 5, banquet_space: 4 },
+    });
+    const row = (dim: string) =>
+      r.byDimension.find((d) => d.dimension === dim)!;
+    expect(row("cuisine").avg).toBe(4.5);
+    expect(row("hospitality").avg).toBe(3);
+    expect(row("banquet_space").avg).toBe(4);
+    // overall = arithmetic mean of per-dim avgs that have a value
+    expect(r.overall).toBeCloseTo((4.5 + 3 + 4) / 3, 4);
+  });
+
+  it("marks a dimension aligned when both sides rated and |own - partner| ≤ 1", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 4, hospitality: 5 },
+      partnerRatings: { cuisine: 3.5, hospitality: 2.5 },
+    });
+    expect(r.agreedDimensions).toContain("cuisine");
+    expect(r.discussDimensions).toContain("hospitality");
+    expect(r.agreedDimensions).not.toContain("hospitality");
+  });
+
+  it("never marks a dimension aligned when one side hasn't rated", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 4 },
+      partnerRatings: {},
+    });
+    expect(r.agreedDimensions).toEqual([]);
+    expect(r.discussDimensions).toEqual([]);
+  });
+
+  it("falls back to child aggregates when parent dimension is unrated", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: {},
+      ownChildAggregates: { cuisine: 4 },
+      partnerRatings: {},
+      partnerChildAggregates: { cuisine: 3 },
+    });
+    const cuisine = r.byDimension.find((d) => d.dimension === "cuisine")!;
+    expect(cuisine.own).toBe(4);
+    expect(cuisine.partner).toBe(3);
+    expect(cuisine.aligned).toBe(true);
+  });
+
+  it("prefers parent rating over child aggregate when both exist", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 5 },
+      ownChildAggregates: { cuisine: 2 },
+    });
+    const cuisine = r.byDimension.find((d) => d.dimension === "cuisine")!;
+    expect(cuisine.own).toBe(5);
+  });
+
+  it("returns weather=sun when alignment is high and overall is at-least 4.0", () => {
+    const high = { cuisine: 5, hospitality: 5, banquet_space: 4.5 } as const;
+    const r = computeCoupleVenueScore({
+      ownRatings: high,
+      partnerRatings: { ...high, cuisine: 4.5 },
+    });
+    expect(r.weather).toBe("sun");
+  });
+
+  it("returns weather=cloud when alignment is high but overall is low", () => {
+    const low = { cuisine: 2, hospitality: 2 } as const;
+    const r = computeCoupleVenueScore({
+      ownRatings: low,
+      partnerRatings: low,
+    });
+    expect(r.weather).toBe("cloud");
+  });
+
+  it("returns weather=cloud when both alignment and overall are low (= disagreement zone)", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 5, hospitality: 1, banquet_space: 5 },
+      partnerRatings: { cuisine: 1, hospitality: 5, banquet_space: 1 },
+    });
+    expect(r.weather).toBe("cloud");
+  });
+
+  it("returns alignmentBucket consistent with the existing helper", () => {
+    const r = computeCoupleVenueScore({
+      ownRatings: { cuisine: 4, hospitality: 4 },
+      partnerRatings: { cuisine: 4, hospitality: 4 },
+    });
+    // identical vectors → cosine 1 → 100 → aligned bucket
+    expect(r.alignment).toBe(100);
+    expect(r.alignmentBucket).toBe("aligned");
   });
 });

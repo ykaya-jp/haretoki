@@ -424,3 +424,183 @@ export function getScoreCoverage(
     dimensions: Array.from(seen).sort(),
   };
 }
+
+// ─── (6) couple-aware venue score — feeds Release β consensus card ───────
+
+/**
+ * Couple-level summary for a single venue, used by Release β's
+ * `<CoupleConsensusCard>` on /venues/[id] and the weather badge on
+ * /candidates VenueCard.
+ *
+ * `overall` is the arithmetic mean of per-dimension averages where at
+ * least one side has scored; it is null when neither member has rated
+ * anything yet. `alignment` reuses `opinionAlignmentScore` on the same
+ * inputs so the existing thresholds (`alignmentBucket`) stay consistent
+ * with the partner-comparison UI. `weather` is the brand metaphor
+ * (曇り→晴れ間→晴れの日) — derived from alignment + overall so the icon
+ * matches what couples see in the consensus card.
+ */
+export type Weather = "cloud" | "cloud-sun" | "sun";
+
+export interface CoupleDimensionRow {
+  dimension: Tier1Dimension;
+  /** 0.5–5.0 if rated, else null */
+  own: number | null;
+  partner: number | null;
+  /** mean of own/partner where present, else single value, else null */
+  avg: number | null;
+  /** both sides rated *and* their difference ≤ 1.0 */
+  aligned: boolean;
+}
+
+export interface CoupleVenueScore {
+  overall: number | null;
+  alignment: number;
+  alignmentBucket: AlignmentBucket;
+  weather: Weather;
+  byDimension: CoupleDimensionRow[];
+  agreedDimensions: Tier1Dimension[];
+  discussDimensions: Tier1Dimension[];
+}
+
+export interface CoupleScoreInput {
+  /** Parent dimension ratings keyed by Tier1Dimension. Missing keys = unrated. */
+  ownRatings?: ScoreByDimension | null;
+  partnerRatings?: ScoreByDimension | null;
+  /** Optional child-aggregate fallback. Used when the parent dimension
+   *  is unrated but child items roll up to a value — same precedence as
+   *  the read path on /venues/[id] (parent first, child as fallback). */
+  ownChildAggregates?: ScoreByDimension | null;
+  partnerChildAggregates?: ScoreByDimension | null;
+}
+
+function pickScore(
+  parent: ScoreByDimension | null | undefined,
+  child: ScoreByDimension | null | undefined,
+  dim: Tier1Dimension,
+): number | null {
+  const p = parent?.[dim];
+  if (p !== null && p !== undefined && Number.isFinite(p)) return p;
+  const c = child?.[dim];
+  if (c !== null && c !== undefined && Number.isFinite(c)) return c;
+  return null;
+}
+
+function deriveWeather(
+  alignment: number,
+  overall: number | null,
+): Weather {
+  // Mapping aligns with the /candidates 「合意マップ」 4-quadrants
+  // (Release γ): "晴れの日" = high score × high alignment, "曇り" =
+  // either low score (= you both decided to drop it) or low alignment
+  // (= you don't see it the same way yet), "晴れ間" = the quiet middle.
+  if (overall === null) return "cloud";
+  if (alignment >= 78 && overall >= 4.0) return "sun";
+  if (alignment < 75 || overall < 3.0) return "cloud";
+  return "cloud-sun";
+}
+
+/**
+ * Couple-rating alignment: cosine similarity computed *only* over the
+ * dimensions both members have actually rated.
+ *
+ * Why this is not `opinionAlignmentScore`: that helper is built for
+ * 1–5 dimension *weights* and fills missing keys with the neutral
+ * default (3). For ratings, "missing" means "未評価" — not "中立 3" —
+ * so injecting a default both inflates alignment when one spouse
+ * hasn't visited a dimension and lets neutral filler dominate the
+ * cosine when only a couple of dims are scored. We keep the existing
+ * weight-side helper untouched and use this rating-aware variant
+ * exclusively from `computeCoupleVenueScore`.
+ *
+ * Falls back to 50 (mid bucket) when there is no overlapping
+ * dimension yet — the venue hasn't been evaluated together.
+ */
+function ratingAlignment(
+  ownRatings: ScoreByDimension | null | undefined,
+  partnerRatings: ScoreByDimension | null | undefined,
+): number {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  let count = 0;
+  for (const dim of TIER1_DIMENSIONS) {
+    const a = ownRatings?.[dim];
+    const b = partnerRatings?.[dim];
+    if (a === null || a === undefined || !Number.isFinite(a)) continue;
+    if (b === null || b === undefined || !Number.isFinite(b)) continue;
+    dot += a * b;
+    normA += a * a;
+    normB += b * b;
+    count += 1;
+  }
+  if (count === 0 || normA === 0 || normB === 0) return 50;
+  const cosine = dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  // Map [-1, 1] → [0, 100], clamp against floating-point drift.
+  const mapped = Math.round(((cosine + 1) / 2) * 100);
+  return Math.max(0, Math.min(100, mapped));
+}
+
+/**
+ * Pure couple-aggregate for a single venue. No I/O — the caller is
+ * expected to fetch own/partner rating maps via `getCoupleRatings` and
+ * (optionally) child-aggregates via `aggregateChildScoresToDimensions`,
+ * then hand both maps in here.
+ */
+export function computeCoupleVenueScore(
+  input: CoupleScoreInput,
+): CoupleVenueScore {
+  const byDimension: CoupleDimensionRow[] = [];
+  const agreedDimensions: Tier1Dimension[] = [];
+  const discussDimensions: Tier1Dimension[] = [];
+
+  // Effective per-side rating per dim, with child-aggregate fallback
+  // already applied. These feed both the per-dim rows and the cosine
+  // similarity below.
+  const effectiveOwn: ScoreByDimension = {};
+  const effectivePartner: ScoreByDimension = {};
+
+  let avgSum = 0;
+  let avgCount = 0;
+
+  for (const dim of TIER1_DIMENSIONS) {
+    const own = pickScore(input.ownRatings, input.ownChildAggregates, dim);
+    const partner = pickScore(
+      input.partnerRatings,
+      input.partnerChildAggregates,
+      dim,
+    );
+    if (own !== null) effectiveOwn[dim] = own;
+    if (partner !== null) effectivePartner[dim] = partner;
+
+    let avg: number | null = null;
+    if (own !== null && partner !== null) avg = (own + partner) / 2;
+    else if (own !== null) avg = own;
+    else if (partner !== null) avg = partner;
+    const aligned =
+      own !== null && partner !== null && Math.abs(own - partner) <= 1.0;
+    byDimension.push({ dimension: dim, own, partner, avg, aligned });
+
+    if (aligned) agreedDimensions.push(dim);
+    else if (own !== null && partner !== null) discussDimensions.push(dim);
+
+    if (avg !== null) {
+      avgSum += avg;
+      avgCount += 1;
+    }
+  }
+
+  const overall = avgCount > 0 ? avgSum / avgCount : null;
+  const alignment = ratingAlignment(effectiveOwn, effectivePartner);
+  const weather = deriveWeather(alignment, overall);
+
+  return {
+    overall,
+    alignment,
+    alignmentBucket: alignmentBucket(alignment),
+    weather,
+    byDimension,
+    agreedDimensions,
+    discussDimensions,
+  };
+}
