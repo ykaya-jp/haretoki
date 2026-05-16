@@ -718,6 +718,7 @@ async function seedProjectChecklist(
   prisma: PrismaClient,
   projectId: string,
   venueIds: string[],
+  userId: string,
 ) {
   const { starterIds, allPresets } = await loadChecklistPresets();
   const presetById = new Map(allPresets.map((p) => [p.id, p]));
@@ -749,14 +750,16 @@ async function seedProjectChecklist(
       const status = n < 2 ? "yes" : n < 4 ? "no" : "unknown";
       await prisma.venueChecklistAnswer.upsert({
         where: {
-          projectChecklistId_venueId: {
+          projectChecklistId_venueId_userId: {
             projectChecklistId: activation.id,
             venueId,
+            userId,
           },
         },
         create: {
           projectChecklistId: activation.id,
           venueId,
+          userId,
           status,
         },
         update: { status },
@@ -837,6 +840,7 @@ async function main() {
       prisma,
       project.id,
       createdVenues.map((v) => v.id),
+      user.id,
     );
     console.log(`      + starter 16 items × ${createdVenues.length} venues answered`);
 

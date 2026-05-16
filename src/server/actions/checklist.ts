@@ -148,7 +148,11 @@ export async function bulkToggleDimension(
 
 type AnswerMap = Record<string, { status: string | null; memo: string | null; numberValue: number | null; photoUrls: string[] }>;
 
-async function fetchAnswersForVenue(venueId: string, projectId: string): Promise<AnswerMap> {
+async function fetchAnswersForVenue(
+  venueId: string,
+  projectId: string,
+  userId: string,
+): Promise<AnswerMap> {
   "use cache";
   cacheTag(answerTag(venueId));
   cacheTag(checklistTag(projectId));
@@ -157,9 +161,14 @@ async function fetchAnswersForVenue(venueId: string, projectId: string): Promise
   const venue = await prisma.venue.findFirst({ where: { id: venueId, projectId } });
   if (!venue) return {};
 
+  // Viewer-aware: only this user's answers. Spouses can each grade the
+  // same checklist item differently; the input UI mirrors that by showing
+  // your own answer here and rendering the partner's value in a separate
+  // overlay (see `getCoupleChecklistAnswers`).
   const answers = await prisma.venueChecklistAnswer.findMany({
     where: {
       venueId,
+      userId,
       projectChecklist: { projectId },
     },
     include: { projectChecklist: { select: { itemId: true } } },
@@ -180,7 +189,7 @@ async function fetchAnswersForVenue(venueId: string, projectId: string): Promise
 export async function getAnswersForVenue(venueId: string): Promise<AnswerMap> {
   const user = await requireUser();
   const { projectId } = await requireProjectMembership(user.id);
-  return fetchAnswersForVenue(venueId, projectId);
+  return fetchAnswersForVenue(venueId, projectId, user.id);
 }
 
 // ── Save (upsert) an answer ────────────────────────────────────────────────────
@@ -207,10 +216,17 @@ export async function saveAnswer(
 
   const data = parsed.data;
   await prisma.venueChecklistAnswer.upsert({
-    where: { projectChecklistId_venueId: { projectChecklistId: row.id, venueId } },
+    where: {
+      projectChecklistId_venueId_userId: {
+        projectChecklistId: row.id,
+        venueId,
+        userId: user.id,
+      },
+    },
     create: {
       projectChecklistId: row.id,
       venueId,
+      userId: user.id,
       status: data.status ?? null,
       memo: data.memo ?? null,
       numberValue: data.numberValue ?? null,
@@ -257,10 +273,12 @@ export async function getSuggestedScores(
     select: { id: true, itemId: true },
   });
 
-  // Get all answers for this venue
+  // Get this user's answers for this venue (viewer-aware after the
+  // per-user authorship migration — own status/score only).
   const answers = await prisma.venueChecklistAnswer.findMany({
     where: {
       venueId,
+      userId: user.id,
       projectChecklistId: { in: activeRows.map((r) => r.id) },
     },
     include: { projectChecklist: { select: { itemId: true } } },
@@ -460,10 +478,14 @@ export async function getComparisonMatrix(venueIds: string[]): Promise<Compariso
     })
     .filter((p): p is NonNullable<typeof p> => p != null);
 
-  // Answers for those venues
+  // Viewer-aware answers (own only). The 4-perspective tab in /candidates/
+  // compare (Release δ) will fetch couple-wide answers via a separate API;
+  // this default matrix shows the signed-in user's perspective so existing
+  // UI doesn't mix two people's answers into a single column.
   const answerRows = await prisma.venueChecklistAnswer.findMany({
     where: {
       venueId: { in: ids },
+      userId: user.id,
       projectChecklistId: { in: activeRows.map((r) => r.id) },
     },
     include: { projectChecklist: { select: { itemId: true } } },
