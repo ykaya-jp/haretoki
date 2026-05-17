@@ -10,6 +10,7 @@ import {
   computeWeightedComposite,
   WEIGHT_DEFAULT,
   computeCoupleVenueScore,
+  computeCoupleVenueScoresBulk,
 } from "@/lib/scoring";
 import { TIER1_DIMENSIONS } from "@/lib/constants";
 
@@ -243,5 +244,45 @@ describe("computeCoupleVenueScore — Release β consensus card primitive", () =
     // 100 ≥ 78 — confirms ≥ inclusive at the top of the band
     expect(r.alignment).toBeGreaterThanOrEqual(78);
     expect(r.weather).toBe("sun");
+  });
+});
+
+describe("computeCoupleVenueScoresBulk — Release β candidates-list helper", () => {
+  it("returns a Record keyed by venueId with one score per input", () => {
+    const out = computeCoupleVenueScoresBulk([
+      { venueId: "v1", ownRatings: { cuisine: 5 }, partnerRatings: { cuisine: 5 } },
+      { venueId: "v2", ownRatings: { cuisine: 2 }, partnerRatings: { cuisine: 2 } },
+    ]);
+    expect(Object.keys(out).sort()).toEqual(["v1", "v2"]);
+    // alignment(5,5)=100, overall=5 → sun per derive rules (≥78 ∧ ≥4.0)
+    expect(out.v1.weather).toBe("sun");
+    // identical low ratings → alignment 100 but overall=2 < 3.0 → cloud
+    expect(out.v2.weather).toBe("cloud");
+  });
+
+  it("preserves identical results between bulk and single-call invocations", () => {
+    const input = {
+      venueId: "vX",
+      ownRatings: { cuisine: 4, hospitality: 3.5 },
+      partnerRatings: { cuisine: 4.5, hospitality: 4 },
+    } as const;
+    const bulk = computeCoupleVenueScoresBulk([input]);
+    const { venueId: _v, ...single } = input;
+    const direct = computeCoupleVenueScore(single);
+    expect(bulk.vX).toEqual(direct);
+  });
+
+  it("handles an empty input list without throwing", () => {
+    expect(computeCoupleVenueScoresBulk([])).toEqual({});
+  });
+
+  it("uses last-write-wins semantics if the same venueId appears twice (caller bug, but no crash)", () => {
+    const out = computeCoupleVenueScoresBulk([
+      { venueId: "dup", ownRatings: { cuisine: 5 } },
+      { venueId: "dup", ownRatings: { cuisine: 1 } },
+    ]);
+    // Last entry wins — documents the behaviour so a future "throw on
+    // duplicate" change is a deliberate breaking change.
+    expect(out.dup.byDimension.find((d) => d.dimension === "cuisine")?.own).toBe(1);
   });
 });

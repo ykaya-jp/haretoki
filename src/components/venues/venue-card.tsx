@@ -1,4 +1,5 @@
-import { Star, Sparkles, Layers } from "lucide-react";
+import { Star, Sparkles, Layers, Sun, CloudSun, Cloud } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { PhotoCarousel } from "@/components/venues/photo-carousel";
 import { HeartButton } from "@/components/venues/heart-button";
@@ -7,6 +8,8 @@ import {
   computeCompositeScore,
   computeWeightedComposite,
   type DimensionWeights,
+  type CoupleVenueScore,
+  type Weather,
 } from "@/lib/scoring";
 import { CEREMONY_STYLE_LABELS } from "@/lib/constants";
 import type { VenueStatus } from "@/generated/prisma/client";
@@ -69,7 +72,25 @@ interface VenueCardProps {
    * — keeps all non-candidates call sites behaving exactly as before.
    */
   weights?: DimensionWeights | null;
+  /**
+   * Release β B-2: couple-consensus score for the weather badge over
+   * the photo bottom-right. When `null` / `undefined` the badge is not
+   * rendered — that keeps every existing call site (explore feed, demo,
+   * comparison-board, decision-summary-card) untouched.
+   * The candidates list hydrates this via the bulk Server Action
+   * `getCoupleScoresForVenues`.
+   */
+  coupleScore?: CoupleVenueScore | null;
 }
+
+const WEATHER_BADGE_META: Record<
+  Weather,
+  { Icon: ComponentType<SVGProps<SVGSVGElement>>; label: string }
+> = {
+  sun: { Icon: Sun, label: "晴れ" },
+  "cloud-sun": { Icon: CloudSun, label: "晴れ間" },
+  cloud: { Icon: Cloud, label: "曇り" },
+};
 
 export function VenueCard({
   venue,
@@ -77,6 +98,7 @@ export function VenueCard({
   fitReason = null,
   favoritedBy,
   weights = null,
+  coupleScore = null,
 }: VenueCardProps) {
   // W12-1: prefer the viewer's weighted composite when they've set weights.
   // computeWeightedComposite with null weights matches the arithmetic mean
@@ -193,6 +215,42 @@ export function VenueCard({
             晴れの日
           </div>
         )}
+
+        {/* Couple weather badge — Release β B-2.
+            Frosted-white pill over the photo bottom-right so it stays
+            legible on bright images. Rendered only when the caller
+            supplies a CoupleVenueScore (candidates list does; explore /
+            demo / others omit and behave as before). The aria-label
+            encodes weather + numeric overall for screen readers. */}
+        {coupleScore && (() => {
+          const meta = WEATHER_BADGE_META[coupleScore.weather];
+          const Icon = meta.Icon;
+          const overallLabel =
+            coupleScore.overall !== null
+              ? ` 総合 ${coupleScore.overall.toFixed(1)}`
+              : "";
+          return (
+            <div
+              aria-label={`二人の合意 ${meta.label}${overallLabel}`}
+              className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 tabular-nums backdrop-blur-sm"
+              style={{
+                boxShadow:
+                  "0 1px 3px rgba(42,35,32,0.15), 0 4px 12px color-mix(in oklab, var(--gold-warm) 14%, transparent)",
+              }}
+            >
+              <Icon
+                aria-hidden="true"
+                className="h-3.5 w-3.5 shrink-0 text-[var(--gold-warm)]"
+                strokeWidth={1.6}
+              />
+              {coupleScore.overall !== null && (
+                <span className="text-[11px] text-foreground">
+                  {coupleScore.overall.toFixed(1)}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Meta bar — status + score horizontal strip below photo */}

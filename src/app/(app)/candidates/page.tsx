@@ -7,6 +7,7 @@ import { getVenues } from "@/server/actions/venues";
 import { getDecision } from "@/server/actions/decisions";
 import { getCurrentUserName } from "@/server/actions/home";
 import { getCoupleWeights } from "@/server/actions/weights";
+import { getCoupleScoresForVenues } from "@/server/actions/ratings";
 import { CandidatesView } from "@/components/candidates/candidates-view";
 import { CoupleGapSection } from "@/components/candidates/couple-gap-section";
 
@@ -104,6 +105,14 @@ async function CandidatesContent({
     getCoupleWeights().catch(() => null),
   ]);
 
+  // Release β B-2: hydrate the weather-badge map server-side so the
+  // first paint already has each VenueCard's badge. The client-side
+  // useEffect in CandidatesView refreshes the map whenever favorites
+  // change (heart toggle, filter switch).
+  const initialCoupleScoreMap = await getCoupleScoresForVenues(
+    favorites.map((f) => f.venue.id),
+  ).catch(() => ({}));
+
   // venueOptions carries the minimum fields the view + ceremony need: id/name
   // for selection, photoUrls[0] so the DecisionCeremony hero card can paint
   // the chosen venue's photo as its atmospheric backdrop.
@@ -126,6 +135,7 @@ async function CandidatesContent({
       initialTab={initialTab}
       weights={coupleWeights?.mine ?? null}
       coupleWeights={coupleWeights}
+      initialCoupleScoreMap={initialCoupleScoreMap}
     />
   );
 }

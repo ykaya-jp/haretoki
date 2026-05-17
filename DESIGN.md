@@ -937,3 +937,60 @@ Spring config: `stiffness: 180, damping: 14`. The halo uses `ring-2 ring-[var(--
 | 23 | Zapier | 旅路サマリ | Decision |
 | 24 | Revolut | モバイルシェアバー | Partner |
 | 25 | Daze | 空きスロット可視化 | Partner |
+
+---
+
+## 天気メタファー (Couple Consensus Weather) v4.3 — Release β
+
+ブランドメタファー「曇り → 晴れ間 → 晴れの日」を **夫婦の合意プロセス** に重ね、`CoupleConsensusCard` / `VenueCard` 天気バッジ / (γ で追加予定の) 合意マップ象限の語彙を共通化する。`computeCoupleVenueScore` (`src/lib/scoring.ts`) が `overall` + `alignment` の 2 値から `Weather` 型を 1 つ返す — UI は文字列で分岐するだけ、閾値を再計算しない。
+
+### 3 段階の意味
+
+| 状態 | アイコン (Lucide) | 意味 | 使う場面 |
+|------|-------------------|------|---------|
+| `sun` | `Sun` | 晴れの日 = 二人で確信できた | 合意マップ「晴れの日」象限 / VenueCard badge / 詳細 hero card |
+| `cloud-sun` | `CloudSun` | 晴れ間 = 一部一致が見え始める | 合意マップ「晴れ間」象限 / VenueCard badge / 詳細 hero card |
+| `cloud` | `Cloud` | 曇り = まだ霞んでいる / 大きな意見差 / 未評価 | 合意マップ「曇り」「様子見」象限 / VenueCard badge / 詳細 hero card |
+
+### 閾値 (= `deriveWeather` in `src/lib/scoring.ts`)
+
+| 条件 | Weather |
+|------|---------|
+| `overall === null` | `cloud` (= 評価不足、霞んでいる) |
+| `alignment >= 78 && overall >= 4.0` | `sun` |
+| `alignment < 75 || overall < 3.0` | `cloud` |
+| それ以外 | `cloud-sun` |
+
+> ⚠️ 閾値変更は `computeCoupleVenueScore` のテスト境界値 (`tests/unit/lib/scoring.test.ts`「Boundary value coverage」) を必ず更新する。境界テストは「閾値の意図的な変更」と「うっかり通過」を区別するための安全網。
+
+### カラー扱い
+
+- `sun`: `var(--gold-warm)` (`#C9A84C`) — 「確信」を晴天 gold で表現
+- `cloud-sun`: `color-mix(in oklab, var(--gold-warm) 70%, var(--muted-foreground))` — gold と中立のあいだ
+- `cloud`: `var(--muted-foreground)` — 控えめ、判断保留の色
+
+「平均が高い」ではなく「**合致した上で平均が高い**」ことを上位の指標に置く語彙設計。`alignment` が低いままで `overall` だけ高くても `sun` にはならない (`cloud-sun` 止まり)。
+
+### コンポーネント対応
+
+| コンポーネント | 表示形式 | ファイル |
+|----------------|----------|---------|
+| `CoupleConsensusCard` (詳細 hero) | weather icon + `晴れの日 / 晴れ間 / 曇り` ラベル + 56px serif `overall` + alignment badge + 2 行 star bar | `src/components/ratings/couple-consensus-card.tsx` |
+| `VenueCard` 天気バッジ (候補一覧 / 写真右下) | weather icon + tabular `overall` を frosted-white pill で重畳 | `src/components/venues/venue-card.tsx` |
+| `ConsensusMap` (Release γ) | 4 象限のラベル (晴れの日 / 晴れ間 / 曇り / 様子見) | _未実装_ |
+
+### 既存トークンとの整合
+
+- `gold-warm` (`#C9A84C`) は AI / logo / 「決定」 状態と共通の特別色。**天気 `sun` も同じ gold を使う** ことで「ふたりの確信」を AI インサイト / Decision Ceremony と視覚的に連続させる
+- `--gold-subtle` (8% gold tint) は CoupleConsensusCard 内の hairline separator (`border-[var(--gold-subtle)]/40`) に使用
+- 既存の `<AlignmentBadge>` (`src/components/candidates/alignment-badge.tsx`) は **3 種** (aligned / close / discuss) で **天気メタファーとは別系統**。alignment は数値の bucket、weather は overall + alignment の合成。両者は共存させる (= 同じ画面に出てもよい、片方は数値、片方はブランドメタファー)。混同しないようカラーは alignment_badge も gold-warm 系で揃え、絵柄で区別する
+
+### Don't / Do
+
+| ❌ Don't | ✅ Do |
+|---------|------|
+| `cloud-sun` を「ほぼ晴れ」と扱って `sun` 並みの強調を当てる | `cloud-sun` は「中間」と明示し、視覚的にも gold を 70% に抑える |
+| weather icon を **アイコン無しで絵文字 (☀⛅☁) で代用** | Lucide の `Sun / CloudSun / Cloud` を使う。stroke / color が token と整合し、a11y も担保される |
+| `overall` が `null` なのに weather バッジを数値付きで描画する | `overall` が null の場合、`VenueCard` バッジは数値を省略 (= weather icon のみ)、`CoupleConsensusCard` は `—` を表示し alignment は出すが視覚的密度を下げる |
+| 天気を「ranking 指標」に転用する | weather は「ふたりの感情温度」。ランキングは `overall` か `weights` で行う。weather を sort key にしない |
+

@@ -604,3 +604,32 @@ export function computeCoupleVenueScore(
     discussDimensions,
   };
 }
+
+/**
+ * Release β bulk helper for the /candidates VenueCard weather badge.
+ *
+ * The caller (server action `getCoupleScoresForVenues`) fetches all the
+ * own + partner ratings + child-aggregates for N venues in a single
+ * Prisma round-trip, then hands them here as an array; this returns the
+ * scores keyed by venueId so the client can render `VenueCard
+ * coupleScore={map[venue.id]}` without per-venue I/O.
+ *
+ * Pure: no I/O, no allocations beyond the result object. Existence as a
+ * dedicated export marks the N-venue performance contract (Release β
+ * AC-9) — `computeCoupleVenueScore` alone would tempt callers to loop
+ * with awaited fetches per venue (the N+1 risk called out in the plan).
+ */
+export interface CoupleScoreBulkInput extends CoupleScoreInput {
+  venueId: string;
+}
+
+export function computeCoupleVenueScoresBulk(
+  inputs: CoupleScoreBulkInput[],
+): Record<string, CoupleVenueScore> {
+  const out: Record<string, CoupleVenueScore> = {};
+  for (const inp of inputs) {
+    const { venueId, ...rest } = inp;
+    out[venueId] = computeCoupleVenueScore(rest);
+  }
+  return out;
+}
