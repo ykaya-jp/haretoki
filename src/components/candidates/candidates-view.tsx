@@ -13,6 +13,8 @@ import { DecisionSummaryCard } from "@/components/candidates/decision-summary-ca
 import { EmptyState } from "@/components/ui/empty-state";
 import { Heart, BarChart3, Trophy, PartyPopper, Loader2, Sparkles, Info } from "lucide-react";
 import { getFavorites } from "@/server/actions/favorites";
+import { getCoupleScoresForVenues } from "@/server/actions/ratings";
+import type { CoupleVenueScore } from "@/lib/scoring";
 import { makeDecision, cancelDecision } from "@/server/actions/decisions";
 import { toast } from "sonner";
 import type { VenueStatus } from "@/generated/prisma/client";
@@ -118,6 +120,13 @@ interface CandidatesViewProps {
     partnerHasWeights: boolean;
     partnerName: string | null;
   } | null;
+  /**
+   * Release β B-2: server-side hydration of the couple-consensus
+   * score per favorite venueId. Used as the initial state so the
+   * first paint already shows the weather badge; the client-side
+   * useEffect refetches whenever `favorites` changes.
+   */
+  initialCoupleScoreMap?: Record<string, CoupleVenueScore | null>;
 }
 
 export function CandidatesView({
@@ -128,6 +137,7 @@ export function CandidatesView({
   initialTab,
   weights = null,
   coupleWeights = null,
+  initialCoupleScoreMap = {},
 }: CandidatesViewProps) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "shortlist");
   const [filter, setFilter] = useState<"mine" | "partner" | "both">("mine");
@@ -163,6 +173,28 @@ export function CandidatesView({
     // Refetch when filter changes
     getFavorites(filter).then(setFavorites);
   }, [filter]);
+
+  // Release β B-2: hydrate the per-venue couple-consensus score map so
+  // each VenueCard can render its weather badge. SSR seeds the first
+  // paint via `initialCoupleScoreMap`; the effect below refreshes
+  // whenever `favorites` changes (heart toggle / filter switch).
+  const [coupleScoreMap, setCoupleScoreMap] = useState<
+    Record<string, CoupleVenueScore | null>
+  >(initialCoupleScoreMap);
+  useEffect(() => {
+    const ids = favorites.map((f) => f.venue.id);
+    let cancelled = false;
+    // The action short-circuits on empty input and returns {}, so the
+    // zero-favorite case is covered without a separate setState branch
+    // (the lint rule react-hooks/set-state-in-effect blocks the
+    // synchronous setState path; the async .then keeps us compliant).
+    getCoupleScoresForVenues(ids).then((map) => {
+      if (!cancelled) setCoupleScoreMap(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [favorites]);
 
   const canCompare = venueOptions.length >= 2;
   const canDecide = venueOptions.length >= 1;
@@ -412,7 +444,12 @@ export function CandidatesView({
                           exit={{ opacity: 0, x: -100, transition: { duration: 0.4 } }}
                           transition={{ delay: Math.min(index, 4) * 0.06, duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                         >
-                          <VenueCard venue={fav.venue} isFavorite={true} weights={activeWeights} />
+                          <VenueCard
+                            venue={fav.venue}
+                            isFavorite={true}
+                            weights={activeWeights}
+                            coupleScore={coupleScoreMap[fav.venue.id] ?? null}
+                          />
                           {/* W11-2: per-venue "この式場を選ぶなら" summary card.
                               Rendered under the venue card as a folded
                               disclosure — client-side math on the already-
@@ -431,6 +468,7 @@ export function CandidatesView({
                       favorites={favorites}
                       activeWeights={activeWeights}
                       summariesByVenueId={summariesByVenueId}
+                      coupleScoreMap={coupleScoreMap}
                     />
                   ))}
               </div>
@@ -551,10 +589,12 @@ function VirtualFavoritesList({
   favorites,
   activeWeights,
   summariesByVenueId,
+  coupleScoreMap,
 }: {
   favorites: FavoriteVenue[];
   activeWeights: DimensionWeights | null;
   summariesByVenueId: Record<string, ReturnType<typeof buildDecisionSummary> | null>;
+  coupleScoreMap: Record<string, CoupleVenueScore | null>;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   // scrollMargin must be a plain value (not a ref read) during render —
@@ -612,6 +652,7 @@ function VirtualFavoritesList({
                 venue={fav.venue}
                 isFavorite={true}
                 weights={activeWeights}
+                coupleScore={coupleScoreMap[fav.venue.id] ?? null}
               />
               {showSummary && (
                 <DecisionSummaryCard

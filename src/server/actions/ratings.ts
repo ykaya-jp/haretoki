@@ -10,6 +10,12 @@ import {
   publishRealtimeEvent,
   resolveActor,
 } from "@/lib/realtime/publish";
+import {
+  computeCoupleVenueScoresBulk,
+  type CoupleVenueScore,
+  type ScoreByDimension,
+} from "@/lib/scoring";
+import type { Tier1Dimension } from "@/lib/constants";
 
 // --- Server actions ---
 
@@ -219,5 +225,107 @@ export async function getCoupleRatings(venueId: string) {
         }
       : null,
   };
+}
+
+/**
+ * Release β B-2 bulk helper for the /candidates VenueCard weather
+ * badge. Returns `Record<venueId, CoupleVenueScore | null>` for every
+ * venueId in the input. `null` lands for ids that aren't in the
+ * viewer's project (silent IDOR filter) or that have no VisitRating
+ * for either spouse yet (badge stays hidden on those cards).
+ *
+ * Scope: parent VisitRating only. Child VenueChecklistAnswer fall-back
+ * via `aggregateChildScoresToDimensions` is deliberately out of scope
+ * for β — the badge is a low-fidelity signal and parent ratings are
+ * the canonical input; adding child aggregation here would double the
+ * round-trips for negligible badge-mix change. Plan: revisit in γ if
+ * users complain that child-only venues miss out on a badge.
+ *
+ * Round-trips: O(1) regardless of N venueIds.
+ *   - 1 query: venue auth-filter
+ *   - 1 query: project members (to derive partner userId)
+ *   - 1 query: VisitRating WHERE visit.venueId IN ids AND userId IN
+ *     {own, partner}
+ * Pure aggregation + computeCoupleVenueScoresBulk after that.
+ */
+export async function getCoupleScoresForVenues(
+  venueIds: string[],
+): Promise<Record<string, CoupleVenueScore | null>> {
+  if (venueIds.length === 0) return {};
+  const user = await requireUser();
+  const { projectId } = await requireProjectMembership(user.id);
+
+  // Auth filter: only return scores for venues in the viewer's
+  // project. Anything outside (= the caller passed an id from another
+  // project, or a deleted venue) lands as `null` in the output so the
+  // caller can map every requested id 1-to-1 without a missing key.
+  const projectVenues = await prisma.venue.findMany({
+    where: { id: { in: venueIds }, projectId, deletedAt: null },
+    select: { id: true },
+  });
+  const allowedIds = projectVenues.map((v) => v.id);
+
+  const members = await prisma.projectMember.findMany({
+    where: { projectId, acceptedAt: { not: null } },
+    select: { userId: true },
+  });
+  const ownUserId = user.id;
+  const partnerUserId =
+    members.find((m) => m.userId !== ownUserId)?.userId ?? null;
+
+  const userIdsToFetch = partnerUserId
+    ? [ownUserId, partnerUserId]
+    : [ownUserId];
+
+  const ratings = allowedIds.length > 0
+    ? await prisma.visitRating.findMany({
+        where: {
+          visit: { venueId: { in: allowedIds } },
+          userId: { in: userIdsToFetch },
+        },
+        select: {
+          userId: true,
+          dimension: true,
+          score: true,
+          visit: { select: { venueId: true } },
+        },
+      })
+    : [];
+
+  // Bucket rows by (venueId, userId) → ScoreByDimension. The
+  // VisitRating unique constraint (visitId, userId, dimension) caps
+  // each (venue, user, dim) at one row — same-venue multi-visit
+  // collisions would be the only way to double-up, and the last
+  // write wins, matching getCoupleRatings' behaviour.
+  const buckets: Record<
+    string,
+    { own: ScoreByDimension; partner: ScoreByDimension }
+  > = {};
+  for (const id of allowedIds) buckets[id] = { own: {}, partner: {} };
+  for (const r of ratings) {
+    const bucket = buckets[r.visit.venueId];
+    if (!bucket) continue;
+    const target =
+      r.userId === ownUserId
+        ? bucket.own
+        : r.userId === partnerUserId
+          ? bucket.partner
+          : null;
+    if (target) target[r.dimension as Tier1Dimension] = Number(r.score);
+  }
+
+  const scoresByAllowedId = computeCoupleVenueScoresBulk(
+    allowedIds.map((id) => ({
+      venueId: id,
+      ownRatings: buckets[id].own,
+      partnerRatings: buckets[id].partner,
+    })),
+  );
+
+  // Re-key against the *original* venueIds so unauthorized / unknown
+  // ids land as null and the caller can index every requested id.
+  const out: Record<string, CoupleVenueScore | null> = {};
+  for (const id of venueIds) out[id] = scoresByAllowedId[id] ?? null;
+  return out;
 }
 

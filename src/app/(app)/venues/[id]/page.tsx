@@ -27,6 +27,8 @@ import { PlanSection } from "@/components/venues/plan-section";
 import { VenueActionBar } from "@/components/venues/venue-action-bar";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
 import { PartnerCanRateHint } from "@/components/ratings/partner-can-rate-hint";
+import { CoupleConsensusCard } from "@/components/ratings/couple-consensus-card";
+import { computeCoupleVenueScore } from "@/lib/scoring";
 import { VisitSection } from "@/components/visits/visit-section";
 import { VenueMemoSection } from "@/components/venues/venue-memo-section";
 import { getVenueMemos } from "@/server/actions/venue-memos";
@@ -147,6 +149,16 @@ export default async function VenueDetailPage({
         ceremonyStyles={venue.ceremonyStyles}
         status={venue.status}
       />
+
+      {/* Release β B-1: "二人の合意" consensus card.
+          Streams in via getCoupleRatings; renders null when neither
+          spouse has rated anything (= the page would otherwise show
+          a card with overall "—" and no signal). Sits between
+          VenueHeader and the freshness chip so the page hierarchy
+          reads as: name → couple judgement → external metadata. */}
+      <Suspense fallback={null}>
+        <CoupleConsensusBlock venueId={venue.id} />
+      </Suspense>
 
       {/* Freshness chip — surfaces when the imported fields were last
           updated, and offers a one-tap re-import for URL-sourced venues.
@@ -416,6 +428,41 @@ export default async function VenueDetailPage({
  *   - Render the RatingSection itself. That now lives in the parent
  *     server component and is synchronous against `userRatings`.
  */
+/**
+ * Release β B-1: feed CoupleConsensusCard with computed
+ * CoupleVenueScore. Streams in alongside the rest of the page; returns
+ * null when neither spouse has rated anything yet so the card doesn't
+ * pollute the layout with empty "二人の合意 — 曇り — —" affordances on
+ * brand-new venues.
+ */
+async function CoupleConsensusBlock({ venueId }: { venueId: string }) {
+  const data = await getCoupleRatings(venueId).catch(() => null);
+  if (!data) return null;
+
+  const ownRatings: Record<string, number> = {};
+  for (const [dim, score] of Object.entries(data.ownRatings?.ratings ?? {})) {
+    ownRatings[dim] = score;
+  }
+  const partnerRatings: Record<string, number> = {};
+  for (const [dim, score] of Object.entries(data.otherRatings?.ratings ?? {})) {
+    partnerRatings[dim] = score;
+  }
+  const anyRated =
+    Object.keys(ownRatings).length > 0 ||
+    Object.keys(partnerRatings).length > 0;
+  if (!anyRated) return null;
+
+  const score = computeCoupleVenueScore({ ownRatings, partnerRatings });
+
+  return (
+    <CoupleConsensusCard
+      score={score}
+      ownName={data.ownRatings?.name ?? undefined}
+      partnerName={data.otherRatings?.name ?? undefined}
+    />
+  );
+}
+
 async function RatingPartnerOverlay({
   venueId,
   userRatings,
