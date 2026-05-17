@@ -159,6 +159,7 @@ model User {
   visitNotes               VisitNote[]
   venueMemos               VenueMemo[]
   favorites                VenueFavorite[]
+  venueChecklistAnswers    VenueChecklistAnswer[]
   notificationPreference   NotificationPreference?
   notifications            Notification[]
   createdInvitations       ProjectInvitation[]     @relation("ProjectInvitationCreator")
@@ -1063,6 +1064,12 @@ model VenueChecklistAnswer {
   id                 String   @id @default(cuid())
   projectChecklistId String   @map("project_checklist_id")
   venueId            String   @map("venue_id") @db.Uuid
+  /// Author of this answer. Couples evaluate venues individually; spouses
+  /// keep separate rows per checklist item so "妻 4 / 夫 3" can be compared
+  /// side-by-side without one overwriting the other. Historical rows are
+  /// backfilled to the project owner in the same migration that adds this
+  /// column.
+  userId             String   @map("user_id") @db.Uuid
   status             String?
   memo               String?
   numberValue        Decimal? @map("number_value") @db.Decimal(12, 2)
@@ -1078,9 +1085,11 @@ model VenueChecklistAnswer {
 
   projectChecklist ProjectChecklist @relation(fields: [projectChecklistId], references: [id], onDelete: Cascade)
   venue            Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([projectChecklistId, venueId])
+  @@unique([projectChecklistId, venueId, userId])
   @@index([projectChecklistId])
+  @@index([projectChecklistId, userId])
   @@index([venueId])
   @@map("venue_checklist_answers")
 }

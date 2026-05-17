@@ -186,10 +186,15 @@ export async function getUnifiedComparisonData(): Promise<UnifiedComparisonData>
   });
   const activeItemIds = new Set(activeChecklist.map((c) => c.itemId));
 
-  // Fetch all checklist answers for these venues in one query
+  // Viewer-aware: pull only this user's checklist answers. After the
+  // per-user authorship migration, spouses each keep their own row per
+  // checklist item — mixing them here would surface whichever side's
+  // upsert landed last. The Release δ 4-perspective tab swaps this for
+  // a couple-wide pull so each tab can render its own slice.
   const rawAnswers = await prisma.venueChecklistAnswer.findMany({
     where: {
       venueId: { in: venueIds },
+      userId: user.id,
       projectChecklist: { projectId },
     },
     select: {

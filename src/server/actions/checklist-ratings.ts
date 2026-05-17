@@ -155,14 +155,16 @@ export async function saveChildRating(input: {
 
   await prisma.venueChecklistAnswer.upsert({
     where: {
-      projectChecklistId_venueId: {
+      projectChecklistId_venueId_userId: {
         projectChecklistId: checklist.id,
         venueId: parsed.data.venueId,
+        userId: user.id,
       },
     },
     create: {
       projectChecklistId: checklist.id,
       venueId: parsed.data.venueId,
+      userId: user.id,
       numericScore: parsed.data.score,
     },
     update: {
@@ -211,14 +213,16 @@ export async function bulkSetDimensionRating(input: {
 
       await tx.venueChecklistAnswer.upsert({
         where: {
-          projectChecklistId_venueId: {
+          projectChecklistId_venueId_userId: {
             projectChecklistId: checklist.id,
             venueId: parsed.data.venueId,
+            userId: user.id,
           },
         },
         create: {
           projectChecklistId: checklist.id,
           venueId: parsed.data.venueId,
+          userId: user.id,
           numericScore: parsed.data.score,
         },
         update: { numericScore: parsed.data.score },
@@ -280,6 +284,71 @@ export async function addCustomChecklistItem(input: {
   revalidateTag(projectChecklistTag(projectId), { expire: 0 });
 
   return { success: true as const, itemId: created.id };
+}
+
+/**
+ * Get the viewer's and partner's child-item scores for a single venue.
+ *
+ * Mirrors `getCoupleRatings` (= parent dimension version in `ratings.ts`):
+ * returns `{ ownScoreByItemId, partnerScoreByItemId, partnerName }` so
+ * `<ChildRatingPanel>` can render the partner's value as a quiet overlay
+ * under each child chip without a second round trip.
+ *
+ * Returns null `partnerScoreByItemId` when the project has no accepted
+ * partner yet (single-member project). Each map keys ProjectChecklist
+ * `itemId` (preset id or CustomChecklistItem cuid) → 0.5–5 numericScore
+ * or null if the user hasn't graded that item yet.
+ */
+export async function getCoupleChecklistAnswers(venueId: string): Promise<{
+  ownScoreByItemId: Record<string, number | null>;
+  partnerScoreByItemId: Record<string, number | null> | null;
+  partnerName: string | null;
+}> {
+  const user = await requireUser();
+  const { projectId } = await requireVenueAccess(user.id, venueId);
+
+  // Resolve project members (= same shape as getCoupleRatings)
+  const members = await prisma.projectMember.findMany({
+    where: { projectId, acceptedAt: { not: null } },
+    select: {
+      userId: true,
+      user: { select: { name: true, email: true } },
+    },
+  });
+  const other = members.find((m) => m.userId !== user.id);
+
+  // Single round-trip: pull every project member's answers for this venue
+  // then split by userId in JS. Matches the pattern in `getCoupleRatings`
+  // — one query is cheaper than two userId-filtered round trips.
+  const answerRows = await prisma.venueChecklistAnswer.findMany({
+    where: {
+      venueId,
+      projectChecklist: { projectId },
+    },
+    select: {
+      userId: true,
+      numericScore: true,
+      projectChecklist: { select: { itemId: true } },
+    },
+  });
+
+  function buildMap(userId: string): Record<string, number | null> {
+    const map: Record<string, number | null> = {};
+    for (const row of answerRows) {
+      if (row.userId !== userId) continue;
+      map[row.projectChecklist.itemId] =
+        row.numericScore !== null && row.numericScore !== undefined
+          ? Number(row.numericScore)
+          : null;
+    }
+    return map;
+  }
+
+  return {
+    ownScoreByItemId: buildMap(user.id),
+    partnerScoreByItemId: other ? buildMap(other.userId) : null,
+    partnerName: other ? other.user?.name ?? other.user?.email ?? null : null,
+  };
 }
 
 /**

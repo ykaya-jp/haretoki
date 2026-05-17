@@ -44,6 +44,13 @@ interface ChildRatingPanelProps {
   /** Custom item id → Tier1 dimension. Forwarded to aggregator so the
    *  header score under each dim mirrors what /compare displays. */
   customLookup: CustomDimensionLookup;
+  /** Partner's own child scores (itemId → 0.5–5 or null). Null when the
+   *  project has no accepted partner yet — the panel then renders only
+   *  the viewer's chips with no overlay. */
+  partnerScoreByItemId?: Record<string, number | null> | null;
+  /** Display label for the partner (= name or email fallback). Used in
+   *  the quiet overlay row beneath each child chip group. */
+  partnerName?: string | null;
 }
 
 /**
@@ -72,6 +79,8 @@ export function ChildRatingPanel({
   venueId,
   items,
   customLookup,
+  partnerScoreByItemId,
+  partnerName,
 }: ChildRatingPanelProps) {
   const [scores, setScores] = useState<Record<string, number | null>>(() =>
     Object.fromEntries(items.map((i) => [i.itemId, i.initialScore])),
@@ -219,6 +228,10 @@ export function ChildRatingPanel({
                           score={scores[row.itemId] ?? null}
                           pending={pendingItemId === row.itemId}
                           onChange={(s) => handleSetScore(row.itemId, s)}
+                          partnerScore={
+                            partnerScoreByItemId?.[row.itemId] ?? null
+                          }
+                          partnerName={partnerName ?? null}
                         />
                       ))}
                     </div>
@@ -238,12 +251,23 @@ function ChildRow({
   score,
   pending,
   onChange,
+  partnerScore,
+  partnerName,
 }: {
   item: ChildRatingItem;
   score: number | null;
   pending: boolean;
   onChange: (next: number | null) => void;
+  partnerScore: number | null;
+  partnerName: string | null;
 }) {
+  // Show the partner row when they've actually graded this item. A null
+  // here means "partner has not scored yet" — render nothing rather than
+  // a "—" to keep the panel quiet on items the spouse hasn't visited.
+  const showPartner = partnerScore !== null && partnerName !== null;
+  const aligned =
+    showPartner && score !== null && Math.abs(score - partnerScore) <= 0.5;
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-2">
@@ -279,6 +303,19 @@ function ChildRow({
           );
         })}
       </div>
+      {showPartner ? (
+        <div
+          className={cn(
+            "flex items-center gap-2 pl-0.5 pt-0.5 text-[11px] text-muted-foreground",
+            aligned && "text-[var(--gold-warm)]",
+          )}
+          aria-label={`${partnerName} の評価 ${partnerScore.toFixed(1)} 点`}
+        >
+          <span className="truncate">{partnerName}</span>
+          <span className="h-px flex-1 bg-border/40" aria-hidden />
+          <span className="tabular-nums">{partnerScore.toFixed(1)}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getVenueHeader } from "@/server/actions/venues";
 import { getCoupleRatings } from "@/server/actions/ratings";
+import { getCoupleChecklistAnswers } from "@/server/actions/checklist-ratings";
 import { requireUser, requireProjectMembership } from "@/server/auth";
 import { RatingSection } from "@/components/venues/rating-section";
 import { PartnerComparisonSummary } from "@/components/ratings/partner-comparison-summary";
@@ -79,7 +80,7 @@ export default async function VenueImpressionPage({
   // numericScore on this venue. Parallel-fetched because they're
   // independent. The output drives the new ChildRatingPanel below the
   // parent 8-dim RatingSection.
-  const [activeChecklists, customItems, existingAnswers] = await Promise.all([
+  const [activeChecklists, customItems, existingAnswers, coupleChecklist] = await Promise.all([
     prisma.projectChecklist.findMany({
       where: { projectId },
       select: { id: true, itemId: true },
@@ -89,13 +90,21 @@ export default async function VenueImpressionPage({
       select: { id: true, question: true, category: true },
     }),
     prisma.venueChecklistAnswer.findMany({
-      where: { venueId: id, projectChecklist: { projectId } },
+      where: {
+        venueId: id,
+        userId: user.id,
+        projectChecklist: { projectId },
+      },
       select: {
         projectChecklistId: true,
         numericScore: true,
         projectChecklist: { select: { itemId: true } },
       },
     }),
+    // Partner's child scores (null map when partner not joined yet).
+    // Fetched in parallel so the panel renders the spouse's chip overlay
+    // without a second waterfall.
+    getCoupleChecklistAnswers(id).catch(() => null),
   ]);
 
   const presetById = new Map(CHECKLIST_PRESETS.map((p) => [p.id, p]));
@@ -215,6 +224,8 @@ export default async function VenueImpressionPage({
           venueId={venue.id}
           items={childItems}
           customLookup={customDimLookup}
+          partnerScoreByItemId={coupleChecklist?.partnerScoreByItemId ?? null}
+          partnerName={coupleChecklist?.partnerName ?? null}
         />
       </section>
 
